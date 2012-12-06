@@ -1,0 +1,34 @@
+
+TODO list
+
+Features to add:
+
+- interpreter (like tryhaskell.org) on the web page to debug rules
+- implement Ctrl-C to quit program: rehook signal handlers
+- show details of rules
+- store state in DB
+- make a command line client
+- read/write .hs files
+- make a clear login/session system
+
+Improves:
+
+- headers with revision
+- refresh web page when new event
+- reshape tests and add new primitives
+
+Futur Nomic:
+- ability to analyse rules, proof system
+
+
+
+Difficulties
+- splitting up the program
+- reading GATDs
+- really hard to track bug with an instance of Ord defined with ">"
+
+
+BUGS
+- suppress events in delRule
+
+
