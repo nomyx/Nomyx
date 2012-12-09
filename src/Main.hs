@@ -27,10 +27,10 @@ import Control.Concurrent.STM
 -- | Entry point of the program.
 main :: IO Bool
 main = do
-   putStrLn "Welcome to Haskell Nomic"
+   putStrLn "Welcome to Nomyx!"
    serverCommandUsage
    args <- getArgs 
-   (flags, _) <- nomicOpts args
+   (flags, _) <- nomyxOpts args
    --parseActions flags
    --let verbose = Verbose `elem` flags
    if Test `elem` flags
@@ -92,9 +92,9 @@ options =
      ]
 
     
-nomicOpts :: [String] -> IO ([Flag], [String])
-nomicOpts argv = 
+nomyxOpts :: [String] -> IO ([Flag], [String])
+nomyxOpts argv = 
        case getOpt Permute options argv of
           (o,n,[]  ) -> return (o,n)
           (_,_,errs) -> ioError (userError (concat errs ++ usageInfo header options))
-      where header = "Usage: nomic [OPTION...]"
+      where header = "Usage: Nomyx [OPTION...]"

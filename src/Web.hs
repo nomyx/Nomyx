@@ -67,14 +67,14 @@ instance PathInfo Bool where
              _ ->        Nothing
 
 
-type NomicServer       = ServerPartT IO
-type RoutedNomicServer = RouteT PlayerCommand NomicServer
+type NomyxServer       = ServerPartT IO
+type RoutedNomyxServer = RouteT PlayerCommand NomyxServer
 
 
-nomicSite :: ServerHandle -> (TVar Multi) -> Site PlayerCommand (ServerPartT IO Html)
-nomicSite sh tm = setDefault Login $ mkSitePI (runRouteT $ routedNomicCommands sh tm)
+nomyxSite :: ServerHandle -> (TVar Multi) -> Site PlayerCommand (ServerPartT IO Html)
+nomyxSite sh tm = setDefault Login $ mkSitePI (runRouteT $ routedNomyxCommands sh tm)
 
-viewGame :: Game -> PlayerNumber -> RoutedNomicServer Html
+viewGame :: Game -> PlayerNumber -> RoutedNomyxServer Html
 viewGame g pn = do
    rf <- ruleForm pn
    vi <- viewInputs pn $ events g
@@ -114,7 +114,7 @@ viewVictory g = do
 viewAllRules :: Game -> Html
 viewAllRules g = do
    h3 "Rules"
-   viewRules "Constitution:"  $ activeRules g
+   viewRules "Active rules:"  $ activeRules g
    viewRules "Pending rules:" $ pendingRules g
    viewRules "Suppressed rules:" $ rejectedRules g
 
@@ -153,7 +153,7 @@ viewEvents ehs = do
          td ! A.class_ "td" $ text "Event Number"
          td ! A.class_ "td" $ text "By Rule"
          td ! A.class_ "td" $ text "Event"
-      mapM_ viewEvent ehs
+      mapM_ viewEvent $ sort ehs
 
 viewEvent :: EventHandler -> Html
 viewEvent (EH eventNumber ruleNumber event _) = tr $ do
@@ -161,7 +161,7 @@ viewEvent (EH eventNumber ruleNumber event _) = tr $ do
    td ! A.class_ "td" $ string . show $ ruleNumber
    td ! A.class_ "td" $ string . show $ event
 
-viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomicServer Html
+viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomyxServer Html
 viewInputs pn ehs = do
    mis <- mapM (viewInput pn) ehs
    let is = catMaybes mis
@@ -172,7 +172,7 @@ viewInputs pn ehs = do
          table $ do
             mconcat is
 
-viewInput :: PlayerNumber -> EventHandler -> RoutedNomicServer (Maybe Html)
+viewInput :: PlayerNumber -> EventHandler -> RoutedNomyxServer (Maybe Html)
 viewInput me (EH eventNumber _ (InputChoice pn title choices def) _) | me == pn = do
     link <- showURL (DoInputChoice pn eventNumber)
     lf  <- lift $ viewForm "user" $ inputChoiceForm title (map show choices) (show def)
@@ -203,7 +203,7 @@ viewVar (Var vRuleNumber vName vData) = tr $ do
 
 
 
-ruleForm :: PlayerNumber -> RoutedNomicServer Html
+ruleForm :: PlayerNumber -> RoutedNomyxServer Html
 ruleForm pn = do
    link <- showURL NewRule
    ok $ do
@@ -212,7 +212,7 @@ ruleForm pn = do
       H.label ! A.for "name" $ "Name: "
       input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "N"
       H.label ! A.for "text" $ "      Short description: "
-      input ! type_ "text" ! name "text" ! A.id "text" ! tabindex "2" ! accesskey "T"
+      input ! type_ "text" ! name "description" ! A.id "description" ! tabindex "2" ! accesskey "T"
       H.br
       H.label ! A.for "text" $ "Code: "
       textarea ! name "code" ! A.id "code" ! tabindex "3" ! accesskey "C" $ "Enter here your rule"
@@ -232,7 +232,7 @@ viewMessages :: [String] -> Html
 viewMessages = mapM_ (\s -> string s >> br)
 
 
-viewMulti :: PlayerNumber -> Multi -> RoutedNomicServer Html
+viewMulti :: PlayerNumber -> Multi -> RoutedNomyxServer Html
 viewMulti pn m = do
    gns <- viewGameNames pn (games m)
    g <- case getPlayersGame pn m of
@@ -244,7 +244,7 @@ viewMulti pn m = do
 
 
 
-viewGameNames :: PlayerNumber -> [Game] -> RoutedNomicServer Html
+viewGameNames :: PlayerNumber -> [Game] -> RoutedNomyxServer Html
 viewGameNames pn gs = do
    gns <- mapM (viewGameName pn) gs
    ng <- newGameForm pn
@@ -257,7 +257,7 @@ viewGameNames pn gs = do
       br >> "Create a new game:"
       ng
 
-viewGameName :: PlayerNumber -> Game -> RoutedNomicServer Html
+viewGameName :: PlayerNumber -> Game -> RoutedNomyxServer Html
 viewGameName pn g = do
    let gn = gameName g
    join <- showURL (JoinGame pn gn)
@@ -272,7 +272,7 @@ viewGameName pn g = do
          --td $ H.a "Subscribe" ! (href $ toValue subscribe)
          td $ H.a "Unsubscribe" ! (href $ toValue unsubscribe)
 
-newGameForm :: PlayerNumber -> RoutedNomicServer Html
+newGameForm :: PlayerNumber -> RoutedNomyxServer Html
 newGameForm pn = do
    link <- showURL NewGame
    ok $ H.form ! A.method "POST" ! A.action (toValue link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
@@ -282,58 +282,58 @@ newGameForm pn = do
       input ! type_  "submit" ! tabindex "2" ! accesskey "S" ! value "Create New Game!"
 
 
-nomicPage :: Multi -> PlayerNumber -> RoutedNomicServer Html
-nomicPage multi pn = do
+nomyxPage :: Multi -> PlayerNumber -> RoutedNomyxServer Html
+nomyxPage multi pn = do
    m <- viewMulti pn multi
    ok $ do
       H.html $ do
         H.head $ do
-          H.title "Welcome to Nomic!"
-          H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomic.css"
+          H.title "Welcome to Nomyx!"
+          H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"
           H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
-          H.meta ! A.name "keywords" ! A.content "Nomic, game, rules, Haskell, auto-reference"
+          H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
           --H.meta ! A.httpEquiv "refresh" ! A.content "3"
         H.body $ do
           H.div ! A.id "container" $ do
-             H.div ! A.id "header" $ string $ "Welcome to Nomic, " ++ (getPlayersName pn multi) ++ "!"
+             H.div ! A.id "header" $ string $ "Welcome to Nomyx, " ++ (getPlayersName pn multi) ++ "!"
              H.div ! A.id "multi" $ m
 
 
-loginPage :: RoutedNomicServer Html
+loginPage :: RoutedNomyxServer Html
 loginPage = do
    link <- showURL PostLogin
    lf  <- lift $ viewForm "user" loginForm
    ok $ H.html $ do
       H.head $ do
-        H.title "Login to Nomic"
-        H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomic.css"
+        H.title "Login to Nomyx"
+        H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"
         H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
-        H.meta ! A.name "keywords" ! A.content "Nomic, game, rules, Haskell, auto-reference"
+        H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
       H.body $ do
         H.div ! A.id "container" $ do
-           H.div ! A.id "header" $ "Login to Nomic"
+           H.div ! A.id "header" $ "Login to Nomyx"
            H.div ! A.id "login" $ blazeForm lf (link)
            H.div ! A.id "footer" $ string "Copyright Corentin Dupont 2012"
 
 
-routedNomicCommands :: ServerHandle -> (TVar Multi) -> PlayerCommand -> RoutedNomicServer Html
-routedNomicCommands _ _  (Login)                     = loginPage
-routedNomicCommands _ tm (PostLogin)                 = postLogin tm
-routedNomicCommands _ tm (Noop pn)                   = nomicPageComm pn tm (return ())
-routedNomicCommands _ tm (JoinGame pn game)          = nomicPageComm pn tm (joinGame game pn)
-routedNomicCommands _ tm (LeaveGame pn)              = nomicPageComm pn tm (leaveGame pn)
-routedNomicCommands _ tm (SubscribeGame pn game)     = nomicPageComm pn tm (subscribeGame game pn)
-routedNomicCommands _ tm (UnsubscribeGame pn game)   = nomicPageComm pn tm (unsubscribeGame game pn)
-routedNomicCommands sh tm (NewRule)                  = newRule sh tm
-routedNomicCommands _ tm (NewGame)                   = newGameWeb tm
-routedNomicCommands _ tm (DoInputChoice pn en)       = newInputChoice pn en tm
-routedNomicCommands _ tm (DoInputString pn en)       = newInputString pn en tm
+routedNomyxCommands :: ServerHandle -> (TVar Multi) -> PlayerCommand -> RoutedNomyxServer Html
+routedNomyxCommands _ _  (Login)                     = loginPage
+routedNomyxCommands _ tm (PostLogin)                 = postLogin tm
+routedNomyxCommands _ tm (Noop pn)                   = nomyxPageComm pn tm (return ())
+routedNomyxCommands _ tm (JoinGame pn game)          = nomyxPageComm pn tm (joinGame game pn)
+routedNomyxCommands _ tm (LeaveGame pn)              = nomyxPageComm pn tm (leaveGame pn)
+routedNomyxCommands _ tm (SubscribeGame pn game)     = nomyxPageComm pn tm (subscribeGame game pn)
+routedNomyxCommands _ tm (UnsubscribeGame pn game)   = nomyxPageComm pn tm (unsubscribeGame game pn)
+routedNomyxCommands sh tm (NewRule)                  = newRule sh tm
+routedNomyxCommands _ tm (NewGame)                   = newGameWeb tm
+routedNomyxCommands _ tm (DoInputChoice pn en)       = newInputChoice pn en tm
+routedNomyxCommands _ tm (DoInputString pn en)       = newInputString pn en tm
 
 --execute the given instructions (Comm) and embed the result in a web page
-nomicPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomicServer Html
-nomicPageComm pn tm comm = execCommand tm comm >> nomicPageServer pn tm
+nomyxPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
+nomyxPageComm pn tm comm = execCommand tm comm >> nomyxPageServer pn tm
 
-execCommand :: (TVar Multi) -> StateT Multi IO a -> RoutedNomicServer a
+execCommand :: (TVar Multi) -> StateT Multi IO a -> RoutedNomyxServer a
 execCommand tm sm = do
     m <- liftRouteT $ lift $ atomically $ readTVar tm
     (a, m') <- liftRouteT $ lift $ runStateT sm m
@@ -341,7 +341,7 @@ execCommand tm sm = do
     return a
 
 
-newRule :: ServerHandle -> (TVar Multi) -> RoutedNomicServer Html
+newRule :: ServerHandle -> (TVar Multi) -> RoutedNomyxServer Html
 newRule sh tm = do
    methodM POST -- only accept a post method
    mbEntry <- getData -- get the data
@@ -349,18 +349,18 @@ newRule sh tm = do
       Left a -> error $ "error: newRule " ++ (concat a)
       Right (NewRuleForm name text code pn) -> do
          --debugM ("Rule submitted: name =" ++ name ++ "\ntext=" ++ text ++ "\ncode=" ++ code ++ "\npn=" ++ (show pn))
-         nomicPageComm pn tm (submitRule name text code pn sh)
+         nomyxPageComm pn tm (submitRule name text code pn sh)
 
 
-newGameWeb :: (TVar Multi) -> RoutedNomicServer Html
+newGameWeb :: (TVar Multi) -> RoutedNomyxServer Html
 newGameWeb tm = do
    methodM POST
    mbEntry <- getData
    case mbEntry of
       Left a                      -> error $ "error: newGame" ++ (concat a)
-      Right (NewGameForm name pn) -> nomicPageComm pn tm (newGame name pn)
+      Right (NewGameForm name pn) -> nomyxPageComm pn tm (newGame name pn)
 
-newInputChoice :: PlayerNumber -> EventNumber -> (TVar Multi) -> RoutedNomicServer Html
+newInputChoice :: PlayerNumber -> EventNumber -> (TVar Multi) -> RoutedNomyxServer Html
 newInputChoice pn en tm = do
     multi <- liftRouteT $ lift $ atomically $ readTVar tm
     let mg = fromJust $ getPlayersGame pn multi
@@ -382,7 +382,7 @@ getChoices :: EventHandler -> (String, [String], String)
 getChoices (EH _ _ (InputChoice _ title choices def) _) = (title, map show choices, show def)
 getChoices _ = error "InputChoice event expected"
 
-newInputString :: PlayerNumber -> String -> (TVar Multi) -> RoutedNomicServer Html
+newInputString :: PlayerNumber -> String -> (TVar Multi) -> RoutedNomyxServer Html
 newInputString pn title tm = do
     methodM POST
     r <- liftRouteT $ eitherForm environment "user" (inputStringForm title)
@@ -397,13 +397,13 @@ newInputString pn title tm = do
           seeOther link $ string "Redirecting..."
 
 
-nomicPageServer :: PlayerNumber -> (TVar Multi) -> RoutedNomicServer Html
-nomicPageServer pn tm = do
+nomyxPageServer :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
+nomyxPageServer pn tm = do
    multi <- liftRouteT $ lift $ atomically $ readTVar tm
-   nomicPage multi pn
+   nomyxPage multi pn
 
 
-postLogin :: (TVar Multi) -> RoutedNomicServer Html
+postLogin :: (TVar Multi) -> RoutedNomyxServer Html
 postLogin tm = do
     methodM POST
     r <- liftRouteT $ eitherForm environment "user" loginForm
@@ -448,10 +448,10 @@ launchWebServer sh tm = do
    d <- getDataDir
    simpleHTTP nullConf $ server d sh tm
 
-server :: FilePath -> ServerHandle -> (TVar Multi) -> NomicServer Response
+server :: FilePath -> ServerHandle -> (TVar Multi) -> NomyxServer Response
 server d sh tm = mconcat [serveDirectory EnableBrowsing [] d, do
     decodeBody (defaultBodyPolicy "/tmp/" 4096 4096 4096)
-    html <- implSite (pack "http://localhost:8000") "/Login" (nomicSite sh tm)
+    html <- implSite (pack "http://localhost:8000") "/Login" (nomyxSite sh tm)
     return $ toResponse html]
 
 instance FromData NewRuleForm where

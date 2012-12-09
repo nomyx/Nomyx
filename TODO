@@ -16,6 +16,7 @@ Improves:
 - headers with revision
 - refresh web page when new event
 - reshape tests and add new primitives
+- keep the rule in the field if compile error
 
 Futur Nomic:
 - ability to analyse rules, proof system

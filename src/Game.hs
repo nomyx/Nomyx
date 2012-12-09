@@ -7,7 +7,7 @@
 -- | This module implements Game management.
 -- a game is a set of rules, and results of actions made by players (usually vote results)
 -- the module manages the effects of rules over each others.
-module Game (GameState, GameStateWith, initialGame, activeRules, runWithGame, pendingRules, rejectedRules) where
+module Game (initialGame, activeRules, execWithGame, pendingRules, rejectedRules) where
 
 import Language.Nomyx.Rule
 import Control.Monad.State
@@ -15,6 +15,7 @@ import Data.List
 import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
 import Examples
+import Data.Time.Clock as T
 
 -- | the initial rule set for a game.
 rApplicationMetaRule = Rule  {
@@ -66,14 +67,12 @@ initialGame name date = flip execState (emptyGame name date) $ do
     evActivateRule (rNumber rVictory5Rules) 0
 
 
--- | Allow to pass around the state of the game while making IO on a specified Handle:
-type GameState = StateT Game IO ()
-
-type GameStateWith a = StateT Game IO a
-
--- | An helper function that makes it very clear how to use the state transformer GameState.
-runWithGame :: Game -> GameState -> IO Game
-runWithGame = flip execStateT
+-- | An helper function to use the state transformer GameState.
+execWithGame :: StateT Game IO () -> Game -> IO Game
+execWithGame gs g = do
+    t <- T.getCurrentTime
+    let g' = g {currentTime = t}
+    execStateT gs g'
 
 
 --accessors

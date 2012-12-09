@@ -267,7 +267,7 @@ inPlayersGameDo pn action = do
    case mg of
       Nothing -> say "You must be in a game"
       Just g -> do
-         myg <- lift $ runWithGame g action
+         myg <- lift $ execWithGame action g
          modifyGame myg
 
 inGameDo :: GameName -> StateT Game IO () -> StateT Multi IO ()
@@ -276,7 +276,7 @@ inGameDo game action = do
    case find (\(Game {gameName =n}) -> n==game) gs of
       Nothing -> say "No game by that name"
       Just g -> do
-         myg <- lift $ runWithGame g action
+         myg <- lift $ execWithGame action g
          modifyGame myg
 
 instance Ord PlayerMulti where
@@ -286,24 +286,32 @@ instance Ord PlayerMulti where
 triggerTimeEvent :: TVar Multi -> UTCTime -> IO()
 triggerTimeEvent tm t = do
     m <- atomically $ readTVar tm
-    let m' = m {games = map (trig t) (games m)}
+    gs' <- mapM (trig t) (games m)
+    let m' = m {games = gs'}
     atomically $ writeTVar tm m'
-       where trig t g =  execState (evTriggerTime t) g
+       where trig t g =  execWithGame (liftT $ evTriggerTime t) g
 
--- | get all events within time and time + 1 second
+execGame :: State Game () -> Game -> Game
+execGame s g = execState s g
+
+-- | get all events within time and time + 2 second
 getTimeEvents :: UTCTime -> TVar Multi -> IO([UTCTime])
 getTimeEvents time tm = do
     m <- atomically $ readTVar tm
     let times = catMaybes $ map getTimes $ concatMap events $ games m
-    return $ filter (\t-> t > time && t < addUTCTime 1 time) times
+    return $ filter (\t-> t >= time && t < addUTCTime 2 time) times
 
-
+--TODO: fix this
 launchTimeEvents :: TVar Multi -> IO()
 launchTimeEvents tm = do
     now <- getCurrentTime
+    --putStrLn $ "tick " ++ (show now)
     schedule <- getTimeEvents now tm
+    when (length schedule /= 0) $ putStrLn "found time event"
     mapM_ (triggerTimeEvent tm) schedule
-    sleep 1
+    after <- getCurrentTime
+    --sleep 1 second minus rough delay of execution
+    threadDelay $ truncate(1000000 - 1000000*(diffUTCTime after now))
     launchTimeEvents tm
 
 
@@ -311,7 +319,3 @@ getTimes :: EventHandler -> Maybe UTCTime
 getTimes (EH _ _ (Time t) _) = Just t
 getTimes _ = Nothing
 
-
--- | Sleep for a given number of seconds.
-sleep :: Int -> IO ()
-sleep secs = threadDelay $ secs * 1000000

@@ -38,20 +38,20 @@ data NewRuleForm = NewRuleForm { ruleName :: String,
 data NewGameForm = NewGameForm { newGameName :: String,
                                  gamePn :: PlayerNumber }
 
-type NomicForm a = Form (ServerPartT IO) [Input] String Html () a
+type NomyxForm a = Form (ServerPartT IO) [Input] String Html () a
 
 instance FormError String where
     type ErrorInputType String = [Input]
     commonFormError _ = "common error"
 
 
-loginForm :: NomicForm LoginPass
+loginForm :: NomyxForm LoginPass
 loginForm = pure LoginPass <*> label "Login: " ++> (inputText "") <*> label "    Password: " ++> (inputText "") <++ label " "
 
-inputChoiceForm :: String -> [String] -> String -> NomicForm Int
+inputChoiceForm :: String -> [String] -> String -> NomyxForm Int
 inputChoiceForm title choices def = label (title ++ " ") ++> inputRadio' (zip [0..] choices) ((==) $ fromJust $ elemIndex def choices)
 
-inputStringForm :: String -> NomicForm String
+inputStringForm :: String -> NomyxForm String
 inputStringForm title = label (title ++ " ") ++> inputText ""
 
 blazeResponse :: Html -> Response
