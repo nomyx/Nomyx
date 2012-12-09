@@ -20,8 +20,8 @@ import Data.Time.Clock as T
 -- | the initial rule set for a game.
 rApplicationMetaRule = Rule  {
     rNumber       = 1,
-    rName         = "Evaluate meta-rules",
-    rDescription  = "all active metarules will be automatically used to evaluate a proposed rule",
+    rName         = "Evaluate rule using meta-rules",
+    rDescription  = "a proposed rule will be activated if all active metarules return true",
     rProposedBy   = 0,
     rRuleCode     = "applicationMetaRule",
     rRuleFunc     = applicationMetaRule,
@@ -31,7 +31,7 @@ rApplicationMetaRule = Rule  {
 rVoteUnanimity = Rule  {
     rNumber       = 2,
     rName         = "Vote Unanimity",
-    rDescription  = "meta-rule: a new rule will be accepted if all players vote positively",
+    rDescription  = "meta-rule: return true if all players vote positively for a rule",
     rProposedBy   = 0,
     rRuleCode     = "vote unanimity",
     rRuleFunc     = vote unanimity,

@@ -8,15 +8,14 @@ Features to add:
 - show details of rules
 - store state in DB
 - make a command line client
-- read/write .hs files
 - make a clear login/session system
 
 Improves:
 
 - headers with revision
 - refresh web page when new event
-- reshape tests and add new primitives
 - keep the rule in the field if compile error
+- input sanitization and error reporting
 
 Futur Nomic:
 - ability to analyse rules, proof system
@@ -30,6 +29,6 @@ Difficulties
 
 
 BUGS
-- suppress events in delRule
+- delete past time events
 
 

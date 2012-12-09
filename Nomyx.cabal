@@ -1,6 +1,6 @@
 name: Nomyx
 version: 0.0.1
-cabal-version: -any
+cabal-version: >=1.2
 build-type: Simple
 license: OtherLicense
 license-file: ""
@@ -17,19 +17,19 @@ author: Corentin Dupont
 data-files: static/css/nomyx.css
 data-dir: data
 extra-source-files: TODO tests/Test.hs
-cabal-version: >= 1.2
-
+ 
 executable Nomyx
     build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
                    Nomyx-Rules -any, QuickCheck -any, base <5, binary -any,
                    blaze-html ==0.5.*, blaze-markup -any, bytestring -any,
-                   containers -any, eprocess -any, happstack-server ==7.*, hint -any,
-                   hint-server -any, hslogger -any, monad-loops -any, mtl ==2.*,
-                   network -any, process -any, reform -any, reform-blaze -any,
-                   reform-happstack -any, regular -any, safe -any, stm -any,
-                   text -any, time -any, unix -any, utf8-string -any,
-                   web-routes ==0.27.*, web-routes-happstack ==0.23.*,
-                   web-routes-regular ==0.19.*, web-routes-th -any
+                   containers -any, directory -any, eprocess -any, filepath -any,
+                   happstack-server ==7.*, hint -any, hint-server -any, hslogger -any,
+                   monad-loops -any, mtl ==2.*, network -any, process -any,
+                   reform -any, reform-blaze -any, reform-happstack -any,
+                   regular -any, safe -any, stm -any, text -any, time -any, unix -any,
+                   utf8-string -any, web-routes ==0.27.*,
+                   web-routes-happstack ==0.23.*, web-routes-regular ==0.19.*,
+                   web-routes-th -any
     main-is: Main.hs
     buildable: True
     extensions: CPP

@@ -54,6 +54,9 @@ inputChoiceForm title choices def = label (title ++ " ") ++> inputRadio' (zip [0
 inputStringForm :: String -> NomyxForm String
 inputStringForm title = label (title ++ " ") ++> inputText ""
 
+uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
+uploadForm = inputFile
+
 blazeResponse :: Html -> Response
 blazeResponse html = toResponseBS (C.pack "text/html;charset=UTF-8") $ renderHtml html
 

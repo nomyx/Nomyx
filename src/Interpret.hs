@@ -1,5 +1,5 @@
 -- | This module starts a Interpreter server that will read our strings representing rules to convert them to plain Rules.
-module Interpret(startInterpreter, readNamedRule, interpretRule) where
+module Interpret(startInterpreter, readNamedRule, interpretRule, loadModule) where
 
 import Language.Haskell.Interpreter
 import Language.Haskell.Interpreter.Server
@@ -44,3 +44,12 @@ readRule sr sh = do
 -- | reads a NamedRule. May produce an error if badly formed.
 readNamedRule :: Rule -> ServerHandle -> IO RuleFunc
 readNamedRule r sh = readRule (rRuleCode r) sh
+
+-- | reads an uploaded file
+loadModule :: FilePath -> FilePath ->ServerHandle -> IO (Either InterpreterError ())
+loadModule dir mod sh = runIn sh $ do
+   dataDir <- liftIO getDataDir
+   set [searchPath := [dataDir]]
+   loadModules [dir]
+   initializeInterpreter
+   setTopLevelModules [mod]

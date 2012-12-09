@@ -19,7 +19,8 @@ import Text.Blaze.Internal
 import Game
 import Multi
 import Control.Monad
-import Paths_Nomyx
+import Paths_Nomyx as PN
+import Paths_Nomyx_Rules as PNR
 import Control.Monad.State
 import Data.Monoid
 import Data.String
@@ -35,7 +36,8 @@ import Forms
 import Data.Text hiding (concat, map, filter, concatMap, length, intersperse)
 import Happstack.Server
 import Data.List
-
+import System.Directory
+import System.FilePath.Posix
 
 -- | associate a player number with a handle
 data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
@@ -54,6 +56,7 @@ data PlayerCommand = Login
                    | DoInputString   PlayerNumber String
                    | NewRule
                    | NewGame
+                   | Upload PlayerNumber
                    deriving (Show)
 
 $(derivePathInfo ''PlayerCommand)
@@ -87,8 +90,8 @@ viewGame g pn = do
       td ! A.id "gameElem" $ do
          table $ do
          tr $ td $ div ! A.id "rules" $ viewAllRules g
-         tr $ td $ div ! A.id "events" $ viewEvents $ events g
          tr $ td $ div ! A.id "inputs" $ vi
+         tr $ td $ div ! A.id "events" $ viewEvents $ events g
          tr $ td $ div ! A.id "variables" $ viewVars $ variables g
          tr $ td $ div ! A.id "newRule" $ rf
          tr $ td $ div ! A.id "outputs" $ viewOutput (outputs g) pn
@@ -163,7 +166,7 @@ viewEvent (EH eventNumber ruleNumber event _) = tr $ do
 
 viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomyxServer Html
 viewInputs pn ehs = do
-   mis <- mapM (viewInput pn) ehs
+   mis <- mapM (viewInput pn) $ sort ehs
    let is = catMaybes mis
    case length is of
       0 -> ok $ h3 "Inputs" >> h5 "No Inputs"
@@ -187,7 +190,7 @@ viewVars :: [Var] -> Html
 viewVars [] = h3 "Variables" >> h5 "No Variables"
 viewVars vs = do
    h3 "Variables"
-   table ! A.id "table" $ do
+   table ! A.class_ "table" $ do
       thead $ do
          td ! A.class_ "td" $ text "Rule number"
          td ! A.class_ "td" $ text "Name"
@@ -199,8 +202,6 @@ viewVar (Var vRuleNumber vName vData) = tr $ do
    td ! A.class_ "td" $ string . show $ vRuleNumber
    td ! A.class_ "td" $ string . show $ vName
    td ! A.class_ "td" $ string . show $ vData
-
-
 
 
 ruleForm :: PlayerNumber -> RoutedNomyxServer Html
@@ -215,11 +216,10 @@ ruleForm pn = do
       input ! type_ "text" ! name "description" ! A.id "description" ! tabindex "2" ! accesskey "T"
       H.br
       H.label ! A.for "text" $ "Code: "
-      textarea ! name "code" ! A.id "code" ! tabindex "3" ! accesskey "C" $ "Enter here your rule"
+      textarea ! name "code" ! A.id "code" ! tabindex "3" ! accesskey "C" ! A.placeholder "Enter here your rule" !
+       A.title "This is where you type your new rule. As a first rule, you can try to type \"nothing\", which is a rule that does nothing. Other examples can be found in the file Examples.hs accessible on the left tab." $ ""
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
       input ! type_  "submit" ! tabindex "4" ! accesskey "S" ! value "Submit rule!"
-
-
 
 viewOutput :: [Output] -> PlayerNumber -> Html
 viewOutput [] _ = h3 "Output" >> h5 "No Output"
@@ -234,7 +234,7 @@ viewMessages = mapM_ (\s -> string s >> br)
 
 viewMulti :: PlayerNumber -> Multi -> RoutedNomyxServer Html
 viewMulti pn m = do
-   gns <- viewGameNames pn (games m)
+   gns <- viewGamesTab pn (games m)
    g <- case getPlayersGame pn m of
             Just g -> viewGame g pn
             Nothing -> ok $ h3 "Not in game"
@@ -242,12 +242,12 @@ viewMulti pn m = do
       div ! A.id "gameList" $ gns
       div ! A.id "game" $ g
 
-
-
-viewGameNames :: PlayerNumber -> [Game] -> RoutedNomyxServer Html
-viewGameNames pn gs = do
+viewGamesTab :: PlayerNumber -> [Game] -> RoutedNomyxServer Html
+viewGamesTab pn gs = do
    gns <- mapM (viewGameName pn) gs
    ng <- newGameForm pn
+   link <- showURL (Upload pn)
+   up  <- lift $ viewForm "user" uploadForm
    ok $ do
       h3 "Games:"
       table $ do
@@ -256,6 +256,12 @@ viewGameNames pn gs = do
             _ ->  sequence_ gns
       br >> "Create a new game:"
       ng
+      br >> "Rule language files:" >> br
+      H.a "Rules examples" ! (href $ "/examples/Examples.hs") >> br
+      H.a "Rules definitions" ! (href $ "/src/Language/Nomyx/Rule.hs") >> br
+      H.a "Rules types" ! (href $ "/src/Language/Nomyx/Expression.hs") >> br
+      br >> "Upload new rules file:" >> br
+      blazeForm up (link)
 
 viewGameName :: PlayerNumber -> Game -> RoutedNomyxServer Html
 viewGameName pn g = do
@@ -276,8 +282,7 @@ newGameForm :: PlayerNumber -> RoutedNomyxServer Html
 newGameForm pn = do
    link <- showURL NewGame
    ok $ H.form ! A.method "POST" ! A.action (toValue link) ! enctype "multipart/form-data;charset=UTF-8"  $ do
-      H.label ! A.for "name" $ "Game name:"
-      input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "G"
+      input ! type_ "text" ! name "name" ! A.id "name" ! tabindex "1" ! accesskey "G" ! A.title "Game name"
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
       input ! type_  "submit" ! tabindex "2" ! accesskey "S" ! value "Create New Game!"
 
@@ -328,6 +333,7 @@ routedNomyxCommands sh tm (NewRule)                  = newRule sh tm
 routedNomyxCommands _ tm (NewGame)                   = newGameWeb tm
 routedNomyxCommands _ tm (DoInputChoice pn en)       = newInputChoice pn en tm
 routedNomyxCommands _ tm (DoInputString pn en)       = newInputString pn en tm
+routedNomyxCommands sh tm (Upload pn)                = newUpload pn sh tm
 
 --execute the given instructions (Comm) and embed the result in a web page
 nomyxPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
@@ -396,6 +402,21 @@ newInputString pn title tm = do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
           seeOther link $ string "Redirecting..."
 
+newUpload :: PlayerNumber -> ServerHandle -> (TVar Multi) -> RoutedNomyxServer Html
+newUpload pn sh tm = do
+    methodM POST
+    r <- liftRouteT $ eitherForm environment "user" uploadForm
+    link <- showURL $ Noop pn
+    case r of
+       (Right (path,name,content)) -> do
+          d <- liftRouteT $ lift $ PN.getDataDir
+          liftRouteT $ lift $ copyFile path (d </> name)
+          liftRouteT $ lift $ putStrLn $ "Upload entered:" ++ (show path) ++ " " ++ (show name) ++ " " ++ (show content)
+          execCommand tm $ inputUpload pn path (dropExtension name) sh
+          seeOther link $ string "Redirecting..."
+       (Left _) -> do
+          liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
+          seeOther link $ string "Redirecting..."
 
 nomyxPageServer :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
 nomyxPageServer pn tm = do
@@ -445,19 +466,23 @@ newPlayerWeb name pwd = do
 launchWebServer :: ServerHandle -> (TVar Multi) -> IO ()
 launchWebServer sh tm = do
    putStrLn "Starting web server...\nTo connect, drive your browser to \"http://localhost:8000/Login\""
-   d <- getDataDir
-   simpleHTTP nullConf $ server d sh tm
+   d <- PN.getDataDir
+   d' <- PNR.getDataDir
+   simpleHTTP nullConf $ server d d' sh tm
 
-server :: FilePath -> ServerHandle -> (TVar Multi) -> NomyxServer Response
-server d sh tm = mconcat [serveDirectory EnableBrowsing [] d, do
-    decodeBody (defaultBodyPolicy "/tmp/" 4096 4096 4096)
-    html <- implSite (pack "http://localhost:8000") "/Login" (nomyxSite sh tm)
-    return $ toResponse html]
+--serving Nomyx web page as well as data from this package and the language library package
+server :: FilePath -> FilePath -> ServerHandle -> (TVar Multi) -> NomyxServer Response
+server d d' sh tm = mconcat [
+    serveDirectory EnableBrowsing [] d,
+    serveDirectory EnableBrowsing [] d', do
+       decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
+       html <- implSite (pack "http://localhost:8000") "/Login" (nomyxSite sh tm)
+       return $ toResponse html]
 
 instance FromData NewRuleForm where
   fromData = do
     name  <- look "name" `mplus` (error "need rule name")
-    text <-  look "text" `mplus` (error "need rule text")
+    text <-  look "description" `mplus` (error "need rule text")
     code <-  look "code" `mplus` (error "need rule code")
     pn <- lookRead "pn" `mplus` (error "need player number")
     return $ NewRuleForm name text code pn

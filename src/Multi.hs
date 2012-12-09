@@ -182,6 +182,17 @@ inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo pn $ liftT $ trig
 inputStringResult :: Event InputString -> String -> PlayerNumber -> StateT Multi IO  ()
 inputStringResult event input pn = inPlayersGameDo pn $ liftT $ triggerEvent event (InputStringData input)
 
+inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Multi IO  ()
+inputUpload pn dir mod sh = inPlayersGameDo pn $ do
+    m <- lift $ loadModule dir mod sh
+    case m of
+      Right _ -> do
+         output pn $ "File loaded: " ++ show dir ++ " Module " ++ show mod ++"\n"
+         return ()
+      Left e -> do
+         output pn $ "Compiler error: " ++ show e ++ "\n"
+         return ()
+
 output :: PlayerNumber -> String -> StateT Game IO ()
 output pn s = modify (\game -> game { outputs = (pn, s) : (outputs game)})
 
