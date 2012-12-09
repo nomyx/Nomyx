@@ -37,7 +37,8 @@ import Data.Text hiding (concat, map, filter, concatMap, length, intersperse)
 import Happstack.Server
 import Data.List
 import System.Directory
-import System.FilePath.Posix
+import System.FilePath
+import System.Posix.Files
 
 -- | associate a player number with a handle
 data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
@@ -69,6 +70,7 @@ instance PathInfo Bool where
              [(n,[])] -> Just n
              _ ->        Nothing
 
+modDir = "modules"
 
 type NomyxServer       = ServerPartT IO
 type RoutedNomyxServer = RouteT PlayerCommand NomyxServer
@@ -248,6 +250,9 @@ viewGamesTab pn gs = do
    ng <- newGameForm pn
    link <- showURL (Upload pn)
    up  <- lift $ viewForm "user" uploadForm
+   dd <- lift $ lift $ PN.getDataDir
+   mods <- lift $ lift $ getDirectoryContents $ dd </> modDir
+   fmods <- lift $ lift $ filterM (getFileStatus . (\f -> joinPath [dd, modDir, f]) >=> return . isRegularFile) $ mods
    ok $ do
       h3 "Games:"
       table $ do
@@ -260,6 +265,7 @@ viewGamesTab pn gs = do
       H.a "Rules examples" ! (href $ "/examples/Examples.hs") >> br
       H.a "Rules definitions" ! (href $ "/src/Language/Nomyx/Rule.hs") >> br
       H.a "Rules types" ! (href $ "/src/Language/Nomyx/Expression.hs") >> br
+      mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) fmods
       br >> "Upload new rules file:" >> br
       blazeForm up (link)
 
@@ -410,8 +416,9 @@ newUpload pn sh tm = do
     case r of
        (Right (path,name,content)) -> do
           d <- liftRouteT $ lift $ PN.getDataDir
-          liftRouteT $ lift $ copyFile path (d </> name)
-          liftRouteT $ lift $ putStrLn $ "Upload entered:" ++ (show path) ++ " " ++ (show name) ++ " " ++ (show content)
+          lift $ lift $ createDirectoryIfMissing True $ d </> modDir
+          lift $ lift $ copyFile path (d </> "modules" </> name)
+          lift $ lift $ putStrLn $ "Upload entered:" ++ (show path) ++ " " ++ (show name) ++ " " ++ (show content)
           execCommand tm $ inputUpload pn path (dropExtension name) sh
           seeOther link $ string "Redirecting..."
        (Left _) -> do

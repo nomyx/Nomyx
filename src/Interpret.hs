@@ -46,7 +46,7 @@ readNamedRule :: Rule -> ServerHandle -> IO RuleFunc
 readNamedRule r sh = readRule (rRuleCode r) sh
 
 -- | reads an uploaded file
-loadModule :: FilePath -> FilePath ->ServerHandle -> IO (Either InterpreterError ())
+loadModule :: FilePath -> FilePath -> ServerHandle -> IO (Either InterpreterError ())
 loadModule dir mod sh = runIn sh $ do
    dataDir <- liftIO getDataDir
    set [searchPath := [dataDir]]

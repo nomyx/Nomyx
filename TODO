@@ -30,5 +30,7 @@ Difficulties
 
 BUGS
 - delete past time events
+- delete wrong rule files
+- load several rule files
 
 
