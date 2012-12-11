@@ -39,6 +39,7 @@ import Data.List
 import System.Directory
 import System.FilePath
 import System.Posix.Files
+import qualified Help
 
 -- | associate a player number with a handle
 data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
@@ -92,11 +93,11 @@ viewGame g pn = do
       td ! A.id "gameElem" $ do
          table $ do
          tr $ td $ div ! A.id "rules" $ viewAllRules g
-         tr $ td $ div ! A.id "inputs" $ vi
-         tr $ td $ div ! A.id "events" $ viewEvents $ events g
-         tr $ td $ div ! A.id "variables" $ viewVars $ variables g
+         tr $ td $ div ! A.id "inputs" ! A.title (toValue Help.inputs) $ vi
+         tr $ td $ div ! A.id "events" ! A.title (toValue Help.events) $ viewEvents $ events g
+         tr $ td $ div ! A.id "variables" ! A.title (toValue Help.variables)$ viewVars $ variables g
          tr $ td $ div ! A.id "newRule" $ rf
-         tr $ td $ div ! A.id "outputs" $ viewOutput (outputs g) pn
+         tr $ td $ div ! A.id "outputs" ! A.title (toValue Help.outputs)$ viewOutput (outputs g) pn
 
 viewPlayers :: [PlayerInfo] -> Html
 viewPlayers pis = do
@@ -119,8 +120,8 @@ viewVictory g = do
 viewAllRules :: Game -> Html
 viewAllRules g = do
    h3 "Rules"
-   viewRules "Active rules:"  $ activeRules g
-   viewRules "Pending rules:" $ pendingRules g
+   viewRules "Active rules:" (activeRules g) ! (A.title $ toValue Help.actives)
+   viewRules "Pending rules:" (pendingRules g) ! (A.title $ toValue Help.pendings)
    viewRules "Suppressed rules:" $ rejectedRules g
 
 viewRules :: Html -> [Rule] -> Html
@@ -219,7 +220,7 @@ ruleForm pn = do
       H.br
       H.label ! A.for "text" $ "Code: "
       textarea ! name "code" ! A.id "code" ! tabindex "3" ! accesskey "C" ! A.placeholder "Enter here your rule" !
-       A.title "This is where you type your new rule. As a first rule, you can try to type \"nothing\", which is a rule that does nothing. Other examples can be found in the file Examples.hs accessible on the left tab." $ ""
+       A.title (toValue Help.code) $ ""
       input ! type_ "hidden" ! name "pn" ! value (fromString $ show pn)
       input ! type_  "submit" ! tabindex "4" ! accesskey "S" ! value "Submit rule!"
 
@@ -267,7 +268,7 @@ viewGamesTab pn gs = do
       H.a "Rules types" ! (href $ "/src/Language/Nomyx/Expression.hs") >> br
       mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) fmods
       br >> "Upload new rules file:" >> br
-      blazeForm up (link)
+      blazeForm up (link) ! (A.title $ toValue Help.upload)
 
 viewGameName :: PlayerNumber -> Game -> RoutedNomyxServer Html
 viewGameName pn g = do
@@ -415,11 +416,8 @@ newUpload pn sh tm = do
     link <- showURL $ Noop pn
     case r of
        (Right (path,name,content)) -> do
-          d <- liftRouteT $ lift $ PN.getDataDir
-          lift $ lift $ createDirectoryIfMissing True $ d </> modDir
-          lift $ lift $ copyFile path (d </> "modules" </> name)
           lift $ lift $ putStrLn $ "Upload entered:" ++ (show path) ++ " " ++ (show name) ++ " " ++ (show content)
-          execCommand tm $ inputUpload pn path (dropExtension name) sh
+          execCommand tm $ inputUpload pn path name sh
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"

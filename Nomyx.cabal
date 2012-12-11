@@ -34,6 +34,7 @@ executable Nomyx
     buildable: True
     extensions: CPP
     hs-source-dirs: src tests
-    other-modules: Game Forms Multi Server Utils Interpret Web Commands
+    other-modules: Help Game Forms Multi Server Utils Interpret Web
+                   Commands
     ghc-options: -W
  
