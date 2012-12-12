@@ -22,7 +22,9 @@ import Control.Concurrent
 import Interpret
 import System.Posix.Signals
 import Control.Concurrent.STM
-
+import qualified System.Posix.Signals as S
+import Control.Monad.CatchIO
+import Control.Monad.Trans
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -38,18 +40,13 @@ main = do
       else do
          multi <- newTVarIO defaultMulti
          --start the haskell interpreter
-         sh <- startInterpreter
-         installHandler sigINT (Catch handler) Nothing
+         sh <- protectHandlers startInterpreter
          --start the web server
          forkIO $ launchWebServer sh multi
          forkIO $ launchTimeEvents multi
          --loop
          serverLoop multi
          return True
-
-handler :: IO ()
-handler = putStrLn " Signals disabled, press q <Enter> to quit"
-
 
 -- | a loop that will handle server commands
 serverLoop :: TVar Multi -> IO ()
@@ -98,3 +95,24 @@ nomyxOpts argv =
           (o,n,[]  ) -> return (o,n)
           (_,_,errs) -> ioError (userError (concat errs ++ usageInfo header options))
       where header = "Usage: Nomyx [OPTION...]"
+
+
+helper :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
+helper handler signal = liftIO $ S.installHandler signal handler Nothing
+
+signals :: [S.Signal]
+signals = [ S.sigQUIT
+          , S.sigINT
+          , S.sigHUP
+          , S.sigTERM
+          ]
+
+saveHandlers :: MonadCatchIO m => m [S.Handler]
+saveHandlers = liftIO $ mapM (helper S.Ignore) signals
+
+restoreHandlers :: MonadCatchIO m => [S.Handler] -> m [S.Handler]
+restoreHandlers h  = liftIO . sequence $ zipWith helper h signals
+
+
+protectHandlers :: MonadCatchIO m => m a -> m a
+protectHandlers a = bracket saveHandlers restoreHandlers $ const a
