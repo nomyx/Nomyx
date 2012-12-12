@@ -16,6 +16,7 @@ Improves:
 - refresh web page when new event
 - keep the rule in the field if compile error
 - input sanitization and error reporting
+- add autosuppressing rules
 
 Futur Nomic:
 - ability to analyse rules, proof system
@@ -29,8 +30,5 @@ Difficulties
 
 
 BUGS
-- delete past time events
-- delete wrong rule files
-- load several rule files
-
-
+- fix moneyTransfer: accept new players
+- fix rule number for variables

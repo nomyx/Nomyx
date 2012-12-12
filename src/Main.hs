@@ -70,6 +70,7 @@ serverCommandUsage :: IO ()
 serverCommandUsage = do
    putStrLn "Server commands:"
    putStrLn "s -> save state"
+   putStrLn "d -> debug"
    putStrLn "q -> quit"
 
    
