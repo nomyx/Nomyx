@@ -32,3 +32,4 @@ Difficulties
 BUGS
 - fix moneyTransfer: accept new players
 - fix rule number for variables
+- schedule: drop 1 is wrong, protect head

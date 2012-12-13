@@ -20,7 +20,6 @@ import Web
 import Multi
 import Control.Concurrent
 import Interpret
-import System.Posix.Signals
 import Control.Concurrent.STM
 import qualified System.Posix.Signals as S
 import Control.Monad.CatchIO

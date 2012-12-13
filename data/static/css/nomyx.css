@@ -16,6 +16,7 @@ h3{
    padding:10px;
    top:60px;
    left:20px;
+   overflow: auto;
 }
 
 #game {
@@ -28,7 +29,7 @@ h3{
    right:20px;
    padding-left:10px;
    padding-right:10px;
-   overflow: auto;
+   
 }
 
 #gameCol {
@@ -78,13 +79,6 @@ thead {
    padding:10px;
 }
 
-/*#citizens {
-   position:absolute;
-   top:55px;
-   left:50px   
-   width:250px;
-}
-*/
 #events, #inputs, #variables, #rules, #newRule, #Outputs  {
    float:left;
    background-color:#F4F4F4;
@@ -132,6 +126,10 @@ thead {
    height:150px;
    rows:20;
    cols:80;
+}
+
+input[type="file"]{
+   font: normal 10px Arial;
 }
 
 #description {

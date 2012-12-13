@@ -39,7 +39,6 @@ getUploadModules = do
 initializeInterpreter :: Interpreter ()
 initializeInterpreter = do
    fmods <- liftIO getUploadModules
-   liftIO $ putStrLn $ concat $ fmods
    loadModules fmods
    setTopLevelModules $ map (dropExtension . takeFileName) fmods
    dataDir <- liftIO getDataDir
