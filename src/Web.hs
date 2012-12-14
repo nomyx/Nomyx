@@ -47,6 +47,7 @@ data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
 
 -- | A structure to hold the active games and players
 data Server = Server [PlayerClient] deriving (Eq, Show)
+type Port = Int
 
 data PlayerCommand = Login
                    | PostLogin
@@ -469,16 +470,15 @@ newPlayerWeb name pwd = do
          return (Just pn)
 
 
-launchWebServer :: ServerHandle -> (TVar Multi) -> PortNumber -> IO ()
-launchWebServer sh tm port = do
-   host <- getHostName
-   putStrLn $ "Starting web server...\nTo connect, drive your browser to \"http://" ++ host ++ ":" ++ (show port) ++ "/Login\""
+launchWebServer :: ServerHandle -> (TVar Multi) -> HostName -> Port -> IO ()
+launchWebServer sh tm host portNumber = do
+   putStrLn $ "Starting web server...\nTo connect, drive your browser to \"http://" ++ host ++ ":" ++ (show portNumber) ++ "/Login\""
    d <- PN.getDataDir
    d' <- PNR.getDataDir
-   simpleHTTP nullConf $ server d d' sh tm host port
+   simpleHTTP nullConf {port=portNumber} $ server d d' sh tm host portNumber
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: FilePath -> FilePath -> ServerHandle -> (TVar Multi) -> HostName -> PortNumber -> NomyxServer Response
+server :: FilePath -> FilePath -> ServerHandle -> (TVar Multi) -> HostName -> Port -> NomyxServer Response
 server d d' sh tm host port = mconcat [
     serveDirectory EnableBrowsing [] d,
     serveDirectory EnableBrowsing [] d', do

@@ -14,7 +14,7 @@ category: game
 author: Corentin Dupont
 data-files: static/css/nomyx.css
 data-dir: data
-extra-source-files: TODO README AUTHORS tests/Test.hs
+extra-source-files: TODO README AUTHORS 
  
 executable Nomyx
     build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
