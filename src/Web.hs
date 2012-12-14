@@ -40,6 +40,7 @@ import System.Directory
 import System.FilePath
 import System.Posix.Files
 import qualified Help
+import Network.BSD
 
 -- | associate a player number with a handle
 data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
@@ -468,20 +469,21 @@ newPlayerWeb name pwd = do
          return (Just pn)
 
 
-launchWebServer :: ServerHandle -> (TVar Multi) -> IO ()
-launchWebServer sh tm = do
-   putStrLn "Starting web server...\nTo connect, drive your browser to \"http://localhost:8000/Login\""
+launchWebServer :: ServerHandle -> (TVar Multi) -> PortNumber -> IO ()
+launchWebServer sh tm port = do
+   host <- getHostName
+   putStrLn $ "Starting web server...\nTo connect, drive your browser to \"http://" ++ host ++ ":" ++ (show port) ++ "/Login\""
    d <- PN.getDataDir
    d' <- PNR.getDataDir
-   simpleHTTP nullConf $ server d d' sh tm
+   simpleHTTP nullConf $ server d d' sh tm host port
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: FilePath -> FilePath -> ServerHandle -> (TVar Multi) -> NomyxServer Response
-server d d' sh tm = mconcat [
+server :: FilePath -> FilePath -> ServerHandle -> (TVar Multi) -> HostName -> PortNumber -> NomyxServer Response
+server d d' sh tm host port = mconcat [
     serveDirectory EnableBrowsing [] d,
     serveDirectory EnableBrowsing [] d', do
        decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
-       html <- implSite (pack "http://localhost:8000") "/Login" (nomyxSite sh tm)
+       html <- implSite (pack ("http://" ++ host ++ ":" ++ (show port))) "/Login" (nomyxSite sh tm)
        return $ toResponse html]
 
 instance FromData NewRuleForm where

@@ -41,7 +41,7 @@ main = do
          --start the haskell interpreter
          sh <- protectHandlers startInterpreter
          --start the web server
-         forkIO $ launchWebServer sh multi
+         forkIO $ launchWebServer sh multi 8000
          forkIO $ launchTimeEvents multi
          --loop
          serverLoop multi
