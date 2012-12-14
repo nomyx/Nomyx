@@ -51,7 +51,7 @@ liftT :: Show s => State s a -> StateT s IO a
 liftT st = do
     s1 <- get
     let (a, s) = runState st s1
-    lift $ putStrLn $ "putting " ++ show s
+    --lift $ putStrLn $ "putting " ++ show s
     put s
     return a
 

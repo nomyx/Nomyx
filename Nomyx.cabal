@@ -1,22 +1,20 @@
 name: Nomyx
 version: 0.0.1
-cabal-version: >=1.2
+cabal-version: >=1.6
 build-type: Simple
-license: OtherLicense
-license-file: ""
+license: BSD3
+license-file: LICENSE
 maintainer: corentin.dupont@gmail.com
 synopsis: A Nomic game in haskell, featuring automatic, machine-executed rules written by the players
 description: A Nomic game in Haskell, with a dedicated language to create new rules.
              .
-             www.nomic.net
-             .
              Nomyx is a fabulous and strange game where you have the right to change the rules in the middle of the game!
-             Indeed, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that could be changed!
+             Indeed, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that could be changed! The original (paper) game: www.nomic.net
 category: game
 author: Corentin Dupont
 data-files: static/css/nomyx.css
 data-dir: data
-extra-source-files: TODO tests/Test.hs
+extra-source-files: TODO README AUTHORS tests/Test.hs
  
 executable Nomyx
     build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,

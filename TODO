@@ -4,32 +4,25 @@ TODO list
 Features to add:
 
 - interpreter (like tryhaskell.org) on the web page to debug rules
-- implement Ctrl-C to quit program: rehook signal handlers
-- show details of rules
 - store state in DB
 - make a command line client
 - make a clear login/session system
 
 Improves:
 
-- headers with revision
-- refresh web page when new event
+- refresh web page when new event (currently, player needs to hit F5)
 - keep the rule in the field if compile error
 - input sanitization and error reporting
-- add autosuppressing rules
+- avoid unrecoverable "error" in variables
+- add tests in main Nomyx
+- secure interpreter with mueval: time limits, no unsafe instructions, memory limits...
 
 Futur Nomic:
 - ability to analyse rules, proof system
 
-
-
-Difficulties
-- splitting up the program
-- reading GATDs
-- really hard to track bug with an instance of Ord defined with ">"
-
-
 BUGS
-- fix moneyTransfer: accept new players
+- fix moneyTransfer: accept new players, check balance is positive
 - fix rule number for variables
 - schedule: drop 1 is wrong, protect head
+- time events: some events are triggered 2 times
+- self proposed victory not working

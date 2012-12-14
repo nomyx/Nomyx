@@ -17,6 +17,7 @@ import Language.Nomyx.Evaluation
 import Examples
 import Data.Time.Clock as T
 
+
 -- | the initial rule set for a game.
 rApplicationMetaRule = Rule  {
     rNumber       = 1,

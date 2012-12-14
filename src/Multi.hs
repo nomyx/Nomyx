@@ -162,12 +162,12 @@ showSubscribtion pn = inPlayersGameDo pn $ do
 
 
 -- | insert a rule in pending rules.
--- the rules are numbered incrementaly.
 submitRule :: String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Multi IO  ()
 submitRule name text rule pn sh = inPlayersGameDo pn $ do
    --input the new rule (may fail if ill-formed)
    rs <- gets rules
-   mnr <- enterRule (length rs + 1) name text rule pn sh
+   let rn = getFreeNumber $ map rNumber rs
+   mnr <- enterRule rn name text rule pn sh
    case mnr of
       Just nr -> do
          r <- liftT $ evProposeRule nr
