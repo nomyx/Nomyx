@@ -77,6 +77,7 @@ getGameByName gn =  fmap (find (\(Game {gameName = n}) -> n==gn)) (gets games)
 joinGamePlayer :: PlayerNumber -> GameName -> StateT Multi IO ()
 joinGamePlayer pn game = modify (\multi -> multi {mPlayers = mayJoinGame (Just game) pn (mPlayers multi)})
 
+
 leaveGameU :: PlayerNumber -> StateT Multi IO ()
 leaveGameU pn = modify (\multi -> multi {mPlayers = mayJoinGame Nothing pn (mPlayers multi)})
 
@@ -135,8 +136,9 @@ subscribeGame game pn = do
          Just _ -> say "Already subscribed!"
          Nothing -> do
             say $ "Subscribing to game: " ++ game
-            put g {players = PlayerInfo { playerNumber = pn,
-                                          playerName = getPlayersName pn m} : (players g)}
+            let player = PlayerInfo { playerNumber = pn, playerName = getPlayersName pn m}
+            put g {players = player : (players g)}
+            liftT $ triggerEvent (Player Arrive) (PlayerData player)
 
 
 -- | subcribe to a game.
@@ -147,7 +149,9 @@ unsubscribeGame game pn = inGameDo game $ do
       Nothing -> say "Not subscribed!"
       Just _ -> do
          say $ "Unsubscribing to game: " ++ game
+         let player = PlayerInfo { playerNumber = pn, playerName = getPlayersName' g pn}
          put g {players = filter (\PlayerInfo { playerNumber = mypn} -> mypn /= pn) (players g)}
+         liftT $ triggerEvent (Player Leave) (PlayerData player)
 
 
 showSubGame :: GameName -> PlayerNumber -> StateT Multi IO  ()

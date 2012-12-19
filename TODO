@@ -7,6 +7,8 @@ Features to add:
 - store state in DB
 - make a command line client
 - make a clear login/session system
+- colorize code
+- make code instructions in the active rules table clickable to access haddock documentation
 
 Improves:
 
