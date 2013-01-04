@@ -1,5 +1,5 @@
 name: Nomyx
-version: 0.0.1
+version: 0.0.3
 cabal-version: >=1.6
 build-type: Simple
 license: BSD3
@@ -18,7 +18,7 @@ extra-source-files: AUTHORS README TODO
  
 executable Nomyx
     build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
-                   Nomyx-Rules -any, QuickCheck -any, base <5, binary -any,
+                   Nomyx-Rules ==0.0.3, QuickCheck -any, base <5, binary -any,
                    blaze-html ==0.5.*, blaze-markup -any, bytestring -any,
                    containers -any, directory -any, eprocess -any,
                    extensible-exceptions -any, filepath -any, happstack-server ==7.*,
@@ -32,7 +32,7 @@ executable Nomyx
     main-is: Main.hs
     buildable: True
     extensions: CPP
-    hs-source-dirs: src tests
+    hs-source-dirs: src 
     other-modules: Help Game Forms Multi Server Utils Interpret Web
                    Commands
     ghc-options: -W
