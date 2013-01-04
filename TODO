@@ -9,6 +9,7 @@ Features to add:
 - make a clear login/session system
 - colorize code
 - make code instructions in the active rules table clickable to access haddock documentation
+- mail server to send notices/events when other players played.
 
 Improves:
 
