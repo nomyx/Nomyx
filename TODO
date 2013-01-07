@@ -29,3 +29,4 @@ BUGS
 - schedule: drop 1 is wrong, protect head
 - time events: some events are triggered 2 times
 - self proposed victory not working
+- check when error on parameters (for victory for example)
