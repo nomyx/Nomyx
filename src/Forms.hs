@@ -46,7 +46,7 @@ instance FormError String where
 
 
 loginForm :: NomyxForm LoginPass
-loginForm = pure LoginPass <*> label "Login: " ++> (inputText "") <*> label "    Password: " ++> (inputText "") <++ label " "
+loginForm = pure LoginPass <*> label "Login: " ++> (inputText "") <*> label "    Password: " ++> inputPassword <++ label " "
 
 inputChoiceForm :: String -> [String] -> String -> NomyxForm Int
 inputChoiceForm title choices def = label (title ++ " ") ++> inputRadio' (zip [0..] choices) ((==) $ fromJust $ elemIndex def choices)
@@ -80,4 +80,4 @@ inputRadio' choices isDefault =
       mkRadio nm (i, val, lbl, checked) =
           [ ((if checked then (! A.checked "checked") else id) $
              input ! A.type_ "radio" ! A.id (toValue i) ! A.name (toValue nm) ! A.value (toValue val))
-          ,  H.label ! A.for (toValue i) $ toHtml lbl]
+          , " ", H.label ! A.for (toValue i) $ toHtml lbl]
