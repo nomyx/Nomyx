@@ -28,7 +28,7 @@ import Test
 import Data.Maybe
 import Safe
 import Network.BSD
-
+import System.Posix.Daemonize
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -43,6 +43,12 @@ main = do
          putStrLn $ "Tests result: " ++ show allTests
          return allTests
       else do
+         case (Daemon `elem` flags) of
+            True -> (daemonize $ start flags) >> return True
+            False -> start flags >> return True
+
+start :: [Flag] -> IO ()
+start flags = do
          serverCommandUsage
          multi <- newTVarIO defaultMulti
          --start the haskell interpreter
@@ -50,7 +56,7 @@ main = do
          --start the web server
          port <- case (findPort flags) of
             Just p -> return $ read p
-            Nothing -> return $ read "8000"
+            Nothing -> return $ 8000
          host <- case (findHost flags) of
             Just h -> return h
             Nothing -> getHostName >>= return
@@ -58,7 +64,7 @@ main = do
          forkIO $ launchTimeEvents multi
          --loop
          serverLoop multi
-         return True
+
 
 -- | a loop that will handle server commands
 serverLoop :: TVar Multi -> IO ()
@@ -87,17 +93,18 @@ serverCommandUsage = do
 
 -- | Launch mode 
 data Flag 
-     = Verbose | Version | Test | HostName String | Port String
+     = Verbose | Version | Test | HostName String | Port String | Daemon
        deriving (Show, Eq)
 
 -- | launch options description
 options :: [OptDescr Flag]
 options =
-     [ Option ['v']     ["verbose"] (NoArg Verbose)       "chatty output on stderr"
-     , Option ['V','?'] ["version"] (NoArg Version)       "show version number"
-     , Option ['t']     ["tests"]   (NoArg Test)          "perform routine check"
-     , Option ['h']     ["host"]    (ReqArg HostName "Hostname")      "specify host name"
-     , Option ['p']     ["port"]    (ReqArg Port "Port")           "specify port"
+     [ Option ['v']     ["verbose"] (NoArg Verbose)              "chatty output on stderr"
+     , Option ['V','?'] ["version"] (NoArg Version)              "show version number"
+     , Option ['t']     ["tests"]   (NoArg Test)                 "perform routine check"
+     , Option ['h']     ["host"]    (ReqArg HostName "Hostname") "specify host name"
+     , Option ['p']     ["port"]    (ReqArg Port "Port")         "specify port"
+     , Option ['d']     ["daemon"]  (NoArg Daemon)               "run in daemon mode"
      ]
     
 nomyxOpts :: [String] -> IO ([Flag], [String])
