@@ -18,29 +18,20 @@ import Examples
 import Data.Time.Clock as T
 
 
--- | the initial rule set for a game.
-rApplicationMetaRule = Rule  {
-    rNumber       = 1,
-    rName         = "Evaluate rule using meta-rules",
-    rDescription  = "a proposed rule will be activated if all active metarules return true",
-    rProposedBy   = 0,
-    rRuleCode     = "applicationMetaRule",
-    rRuleFunc     = applicationMetaRule,
-    rStatus       = Active,
-    rAssessedBy   = Nothing}
 
+-- | the initial rule set for a game.
 rVoteUnanimity = Rule  {
-    rNumber       = 2,
-    rName         = "Vote Unanimity",
-    rDescription  = "meta-rule: return true if all players vote positively for a rule",
+    rNumber       = 1,
+    rName         = "Unanimity Vote",
+    rDescription  = "A proposed rule will be activated if all players vote for it",
     rProposedBy   = 0,
-    rRuleCode     = "vote unanimity",
-    rRuleFunc     = vote unanimity,
+    rRuleCode     = "onRuleProposed $ voteWith unanimity",
+    rRuleFunc     = onRuleProposed $ voteWith unanimity,
     rStatus       = Active,
     rAssessedBy   = Nothing}
 
 rVictory5Rules = Rule  {
-    rNumber       = 3,
+    rNumber       = 2,
     rName         = "Victory 5 accepted rules",
     rDescription  = "Victory is achieved if you have 5 active rules",
     rProposedBy   = 0,
@@ -62,11 +53,19 @@ emptyGame name date = Game { gameName      = name,
 initialGame name date = flip execState (emptyGame name date) $ do
     evAddRule rVoteUnanimity
     evActivateRule (rNumber rVoteUnanimity) 0
-    evAddRule rApplicationMetaRule
-    evActivateRule (rNumber rApplicationMetaRule) 0
     evAddRule rVictory5Rules
     evActivateRule (rNumber rVictory5Rules) 0
 
+-- | the initial rule set for a game.
+rApplicationMetaRule = Rule  {
+    rNumber       = 0,
+    rName         = "Evaluate rule using meta-rules",
+    rDescription  = "a proposed rule will be activated if all active metarules return true",
+    rProposedBy   = 0,
+    rRuleCode     = "applicationMetaRule",
+    rRuleFunc     = onRuleProposed checkWithMetarules,
+    rStatus       = Active,
+    rAssessedBy   = Nothing}
 
 -- | An helper function to use the state transformer GameState.
 execWithGame :: StateT Game IO () -> Game -> IO Game

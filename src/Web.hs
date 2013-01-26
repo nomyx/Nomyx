@@ -28,6 +28,7 @@ import Control.Concurrent.STM
 import Language.Haskell.Interpreter.Server
 import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
+import Language.Nomyx.Rule hiding (getCurrentTime)
 import Utils
 import Data.Maybe
 import Text.Reform.Happstack
@@ -114,10 +115,11 @@ viewPlayer pi = tr $ do
 
 viewVictory :: Game -> Html
 viewVictory g = do
-    let vs = map (getPlayersName' g) (victory g)
-    case length vs of
-        0 -> br
-        _ -> h3 $ string $ "Player(s) " ++ (concat $ intersperse " " $ vs) ++ " won the game!"
+    let vs = mapMaybe (getPlayersNameMay g) (victory g)
+    case vs of
+        []   -> br
+        a:[] -> h3 $ string $ "Player " ++ (show a) ++ " won the game!"
+        a:bs -> h3 $ string $ "Players " ++ (concat $ intersperse ", " $ bs) ++ " and " ++ a ++ " won the game!"
 
 viewAllRules :: Game -> Html
 viewAllRules g = do
@@ -444,7 +446,7 @@ postLogin tm = do
              Just pn -> do
                 link <- showURL $ Noop pn
                 seeOther link $ string "Redirecting..."
-             Nothing -> error "cannot login"
+             _ -> error "cannot login"
        (Left _) -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."
 
 
@@ -466,7 +468,7 @@ newPlayerWeb name pwd = do
          say "New player"
          --add the new player to the list
          pn <- getNewPlayerNumber
-         newPlayerU PlayerMulti { mPlayerNumber = pn, mPlayerName = name, mPassword = pwd, inGame = Nothing}
+         newPlayerU PlayerMulti { mPlayerNumber = pn, mPlayerName = name, mPassword = pwd, inGame = Nothing, mMail = ""}
          return (Just pn)
 
 

@@ -19,6 +19,7 @@ Improves:
 - avoid unrecoverable "error" in variables
 - add tests in main Nomyx
 - secure interpreter with mueval: time limits, no unsafe instructions, memory limits...
+- add a name to events to be able to delete categories of them
 
 Futur Nomic:
 - ability to analyse rules, proof system
@@ -30,3 +31,4 @@ BUGS
 - time events: some events are triggered 2 times
 - self proposed victory not working
 - check when error on parameters (for victory for example)
+- check to copy each example code (not name)

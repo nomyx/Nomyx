@@ -34,6 +34,7 @@ type PlayerPassword = String
 data PlayerMulti = PlayerMulti   { mPlayerNumber :: PlayerNumber,
                                    mPlayerName :: PlayerName,
                                    mPassword :: PlayerPassword,
+                                   mMail :: String,
                                    inGame :: Maybe GameName}
                                    deriving (Eq, Show, Typeable)
 
@@ -50,7 +51,7 @@ defaultMulti = Multi [] []
 
 -- | helper function to change a player's ingame status.
 mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
-mayJoinGame maybename pn pl = case find (\(PlayerMulti mypn _ _ _) -> mypn == pn) pl of
+mayJoinGame maybename pn pl = case find (\(PlayerMulti mypn _ _ _ _) -> mypn == pn) pl of
                      Just o -> replace o o{ inGame = maybename} pl
                      Nothing -> pl
 
@@ -180,6 +181,25 @@ submitRule name text rule pn sh = inPlayersGameDo pn $ do
          return ()
       Nothing -> say $ "Please try again."
 
+
+-- | reads a rule.
+enterRule :: RuleNumber -> String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Game IO (Maybe Rule)
+enterRule num name text ruleText pn sh = do
+   mrr <- lift $ interpretRule ruleText sh
+   case mrr of
+      Right ruleFunc -> return $ Just Rule {rNumber = num,
+                      rName = name,
+                      rDescription = text,
+                      rProposedBy = pn,
+                      rRuleCode = ruleText,
+                      rRuleFunc = ruleFunc,
+                      rStatus = Pending,
+                      rAssessedBy = Nothing}
+      Left e -> do
+         output pn $ "Compiler error: " ++ show e ++ "\n"
+         return Nothing
+
+
 inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> StateT Multi IO  ()
 inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo pn $ liftT $ triggerChoice eventNumber choiceIndex
 
@@ -210,22 +230,6 @@ modifyGame g = do
          let newgs = replace oldg g gs
          put $ Multi newgs ps
 
--- | reads a rule.
-enterRule :: RuleNumber -> String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Game IO (Maybe Rule)
-enterRule num name text ruleText pn sh = do
-   mrr <- lift $ interpretRule ruleText sh
-   case mrr of
-      Right ruleFunc -> return $ Just Rule {rNumber = num,
-                      rName = name,
-                      rDescription = text,
-                      rProposedBy = pn,
-                      rRuleCode = ruleText,
-                      rRuleFunc = ruleFunc,
-                      rStatus = Pending,
-                      rAssessedBy = Nothing}
-      Left e -> do
-         output pn $ "Compiler error: " ++ show e ++ "\n"
-         return Nothing
 
 
 -- | show the constitution.
@@ -238,8 +242,8 @@ showAllRules :: PlayerNumber -> StateT Multi IO ()
 showAllRules pn = inPlayersGameDo pn $ get >>= (say . show . rules)
 
 displayPlayer :: PlayerMulti -> String
-displayPlayer (PlayerMulti pn name _ (Just game)) = show pn ++ ": " ++ name ++ " in game: " ++ game ++ "\n"
-displayPlayer (PlayerMulti pn name _ Nothing)     = show pn ++ ": " ++ name ++ "\n"
+displayPlayer (PlayerMulti pn name _ _ (Just game)) = show pn ++ ": " ++ name ++ " in game: " ++ game ++ "\n"
+displayPlayer (PlayerMulti pn name _ _ Nothing)     = show pn ++ ": " ++ name ++ "\n"
 
 
 -- | quit the game
@@ -250,21 +254,21 @@ quit _ = putStrLn "quit"
 
 -- | replace the player's name in the list
 setName :: String -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
-setName name pn pl = case find (\(PlayerMulti h _ _ _) -> h == pn) pl of
+setName name pn pl = case find (\(PlayerMulti h _ _ _ _) -> h == pn) pl of
                         Just o -> replace o o{ mPlayerName = name} pl
                         Nothing -> pl
 
 
--- | returns the game the player is in						
+-- | returns the game the player is in
 getPlayersGame :: PlayerNumber -> Multi -> Maybe Game
 getPlayersGame pn multi = do
-        pi <- find (\(PlayerMulti n _ _ _) -> n==pn) (mPlayers multi)
+        pi <- find (\(PlayerMulti n _ _ _ _) -> n==pn) (mPlayers multi)
         gn <- inGame pi
         find (\(Game {gameName=name}) -> name==gn) (games multi)
 
 getPlayersName :: PlayerNumber -> Multi -> PlayerName
 getPlayersName pn multi = do
-   case find (\(PlayerMulti n _ _ _) -> n==pn) (mPlayers multi) of
+   case find (\(PlayerMulti n _ _ _ _) -> n==pn) (mPlayers multi) of
       Nothing -> error "getPlayersName: No player by that number"
       Just pm -> mPlayerName pm
 
@@ -273,6 +277,12 @@ getPlayersName' g pn = do
    case find (\(PlayerInfo n _) -> n==pn) (players g) of
       Nothing -> error "getPlayersName: No player by that number in that game"
       Just pm -> playerName pm
+
+getPlayersNameMay :: Game -> PlayerNumber -> Maybe PlayerName
+getPlayersNameMay g pn = do
+   case find (\(PlayerInfo n _) -> n==pn) (players g) of
+      Nothing -> Nothing
+      Just pm -> Just $ playerName pm
 
 -- | this function apply the given game actions to the game the player is in.
 inPlayersGameDo :: PlayerNumber -> StateT Game IO () -> StateT Multi IO ()

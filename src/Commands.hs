@@ -2,7 +2,7 @@
 
 -- | This module handles intrepreting players' commands.
 module Commands where
-{-
+
 import Text.ParserCombinators.Parsec
 import Data.List
 import Utils
@@ -13,7 +13,7 @@ import Language.Nomic.Expression
 -- | All commands issuable.
 data Command = ListGame
 --             | Name
-			    | NewGame
+             | NewGame
              | JoinGame
              | LeaveGame
              | SubscribeGame
