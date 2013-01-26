@@ -42,6 +42,16 @@ import System.FilePath
 import System.Posix.Files
 import qualified Help
 import Network.BSD
+import Mueval.Resources
+import System.Posix.Resource
+import Control.Concurrent
+import Mueval.Parallel
+import System.Posix.Signals (sigXCPU, installHandler, Handler(CatchOnce))
+import Control.Exception.Extensible (ErrorCall(..),SomeException,catch)
+import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
+import Data.Time
+import Control.Exception as CE
+import System.IO.Error
 
 -- | associate a player number with a handle
 data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
@@ -357,6 +367,41 @@ execCommand tm sm = do
     liftRouteT $ lift $ atomically $ writeTVar tm m'
     return a
 
+
+nomyxPageComm' :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
+nomyxPageComm' pn tm comm = do
+    liftRouteT $ lift $ protectedExecCommand tm comm
+    nomyxPageServer pn tm
+
+protectedExecCommand :: (TVar Multi) -> StateT Multi IO a -> IO ()
+protectedExecCommand tm sm = do
+    --liftIO $ mapM_ (uncurry setResourceLimit) limits
+    mv <- newEmptyMVar
+    before <- atomically $ readTVar tm
+    id <- forkIO $ CE.catchJust  (\e -> if isUserError e then Just () else Nothing) (execBlocking sm before mv) (\e-> putStrLn $ show e)
+    forkIO $ watchDog' 10 id mv
+    getCurrentTime >>= (\a -> putStrLn $ "before takevar " ++ show a)
+    res <- takeMVar mv
+    case res of
+       Nothing -> (atomically $ writeTVar tm before) >> getCurrentTime >>= (\a -> putStrLn $ "writing before" ++ show a)
+       Just (_, after) -> (atomically $ writeTVar tm after) >> getCurrentTime >>= (\a -> putStrLn $ "writing after " ++ show a)
+
+watchDog' :: Int -> ThreadId -> MVar (Maybe x) -> IO ()
+watchDog' t tid mv = do
+   threadDelay $ t * 1000000
+   killThread tid
+   getCurrentTime >>= (\a -> putStrLn $ "process timeout " ++ show a)
+   tryPutMVar mv Nothing
+   return ()
+
+execBlocking :: StateT Multi IO a -> Multi -> MVar (Maybe (a, Multi)) -> IO ()
+execBlocking sm m mv = do
+   hSetBuffering stdout NoBuffering
+   getCurrentTime >>= (\a -> putStrLn $ "before runstate " ++ show a)
+   res@(_, m') <- runStateT sm m --runStateT (inPlayersGameDo 1 $ liftT $ evalExp (do let (a::Int) = a in outputAll $ show a) 1) m --
+   getCurrentTime >>= (\a -> putStrLn $ "after runstate " ++ show a)
+   res' <- evaluate res
+   putMVar mv (Just res')
 
 newRule :: ServerHandle -> (TVar Multi) -> RoutedNomyxServer Html
 newRule sh tm = do

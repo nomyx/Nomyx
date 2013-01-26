@@ -27,6 +27,8 @@ import Language.Nomyx.Evaluation
 import Control.Concurrent.STM
 import Data.Maybe
 import Control.Concurrent
+import Mueval.Resources
+import System.Posix.Resource
 
 
 type PlayerPassword = String
@@ -199,6 +201,10 @@ enterRule num name text ruleText pn sh = do
          output pn $ "Compiler error: " ++ show e ++ "\n"
          return Nothing
 
+cpuTimeLimitSoft = ResourceLimit 4
+cpuTimeLimitHard = ResourceLimit 5
+limits :: [(Resource, ResourceLimits)]
+limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHard)]
 
 inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> StateT Multi IO  ()
 inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo pn $ liftT $ triggerChoice eventNumber choiceIndex

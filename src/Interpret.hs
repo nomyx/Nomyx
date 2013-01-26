@@ -1,5 +1,5 @@
 -- | This module starts a Interpreter server that will read our strings representing rules to convert them to plain Rules.
-module Interpret(startInterpreter, readNamedRule, interpretRule, loadModule) where
+module Interpret(startInterpreter, interpretRule, loadModule) where
 
 import Language.Haskell.Interpreter
 import Language.Haskell.Interpreter.Server
@@ -10,7 +10,8 @@ import System.Directory
 import System.FilePath
 import System.Posix.Files
 import Control.Monad
-
+import Mueval.Resources
+import System.Posix.Resource
 
 modDir = "modules"
 
@@ -48,11 +49,17 @@ initializeInterpreter = do
 
 -- | reads maybe a Rule out of a string.
 interpretRule :: String -> ServerHandle -> IO (Either InterpreterError RuleFunc)
-interpretRule s sh = do
-   liftIO $ runIn sh (interpret s (as :: RuleFunc))
+interpretRule s sh = flip catch (\e -> return (Left $ NotAllowed $ "Caught exception: " ++ (show e))) $ do
+   liftIO $ runIn sh $ do
+      liftIO $ mapM_ (uncurry setResourceLimit) limits
+      interpret s (as :: RuleFunc)
       
+cpuTimeLimitSoft = ResourceLimit 4
+cpuTimeLimitHard = ResourceLimit 5
 
 
+limits :: [(Resource, ResourceLimits)]
+limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHard)]
          
 -- | reads a Rule. May produce an error if badly formed.
 readRule :: String -> ServerHandle -> IO RuleFunc
