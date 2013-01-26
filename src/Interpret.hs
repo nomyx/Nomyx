@@ -42,7 +42,7 @@ initializeInterpreter = do
    loadModules fmods
    setTopLevelModules $ map (dropExtension . takeFileName) fmods
    dataDir <- liftIO getDataDir
-   set [searchPath := [dataDir]]
+   set [searchPath := [dataDir], languageExtensions := [GADTs, ScopedTypeVariables]] --, languageExtensions := [], installedModulesInScope := False
    setImports ["Prelude", "Language.Nomyx.Rule", "Language.Nomyx.Expression", "Test", "Examples", "GHC.Base", "Data.Maybe"]
    return ()
 
@@ -50,8 +50,10 @@ initializeInterpreter = do
 interpretRule :: String -> ServerHandle -> IO (Either InterpreterError RuleFunc)
 interpretRule s sh = do
    liftIO $ runIn sh (interpret s (as :: RuleFunc))
+      
 
 
+         
 -- | reads a Rule. May produce an error if badly formed.
 readRule :: String -> ServerHandle -> IO RuleFunc
 readRule sr sh = do
@@ -59,10 +61,6 @@ readRule sr sh = do
    case ir of
       Right r -> return r
       Left e -> error $ "errReadRule: Rule is ill-formed. Shouldn't have happened.\n" ++ show e
-
--- | reads a NamedRule. May produce an error if badly formed.
-readNamedRule :: Rule -> ServerHandle -> IO RuleFunc
-readNamedRule r sh = readRule (rRuleCode r) sh
 
 -- | check an uploaded file and reload
 loadModule :: FilePath -> FilePath -> ServerHandle -> IO (Either InterpreterError ())
