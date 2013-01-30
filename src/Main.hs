@@ -29,6 +29,14 @@ import Data.Maybe
 import Safe
 import Network.BSD
 import System.Posix.Daemonize
+import Types
+import Serialize
+import Paths_Nomyx as PN
+import Language.Haskell.Interpreter.Server hiding (start)
+import System.Directory
+
+defaultLogFile :: FilePath
+defaultLogFile = "Nomyx.log"
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -50,9 +58,13 @@ main = do
 start :: [Flag] -> IO ()
 start flags = do
          serverCommandUsage
-         multi <- newTVarIO defaultMulti
          --start the haskell interpreter
          sh <- protectHandlers startInterpreter
+         --creating game structures
+         logFile <- case (findSaveFile flags) of
+            Just f -> return f
+            Nothing -> return defaultLogFile
+         multi <- loadMulti logFile sh
          --start the web server
          port <- case (findPort flags) of
             Just p -> return $ read p
@@ -60,29 +72,40 @@ start flags = do
          host <- case (findHost flags) of
             Just h -> return h
             Nothing -> getHostName >>= return
-         forkIO $ launchWebServer sh multi host port
+         forkIO $ launchWebServer multi host port
          forkIO $ launchTimeEvents multi
          --loop
-         serverLoop multi
+         serverLoop multi logFile
+
+loadMulti :: FilePath -> ServerHandle -> IO (TVar Multi)
+loadMulti f sh = do
+   fp <- getDataFileName f
+   fileExists <- doesFileExist fp
+   multi <- case fileExists of
+      True -> loadEvents fp sh
+      False -> return $ defaultMulti sh fp
+   atomically $ newTVar multi
 
 
 -- | a loop that will handle server commands
-serverLoop :: TVar Multi -> IO ()
-serverLoop tm = do
+serverLoop :: TVar Multi -> FilePath -> IO ()
+serverLoop tm f = do
    s <- getLine
    case s of
       "d" -> do
          m <- atomically $ readTVar tm
          putStrLn $ show m
-         serverLoop tm
+         serverLoop tm f
       "s" -> do
          putStrLn "saving state..."
-         --createCheckpoint c
-         serverLoop tm
+         m <- atomically $ readTVar tm
+         fp <- getDataFileName f
+         save fp $ logEvents $ logs m
+         serverLoop tm f
       "q" -> return ()
       _ -> do
          putStrLn "command not recognized"
-         serverLoop tm
+         serverLoop tm f
 
 serverCommandUsage :: IO ()
 serverCommandUsage = do
@@ -93,7 +116,7 @@ serverCommandUsage = do
 
 -- | Launch mode 
 data Flag 
-     = Verbose | Version | Test | HostName String | Port String | Daemon
+     = Verbose | Version | Test | HostName String | Port String | LogFile FilePath | Daemon
        deriving (Show, Eq)
 
 -- | launch options description
@@ -104,6 +127,7 @@ options =
      , Option ['t']     ["tests"]   (NoArg Test)                 "perform routine check"
      , Option ['h']     ["host"]    (ReqArg HostName "Hostname") "specify host name"
      , Option ['p']     ["port"]    (ReqArg Port "Port")         "specify port"
+     , Option ['r']     ["read"]    (ReqArg LogFile "LogFile")   "specify log file"
      , Option ['d']     ["daemon"]  (NoArg Daemon)               "run in daemon mode"
      ]
     
@@ -123,6 +147,11 @@ findHost :: [Flag] -> Maybe String
 findHost fs = headMay $ catMaybes $ map isHost fs where
     isHost (HostName a) = Just a
     isHost _ = Nothing
+
+findSaveFile :: [Flag] -> Maybe FilePath
+findSaveFile fs = headMay $ catMaybes $ map isSaveFile fs where
+    isSaveFile (LogFile a) = Just a
+    isSaveFile _ = Nothing
 
 helper :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
 helper handler signal = liftIO $ S.installHandler signal handler Nothing

@@ -18,22 +18,22 @@ extra-source-files: AUTHORS README TODO
  
 executable Nomyx
     build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
-                   Nomyx-Rules ==0.0.3, QuickCheck -any, base <5, binary -any,
-                   blaze-html ==0.5.*, blaze-markup -any, bytestring -any,
-                   containers -any, directory -any, eprocess -any,
-                   extensible-exceptions -any, filepath -any, happstack-server ==7.*,
-                   hdaemonize -any, hint -any, hint-server -any, hslogger -any,
-                   monad-loops -any, mtl ==2.*, mueval -any, network -any,
-                   process -any, reform -any, reform-blaze -any,
-                   reform-happstack -any, regular -any, safe -any, stm -any,
-                   text -any, time -any, unix -any, utf8-string -any,
+                   Nomyx-Rules ==0.0.3, QuickCheck -any, acid-state -any, base <5,
+                   binary -any, blaze-html ==0.5.*, blaze-markup -any,
+                   bytestring -any, containers -any, data-accessor-transformers -any,
+                   directory -any, eprocess -any, extensible-exceptions -any,
+                   filepath -any, happstack-server ==7.*, hdaemonize -any, hint -any,
+                   hint-server -any, hslogger -any, monad-loops -any, mtl ==2.*,
+                   mueval -any, network -any, process -any, reform -any,
+                   reform-blaze -any, reform-happstack -any, regular -any, safe -any,
+                   stm -any, text -any, time -any, unix -any, utf8-string -any,
                    web-routes ==0.27.*, web-routes-happstack ==0.23.*,
                    web-routes-regular ==0.19.*, web-routes-th -any
     main-is: Main.hs
     buildable: True
     extensions: CPP
-    hs-source-dirs: src 
-    other-modules: Help Game Forms Multi Server Utils Interpret Web
-                   Commands
+    hs-source-dirs: src
+    other-modules: Types Help Game Forms Multi Server Serialize Utils
+                   Interpret Web Commands Web
     ghc-options: -W
  

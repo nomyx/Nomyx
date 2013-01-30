@@ -17,7 +17,7 @@ import Web.Routes.RouteT
 import Web.Routes.TH (derivePathInfo)
 import Text.Blaze.Internal
 import Game
-import Multi
+--import Multi
 import Control.Monad
 import Paths_Nomyx as PN
 import Paths_Nomyx_Rules as PNR
@@ -52,6 +52,9 @@ import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
 import Data.Time
 import Control.Exception as CE
 import System.IO.Error
+import Types
+import Serialize
+import Multi --TODO to remove
 
 -- | associate a player number with a handle
 data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
@@ -90,8 +93,8 @@ type NomyxServer       = ServerPartT IO
 type RoutedNomyxServer = RouteT PlayerCommand NomyxServer
 
 
-nomyxSite :: ServerHandle -> (TVar Multi) -> Site PlayerCommand (ServerPartT IO Html)
-nomyxSite sh tm = setDefault Login $ mkSitePI (runRouteT $ routedNomyxCommands sh tm)
+nomyxSite :: (TVar Multi) -> Site PlayerCommand (ServerPartT IO Html)
+nomyxSite tm = setDefault Login $ mkSitePI (runRouteT $ routedNomyxCommands tm)
 
 viewGame :: Game -> PlayerNumber -> RoutedNomyxServer Html
 viewGame g pn = do
@@ -342,19 +345,19 @@ loginPage = do
            H.div ! A.id "footer" $ string "Copyright Corentin Dupont 2012"
 
 
-routedNomyxCommands :: ServerHandle -> (TVar Multi) -> PlayerCommand -> RoutedNomyxServer Html
-routedNomyxCommands _ _  (Login)                     = loginPage
-routedNomyxCommands _ tm (PostLogin)                 = postLogin tm
-routedNomyxCommands _ tm (Noop pn)                   = nomyxPageComm pn tm (return ())
-routedNomyxCommands _ tm (JoinGame pn game)          = nomyxPageComm pn tm (joinGame game pn)
-routedNomyxCommands _ tm (LeaveGame pn)              = nomyxPageComm pn tm (leaveGame pn)
-routedNomyxCommands _ tm (SubscribeGame pn game)     = nomyxPageComm pn tm (subscribeGame game pn)
-routedNomyxCommands _ tm (UnsubscribeGame pn game)   = nomyxPageComm pn tm (unsubscribeGame game pn)
-routedNomyxCommands sh tm (NewRule)                  = newRule sh tm
-routedNomyxCommands _ tm (NewGame)                   = newGameWeb tm
-routedNomyxCommands _ tm (DoInputChoice pn en)       = newInputChoice pn en tm
-routedNomyxCommands _ tm (DoInputString pn en)       = newInputString pn en tm
-routedNomyxCommands sh tm (Upload pn)                = newUpload pn sh tm
+routedNomyxCommands :: (TVar Multi) -> PlayerCommand -> RoutedNomyxServer Html
+routedNomyxCommands _  (Login)                     = loginPage
+routedNomyxCommands tm (PostLogin)                 = postLogin tm
+routedNomyxCommands tm (Noop pn)                   = nomyxPageComm pn tm (return ())
+routedNomyxCommands tm (JoinGame pn game)          = nomyxPageComm pn tm (update $ MultiJoinGame game pn)
+routedNomyxCommands tm (LeaveGame pn)              = nomyxPageComm pn tm (update $ MultiLeaveGame pn)
+routedNomyxCommands tm (SubscribeGame pn game)     = nomyxPageComm pn tm (update $ MultiSubscribeGame game pn)
+routedNomyxCommands tm (UnsubscribeGame pn game)   = nomyxPageComm pn tm (update $ MultiUnsubscribeGame game pn)
+routedNomyxCommands tm (NewRule)                   = newRule tm
+routedNomyxCommands tm (NewGame)                   = newGameWeb tm
+routedNomyxCommands tm (DoInputChoice pn en)       = newInputChoice pn en tm
+routedNomyxCommands tm (DoInputString pn en)       = newInputString pn en tm
+routedNomyxCommands tm (Upload pn)                 = newUpload pn tm
 
 --execute the given instructions (Comm) and embed the result in a web page
 nomyxPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
@@ -403,15 +406,15 @@ execBlocking sm m mv = do
    res' <- evaluate res
    putMVar mv (Just res')
 
-newRule :: ServerHandle -> (TVar Multi) -> RoutedNomyxServer Html
-newRule sh tm = do
+newRule :: (TVar Multi) -> RoutedNomyxServer Html
+newRule tm = do
    methodM POST -- only accept a post method
    mbEntry <- getData -- get the data
    case mbEntry of
       Left a -> error $ "error: newRule " ++ (concat a)
       Right (NewRuleForm name text code pn) -> do
          --debugM ("Rule submitted: name =" ++ name ++ "\ntext=" ++ text ++ "\ncode=" ++ code ++ "\npn=" ++ (show pn))
-         nomyxPageComm pn tm (submitRule name text code pn sh)
+         nomyxPageComm pn tm (update $ MultiSubmitRule name text code pn)
 
 
 newGameWeb :: (TVar Multi) -> RoutedNomyxServer Html
@@ -420,7 +423,7 @@ newGameWeb tm = do
    mbEntry <- getData
    case mbEntry of
       Left a                      -> error $ "error: newGame" ++ (concat a)
-      Right (NewGameForm name pn) -> nomyxPageComm pn tm (newGame name pn)
+      Right (NewGameForm name pn) -> nomyxPageComm pn tm (update $ MultiNewGame name pn)
 
 newInputChoice :: PlayerNumber -> EventNumber -> (TVar Multi) -> RoutedNomyxServer Html
 newInputChoice pn en tm = do
@@ -434,7 +437,7 @@ newInputChoice pn en tm = do
     case r of
        (Right c) -> do
           liftRouteT $ lift $ putStrLn $ "choice:" ++ (show c)
-          execCommand tm $ inputChoiceResult en c pn
+          execCommand tm $ update $ MultiInputChoiceResult en c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
@@ -452,21 +455,21 @@ newInputString pn title tm = do
     case r of
        (Right c) -> do
           liftRouteT $ lift $ putStrLn $ "entered:" ++ (show c)
-          execCommand tm $ inputStringResult (InputString pn title) c pn
+          execCommand tm $ update $ MultiInputStringResult title c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
           seeOther link $ string "Redirecting..."
 
-newUpload :: PlayerNumber -> ServerHandle -> (TVar Multi) -> RoutedNomyxServer Html
-newUpload pn sh tm = do
+newUpload :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
+newUpload pn tm = do
     methodM POST
     r <- liftRouteT $ eitherForm environment "user" uploadForm
     link <- showURL $ Noop pn
     case r of
        (Right (path,name,content)) -> do
           lift $ lift $ putStrLn $ "Upload entered:" ++ (show path) ++ " " ++ (show name) ++ " " ++ (show content)
-          execCommand tm $ inputUpload pn path name sh
+          execCommand tm $ update $ MultiInputUpload pn path name
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
@@ -513,24 +516,24 @@ newPlayerWeb name pwd = do
          say "New player"
          --add the new player to the list
          pn <- getNewPlayerNumber
-         newPlayerU PlayerMulti { mPlayerNumber = pn, mPlayerName = name, mPassword = pwd, inGame = Nothing, mMail = ""}
+         update $ MultiNewPlayer PlayerMulti { mPlayerNumber = pn, mPlayerName = name, mPassword = pwd, inGame = Nothing, mMail = ""}
          return (Just pn)
 
 
-launchWebServer :: ServerHandle -> (TVar Multi) -> HostName -> Port -> IO ()
-launchWebServer sh tm host portNumber = do
+launchWebServer :: (TVar Multi) -> HostName -> Port -> IO ()
+launchWebServer tm host portNumber = do
    putStrLn $ "Starting web server...\nTo connect, drive your browser to \"http://" ++ host ++ ":" ++ (show portNumber) ++ "/Login\""
    d <- PN.getDataDir
    d' <- PNR.getDataDir
-   simpleHTTP nullConf {port=portNumber} $ server d d' sh tm host portNumber
+   simpleHTTP nullConf {port=portNumber} $ server d d' tm host portNumber
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: FilePath -> FilePath -> ServerHandle -> (TVar Multi) -> HostName -> Port -> NomyxServer Response
-server d d' sh tm host port = mconcat [
+server :: FilePath -> FilePath -> (TVar Multi) -> HostName -> Port -> NomyxServer Response
+server d d' tm host port = mconcat [
     serveDirectory EnableBrowsing [] d,
     serveDirectory EnableBrowsing [] d', do
        decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
-       html <- implSite (pack ("http://" ++ host ++ ":" ++ (show port))) "/Login" (nomyxSite sh tm)
+       html <- implSite (pack ("http://" ++ host ++ ":" ++ (show port))) "/Login" (nomyxSite tm)
        return $ toResponse html]
 
 instance FromData NewRuleForm where

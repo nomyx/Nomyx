@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, GeneralizedNewtypeDeriving,
+{-# LANGUAGE FlexibleContexts, GeneralizedNewtypeDeriving,
     MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators,
     TypeSynonymInstances, FlexibleInstances, GADTs #-}
 
@@ -29,27 +29,10 @@ import Data.Maybe
 import Control.Concurrent
 import Mueval.Resources
 import System.Posix.Resource
+import Control.Applicative
+--import Serialize
+import Types
 
-
-type PlayerPassword = String
-
-data PlayerMulti = PlayerMulti   { mPlayerNumber :: PlayerNumber,
-                                   mPlayerName :: PlayerName,
-                                   mPassword :: PlayerPassword,
-                                   mMail :: String,
-                                   inGame :: Maybe GameName}
-                                   deriving (Eq, Show, Typeable)
-
---- | A structure to hold the active games and players
-data Multi = Multi { games   :: [Game],
-                     mPlayers :: [PlayerMulti]}
-                     deriving (Eq, Typeable)
-
-instance Show Multi where
-   show Multi{games=gs, mPlayers=mps} = show (sort gs) ++ "\n" ++ show (sort mps)
-
-defaultMulti :: Multi
-defaultMulti = Multi [] []
 
 -- | helper function to change a player's ingame status.
 mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
@@ -63,7 +46,7 @@ newPlayerU pm = do
    modify (\multi -> multi { mPlayers = pm : pms})
 
 findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
-findPlayer name =  fmap (find (\PlayerMulti {mPlayerName = pn} -> pn==name)) (gets mPlayers)
+findPlayer name = find (\PlayerMulti {mPlayerName = pn} -> pn==name) <$> gets mPlayers
 
 getNewPlayerNumber :: StateT Multi IO PlayerNumber
 getNewPlayerNumber = do
@@ -209,6 +192,7 @@ limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHa
 inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> StateT Multi IO  ()
 inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo pn $ liftT $ triggerChoice eventNumber choiceIndex
 
+-- TODO maybe homogeneise both inputs event
 inputStringResult :: Event InputString -> String -> PlayerNumber -> StateT Multi IO  ()
 inputStringResult event input pn = inPlayersGameDo pn $ liftT $ triggerEvent event (InputStringData input)
 
@@ -229,12 +213,12 @@ output pn s = modify (\game -> game { outputs = (pn, s) : (outputs game)})
 -- | finds the corresponding game in the multistate and replaces it.
 modifyGame :: Game -> StateT Multi IO  ()
 modifyGame g = do
-   Multi gs ps <- get
+   Multi gs ps ls sh <- get
    case find (\myg -> gameName g == gameName myg) gs of
       Nothing -> error "modifyGame: No game by that name"
       Just oldg -> do
          let newgs = replace oldg g gs
-         put $ Multi newgs ps
+         put $ Multi newgs ps ls sh
 
 
 
@@ -310,8 +294,7 @@ inGameDo game action = do
          myg <- lift $ execWithGame action g
          modifyGame myg
 
-instance Ord PlayerMulti where
-  (<=) = (<=) `on` mPlayerNumber
+
 
 
 triggerTimeEvent :: TVar Multi -> UTCTime -> IO()

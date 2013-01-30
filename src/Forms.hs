@@ -24,7 +24,9 @@ import Data.Maybe
 import Text.Reform.Happstack()
 import qualified Text.Reform.Generalized as G
 import qualified Text.Blaze.Html5  as H
+import Types
 default (Integer, Double, Data.Text.Text)
+
 
 data LoginPass = LoginPass { login :: PlayerName,
                              password :: PlayerPassword}
