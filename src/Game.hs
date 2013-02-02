@@ -14,7 +14,7 @@ import Control.Monad.State
 import Data.List
 import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
-import Examples
+import Language.Nomyx.Examples
 import Data.Time.Clock as T
 
 
@@ -86,11 +86,7 @@ pendingRules = sort . filter (\(Rule {rStatus=rs}) -> rs==Pending) . rules
 rejectedRules :: Game -> [Rule]
 rejectedRules = sort . filter (\(Rule {rStatus=rs}) -> rs==Reject) . rules
 
-instance Eq Game where
-   (Game name1 _ _ _ _ _ _ _) == (Game name2 _ _ _ _ _ _ _) = name1 == name2
 
-instance Ord Game where
-   compare (Game name1 _ _ _ _ _ _ _) (Game name2 _ _ _ _ _ _ _) = compare name1 name2
 
 
 instance Ord PlayerInfo where

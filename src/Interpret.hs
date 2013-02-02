@@ -10,7 +10,6 @@ import System.Directory
 import System.FilePath
 import System.Posix.Files
 import Control.Monad
-import Mueval.Resources
 import System.Posix.Resource
 
 modDir = "modules"
@@ -44,7 +43,8 @@ initializeInterpreter = do
    setTopLevelModules $ map (dropExtension . takeFileName) fmods
    dataDir <- liftIO getDataDir
    set [searchPath := [dataDir], languageExtensions := [GADTs, ScopedTypeVariables]] --, languageExtensions := [], installedModulesInScope := False
-   setImports ["Prelude", "Language.Nomyx.Rule", "Language.Nomyx.Expression", "Test", "Examples", "GHC.Base", "Data.Maybe"]
+   --TODO: get all exported modules of Nomyx library
+   setImports ["Prelude", "Language.Nomyx.Rule", "Language.Nomyx.Expression", "Language.Nomyx.Test", "Language.Nomyx.Examples", "GHC.Base", "Data.Maybe"]
    return ()
 
 -- | reads maybe a Rule out of a string.
@@ -61,13 +61,6 @@ cpuTimeLimitHard = ResourceLimit 5
 limits :: [(Resource, ResourceLimits)]
 limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHard)]
          
--- | reads a Rule. May produce an error if badly formed.
-readRule :: String -> ServerHandle -> IO RuleFunc
-readRule sr sh = do
-   ir <- interpretRule sr sh
-   case ir of
-      Right r -> return r
-      Left e -> error $ "errReadRule: Rule is ill-formed. Shouldn't have happened.\n" ++ show e
 
 -- | check an uploaded file and reload
 loadModule :: FilePath -> FilePath -> ServerHandle -> IO (Either InterpreterError ())

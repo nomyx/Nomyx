@@ -17,8 +17,6 @@ import Control.Monad.State
 import Game
 import Utils
 import Interpret
-import Data.Typeable
-import Data.Function (on)
 import Debug.Trace.Helpers()
 import Language.Nomyx.Expression
 import Data.Time
@@ -27,7 +25,6 @@ import Language.Nomyx.Evaluation
 import Control.Concurrent.STM
 import Data.Maybe
 import Control.Concurrent
-import Mueval.Resources
 import System.Posix.Resource
 import Control.Applicative
 --import Serialize

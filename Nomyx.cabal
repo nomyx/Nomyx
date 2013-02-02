@@ -23,8 +23,8 @@ executable Nomyx
                    bytestring -any, containers -any, data-accessor-transformers -any,
                    directory -any, eprocess -any, extensible-exceptions -any,
                    filepath -any, happstack-server ==7.*, hdaemonize -any, hint -any,
-                   hint-server -any, hslogger -any, monad-loops -any, mtl ==2.*,
-                   mueval -any, network -any, process -any, reform -any,
+                   hint-server -any, hslogger -any, mime-mail -any, monad-loops -any,
+                   mtl ==2.*, mueval -any, network -any, process -any, reform -any,
                    reform-blaze -any, reform-happstack -any, regular -any, safe -any,
                    stm -any, text -any, time -any, unix -any, utf8-string -any,
                    web-routes ==0.27.*, web-routes-happstack ==0.23.*,
@@ -33,7 +33,7 @@ executable Nomyx
     buildable: True
     extensions: CPP
     hs-source-dirs: src
-    other-modules: Types Help Game Forms Multi Server Serialize Utils
-                   Interpret Web Commands Web
+    other-modules: Types Game Multi Server Serialize Utils Interpret Commands 
+                   Web.MainPage Web.Mail Web.Help Web.Login Web.Common Web.Game
     ghc-options: -W
  

@@ -36,6 +36,7 @@ enactEvent (MultiNewGame s pn)                = newGame s pn
 enactEvent (MultiJoinGame gn pn)              = joinGame gn pn
 enactEvent (MultiLeaveGame pn)                = leaveGame pn
 enactEvent (MultiSubscribeGame gn pn)         = subscribeGame gn pn
+enactEvent (MultiUnsubscribeGame gn pn)       = unsubscribeGame gn pn
 enactEvent (MultiSubmitRule name text rule pn) = gets sh >>= submitRule name text rule pn
 enactEvent (MultiInputChoiceResult eventNumber choiceIndex pn) = inputChoiceResult eventNumber choiceIndex pn
 enactEvent (MultiInputStringResult title result pn) = inputStringResult (InputString pn title) result pn

@@ -16,7 +16,7 @@ module Main (main) where
 
 import System.Console.GetOpt 
 import System.Environment 
-import Web
+import Web.MainPage
 import Multi
 import Control.Concurrent
 import Interpret
@@ -24,7 +24,7 @@ import Control.Concurrent.STM
 import qualified System.Posix.Signals as S
 import Control.Monad.CatchIO
 import Control.Monad.Trans
-import Test
+import Language.Nomyx.Test
 import Data.Maybe
 import Safe
 import Network.BSD
