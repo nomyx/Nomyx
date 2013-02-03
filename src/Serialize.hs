@@ -40,7 +40,8 @@ enactEvent (MultiUnsubscribeGame gn pn)       = unsubscribeGame gn pn
 enactEvent (MultiSubmitRule name text rule pn) = gets sh >>= submitRule name text rule pn
 enactEvent (MultiInputChoiceResult eventNumber choiceIndex pn) = inputChoiceResult eventNumber choiceIndex pn
 enactEvent (MultiInputStringResult title result pn) = inputStringResult (InputString pn title) result pn
-enactEvent (MultiInputUpload pn dir mod) = gets sh >>= inputUpload pn dir mod
+enactEvent (MultiInputUpload pn dir mod)      = gets sh >>= inputUpload pn dir mod
+enactEvent (MultiMailSettings mms pn)         = mailSettings mms pn
 
 update :: MultiEvent -> StateT Multi IO ()
 update le = logEvent le >> enactEvent le >> save'

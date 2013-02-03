@@ -193,7 +193,6 @@ viewMessages :: [String] -> Html
 viewMessages = mapM_ (\s -> string s >> br)
 
 
-
 newInputChoice :: PlayerNumber -> EventNumber -> (TVar Multi) -> RoutedNomyxServer Html
 newInputChoice pn en tm = do
     multi <- liftRouteT $ lift $ atomically $ readTVar tm

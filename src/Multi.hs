@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts, GeneralizedNewtypeDeriving,
     MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators,
-    TypeSynonymInstances, FlexibleInstances, GADTs #-}
+    TypeSynonymInstances, FlexibleInstances, GADTs, NamedFieldPuns, DoAndIfThenElse #-}
 
 -- | This module manages multi-player games and commands.
 module Multi where
@@ -29,6 +29,7 @@ import System.Posix.Resource
 import Control.Applicative
 --import Serialize
 import Types
+import Web.Mail
 
 
 -- | helper function to change a player's ingame status.
@@ -44,6 +45,9 @@ newPlayerU pm = do
 
 findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
 findPlayer name = find (\PlayerMulti {mPlayerName = pn} -> pn==name) <$> gets mPlayers
+
+findPlayer' :: PlayerNumber -> StateT Multi IO (Maybe PlayerMulti)
+findPlayer' pn = find (\PlayerMulti {mPlayerNumber} -> pn==mPlayerNumber) <$> gets mPlayers
 
 getNewPlayerNumber :: StateT Multi IO PlayerNumber
 getNewPlayerNumber = do
@@ -150,7 +154,9 @@ showSubscribtion pn = inPlayersGameDo pn $ do
 
 -- | insert a rule in pending rules.
 submitRule :: String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Multi IO  ()
-submitRule name text rule pn sh = inPlayersGameDo pn $ do
+submitRule name text rule pn sh = do
+  playerInfos <- gets mPlayers
+  inPlayersGameDo pn $ do
    --input the new rule (may fail if ill-formed)
    rs <- gets rules
    let rn = getFreeNumber $ map rNumber rs
@@ -159,8 +165,8 @@ submitRule name text rule pn sh = inPlayersGameDo pn $ do
       Just nr -> do
          r <- liftT $ evProposeRule nr
          if r == True then say $ "Your rule has been added to pending rules."
-             else say $ "Error: Rule could not be proposed"
-         return ()
+         else say $ "Error: Rule could not be proposed"
+         lift $ sendMailsNewRule playerInfos nr
       Nothing -> say $ "Please try again."
 
 
@@ -206,6 +212,17 @@ inputUpload pn dir mod sh = inPlayersGameDo pn $ do
 
 output :: PlayerNumber -> String -> StateT Game IO ()
 output pn s = modify (\game -> game { outputs = (pn, s) : (outputs game)})
+
+
+mailSettings :: MailSettings -> PlayerNumber -> StateT Multi IO ()
+mailSettings mailSettings pn = do
+   mps <- gets mPlayers
+   case find (\(PlayerMulti {mPlayerNumber}) -> pn==mPlayerNumber) mps of
+      Nothing -> say "settings not modified!"
+      Just pm -> do
+         let newmps = replace pm pm{mMail=mailSettings} mps
+         modify (\m -> m{mPlayers = newmps})
+
 
 -- | finds the corresponding game in the multistate and replaces it.
 modifyGame :: Game -> StateT Multi IO  ()

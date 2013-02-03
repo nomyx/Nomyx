@@ -7,6 +7,7 @@ module Web.Common where
 
 import Prelude hiding (div)
 import Text.Blaze.Html5 hiding (map)
+import Text.Blaze.Html5.Attributes hiding (dir, id)
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import Web.Routes.PathInfo
@@ -25,6 +26,7 @@ import Text.Reform.Blaze.String()
 import Text.Reform.Happstack()
 import qualified Text.Reform.Generalized as G
 import Data.Text(Text, pack)
+import Web.Routes.Happstack()
 default (Integer, Double, Data.Text.Text)
 
 
@@ -46,7 +48,9 @@ data PlayerCommand = Login
                    | DoInputString   PlayerNumber String
                    | NewRule         PlayerNumber
                    | NewGame         PlayerNumber
-                   | Upload PlayerNumber
+                   | Upload          PlayerNumber
+                   | Settings        PlayerNumber
+                   | SubmitSettings  PlayerNumber
                    deriving (Show)
 
 $(derivePathInfo ''PlayerCommand)
@@ -99,4 +103,18 @@ inputRadio' choices isDefault =
           [ ((if checked then (! A.checked "checked") else id) $
              input ! A.type_ "radio" ! A.id (toValue i) ! A.name (toValue nm) ! A.value (toValue val))
           , " ", H.label ! A.for (toValue i) $ toHtml lbl]
+
+mainPage :: Html -> Html -> Html -> Bool -> RoutedNomyxServer Html
+mainPage body title header footer = do
+   ok $ H.html $ do
+      H.head $ do
+        H.title title
+        H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"
+        H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
+        H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
+      H.body $ do
+        H.div ! A.id "container" $ do
+           H.div ! A.id "header" $ header
+           body
+           when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012"
 

@@ -36,6 +36,7 @@ import Multi --TODO to remove
 import Web.Game
 import Web.Common
 import Web.Login
+import Web.Mail
 import qualified Text.Reform.Blaze.String as RB
 import qualified Text.Reform.Blaze.Common as RBC
 import Control.Applicative
@@ -65,6 +66,7 @@ viewGamesTab pn gs = do
    dd <- lift $ lift $ PN.getDataDir
    mods <- lift $ lift $ getDirectoryContents $ dd </> modDir
    fmods <- lift $ lift $ filterM (getFileStatus . (\f -> joinPath [dd, modDir, f]) >=> return . isRegularFile) $ mods
+   settingsLink <- showURL (Settings pn)
    ok $ do
       h3 "Games:"
       table $ do
@@ -80,6 +82,9 @@ viewGamesTab pn gs = do
       mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) fmods
       br >> "Upload new rules file:" >> br
       blazeForm up (uploadLink) ! (A.title $ toValue Help.upload)
+      br >> "Settings" >> br
+      H.a "Player settings" ! (href $ toValue settingsLink) >> br
+
 
 viewGameName :: PlayerNumber -> Game -> RoutedNomyxServer Html
 viewGameName pn g = do
@@ -104,19 +109,10 @@ newGameForm = pure NewGameForm <*> (RB.inputText "") `RBC.setAttr` A.placeholder
 nomyxPage :: Multi -> PlayerNumber -> RoutedNomyxServer Html
 nomyxPage multi pn = do
    m <- viewMulti pn multi
-   ok $ do
-      H.html $ do
-        H.head $ do
-          H.title "Welcome to Nomyx!"
-          H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"
-          H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
-          H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
-          --H.meta ! A.httpEquiv "refresh" ! A.content "3"
-        H.body $ do
-          H.div ! A.id "container" $ do
-             H.div ! A.id "header" $ string $ "Welcome to Nomyx, " ++ (getPlayersName pn multi) ++ "!"
-             H.div ! A.id "multi" $ m
-
+   mainPage (H.div ! A.id "multi" $ m)
+             "Welcome to Nomyx!"
+             (string $ "Welcome to Nomyx, " ++ (getPlayersName pn multi) ++ "!")
+             False
 
 
 nomyxSite :: (TVar Multi) -> Site PlayerCommand (ServerPartT IO Html)
@@ -135,6 +131,8 @@ routedNomyxCommands tm (NewGame pn)                = newGameWeb pn tm
 routedNomyxCommands tm (DoInputChoice pn en)       = newInputChoice pn en tm
 routedNomyxCommands tm (DoInputString pn en)       = newInputString pn en tm
 routedNomyxCommands tm (Upload pn)                 = newUpload pn tm
+routedNomyxCommands _  (Settings pn)               = mailSettingsPage pn
+routedNomyxCommands tm (SubmitSettings pn)         = newMailSettings pn tm
 
 --execute the given instructions (Comm) and embed the result in a web page
 nomyxPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
@@ -197,6 +195,8 @@ newGameWeb pn tm = do
       Left _                      -> error $ "error: newGame"
       Right (NewGameForm name) -> nomyxPageComm pn tm (update $ MultiNewGame name pn)
 
+uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
+uploadForm = RB.inputFile
 
 newUpload :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
 newUpload pn tm = do
@@ -211,6 +211,20 @@ newUpload pn tm = do
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
           seeOther link $ string "Redirecting..."
+
+
+newMailSettings :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
+newMailSettings pn tm = do
+   methodM POST
+   r <- liftRouteT $ eitherForm environment "user" mailForm
+   link <- showURL $ Noop pn
+   case r of
+       Right ms -> do
+         nomyxPageComm pn tm (update $ MultiMailSettings ms pn)
+       (Left _) -> do
+          liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
+          seeOther link $ string "Redirecting..."
+
 
 nomyxPageServer :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
 nomyxPageServer pn tm = do
@@ -235,10 +249,6 @@ server d d' tm host port = mconcat [
        return $ toResponse html]
 
 
-
-
-uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
-uploadForm = RB.inputFile
 
 
 

@@ -51,7 +51,9 @@ data MultiEvent =  MultiNewPlayer PlayerMulti
                | MultiSubmitRule String String String PlayerNumber
                | MultiInputChoiceResult EventNumber Int PlayerNumber
                | MultiInputStringResult String String PlayerNumber
-               | MultiInputUpload PlayerNumber FilePath String deriving (Show, Read, Eq)
+               | MultiInputUpload PlayerNumber FilePath String
+               | MultiMailSettings MailSettings PlayerNumber
+                 deriving (Show, Read, Eq)
 
 
 instance Ord PlayerMulti where
@@ -60,14 +62,14 @@ instance Ord PlayerMulti where
 type NomyxForm a = Form (ServerPartT IO) [Input] String Html () a
 
 
-data MailSettings = MailSettings { mailTo :: Maybe String,
+data MailSettings = MailSettings { mailTo :: String,
                    mailNewInput :: Bool,
                    mailNewRule :: Bool,
                    mailNewOutput :: Bool,
                    mailConfirmed :: Bool } deriving (Eq, Show, Read)
 
 defaultMailSettings :: MailSettings
-defaultMailSettings = MailSettings Nothing False False False False
+defaultMailSettings = MailSettings "" False False False False
 
 instance FormError String where
     type ErrorInputType String = [Input]

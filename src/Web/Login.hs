@@ -38,17 +38,10 @@ loginPage :: RoutedNomyxServer Html
 loginPage = do
    link <- showURL PostLogin
    lf  <- lift $ viewForm "user" loginForm
-   ok $ H.html $ do
-      H.head $ do
-        H.title "Login to Nomyx"
-        H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"
-        H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
-        H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
-      H.body $ do
-        H.div ! A.id "container" $ do
-           H.div ! A.id "header" $ "Login to Nomyx"
-           H.div ! A.id "login" $ blazeForm lf (link)
-           H.div ! A.id "footer" $ string "Copyright Corentin Dupont 2012"
+   mainPage (blazeForm lf link)
+             "Login to Nomyx"
+             "Login to Nomyx"
+             True
 
 
 postLogin :: (TVar Multi) -> RoutedNomyxServer Html
