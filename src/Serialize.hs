@@ -10,10 +10,10 @@ import Control.Monad.State
 import Types
 import Multi
 import Language.Haskell.Interpreter.Server
-
+import Control.Applicative
 
 save :: FilePath -> [MultiEvent] -> IO()
-save fp ges = withFile fp WriteMode (\h -> hPutStr h $ show $ ges)
+save fp ges = writeFile fp $ showMultiEvents ges
 
 save' :: StateT Multi IO ()
 save' = do
@@ -21,7 +21,7 @@ save' = do
    lift $ save (logFilePath lgs) (logEvents lgs)
 
 load :: FilePath -> IO([MultiEvent])
-load fp = withFile fp ReadMode (\h -> hGetLine h >>= return . read )
+load fp = readMultiEvents <$> readFile fp --withFile fp ReadMode (\h -> readMultiEvents <$> hGetContents h)
 
 logEvent :: MultiEvent -> StateT Multi IO ()
 logEvent le = do
@@ -57,6 +57,11 @@ loadEvents' fp = do
    put m { logs = ls { logEvents = les}}
    mapM_ (\a -> (lift $ putStrLn $ "loading " ++ (show a)) >> enactEvent a) les
 
+readMultiEvents :: String -> [MultiEvent]
+readMultiEvents s = map read $ lines s
+
+showMultiEvents :: [MultiEvent] -> String
+showMultiEvents = concatMap (\a -> show a ++ "\n")
 
 --instance Show MultiEvent where
 --   show a =
