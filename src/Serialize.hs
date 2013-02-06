@@ -4,7 +4,6 @@
 module Serialize where
 
 import Prelude hiding (log)
-import System.IO
 import Language.Nomyx.Expression
 import Control.Monad.State
 import Types
@@ -21,7 +20,7 @@ save' = do
    lift $ save (logFilePath lgs) (logEvents lgs)
 
 load :: FilePath -> IO([MultiEvent])
-load fp = readMultiEvents <$> readFile fp --withFile fp ReadMode (\h -> readMultiEvents <$> hGetContents h)
+load fp = readMultiEvents <$> readFile fp
 
 logEvent :: MultiEvent -> StateT Multi IO ()
 logEvent le = do
@@ -62,7 +61,3 @@ readMultiEvents s = map read $ lines s
 
 showMultiEvents :: [MultiEvent] -> String
 showMultiEvents = concatMap (\a -> show a ++ "\n")
-
---instance Show MultiEvent where
---   show a =
---   showList as = (++) $ concatMap (\a -> show a ++ "\n") as

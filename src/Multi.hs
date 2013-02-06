@@ -159,6 +159,7 @@ submitRule name text rule pn sh = do
   inPlayersGameDo pn $ do
    --input the new rule (may fail if ill-formed)
    rs <- gets rules
+   game <- gets gameName
    let rn = getFreeNumber $ map rNumber rs
    mnr <- enterRule rn name text rule pn sh
    case mnr of
@@ -166,7 +167,7 @@ submitRule name text rule pn sh = do
          r <- liftT $ evProposeRule nr
          if r == True then say $ "Your rule has been added to pending rules."
          else say $ "Error: Rule could not be proposed"
-         lift $ sendMailsNewRule playerInfos nr
+         lift $ sendMailsNewRule playerInfos nr game
       Nothing -> say $ "Please try again."
 
 

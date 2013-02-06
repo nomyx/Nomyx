@@ -39,11 +39,10 @@ sendMail to object body = do
 newRuleBody :: Rule -> String
 newRuleBody (Rule {rNumber, rProposedBy}) = "Rule number " ++ (show rNumber) ++ " has been proposed by player " ++ (show rProposedBy)
 
---TODO: send only if the player is in the game
-sendMailsNewRule :: [PlayerMulti] -> Rule -> IO()
-sendMailsNewRule pms r = do
-   forM_ pms (send . mMail)
-   where send mail = when (mailNewRule mail) $ sendMail (mailTo mail) (newRuleBody r) (newRuleBody r)
+sendMailsNewRule :: [PlayerMulti] -> Rule -> GameName -> IO()
+sendMailsNewRule pms r gn = do
+   forM_ pms send
+   where send pm = when ((Just gn == inGame pm) && (mailNewRule $ mMail pm)) $ sendMail (mailTo $ mMail pm) (newRuleBody r) (newRuleBody r)
 
 
 outputBody :: String -> String
