@@ -27,9 +27,8 @@ import Data.Maybe
 import Control.Concurrent
 import System.Posix.Resource
 import Control.Applicative
---import Serialize
 import Types
-import Web.Mail
+import Mail
 
 
 -- | helper function to change a player's ingame status.
@@ -43,11 +42,6 @@ newPlayerU pm = do
    pms <- gets mPlayers
    modify (\multi -> multi { mPlayers = pm : pms})
 
-findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
-findPlayer name = find (\PlayerMulti {mPlayerName = pn} -> pn==name) <$> gets mPlayers
-
-findPlayer' :: PlayerNumber -> StateT Multi IO (Maybe PlayerMulti)
-findPlayer' pn = find (\PlayerMulti {mPlayerNumber} -> pn==mPlayerNumber) <$> gets mPlayers
 
 getNewPlayerNumber :: StateT Multi IO PlayerNumber
 getNewPlayerNumber = do

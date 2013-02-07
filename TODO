@@ -4,12 +4,11 @@ TODO list
 Features to add:
 
 - interpreter (like tryhaskell.org) on the web page to debug rules
-- store state in DB
 - make a command line client
 - make a clear login/session system
 - colorize code
 - make code instructions in the active rules table clickable to access haddock documentation
-- mail server to send notices/events when other players played.
+
 
 Improves:
 
@@ -31,4 +30,4 @@ BUGS
 - time events: some events are triggered 2 times
 - self proposed victory not working
 - check when error on parameters (for victory for example)
-- check to copy each example code (not name)
+

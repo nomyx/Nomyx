@@ -36,10 +36,11 @@ import Multi --TODO to remove
 import Web.Game
 import Web.Common
 import Web.Login
-import Web.Mail
+import Web.Settings
 import qualified Text.Reform.Blaze.String as RB
 import qualified Text.Reform.Blaze.Common as RBC
 import Control.Applicative
+import Data.Maybe
 import Data.Text(Text, pack)
 default (Integer, Double, Data.Text.Text)
 
@@ -120,6 +121,8 @@ nomyxSite tm = setDefault Login $ mkSitePI (runRouteT $ routedNomyxCommands tm)
 
 routedNomyxCommands :: (TVar Multi) -> PlayerCommand -> RoutedNomyxServer Html
 routedNomyxCommands _  (Login)                     = loginPage
+routedNomyxCommands tm (NewPlayer lp)              = newPlayerPage lp
+routedNomyxCommands tm (NewPlayerLogin lp)         = newPlayerLogin tm lp
 routedNomyxCommands tm (PostLogin)                 = postLogin tm
 routedNomyxCommands tm (Noop pn)                   = nomyxPageComm pn tm (return ())
 routedNomyxCommands tm (JoinGame pn game)          = nomyxPageComm pn tm (update $ MultiJoinGame game pn)
@@ -131,8 +134,8 @@ routedNomyxCommands tm (NewGame pn)                = newGameWeb pn tm
 routedNomyxCommands tm (DoInputChoice pn en)       = newInputChoice pn en tm
 routedNomyxCommands tm (DoInputString pn en)       = newInputString pn en tm
 routedNomyxCommands tm (Upload pn)                 = newUpload pn tm
-routedNomyxCommands _  (Settings pn)               = mailSettingsPage pn
-routedNomyxCommands tm (SubmitSettings pn)         = newMailSettings pn tm
+routedNomyxCommands tm (Settings pn)               = settings pn tm
+routedNomyxCommands tm (SubmitSettings pn)         = newSettings pn tm
 
 --execute the given instructions (Comm) and embed the result in a web page
 nomyxPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
@@ -213,10 +216,16 @@ newUpload pn tm = do
           seeOther link $ string "Redirecting..."
 
 
-newMailSettings :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
-newMailSettings pn tm = do
+settings :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
+settings pn tm  = do
+   pm <- execCommand tm $ findPlayer' pn
+   settingsPage pn $ mMail $ fromJust pm
+
+
+newSettings :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
+newSettings pn tm = do
    methodM POST
-   r <- liftRouteT $ eitherForm environment "user" mailForm
+   r <- liftRouteT $ eitherForm environment "user" $ mailForm Nothing
    link <- showURL $ Noop pn
    case r of
        Right ms -> do
@@ -234,7 +243,7 @@ nomyxPageServer pn tm = do
 
 launchWebServer :: (TVar Multi) -> HostName -> Port -> IO ()
 launchWebServer tm host portNumber = do
-   putStrLn $ "Starting web server...\nTo connect, drive your browser to \"http://" ++ host ++ ":" ++ (show portNumber) ++ "/Login\""
+   putStrLn $ "Starting web server...\nTo connect, drive your browser to \"http://" ++ host ++ ":" ++ (show portNumber) ++ "/Nomyx\""
    d <- PN.getDataDir
    d' <- PNR.getDataDir
    simpleHTTP nullConf {port=portNumber} $ server d d' tm host portNumber
@@ -245,7 +254,7 @@ server d d' tm host port = mconcat [
     serveDirectory EnableBrowsing [] d,
     serveDirectory EnableBrowsing [] d', do
        decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
-       html <- implSite (pack ("http://" ++ host ++ ":" ++ (show port))) "/Login" (nomyxSite tm)
+       html <- implSite (pack ("http://" ++ host ++ ":" ++ (show port))) "/Nomyx" (nomyxSite tm)
        return $ toResponse html]
 
 

@@ -33,7 +33,7 @@ executable Nomyx
     buildable: True
     extensions: CPP
     hs-source-dirs: src
-    other-modules: Types Game Multi Server Serialize Utils Interpret Commands 
-                   Web.MainPage Web.Mail Web.Help Web.Login Web.Common Web.Game
+    other-modules: Types Game Multi Server Serialize Utils Interpret Commands Mail 
+                   Web.MainPage Web.Settings Web.Help Web.Login Web.Common Web.Game
     ghc-options: -W
  

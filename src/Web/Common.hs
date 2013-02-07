@@ -30,6 +30,11 @@ import Web.Routes.Happstack()
 default (Integer, Double, Data.Text.Text)
 
 
+data LoginPass = LoginPass { login :: PlayerName,
+                             password :: PlayerPassword}
+                             deriving (Show, Eq)
+
+
 -- | associate a player number with a handle
 data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
 
@@ -39,6 +44,8 @@ type Port = Int
 
 data PlayerCommand = Login
                    | PostLogin
+                   | NewPlayer       LoginPass
+                   | NewPlayerLogin  LoginPass
                    | Noop            PlayerNumber
                    | JoinGame        PlayerNumber GameName
                    | LeaveGame       PlayerNumber
@@ -54,6 +61,7 @@ data PlayerCommand = Login
                    deriving (Show)
 
 $(derivePathInfo ''PlayerCommand)
+$(derivePathInfo ''LoginPass)
 
 instance PathInfo Bool where
   toPathSegments i = [pack $ show i]

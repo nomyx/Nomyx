@@ -1,5 +1,6 @@
 
-{-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances, TypeFamilies,
+             NamedFieldPuns #-}
 
 module Types where
 import Language.Nomyx.Expression
@@ -11,7 +12,8 @@ import Text.Blaze.Html5 hiding (map, label)
 import Text.Reform
 import Happstack.Server
 import Text.Reform.Happstack()
-
+import Control.Applicative
+import Control.Monad.State
 
 type PlayerPassword = String
 
@@ -74,5 +76,11 @@ defaultMailSettings = MailSettings "" False False False False
 instance FormError String where
     type ErrorInputType String = [Input]
     commonFormError _ = "common error"
+
+findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
+findPlayer name = find (\PlayerMulti {mPlayerName = pn} -> pn==name) <$> gets mPlayers
+
+findPlayer' :: PlayerNumber -> StateT Multi IO (Maybe PlayerMulti)
+findPlayer' pn = find (\PlayerMulti {mPlayerNumber} -> pn==mPlayerNumber) <$> gets mPlayers
 
 
