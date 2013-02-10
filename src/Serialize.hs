@@ -10,7 +10,6 @@ import Types
 import Multi
 import Language.Haskell.Interpreter.Server
 import Control.Applicative
-import Network.BSD
 
 save :: FilePath -> [MultiEvent] -> IO()
 save fp ges = writeFile fp $ showMultiEvents ges

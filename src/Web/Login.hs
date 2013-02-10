@@ -7,7 +7,6 @@ import Prelude hiding (div)
 import Text.Blaze.Html5 hiding (map, label, br)
 import Text.Blaze.Html5.Attributes hiding (dir, label)
 import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
 import Web.Routes.RouteT
 import Text.Blaze.Internal
 import Control.Monad.State
@@ -26,7 +25,6 @@ import Web.Settings
 import Web.Routes.Happstack()
 import Control.Applicative
 import Text.Reform.Blaze.String hiding (form)
-import qualified Text.Reform.Blaze.Common as RBC
 import Data.Text hiding (map, zip, concatMap)
 default (Integer, Double, Data.Text.Text)
 

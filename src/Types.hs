@@ -12,8 +12,6 @@ import Text.Blaze.Html5 hiding (map, label)
 import Text.Reform
 import Happstack.Server
 import Text.Reform.Happstack()
-import Control.Applicative
-import Control.Monad.State
 import Network.BSD
 
 type PlayerPassword = String

@@ -4,32 +4,18 @@
 module Web.Settings where
 
 import Text.Blaze.Html5 hiding (map, label, br)
-import Text.Blaze.Html5.Attributes hiding (dir, id, label)
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
-import Network.Mail.Mime hiding (mailTo)
+
 import Prelude hiding (div)
 import Text.Reform
 import Text.Reform.Blaze.String hiding (form)
 import Text.Reform.Happstack()
 import Control.Applicative
-import Control.Monad
 import Types
 import Web.Common
 import Control.Monad.State
 import Language.Nomyx.Expression
-import Web.Routes.Site
-import Web.Routes.PathInfo
-import Web.Routes.Happstack
 import Web.Routes.RouteT
-import Text.Blaze.Internal
-import Data.Text(Text, pack)
-import Control.Concurrent
-import Data.List
-import Data.Maybe
-import Control.Concurrent.STM
-import qualified Data.Text.Lazy as B
-import Multi
+import Data.Text(Text)
 default (Integer, Double, Data.Text.Text)
 
 

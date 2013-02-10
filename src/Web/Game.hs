@@ -5,8 +5,6 @@ module Web.Game where
 
 import Prelude hiding (div)
 import Text.Blaze.Html5 hiding (map)
-import Text.Blaze.Html5.Attributes hiding (dir)
-import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import Web.Routes.RouteT
 import Text.Blaze.Internal
@@ -14,7 +12,6 @@ import Game
 import Control.Monad
 import Control.Monad.State
 import Data.Monoid
-import Data.String
 import Control.Concurrent.STM
 import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
@@ -25,7 +22,6 @@ import Happstack.Server
 import Data.List
 import qualified Web.Help as Help
 import Serialize
-import Multi --TODO to remove
 import Web.Common
 import Types
 import Web.Routes.Happstack()

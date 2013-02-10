@@ -11,6 +11,7 @@ import System.FilePath
 import System.Posix.Files
 import Control.Monad
 import System.Posix.Resource
+import Control.Exception as CE
 
 modDir = "modules"
 
@@ -49,7 +50,7 @@ initializeInterpreter = do
 
 -- | reads maybe a Rule out of a string.
 interpretRule :: String -> ServerHandle -> IO (Either InterpreterError RuleFunc)
-interpretRule s sh = flip catch (\e -> return (Left $ NotAllowed $ "Caught exception: " ++ (show e))) $ do
+interpretRule s sh = flip CE.catch (\e -> return (Left $ NotAllowed $ "Caught exception: " ++ (show (e:: IOException) ))) $ do --TODO check exception
    liftIO $ runIn sh $ do
       liftIO $ mapM_ (uncurry setResourceLimit) limits
       interpret s (as :: RuleFunc)

@@ -29,10 +29,8 @@ import System.Directory
 import System.FilePath
 import System.Posix.Files
 import qualified Web.Help as Help
-import Network.BSD
 import Types
 import Serialize
-import Multi --TODO to remove
 import Web.Game
 import Web.Common
 import Web.Login
@@ -123,7 +121,7 @@ nomyxSite tm = setDefault Login $ mkSitePI (runRouteT $ routedNomyxCommands tm)
 
 routedNomyxCommands :: (TVar Multi) -> PlayerCommand -> RoutedNomyxServer Html
 routedNomyxCommands _  (Login)                     = loginPage
-routedNomyxCommands tm (NewPlayer lp)              = newPlayerPage lp
+routedNomyxCommands _  (NewPlayer lp)              = newPlayerPage lp
 routedNomyxCommands tm (NewPlayerLogin lp)         = newPlayerLogin tm lp
 routedNomyxCommands tm (PostLogin)                 = postLogin tm
 routedNomyxCommands tm (Noop pn)                   = nomyxPageComm pn tm (return ())
