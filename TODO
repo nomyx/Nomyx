@@ -5,7 +5,7 @@ Features to add:
 
 - interpreter (like tryhaskell.org) on the web page to debug rules
 - make a command line client
-- make a clear login/session system
+- make a session system
 - colorize code
 - make code instructions in the active rules table clickable to access haddock documentation
 

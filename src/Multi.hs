@@ -28,7 +28,7 @@ import Control.Concurrent
 import System.Posix.Resource
 import Control.Applicative
 import Types
-import Mail
+--import Mail
 
 
 -- | helper function to change a player's ingame status.
@@ -147,9 +147,10 @@ showSubscribtion pn = inPlayersGameDo pn $ do
 
 
 -- | insert a rule in pending rules.
-submitRule :: String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Multi IO  ()
+submitRule :: String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Multi IO ()
 submitRule name text rule pn sh = do
   playerInfos <- gets mPlayers
+  net <- gets net
   inPlayersGameDo pn $ do
    --input the new rule (may fail if ill-formed)
    rs <- gets rules
@@ -161,7 +162,6 @@ submitRule name text rule pn sh = do
          r <- liftT $ evProposeRule nr
          if r == True then say $ "Your rule has been added to pending rules."
          else say $ "Error: Rule could not be proposed"
-         lift $ sendMailsNewRule playerInfos nr game
       Nothing -> say $ "Please try again."
 
 
@@ -222,12 +222,12 @@ mailSettings mailSettings pn = do
 -- | finds the corresponding game in the multistate and replaces it.
 modifyGame :: Game -> StateT Multi IO  ()
 modifyGame g = do
-   Multi gs ps ls sh <- get
+   m@(Multi {games=gs}) <- get
    case find (\myg -> gameName g == gameName myg) gs of
       Nothing -> error "modifyGame: No game by that name"
       Just oldg -> do
          let newgs = replace oldg g gs
-         put $ Multi newgs ps ls sh
+         put (m {games=newgs})
 
 
 
@@ -258,30 +258,6 @@ setName name pn pl = case find (\(PlayerMulti h _ _ _ _) -> h == pn) pl of
                         Nothing -> pl
 
 
--- | returns the game the player is in
-getPlayersGame :: PlayerNumber -> Multi -> Maybe Game
-getPlayersGame pn multi = do
-        pi <- find (\(PlayerMulti n _ _ _ _) -> n==pn) (mPlayers multi)
-        gn <- inGame pi
-        find (\(Game {gameName=name}) -> name==gn) (games multi)
-
-getPlayersName :: PlayerNumber -> Multi -> PlayerName
-getPlayersName pn multi = do
-   case find (\(PlayerMulti n _ _ _ _) -> n==pn) (mPlayers multi) of
-      Nothing -> error "getPlayersName: No player by that number"
-      Just pm -> mPlayerName pm
-
-getPlayersName' :: Game -> PlayerNumber -> PlayerName
-getPlayersName' g pn = do
-   case find (\(PlayerInfo n _) -> n==pn) (players g) of
-      Nothing -> error "getPlayersName: No player by that number in that game"
-      Just pm -> playerName pm
-
-getPlayersNameMay :: Game -> PlayerNumber -> Maybe PlayerName
-getPlayersNameMay g pn = do
-   case find (\(PlayerInfo n _) -> n==pn) (players g) of
-      Nothing -> Nothing
-      Just pm -> Just $ playerName pm
 
 -- | this function apply the given game actions to the game the player is in.
 inPlayersGameDo :: PlayerNumber -> StateT Game IO () -> StateT Multi IO ()

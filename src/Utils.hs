@@ -12,11 +12,17 @@
 --
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE NamedFieldPuns #-}
+    
 module Utils where
 
 import Data.Maybe
 import Data.Char
 import Control.Monad.State
+import Types
+import Language.Nomyx.Expression
+import Data.List
+import Control.Applicative
          
 -- | this function will return just a if it can cast it to an a.
 maybeRead :: Read a => String -> Maybe a
@@ -50,3 +56,36 @@ liftT st = do
     return a
 
 
+findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
+findPlayer name = find (\PlayerMulti {mPlayerName = pn} -> pn==name) <$> gets mPlayers
+
+findPlayer' :: PlayerNumber -> StateT Multi IO (Maybe PlayerMulti)
+findPlayer' pn = find (\PlayerMulti {mPlayerNumber} -> pn==mPlayerNumber) <$> gets mPlayers
+
+nomyxURL :: Network -> String
+nomyxURL (Network host port) = "http://" ++ host ++ ":" ++ (show port)
+
+getPlayersName :: PlayerNumber -> Multi -> PlayerName
+getPlayersName pn multi = do
+   case find (\(PlayerMulti n _ _ _ _) -> n==pn) (mPlayers multi) of
+      Nothing -> error "getPlayersName: No player by that number"
+      Just pm -> mPlayerName pm
+
+getPlayersName' :: Game -> PlayerNumber -> PlayerName
+getPlayersName' g pn = do
+   case find (\(PlayerInfo n _) -> n==pn) (players g) of
+      Nothing -> error "getPlayersName: No player by that number in that game"
+      Just pm -> playerName pm
+
+-- | returns the game the player is in
+getPlayersGame :: PlayerNumber -> Multi -> Maybe Game
+getPlayersGame pn multi = do
+        pi <- find (\(PlayerMulti n _ _ _ _) -> n==pn) (mPlayers multi)
+        gn <- inGame pi
+        find (\(Game {gameName=name}) -> name==gn) (games multi)
+
+getPlayersNameMay :: Game -> PlayerNumber -> Maybe PlayerName
+getPlayersNameMay g pn = do
+   case find (\(PlayerInfo n _) -> n==pn) (players g) of
+      Nothing -> Nothing
+      Just pm -> Just $ playerName pm

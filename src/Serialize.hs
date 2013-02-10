@@ -10,6 +10,7 @@ import Types
 import Multi
 import Language.Haskell.Interpreter.Server
 import Control.Applicative
+import Network.BSD
 
 save :: FilePath -> [MultiEvent] -> IO()
 save fp ges = writeFile fp $ showMultiEvents ges
@@ -45,8 +46,8 @@ enactEvent (MultiMailSettings mms pn)         = mailSettings mms pn
 update :: MultiEvent -> StateT Multi IO ()
 update le = logEvent le >> enactEvent le >> save'
 
-loadEvents :: FilePath -> ServerHandle-> IO Multi
-loadEvents fp sh = execStateT (loadEvents' fp) (defaultMulti sh fp)
+loadEvents :: FilePath -> ServerHandle -> Network -> IO Multi
+loadEvents fp sh net = execStateT (loadEvents' fp) (defaultMulti sh fp net)
 
 loadEvents' :: FilePath -> StateT Multi IO ()
 loadEvents' fp = do

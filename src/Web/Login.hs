@@ -32,8 +32,13 @@ default (Integer, Double, Data.Text.Text)
 
 
 loginForm :: Maybe LoginPass -> NomyxForm LoginPass
-loginForm (Just (LoginPass login _)) = LoginPass <$> label "Login: " ++> (inputText login) <*> label "    Password: " ++> inputPassword <++ label " "
-loginForm Nothing = LoginPass <$> label "Login: " ++> (inputText "") <*> label "    Password: " ++> inputPassword <++ label " "
+loginForm (Just (LoginPass login _)) = loginForm' login
+loginForm Nothing = loginForm' ""
+
+loginForm' :: String -> NomyxForm LoginPass
+loginForm' login = LoginPass <$> label "Please enter your login and password (if you dont have one, just invent it):" ++> br
+                   ++>  label "Login: " ++> (inputText login) <*> label "    Password: " ++> inputPassword <++ label " "
+
 
 loginPage :: RoutedNomyxServer Html
 loginPage = do

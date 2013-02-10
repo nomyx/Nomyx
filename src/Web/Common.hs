@@ -40,7 +40,7 @@ data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
 
 -- | A structure to hold the active games and players
 data Server = Server [PlayerClient] deriving (Eq, Show)
-type Port = Int
+
 
 data PlayerCommand = Login
                    | PostLogin

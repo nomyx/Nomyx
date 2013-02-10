@@ -24,7 +24,7 @@ import Control.Concurrent.STM
 import Language.Nomyx.Expression
 import Text.Reform.Happstack
 import Text.Reform
-import Happstack.Server
+import Happstack.Server as HS
 import System.Directory
 import System.FilePath
 import System.Posix.Files
@@ -41,6 +41,8 @@ import qualified Text.Reform.Blaze.String as RB
 import qualified Text.Reform.Blaze.Common as RBC
 import Control.Applicative
 import Data.Maybe
+import Mail
+import Utils
 import Data.Text(Text, pack)
 default (Integer, Double, Data.Text.Text)
 
@@ -180,11 +182,13 @@ execBlocking sm m mv = do
 newRule :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
 newRule pn tm = do
    methodM POST
+   m <- liftRouteT $ lift $ atomically $ readTVar tm
    r <- liftRouteT $ eitherForm environment "user" newRuleForm
    link <- showURL $ Noop pn
    case r of
        Right (NewRuleForm name text code) -> do
          --debugM ("Rule submitted: name =" ++ name ++ "\ntext=" ++ text ++ "\ncode=" ++ code ++ "\npn=" ++ (show pn))
+         liftRouteT $ lift $ sendMailsNewRule m name text code pn
          nomyxPageComm pn tm (update $ MultiSubmitRule name text code pn)
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
@@ -241,20 +245,20 @@ nomyxPageServer pn tm = do
    nomyxPage multi pn
 
 
-launchWebServer :: (TVar Multi) -> HostName -> Port -> IO ()
-launchWebServer tm host portNumber = do
-   putStrLn $ "Starting web server...\nTo connect, drive your browser to \"http://" ++ host ++ ":" ++ (show portNumber) ++ "/Nomyx\""
+launchWebServer :: (TVar Multi) -> Network -> IO ()
+launchWebServer tm net = do
+   putStrLn $ "Starting web server...\nTo con nect, drive your browser to\"" ++ nomyxURL net ++ "/Nomyx\""
    d <- PN.getDataDir
    d' <- PNR.getDataDir
-   simpleHTTP nullConf {port=portNumber} $ server d d' tm host portNumber
+   simpleHTTP nullConf {HS.port = Types.port net} $ server d d' tm net
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: FilePath -> FilePath -> (TVar Multi) -> HostName -> Port -> NomyxServer Response
-server d d' tm host port = mconcat [
+server :: FilePath -> FilePath -> (TVar Multi) -> Network -> NomyxServer Response
+server d d' tm net = mconcat [
     serveDirectory EnableBrowsing [] d,
     serveDirectory EnableBrowsing [] d', do
        decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
-       html <- implSite (pack ("http://" ++ host ++ ":" ++ (show port))) "/Nomyx" (nomyxSite tm)
+       html <- implSite (pack (nomyxURL net)) "/Nomyx" (nomyxSite tm)
        return $ toResponse html]
 
 

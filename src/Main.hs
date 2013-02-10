@@ -64,7 +64,6 @@ start flags = do
          logFile <- case (findSaveFile flags) of
             Just f -> return f
             Nothing -> return defaultLogFile
-         multi <- loadMulti logFile sh
          --start the web server
          port <- case (findPort flags) of
             Just p -> return $ read p
@@ -72,18 +71,19 @@ start flags = do
          host <- case (findHost flags) of
             Just h -> return h
             Nothing -> getHostName >>= return
-         forkIO $ launchWebServer multi host port
+         multi <- loadMulti logFile sh (Network host port)
+         forkIO $ launchWebServer multi (Network host port)
          forkIO $ launchTimeEvents multi
          --loop
          serverLoop multi logFile
 
-loadMulti :: FilePath -> ServerHandle -> IO (TVar Multi)
-loadMulti f sh = do
+loadMulti :: FilePath -> ServerHandle -> Network -> IO (TVar Multi)
+loadMulti f sh net = do
    fp <- getDataFileName f
    fileExists <- doesFileExist fp
    multi <- case fileExists of
-      True -> loadEvents fp sh
-      False -> return $ defaultMulti sh fp
+      True -> loadEvents fp sh net
+      False -> return $ defaultMulti sh fp net
    atomically $ newTVar multi
 
 

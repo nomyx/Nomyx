@@ -14,8 +14,11 @@ import Happstack.Server
 import Text.Reform.Happstack()
 import Control.Applicative
 import Control.Monad.State
+import Network.BSD
 
 type PlayerPassword = String
+type Port = Int
+data Network = Network {host :: HostName, port :: Port}
 
 
 data PlayerMulti = PlayerMulti   { mPlayerNumber :: PlayerNumber,
@@ -29,14 +32,15 @@ data PlayerMulti = PlayerMulti   { mPlayerNumber :: PlayerNumber,
 data Multi = Multi { games   :: [Game],
                      mPlayers :: [PlayerMulti],
                      logs ::  Log,
-                     sh :: ServerHandle}
+                     sh :: ServerHandle,
+                     net :: Network}
                      deriving (Typeable)
 
 instance Show Multi where
    show Multi{games=gs, mPlayers=mps} = show (sort gs) ++ "\n" ++ show (sort mps)
 
-defaultMulti :: ServerHandle -> FilePath -> Multi
-defaultMulti sh fp = Multi [] [] (defaultLog fp) sh
+defaultMulti :: ServerHandle -> FilePath -> Network -> Multi
+defaultMulti sh fp net = Multi [] [] (defaultLog fp) sh net
 
 data Log = Log { logEvents :: [MultiEvent],
                  logFilePath :: FilePath } deriving (Eq)
@@ -76,11 +80,3 @@ defaultMailSettings = MailSettings "" False False False False
 instance FormError String where
     type ErrorInputType String = [Input]
     commonFormError _ = "common error"
-
-findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
-findPlayer name = find (\PlayerMulti {mPlayerName = pn} -> pn==name) <$> gets mPlayers
-
-findPlayer' :: PlayerNumber -> StateT Multi IO (Maybe PlayerMulti)
-findPlayer' pn = find (\PlayerMulti {mPlayerNumber} -> pn==mPlayerNumber) <$> gets mPlayers
-
-

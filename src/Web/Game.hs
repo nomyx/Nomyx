@@ -31,6 +31,7 @@ import Types
 import Web.Routes.Happstack()
 import qualified Text.Reform.Blaze.String as RB hiding (form)
 import Control.Applicative
+import Utils
 import Data.Text(Text)
 import qualified Text.Reform.Blaze.Common as RBC
 default (Integer, Double, Data.Text.Text)
