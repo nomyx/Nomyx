@@ -51,7 +51,7 @@ newPlayerPage :: LoginPass -> RoutedNomyxServer Html
 newPlayerPage lp = do
    link <- showURL $ NewPlayerLogin lp
    lf  <- lift $ viewForm "user" $ loginForm (Just lp)
-   mf  <- lift $ viewForm "user" $ mailForm Nothing
+   mf  <- lift $ viewForm "user" $ settingsForm Nothing
    mainPage (do
                 lf ! (disabled "")
                 H.br >> H.br
@@ -61,11 +61,12 @@ newPlayerPage lp = do
              "New Player"
              True
 
+
 newPlayerLogin :: (TVar Multi) -> LoginPass -> RoutedNomyxServer Html
 newPlayerLogin tm (LoginPass login password) = do
     methodM POST
     liftRouteT $ lift $ putStrLn $ "newPlayerLogin"
-    r <- liftRouteT $ eitherForm environment "user" $ mailForm Nothing
+    r <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing
     case r of
        (Right ms) -> do
           mpn <- execCommand tm $ checkLoginWeb login password

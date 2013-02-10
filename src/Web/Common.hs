@@ -125,4 +125,3 @@ mainPage body title header footer = do
            H.div ! A.id "header" $ header
            body
            when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012"
-

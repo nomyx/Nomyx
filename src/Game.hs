@@ -41,13 +41,14 @@ rVictory5Rules = Rule  {
     rAssessedBy   = Nothing}
 
 emptyGame name date = Game { gameName      = name,
-                          rules         = [],
-                          players       = [],
-                          variables     = [],
-                          events        = [],
-                          outputs       = [],
-                          victory       = [],
-                          currentTime   = date}
+                             gameDesc      = "",
+                             rules         = [],
+                             players       = [],
+                             variables     = [],
+                             events        = [],
+                             outputs       = [],
+                             victory       = [],
+                             currentTime   = date}
 
 --initialGame :: Game
 initialGame name date = flip execState (emptyGame name date) $ do

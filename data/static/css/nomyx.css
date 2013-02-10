@@ -121,11 +121,9 @@ thead {
 }
 
 
-#code {
+.code {
    width:100%;
-   height:150px;
-   rows:20;
-   cols:80;
+  /* height:150px;*/
 }
 
 input[type="file"]{

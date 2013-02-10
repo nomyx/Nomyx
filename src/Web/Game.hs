@@ -167,8 +167,8 @@ viewVar (Var vRuleNumber vName vData) = tr $ do
 newRuleForm :: NomyxForm NewRuleForm
 newRuleForm = pure NewRuleForm <*> RB.label "Name: " ++> (RB.inputText "")
                                <*> RB.label "      Short description: " ++> RB.inputText ""
-                               <*> RB.label "Code: " ++> RB.inputText ""
-                                   `RBC.setAttr` A.name "code" `RBC.setAttr` A.id "code" `RBC.setAttr` A.placeholder "Enter here your rule" `RBC.setAttr` (A.title (toValue Help.code))
+                               <*> RB.label "      Code: " ++> RB.textarea 80 15 ""
+                                   `RBC.setAttr` A.class_ "code" `RBC.setAttr` A.placeholder "Enter here your rule" `RBC.setAttr` (A.title (toValue Help.code))
 
 viewRuleForm :: PlayerNumber -> RoutedNomyxServer Html
 viewRuleForm pn = do
@@ -232,3 +232,4 @@ inputChoiceForm title choices def = RB.label (title ++ " ") ++> inputRadio' (zip
 
 inputStringForm :: String -> NomyxForm String
 inputStringForm title = RB.label (title ++ " ") ++> RB.inputText ""
+

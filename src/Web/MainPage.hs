@@ -38,7 +38,6 @@ import Web.Settings
 import qualified Text.Reform.Blaze.String as RB
 import qualified Text.Reform.Blaze.Common as RBC
 import Control.Applicative
-import Data.Maybe
 import Mail
 import Utils
 import Data.Text(Text, pack)
@@ -137,9 +136,7 @@ routedNomyxCommands tm (Upload pn)                 = newUpload pn tm
 routedNomyxCommands tm (Settings pn)               = settings pn tm
 routedNomyxCommands tm (SubmitSettings pn)         = newSettings pn tm
 
---execute the given instructions (Comm) and embed the result in a web page
-nomyxPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
-nomyxPageComm pn tm comm = execCommand tm comm >> nomyxPageServer pn tm
+
 
 {-
 nomyxPageComm' :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
@@ -212,29 +209,8 @@ newUpload pn tm = do
        (Right (path,name,content)) -> do
           lift $ lift $ putStrLn $ "Upload entered:" ++ (show path) ++ " " ++ (show name) ++ " " ++ (show content)
           execCommand tm $ update $ MultiInputUpload pn path name
-          seeOther link $ string "Redirecting..."
-       (Left _) -> do
-          liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
-          seeOther link $ string "Redirecting..."
-
-
-settings :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
-settings pn tm  = do
-   pm <- execCommand tm $ findPlayer' pn
-   settingsPage pn $ mMail $ fromJust pm
-
-
-newSettings :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
-newSettings pn tm = do
-   methodM POST
-   r <- liftRouteT $ eitherForm environment "user" $ mailForm Nothing
-   link <- showURL $ Noop pn
-   case r of
-       Right ms -> do
-         nomyxPageComm pn tm (update $ MultiMailSettings ms pn)
-       (Left _) -> do
-          liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
-          seeOther link $ string "Redirecting..."
+       (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
+    seeOther link $ string "Redirecting..."
 
 
 nomyxPageServer :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
@@ -245,7 +221,7 @@ nomyxPageServer pn tm = do
 
 launchWebServer :: (TVar Multi) -> Network -> IO ()
 launchWebServer tm net = do
-   putStrLn $ "Starting web server...\nTo con nect, drive your browser to\"" ++ nomyxURL net ++ "/Nomyx\""
+   putStrLn $ "Starting web server...\nTo connect, drive your browser to\"" ++ nomyxURL net ++ "/Nomyx\""
    d <- PN.getDataDir
    d' <- PNR.getDataDir
    simpleHTTP nullConf {HS.port = Types.port net} $ server d d' tm net
@@ -260,6 +236,7 @@ server d d' tm net = mconcat [
        return $ toResponse html]
 
 
-
-
+--execute the given instructions (Comm) and embed the result in a web page
+nomyxPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
+nomyxPageComm pn tm comm = execCommand tm comm >> nomyxPageServer pn tm
 
