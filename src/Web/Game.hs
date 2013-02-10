@@ -28,17 +28,15 @@ import Web.Routes.Happstack()
 import qualified Text.Reform.Blaze.String as RB hiding (form)
 import Control.Applicative
 import Utils
+import Mail
 import Data.Text(Text)
 import qualified Text.Reform.Blaze.Common as RBC
 default (Integer, Double, Data.Text.Text)
 
-data NewRuleForm = NewRuleForm { ruleName :: String,
-                         ruleText :: String,
-                         ruleCode :: String}
 
-viewGame :: Game -> PlayerNumber -> RoutedNomyxServer Html
-viewGame g pn = do
-   rf <- viewRuleForm pn
+viewGame :: Game -> PlayerNumber -> (Maybe SubmitRule) -> RoutedNomyxServer Html
+viewGame g pn sr = do
+   rf <- viewRuleForm pn sr
    vi <- viewInputs pn $ events g
    ok $ table $ do
       td ! A.id "gameCol" $ do
@@ -164,19 +162,37 @@ viewVar (Var vRuleNumber vName vData) = tr $ do
    td ! A.class_ "td" $ string . show $ vData
 
 
-newRuleForm :: NomyxForm NewRuleForm
-newRuleForm = pure NewRuleForm <*> RB.label "Name: " ++> (RB.inputText "")
-                               <*> RB.label "      Short description: " ++> RB.inputText ""
-                               <*> RB.label "      Code: " ++> RB.textarea 80 15 ""
+newRuleForm :: (Maybe SubmitRule) -> NomyxForm SubmitRule
+newRuleForm (Just sr) = newRuleForm' sr
+newRuleForm Nothing = newRuleForm' (SubmitRule "" "" "")
+
+newRuleForm' :: SubmitRule -> NomyxForm SubmitRule
+newRuleForm' (SubmitRule name desc code) = pure SubmitRule  <*> RB.label "Name: " ++> (RB.inputText name)
+                               <*> RB.label "      Short description: " ++> RB.inputText desc
+                               <*> RB.label "      Code: " ++> RB.textarea 80 15 code
                                    `RBC.setAttr` A.class_ "code" `RBC.setAttr` A.placeholder "Enter here your rule" `RBC.setAttr` (A.title (toValue Help.code))
 
-viewRuleForm :: PlayerNumber -> RoutedNomyxServer Html
-viewRuleForm pn = do
+
+viewRuleForm :: PlayerNumber -> (Maybe SubmitRule) -> RoutedNomyxServer Html
+viewRuleForm pn sr = do
    link <- showURL (NewRule pn)
-   lf  <- lift $ viewForm "user" $ newRuleForm
+   lf  <- lift $ viewForm "user" $ newRuleForm sr
    ok $ do
       h3 "Propose a new rule:"
       blazeForm lf (link)
+
+newRule :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
+newRule pn tm = do
+   methodM POST
+   m <- liftRouteT $ lift $ atomically $ readTVar tm
+   r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing)
+   link <- showURL $ Noop pn
+   case r of
+       Right sr -> do
+         liftRouteT $ lift $ sendMailsNewRule m sr pn
+         execCommand tm (update $ MultiSubmitRule sr pn)
+       (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
+   seeOther link $ string "Redirecting..."
 
 
 viewOutput :: [Output] -> PlayerNumber -> Html

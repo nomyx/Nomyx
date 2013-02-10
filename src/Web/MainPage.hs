@@ -38,8 +38,9 @@ import Web.Settings
 import qualified Text.Reform.Blaze.String as RB
 import qualified Text.Reform.Blaze.Common as RBC
 import Control.Applicative
-import Mail
 import Utils
+import Data.Maybe
+import Data.List
 import Data.Text(Text, pack)
 default (Integer, Double, Data.Text.Text)
 
@@ -48,9 +49,10 @@ data NewGameForm = NewGameForm String
 
 viewMulti :: PlayerNumber -> Multi -> RoutedNomyxServer Html
 viewMulti pn m = do
+   let pl = fromJust $ find (\PlayerMulti {mPlayerNumber} -> pn==mPlayerNumber) (mPlayers m)
    gns <- viewGamesTab pn (games m)
    g <- case getPlayersGame pn m of
-            Just g -> viewGame g pn
+            Just g -> viewGame g pn (lastRule pl)
             Nothing -> ok $ h3 "Not in game"
    ok $ do
       div ! A.id "gameList" $ gns
@@ -115,6 +117,16 @@ nomyxPage multi pn = do
              False
 
 
+--execute the given instructions (Comm) and embed the result in a web page
+nomyxPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
+nomyxPageComm pn tm comm = execCommand tm comm >> nomyxPageServer pn tm
+
+
+nomyxPageServer :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
+nomyxPageServer pn tm = do
+   multi <- liftRouteT $ lift $ atomically $ readTVar tm
+   nomyxPage multi pn
+
 nomyxSite :: (TVar Multi) -> Site PlayerCommand (ServerPartT IO Html)
 nomyxSite tm = setDefault Login $ mkSitePI (runRouteT $ routedNomyxCommands tm)
 
@@ -123,7 +135,7 @@ routedNomyxCommands _  (Login)                     = loginPage
 routedNomyxCommands _  (NewPlayer lp)              = newPlayerPage lp
 routedNomyxCommands tm (NewPlayerLogin lp)         = newPlayerLogin tm lp
 routedNomyxCommands tm (PostLogin)                 = postLogin tm
-routedNomyxCommands tm (Noop pn)                   = nomyxPageComm pn tm (return ())
+routedNomyxCommands tm (Noop pn)                   = nomyxPageServer pn tm
 routedNomyxCommands tm (JoinGame pn game)          = nomyxPageComm pn tm (update $ MultiJoinGame game pn)
 routedNomyxCommands tm (LeaveGame pn)              = nomyxPageComm pn tm (update $ MultiLeaveGame pn)
 routedNomyxCommands tm (SubscribeGame pn game)     = nomyxPageComm pn tm (update $ MultiSubscribeGame game pn)
@@ -174,28 +186,16 @@ execBlocking sm m mv = do
    res' <- evaluate res
    putMVar mv (Just res')
 -}
-newRule :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
-newRule pn tm = do
-   methodM POST
-   m <- liftRouteT $ lift $ atomically $ readTVar tm
-   r <- liftRouteT $ eitherForm environment "user" newRuleForm
-   link <- showURL $ Noop pn
-   case r of
-       Right (NewRuleForm name text code) -> do
-         --debugM ("Rule submitted: name =" ++ name ++ "\ntext=" ++ text ++ "\ncode=" ++ code ++ "\npn=" ++ (show pn))
-         liftRouteT $ lift $ sendMailsNewRule m name text code pn
-         nomyxPageComm pn tm (update $ MultiSubmitRule name text code pn)
-       (Left _) -> do
-          liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
-          seeOther link $ string "Redirecting..."
 
 newGameWeb :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
 newGameWeb pn tm = do
    methodM POST
    r <- liftRouteT $ eitherForm environment "user" newGameForm
+   link <- showURL $ Noop pn
    case r of
-      Left _                      -> error $ "error: newGame"
-      Right (NewGameForm name) -> nomyxPageComm pn tm (update $ MultiNewGame name pn)
+      Left _ -> error $ "error: newGame"
+      Right (NewGameForm name) -> execCommand tm (update $ MultiNewGame name pn)
+   seeOther link $ string "Redirecting..."
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
 uploadForm = RB.inputFile
@@ -206,17 +206,9 @@ newUpload pn tm = do
     r <- liftRouteT $ eitherForm environment "user" uploadForm
     link <- showURL $ Noop pn
     case r of
-       (Right (path,name,content)) -> do
-          lift $ lift $ putStrLn $ "Upload entered:" ++ (show path) ++ " " ++ (show name) ++ " " ++ (show content)
-          execCommand tm $ update $ MultiInputUpload pn path name
+       (Right (path,name,_)) -> execCommand tm $ update $ MultiInputUpload pn path name
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
     seeOther link $ string "Redirecting..."
-
-
-nomyxPageServer :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
-nomyxPageServer pn tm = do
-   multi <- liftRouteT $ lift $ atomically $ readTVar tm
-   nomyxPage multi pn
 
 
 launchWebServer :: (TVar Multi) -> Network -> IO ()
@@ -235,8 +227,4 @@ server d d' tm net = mconcat [
        html <- implSite (pack (nomyxURL net)) "/Nomyx" (nomyxSite tm)
        return $ toResponse html]
 
-
---execute the given instructions (Comm) and embed the result in a web page
-nomyxPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
-nomyxPageComm pn tm comm = execCommand tm comm >> nomyxPageServer pn tm
 

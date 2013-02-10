@@ -23,7 +23,8 @@ data PlayerMulti = PlayerMulti   { mPlayerNumber :: PlayerNumber,
                                    mPlayerName :: PlayerName,
                                    mPassword :: PlayerPassword,
                                    mMail :: MailSettings,
-                                   inGame :: Maybe GameName}
+                                   inGame :: Maybe GameName,
+                                   lastRule :: Maybe SubmitRule}
                                    deriving (Eq, Show, Read, Typeable)
 
 --- | A structure to hold the active games and players
@@ -46,13 +47,15 @@ data Log = Log { logEvents :: [MultiEvent],
 defaultLog :: FilePath ->Log
 defaultLog fp = Log [] fp
 
+data SubmitRule = SubmitRule RuleName String RuleCode deriving (Show, Read, Eq)
+
 data MultiEvent =  MultiNewPlayer PlayerMulti
                | MultiNewGame String PlayerNumber
                | MultiJoinGame GameName PlayerNumber
                | MultiLeaveGame PlayerNumber
                | MultiSubscribeGame GameName PlayerNumber
                | MultiUnsubscribeGame GameName PlayerNumber
-               | MultiSubmitRule String String String PlayerNumber
+               | MultiSubmitRule SubmitRule PlayerNumber
                | MultiInputChoiceResult EventNumber Int PlayerNumber
                | MultiInputStringResult String String PlayerNumber
                | MultiInputUpload PlayerNumber FilePath String

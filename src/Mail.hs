@@ -28,27 +28,27 @@ sendMail to object body = do
    forkIO $ simpleMail (Address Nothing (pack to)) (Address (Just "Nomyx Game") "corentin.dupont@gmail.com") (pack object) "" (B.pack body) [] >>= renderSendMail
    return ()
 
-newRuleBody :: PlayerName -> RuleName -> String -> RuleCode -> PlayerName -> Network -> Html
-newRuleBody playerName name description ruleCode prop net = docTypeHtml $ do
+newRuleBody :: PlayerName -> SubmitRule -> PlayerName -> Network -> Html
+newRuleBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ do
    (toHtml $ "Dear " ++ playerName ++ ",") >> H.br
    (toHtml $ "a new rule has been proposed by player " ++ prop ++ ".") >> H.br
    (toHtml $ "Name: " ++ name) >> H.br
-   (toHtml $ "Description: " ++ description) >> H.br
-   (toHtml $ "Code: " ++ ruleCode) >> H.br >> H.br
+   (toHtml $ "Description: " ++ desc) >> H.br
+   (toHtml $ "Code: " ++ code) >> H.br >> H.br
    (toHtml $ "Please login into Nomyx for actions on this rule:") >> H.br
    (toHtml $ nomyxURL net ++ "/Nomyx") >> H.br
-   (toHtml $ "You received this mail because you subscribed to Nomyx. To stop receiving mails, login to Nomyx with the above address, go to Settings and uncheck the corresponding box") >> H.br
+   (toHtml $ "You received this mail because you subscribed to Nomyx. To stop receiving mails, login to Nomyx with the above address, go to Settings and uncheck the corresponding box.") >> H.br
 
 newRuleObject :: PlayerName -> String
 newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 
-sendMailsNewRule :: Multi -> RuleName -> String -> RuleCode -> PlayerNumber -> IO()
-sendMailsNewRule m name description code pn = do
+sendMailsNewRule :: Multi -> SubmitRule -> PlayerNumber -> IO()
+sendMailsNewRule m sr pn = do
    let gn = gameName $ fromJust $ getPlayersGame pn m
    let proposer = getPlayersName pn m
    forM_ (mPlayers m) $ send proposer gn
    where send prop gn pm = when ((Just gn == inGame pm) && (mailNewRule $ mMail pm)) $ \
-      sendMail (mailTo $ mMail pm) (newRuleObject prop) (renderHtml $ newRuleBody (mPlayerName pm) name description code prop (net m))
+      sendMail (mailTo $ mMail pm) (newRuleObject prop) (renderHtml $ newRuleBody (mPlayerName pm) sr prop (net m))
 
 
 outputBody :: String -> String

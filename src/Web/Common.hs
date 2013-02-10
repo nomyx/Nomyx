@@ -1,5 +1,3 @@
-
-
 {-# LANGUAGE TemplateHaskell, OverloadedStrings, GADTs#-}
 
 module Web.Common where

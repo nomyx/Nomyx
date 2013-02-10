@@ -57,7 +57,7 @@ liftT st = do
 
 
 findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
-findPlayer name = find (\PlayerMulti {mPlayerName = pn} -> pn==name) <$> gets mPlayers
+findPlayer name = find (\PlayerMulti {mPlayerName = pname} -> pname==name) <$> gets mPlayers
 
 findPlayer' :: PlayerNumber -> StateT Multi IO (Maybe PlayerMulti)
 findPlayer' pn = find (\PlayerMulti {mPlayerNumber} -> pn==mPlayerNumber) <$> gets mPlayers
@@ -67,7 +67,7 @@ nomyxURL (Network host port) = "http://" ++ host ++ ":" ++ (show port)
 
 getPlayersName :: PlayerNumber -> Multi -> PlayerName
 getPlayersName pn multi = do
-   case find (\(PlayerMulti n _ _ _ _) -> n==pn) (mPlayers multi) of
+   case find (\(PlayerMulti n _ _ _ _ _) -> n==pn) (mPlayers multi) of
       Nothing -> error "getPlayersName: No player by that number"
       Just pm -> mPlayerName pm
 
@@ -80,7 +80,7 @@ getPlayersName' g pn = do
 -- | returns the game the player is in
 getPlayersGame :: PlayerNumber -> Multi -> Maybe Game
 getPlayersGame pn multi = do
-        pi <- find (\(PlayerMulti n _ _ _ _) -> n==pn) (mPlayers multi)
+        pi <- find (\(PlayerMulti n _ _ _ _ _) -> n==pn) (mPlayers multi)
         gn <- inGame pi
         find (\(Game {gameName=name}) -> name==gn) (games multi)
 

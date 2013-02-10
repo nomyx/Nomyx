@@ -34,7 +34,7 @@ loginForm (Just (LoginPass login _)) = loginForm' login
 loginForm Nothing = loginForm' ""
 
 loginForm' :: String -> NomyxForm LoginPass
-loginForm' login = LoginPass <$> label "Please enter your login and password (if you dont have one, just invent it):" ++> br
+loginForm' login = LoginPass <$> br ++> label "Please enter your login and password (if you don't have one, just invent it):" ++> br ++> br
                    ++>  label "Login: " ++> (inputText login) <*> label "    Password: " ++> inputPassword <++ label " "
 
 
@@ -81,7 +81,7 @@ newPlayerLogin tm (LoginPass login password) = do
              NewLogin -> do
                 pn <- execCommand tm $ getNewPlayerNumber
                 link <- showURL $ Noop pn
-                execCommand tm $ update $ MultiNewPlayer PlayerMulti { mPlayerNumber = pn, mPlayerName = login, mPassword = password, inGame = Nothing, mMail = defaultMailSettings}
+                execCommand tm $ update $ MultiNewPlayer PlayerMulti { mPlayerNumber = pn, mPlayerName = login, mPassword = password, inGame = Nothing, mMail = defaultMailSettings, lastRule = Nothing}
                 execCommand tm $ update $ MultiMailSettings ms pn
                 seeOther link $ string "Redirecting..."
        (Left _) -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."

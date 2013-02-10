@@ -27,12 +27,12 @@ import Data.Maybe
 import Control.Concurrent
 import System.Posix.Resource
 import Types
---import Mail
+import Control.Applicative
 
 
 -- | helper function to change a player's ingame status.
 mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
-mayJoinGame maybename pn pl = case find (\(PlayerMulti mypn _ _ _ _) -> mypn == pn) pl of
+mayJoinGame maybename pn pl = case find (\(PlayerMulti mypn _ _ _ _ _) -> mypn == pn) pl of
                      Just o -> replace o o{ inGame = maybename} pl
                      Nothing -> pl
 
@@ -140,42 +140,50 @@ showSubGame g _ = inGameDo g $ do
    say $ concatMap show ps
 
 showSubscribtion :: PlayerNumber -> StateT Multi IO  ()
-showSubscribtion pn = inPlayersGameDo pn $ do
+showSubscribtion pn = inPlayersGameDo_ pn $ do
    ps <- gets players
    say $ concatMap show ps
 
 
 -- | insert a rule in pending rules.
-submitRule :: String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Multi IO ()
-submitRule name text rule pn sh = inPlayersGameDo pn $ do
-   --input the new rule (may fail if ill-formed)
-   rs <- gets rules
-   let rn = getFreeNumber $ map rNumber rs
-   mnr <- enterRule rn name text rule pn sh
+submitRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Multi IO ()
+submitRule sr pn sh = do
+   mnr <- enterRule sr pn sh
    case mnr of
       Just nr -> do
-         r <- liftT $ evProposeRule nr
-         if r == True then say $ "Your rule has been added to pending rules."
-         else say $ "Error: Rule could not be proposed"
-      Nothing -> say $ "Please try again."
+         inPlayersGameDo pn $ do
+            r <- liftT $ evProposeRule nr
+            if r == True then say $ "Your rule has been added to pending rules."
+            else say $ "Error: Rule could not be proposed"
+         updateLastRule Nothing pn
+      Nothing -> updateLastRule (Just sr) pn
 
 
 -- | reads a rule.
-enterRule :: RuleNumber -> String -> String -> String -> PlayerNumber -> ServerHandle -> StateT Game IO (Maybe Rule)
-enterRule num name text ruleText pn sh = do
-   mrr <- lift $ interpretRule ruleText sh
+enterRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Multi IO (Maybe Rule)
+enterRule (SubmitRule name desc code) pn sh = join <$> (inPlayersGameDo pn $ do
+   rs <- gets rules
+   let rn = getFreeNumber $ map rNumber rs
+   mrr <- lift $ interpretRule code sh
    case mrr of
-      Right ruleFunc -> return $ Just Rule {rNumber = num,
+      Right ruleFunc -> return $ Just Rule {rNumber = rn,
                       rName = name,
-                      rDescription = text,
+                      rDescription = desc,
                       rProposedBy = pn,
-                      rRuleCode = ruleText,
+                      rRuleCode = code,
                       rRuleFunc = ruleFunc,
                       rStatus = Pending,
                       rAssessedBy = Nothing}
       Left e -> do
          output pn $ "Compiler error: " ++ show e ++ "\n"
-         return Nothing
+         return Nothing)
+
+updateLastRule :: Maybe SubmitRule -> PlayerNumber -> StateT Multi IO ()
+updateLastRule msr pn = do
+   pm <- fromJust <$> findPlayer' pn
+   pls <- gets mPlayers
+   let pls' = replace pm (pm {lastRule = msr}) pls
+   modify (\m -> m{mPlayers = pls'})
 
 cpuTimeLimitSoft = ResourceLimit 4
 cpuTimeLimitHard = ResourceLimit 5
@@ -183,14 +191,14 @@ limits :: [(Resource, ResourceLimits)]
 limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHard)]
 
 inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> StateT Multi IO  ()
-inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo pn $ liftT $ triggerChoice eventNumber choiceIndex
+inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo_ pn $ liftT $ triggerChoice eventNumber choiceIndex
 
 -- TODO maybe homogeneise both inputs event
 inputStringResult :: Event InputString -> String -> PlayerNumber -> StateT Multi IO  ()
-inputStringResult event input pn = inPlayersGameDo pn $ liftT $ triggerEvent event (InputStringData input)
+inputStringResult event input pn = inPlayersGameDo_ pn $ liftT $ triggerEvent event (InputStringData input)
 
 inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Multi IO  ()
-inputUpload pn dir mod sh = inPlayersGameDo pn $ do
+inputUpload pn dir mod sh = inPlayersGameDo_ pn $ do
     m <- lift $ loadModule dir mod sh
     case m of
       Right _ -> do
@@ -228,16 +236,16 @@ modifyGame g = do
 
 -- | show the constitution.
 showConstitution :: PlayerNumber -> StateT Multi IO ()
-showConstitution pn = inPlayersGameDo pn $ get >>= (say  .  show  .  activeRules)
+showConstitution pn = inPlayersGameDo_ pn $ get >>= (say  .  show  .  activeRules)
 
 
 -- | show every rules (including pendings and deleted)
 showAllRules :: PlayerNumber -> StateT Multi IO ()	
-showAllRules pn = inPlayersGameDo pn $ get >>= (say . show . rules)
+showAllRules pn = inPlayersGameDo_ pn $ get >>= (say . show . rules)
 
 displayPlayer :: PlayerMulti -> String
-displayPlayer (PlayerMulti pn name _ _ (Just game)) = show pn ++ ": " ++ name ++ " in game: " ++ game ++ "\n"
-displayPlayer (PlayerMulti pn name _ _ Nothing)     = show pn ++ ": " ++ name ++ "\n"
+displayPlayer (PlayerMulti pn name _ _ (Just game) _) = show pn ++ ": " ++ name ++ " in game: " ++ game ++ "\n"
+displayPlayer (PlayerMulti pn name _ _ Nothing _)     = show pn ++ ": " ++ name ++ "\n"
 
 
 -- | quit the game
@@ -248,22 +256,26 @@ quit _ = putStrLn "quit"
 
 -- | replace the player's name in the list
 setName :: String -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
-setName name pn pl = case find (\(PlayerMulti h _ _ _ _) -> h == pn) pl of
+setName name pn pl = case find (\(PlayerMulti h _ _ _ _ _) -> h == pn) pl of
                         Just o -> replace o o{ mPlayerName = name} pl
                         Nothing -> pl
 
 
 
 -- | this function apply the given game actions to the game the player is in.
-inPlayersGameDo :: PlayerNumber -> StateT Game IO () -> StateT Multi IO ()
+inPlayersGameDo :: PlayerNumber -> StateT Game IO a -> StateT Multi IO (Maybe a)
 inPlayersGameDo pn action = do
    multi <- get
    let mg = getPlayersGame pn multi
    case mg of
-      Nothing -> say "You must be in a game"
+      Nothing -> say "You must be in a game" >> return Nothing
       Just g -> do
-         myg <- lift $ execWithGame action g
+         (a, myg) <- lift $ runStateT action g
          modifyGame myg
+         return (Just a)
+
+inPlayersGameDo_ :: PlayerNumber -> StateT Game IO a -> StateT Multi IO ()
+inPlayersGameDo_ pn action = inPlayersGameDo pn action >> return ()
 
 inGameDo :: GameName -> StateT Game IO () -> StateT Multi IO ()
 inGameDo game action = do
