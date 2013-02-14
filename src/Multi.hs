@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, GeneralizedNewtypeDeriving,
+{-# LANGUAGE FlexibleContexts, GeneralizedNewtypeDeriving, ScopedTypeVariables,
     MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators,
     TypeSynonymInstances, FlexibleInstances, GADTs, NamedFieldPuns, DoAndIfThenElse #-}
 
@@ -28,7 +28,7 @@ import Control.Concurrent
 import System.Posix.Resource
 import Types
 import Control.Applicative
-
+import Control.Exception
 
 -- | helper function to change a player's ingame status.
 mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
@@ -175,7 +175,7 @@ enterRule (SubmitRule name desc code) pn sh = join <$> (inPlayersGameDo pn $ do
                       rStatus = Pending,
                       rAssessedBy = Nothing}
       Left e -> do
-         output pn $ "Compiler error: " ++ show e ++ "\n"
+         output ("Compiler error: " ++ show e ++ "\n") pn
          return Nothing)
 
 updateLastRule :: Maybe SubmitRule -> PlayerNumber -> StateT Multi IO ()
@@ -202,15 +202,17 @@ inputUpload pn dir mod sh = inPlayersGameDo_ pn $ do
     m <- lift $ loadModule dir mod sh
     case m of
       Right _ -> do
-         output pn $ "File loaded: " ++ show dir ++ " Module " ++ show mod ++"\n"
+         output ("File loaded: " ++ show dir ++ " Module " ++ show mod ++"\n") pn
          return ()
       Left e -> do
-         output pn $ "Compiler error: " ++ show e ++ "\n"
+         output ("Compiler error: " ++ show e ++ "\n") pn
          return ()
 
-output :: PlayerNumber -> String -> StateT Game IO ()
-output pn s = modify (\game -> game { outputs = (pn, s) : (outputs game)})
+output :: String -> PlayerNumber -> StateT Game IO ()
+output s pn = modify (\game -> game { outputs = (pn, s) : (outputs game)})
 
+outputAll :: String -> StateT Game IO ()
+outputAll s = gets players >>= mapM_ ((output s) . playerNumber)
 
 mailSettings :: MailSettings -> PlayerNumber -> StateT Multi IO ()
 mailSettings mailSettings pn = do
@@ -287,37 +289,43 @@ inGameDo game action = do
          modifyGame myg
 
 
-
-
 triggerTimeEvent :: TVar Multi -> UTCTime -> IO()
 triggerTimeEvent tm t = do
     m <- atomically $ readTVar tm
-    gs' <- mapM (trig t) (games m)
+    gs' <- mapM (\g -> trig t g `catch` timeExceptionHandler g) (games m)
     let m' = m {games = gs'}
     atomically $ writeTVar tm m'
-       where trig t g =  execWithGame (liftT $ evTriggerTime t) g
 
-execGame :: State Game () -> Game -> Game
-execGame s g = execState s g
+trig :: UTCTime -> Game -> IO Game
+trig t g =  do
+   g <- execWithGame t (liftT $ evTriggerTime t) g
+   evaluate g
+   return g
 
--- | get all events within time and time + 2 second
+timeExceptionHandler :: Game -> ErrorCall -> IO Game
+timeExceptionHandler g e = do
+   putStrLn $ "Error in triggerTimeEvent: " ++ (show e)
+   execWithGame (outputAll $ "Error while triggering a time event: " ++ (show e) ++
+                           "\nThe event have been canceled. Please remove/fix the faulty rule.") g
+
+
+-- | get all events that has not been triggered yet
 getTimeEvents :: UTCTime -> TVar Multi -> IO([UTCTime])
-getTimeEvents time tm = do
+getTimeEvents now tm = do
     m <- atomically $ readTVar tm
     let times = catMaybes $ map getTimes $ concatMap events $ games m
-    return $ filter (\t-> t >= time && t < addUTCTime 2 time) times
+    return $ filter (\t -> t <= now) times
 
 --TODO: fix this
 launchTimeEvents :: TVar Multi -> IO()
 launchTimeEvents tm = do
     now <- getCurrentTime
-    --putStrLn $ "tick " ++ (show now)
+    putStrLn $ "tick " ++ (show now)
     schedule <- getTimeEvents now tm
     when (length schedule /= 0) $ putStrLn "found time event"
     mapM_ (triggerTimeEvent tm) schedule
-    after <- getCurrentTime
-    --sleep 1 second minus rough delay of execution
-    threadDelay $ truncate(1000000 - 1000000*(diffUTCTime after now))
+    --sleep 1 second roughly
+    threadDelay 1000000
     launchTimeEvents tm
 
 

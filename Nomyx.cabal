@@ -35,5 +35,6 @@ executable Nomyx
     hs-source-dirs: src
     other-modules: Types Game Multi Server Serialize Utils Interpret Commands Mail 
                    Web.MainPage Web.Settings Web.Help Web.Login Web.Common Web.Game
-    ghc-options: -W
- 
+-- -no-omit-yields --this option need GHC HEAD: http://hackage.haskell.org/trac/ghc/ticket/367
+--it is necessary to prevent the infinite loops sent by the player 
+    ghc-options: -W 

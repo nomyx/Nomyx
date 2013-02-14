@@ -34,6 +34,7 @@ import Serialize
 import Paths_Nomyx as PN
 import Language.Haskell.Interpreter.Server hiding (start)
 import System.Directory
+import Data.Time.Clock
 
 defaultLogFile :: FilePath
 defaultLogFile = "Nomyx.log"
@@ -64,14 +65,15 @@ start flags = do
          logFile <- case (findSaveFile flags) of
             Just f -> return f
             Nothing -> return defaultLogFile
-         --start the web server
          port <- case (findPort flags) of
             Just p -> return $ read p
             Nothing -> return $ 8000
          host <- case (findHost flags) of
             Just h -> return h
             Nothing -> getHostName >>= return
+         --load previous state
          multi <- loadMulti logFile sh (Network host port)
+         --start the web server
          forkIO $ launchWebServer multi (Network host port)
          forkIO $ launchTimeEvents multi
          --loop

@@ -13,7 +13,6 @@ Features to add:
 Improves:
 
 - refresh web page when new event (currently, player needs to hit F5)
-- keep the rule in the field if compile error
 - input sanitization and error reporting
 - avoid unrecoverable "error" in variables
 - add tests in main Nomyx
@@ -28,6 +27,6 @@ BUGS
 - fix rule number for variables
 - schedule: drop 1 is wrong, protect head
 - time events: some events are triggered 2 times
-- self proposed victory not working
 - check when error on parameters (for victory for example)
+- serialize time events
 
