@@ -25,6 +25,8 @@ import Text.Reform.Happstack()
 import qualified Text.Reform.Generalized as G
 import Data.Text(Text, pack)
 import Web.Routes.Happstack()
+import Data.Time
+import Serialize
 default (Integer, Double, Data.Text.Text)
 
 
@@ -82,6 +84,18 @@ execCommand tm sm = do
     (a, m') <- liftRouteT $ lift $ runStateT sm m
     liftRouteT $ lift $ atomically $ writeTVar tm m'
     return a
+
+execCommand' :: (TVar Multi) -> State Multi a -> RoutedNomyxServer a
+execCommand' tm sm = do
+    m <- liftRouteT $ lift $ atomically $ readTVar tm
+    let (a, m') = runState sm m
+    liftRouteT $ lift $ atomically $ writeTVar tm m'
+    return a
+
+webCommand :: (TVar Multi) -> MultiEvent -> RoutedNomyxServer ()
+webCommand tm me = do
+   t <- liftRouteT $ lift $ getCurrentTime
+   execCommand tm (update $ TE t me)
 
 blazeResponse :: Html -> Response
 blazeResponse html = toResponseBS (C.pack "text/html;charset=UTF-8") $ renderHtml html

@@ -28,5 +28,5 @@ BUGS
 - schedule: drop 1 is wrong, protect head
 - time events: some events are triggered 2 times
 - check when error on parameters (for victory for example)
-- serialize time events
+- concurrent access to log file
 

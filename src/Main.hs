@@ -11,13 +11,13 @@
 -- |
 --
 -----------------------------------------------------------------------------
-
+{-# LANGUAGE GADTs #-}
+    
 module Main (main) where
 
 import System.Console.GetOpt 
 import System.Environment 
 import Web.MainPage
-import Multi
 import Control.Concurrent
 import Interpret
 import Control.Concurrent.STM
@@ -35,6 +35,8 @@ import Paths_Nomyx as PN
 import Language.Haskell.Interpreter.Server hiding (start)
 import System.Directory
 import Data.Time.Clock
+import Language.Nomyx.Expression
+import Control.Monad
 
 defaultLogFile :: FilePath
 defaultLogFile = "Nomyx.log"
@@ -83,9 +85,10 @@ loadMulti :: FilePath -> ServerHandle -> Network -> IO (TVar Multi)
 loadMulti f sh net = do
    fp <- getDataFileName f
    fileExists <- doesFileExist fp
+   t <- getCurrentTime
    multi <- case fileExists of
       True -> loadEvents fp sh net
-      False -> return $ defaultMulti sh fp net
+      False -> return $ defaultMulti sh fp net t
    atomically $ newTVar multi
 
 
@@ -174,3 +177,34 @@ restoreHandlers h  = liftIO . sequence $ zipWith helper h signals
 
 protectHandlers :: MonadCatchIO m => m a -> m a
 protectHandlers a = bracket saveHandlers restoreHandlers $ const a
+
+triggerTimeEvent' :: TVar Multi -> UTCTime -> IO()
+triggerTimeEvent' tm t = do
+    m <- atomically $ readTVar tm
+    m' <- execWithMulti t (update $ TE t (MultiTimeEvent t)) m
+    atomically $ writeTVar tm m'
+
+
+-- | get all events that has not been triggered yet
+getTimeEvents :: UTCTime -> TVar Multi -> IO([UTCTime])
+getTimeEvents now tm = do
+    m <- atomically $ readTVar tm
+    let times = catMaybes $ map getTimes $ concatMap events $ games m
+    return $ filter (\t -> t <= now) times
+
+
+launchTimeEvents :: TVar Multi -> IO()
+launchTimeEvents tm = do
+    now <- getCurrentTime
+    --putStrLn $ "tick " ++ (show now)
+    timeEvents <- getTimeEvents now tm
+    when (length timeEvents /= 0) $ putStrLn "found time event(s)"
+    mapM_ (triggerTimeEvent' tm) timeEvents
+    --sleep 1 second roughly
+    threadDelay 1000000
+    launchTimeEvents tm
+
+
+getTimes :: EventHandler -> Maybe UTCTime
+getTimes (EH _ _ (Time t) _) = Just t
+getTimes _ = Nothing

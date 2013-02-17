@@ -29,6 +29,7 @@ import System.Posix.Resource
 import Types
 import Control.Applicative
 import Control.Exception
+import Debug.Trace.Helpers
 
 -- | helper function to change a player's ingame status.
 mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
@@ -36,137 +37,142 @@ mayJoinGame maybename pn pl = case find (\(PlayerMulti mypn _ _ _ _ _) -> mypn =
                      Just o -> replace o o{ inGame = maybename} pl
                      Nothing -> pl
 
-newPlayerU :: PlayerMulti -> StateT Multi IO ()
+newPlayerU :: PlayerMulti -> State Multi ()
 newPlayerU pm = do
    pms <- gets mPlayers
    modify (\multi -> multi { mPlayers = pm : pms})
 
 
-getNewPlayerNumber :: StateT Multi IO PlayerNumber
+getNewPlayerNumber :: State Multi PlayerNumber
 getNewPlayerNumber = do
    ps <- gets mPlayers
    return $ length ps + 1
 
 
-addNewGame :: Game -> StateT Multi IO ()
+addNewGame :: Game -> State Multi ()
 addNewGame new = modify (\multi@Multi {games=gs} -> multi {games =  new:gs})
 
-getGameByName :: GameName -> StateT Multi IO (Maybe Game)
+getGameByName :: GameName -> State Multi (Maybe Game)
 getGameByName gn =  fmap (find (\(Game {gameName = n}) -> n==gn)) (gets games)
 
-joinGamePlayer :: PlayerNumber -> GameName -> StateT Multi IO ()
+joinGamePlayer :: PlayerNumber -> GameName -> State Multi ()
 joinGamePlayer pn game = modify (\multi -> multi {mPlayers = mayJoinGame (Just game) pn (mPlayers multi)})
 
 
-leaveGameU :: PlayerNumber -> StateT Multi IO ()
+leaveGameU :: PlayerNumber -> State Multi ()
 leaveGameU pn = modify (\multi -> multi {mPlayers = mayJoinGame Nothing pn (mPlayers multi)})
 
 -- | list the active games
-listGame :: PlayerNumber -> StateT Multi IO ()
+listGame :: PlayerNumber -> State Multi ()
 listGame _ = do
    gs <- gets games
    case length gs of
-      0 -> say "No active games"
+      0 -> traceM "No active games"
       _ -> do
-         say "Active games:"
-         say $ concatMap (\g -> gameName g ++ "\n") gs
+         traceM "Active games:"
+         traceM $ concatMap (\g -> gameName g ++ "\n") gs
 
 -- | starts a new game
-newGame :: String -> PlayerNumber -> StateT Multi IO ()
+newGame :: String -> PlayerNumber -> State Multi ()
 newGame name _ = do
    gs <- gets games
    case null $ filter (\p -> gameName p == name) gs of
       True -> do
-         say $ "Creating a new game of name: " ++ name
-         t <- liftIO getCurrentTime
+         traceM $ "Creating a new game of name: " ++ name
+         t <- gets mCurrentTime
          -- create a game with zero players
          modify (\m -> m {games = (initialGame name t):gs})
-      False -> say $ "this name is already used"
+      False -> traceM $ "this name is already used"
 
 uniqueGame :: String -> [Game] -> Bool
 uniqueGame s gs = null $ filter (\p -> gameName p == s) gs
 
 -- | join a game.
-joinGame :: GameName -> PlayerNumber -> StateT Multi IO ()
+joinGame :: GameName -> PlayerNumber -> State Multi ()
 joinGame game pn = do
    mg <- getGameByName game
    case mg of
-      Nothing -> say $ "No game by that name"
+      Nothing -> traceM $ "No game by that name"
       Just g -> do
-         say "subscribing first."
+         traceM "subscribing first."
          subscribeGame (gameName g) pn
-         say $ "Joining game: " ++ game
+         traceM $ "Joining game: " ++ game
          joinGamePlayer pn game
 
 
 -- | leave a game (you remain subscribed).
-leaveGame :: PlayerNumber -> StateT Multi IO  ()
+leaveGame :: PlayerNumber -> State Multi ()
 leaveGame pn = do
    leaveGameU pn
-   say "You left the game (you remain subscribed)."
+   traceM "You left the game (you remain subscribed)."
 
 
 -- | subcribe to a game.
-subscribeGame :: GameName -> PlayerNumber -> StateT Multi IO ()
+subscribeGame :: GameName -> PlayerNumber -> State Multi ()
 subscribeGame game pn = do
    m <- get
    inGameDo game $ do
       g <- get
       case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
-         Just _ -> say "Already subscribed!"
+         Just _ -> traceM "Already subscribed!"
          Nothing -> do
-            say $ "Subscribing to game: " ++ game
+            traceM $ "Subscribing to game: " ++ game
             let player = PlayerInfo { playerNumber = pn, playerName = getPlayersName pn m}
             put g {players = player : (players g)}
-            liftT $ triggerEvent (Player Arrive) (PlayerData player)
+            triggerEvent (Player Arrive) (PlayerData player)
 
 
 -- | subcribe to a game.
-unsubscribeGame :: GameName -> PlayerNumber -> StateT Multi IO ()
+unsubscribeGame :: GameName -> PlayerNumber -> State Multi ()
 unsubscribeGame game pn = inGameDo game $ do
    g <- get
    case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
-      Nothing -> say "Not subscribed!"
+      Nothing -> traceM "Not subscribed!"
       Just _ -> do
-         say $ "Unsubscribing to game: " ++ game
+         traceM $ "Unsubscribing to game: " ++ game
          let player = PlayerInfo { playerNumber = pn, playerName = getPlayersName' g pn}
          put g {players = filter (\PlayerInfo { playerNumber = mypn} -> mypn /= pn) (players g)}
-         liftT $ triggerEvent (Player Leave) (PlayerData player)
+         triggerEvent (Player Leave) (PlayerData player)
 
 
-showSubGame :: GameName -> PlayerNumber -> StateT Multi IO  ()
+showSubGame :: GameName -> PlayerNumber -> State Multi ()
 showSubGame g _ = inGameDo g $ do
    ps <- gets players
-   say $ concatMap show ps
+   traceM $ concatMap show ps
 
-showSubscribtion :: PlayerNumber -> StateT Multi IO  ()
+showSubscribtion :: PlayerNumber -> State Multi ()
 showSubscribtion pn = inPlayersGameDo_ pn $ do
    ps <- gets players
-   say $ concatMap show ps
+   traceM $ concatMap show ps
+
+
 
 
 -- | insert a rule in pending rules.
 submitRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Multi IO ()
 submitRule sr pn sh = do
    mnr <- enterRule sr pn sh
+   m <- get
    case mnr of
       Just nr -> do
-         inPlayersGameDo pn $ do
-            r <- liftT $ evProposeRule nr
-            if r == True then say $ "Your rule has been added to pending rules."
-            else say $ "Error: Rule could not be proposed"
-         updateLastRule Nothing pn
-      Nothing -> updateLastRule (Just sr) pn
+         inPlayersGameDo' pn $ do
+            r <- evProposeRule nr
+            if r == True then traceM $ "Your rule has been added to pending rules."
+            else traceM $ "Error: Rule could not be proposed"
+         liftT $ updateLastRule Nothing pn
+      Nothing -> liftT $ updateLastRule (Just sr) pn
 
 
 -- | reads a rule.
 enterRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Multi IO (Maybe Rule)
-enterRule (SubmitRule name desc code) pn sh = join <$> (inPlayersGameDo pn $ do
-   rs <- gets rules
-   let rn = getFreeNumber $ map rNumber rs
+enterRule (SubmitRule name desc code) pn sh = do
    mrr <- lift $ interpretRule code sh
-   case mrr of
-      Right ruleFunc -> return $ Just Rule {rNumber = rn,
+   join <$> (inPlayersGameDo' pn $ do
+      rs <- gets rules
+      let rn = getFreeNumber $ map rNumber rs
+
+      case mrr of
+         Right ruleFunc -> return $ Just Rule {rNumber = rn,
                       rName = name,
                       rDescription = desc,
                       rProposedBy = pn,
@@ -174,11 +180,11 @@ enterRule (SubmitRule name desc code) pn sh = join <$> (inPlayersGameDo pn $ do
                       rRuleFunc = ruleFunc,
                       rStatus = Pending,
                       rAssessedBy = Nothing}
-      Left e -> do
-         output ("Compiler error: " ++ show e ++ "\n") pn
-         return Nothing)
+         Left e -> do
+            output ("Compiler error: " ++ show e ++ "\n") pn
+            return Nothing)
 
-updateLastRule :: Maybe SubmitRule -> PlayerNumber -> StateT Multi IO ()
+updateLastRule :: Maybe SubmitRule -> PlayerNumber -> State Multi ()
 updateLastRule msr pn = do
    pm <- fromJust <$> findPlayer' pn
    pls <- gets mPlayers
@@ -190,42 +196,42 @@ cpuTimeLimitHard = ResourceLimit 5
 limits :: [(Resource, ResourceLimits)]
 limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHard)]
 
-inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> StateT Multi IO  ()
-inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo_ pn $ liftT $ triggerChoice eventNumber choiceIndex
+inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> State Multi ()
+inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo_ pn $ triggerChoice eventNumber choiceIndex
 
 -- TODO maybe homogeneise both inputs event
-inputStringResult :: Event InputString -> String -> PlayerNumber -> StateT Multi IO  ()
-inputStringResult event input pn = inPlayersGameDo_ pn $ liftT $ triggerEvent event (InputStringData input)
+inputStringResult :: Event InputString -> String -> PlayerNumber -> State Multi ()
+inputStringResult event input pn = inPlayersGameDo_ pn $ triggerEvent event (InputStringData input)
 
-inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Multi IO  ()
-inputUpload pn dir mod sh = inPlayersGameDo_ pn $ do
+inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Multi IO ()
+inputUpload pn dir mod sh = do
     m <- lift $ loadModule dir mod sh
     case m of
       Right _ -> do
-         output ("File loaded: " ++ show dir ++ " Module " ++ show mod ++"\n") pn
+         inPlayersGameDo'_ pn $ output ("File loaded: " ++ show dir ++ " Module " ++ show mod ++"\n") pn
          return ()
       Left e -> do
-         output ("Compiler error: " ++ show e ++ "\n") pn
+         inPlayersGameDo'_ pn $ output ("Compiler error: " ++ show e ++ "\n") pn
          return ()
 
-output :: String -> PlayerNumber -> StateT Game IO ()
+output :: String -> PlayerNumber -> State Game ()
 output s pn = modify (\game -> game { outputs = (pn, s) : (outputs game)})
 
-outputAll :: String -> StateT Game IO ()
+outputAll :: String -> State Game ()
 outputAll s = gets players >>= mapM_ ((output s) . playerNumber)
 
-mailSettings :: MailSettings -> PlayerNumber -> StateT Multi IO ()
+mailSettings :: MailSettings -> PlayerNumber -> State Multi ()
 mailSettings mailSettings pn = do
    mps <- gets mPlayers
    case find (\(PlayerMulti {mPlayerNumber}) -> pn==mPlayerNumber) mps of
-      Nothing -> say "settings not modified!"
+      Nothing -> traceM "settings not modified!"
       Just pm -> do
          let newmps = replace pm pm{mMail=mailSettings} mps
          modify (\m -> m{mPlayers = newmps})
 
 
 -- | finds the corresponding game in the multistate and replaces it.
-modifyGame :: Game -> StateT Multi IO  ()
+modifyGame :: Game -> State Multi ()
 modifyGame g = do
    m@(Multi {games=gs}) <- get
    case find (\myg -> gameName g == gameName myg) gs of
@@ -237,13 +243,13 @@ modifyGame g = do
 
 
 -- | show the constitution.
-showConstitution :: PlayerNumber -> StateT Multi IO ()
-showConstitution pn = inPlayersGameDo_ pn $ get >>= (say  .  show  .  activeRules)
+showConstitution :: PlayerNumber -> State Multi ()
+showConstitution pn = inPlayersGameDo_ pn $ get >>= (traceM  .  show  .  activeRules)
 
 
 -- | show every rules (including pendings and deleted)
-showAllRules :: PlayerNumber -> StateT Multi IO ()	
-showAllRules pn = inPlayersGameDo_ pn $ get >>= (say . show . rules)
+showAllRules :: PlayerNumber -> State Multi ()	
+showAllRules pn = inPlayersGameDo_ pn $ get >>= (traceM . show . rules)
 
 displayPlayer :: PlayerMulti -> String
 displayPlayer (PlayerMulti pn name _ _ (Just game) _) = show pn ++ ": " ++ name ++ " in game: " ++ game ++ "\n"
@@ -265,71 +271,58 @@ setName name pn pl = case find (\(PlayerMulti h _ _ _ _ _) -> h == pn) pl of
 
 
 -- | this function apply the given game actions to the game the player is in.
-inPlayersGameDo :: PlayerNumber -> StateT Game IO a -> StateT Multi IO (Maybe a)
+inPlayersGameDo :: PlayerNumber -> State Game a -> State Multi (Maybe a)
 inPlayersGameDo pn action = do
    multi <- get
+   t <- gets mCurrentTime
    let mg = getPlayersGame pn multi
    case mg of
-      Nothing -> say "You must be in a game" >> return Nothing
+      Nothing -> traceM "You must be in a game" >> return Nothing
       Just g -> do
-         (a, myg) <- lift $ runStateT action g
+         (a, myg) <- lift $ runStateT action (g { currentTime = t})
          modifyGame myg
          return (Just a)
 
-inPlayersGameDo_ :: PlayerNumber -> StateT Game IO a -> StateT Multi IO ()
+inPlayersGameDo_ :: PlayerNumber -> State Game a -> State Multi ()
 inPlayersGameDo_ pn action = inPlayersGameDo pn action >> return ()
 
-inGameDo :: GameName -> StateT Game IO () -> StateT Multi IO ()
+inPlayersGameDo' :: PlayerNumber -> State Game a -> StateT Multi IO (Maybe a)
+inPlayersGameDo' pn gs = do
+    m <- get
+    let (a, m') = runState (inPlayersGameDo pn gs) m
+    put m'
+    return a
+
+inPlayersGameDo'_ :: PlayerNumber -> State Game a -> StateT Multi IO ()
+inPlayersGameDo'_ pn action = inPlayersGameDo' pn action >> return ()
+
+inGameDo :: GameName -> State Game () -> State Multi ()
 inGameDo game action = do
    gs <- gets games
    case find (\(Game {gameName =n}) -> n==game) gs of
-      Nothing -> say "No game by that name"
+      Nothing -> traceM "No game by that name"
       Just g -> do
-         myg <- lift $ execWithGame action g
+         t <- gets mCurrentTime
+         let myg = execWithGame t action g
          modifyGame myg
 
 
-triggerTimeEvent :: TVar Multi -> UTCTime -> IO()
-triggerTimeEvent tm t = do
-    m <- atomically $ readTVar tm
-    gs' <- mapM (\g -> trig t g `catch` timeExceptionHandler g) (games m)
-    let m' = m {games = gs'}
-    atomically $ writeTVar tm m'
+triggerTimeEvent :: UTCTime -> StateT Multi IO ()
+triggerTimeEvent t = do
+   gs <- gets games
+   gs' <- lift $ mapM (\g -> trig t g `catch` timeExceptionHandler t g) gs
+   modify(\m -> m{games = gs'})
+
 
 trig :: UTCTime -> Game -> IO Game
 trig t g =  do
-   g <- execWithGame t (liftT $ evTriggerTime t) g
-   evaluate g
-   return g
+   let g' = execWithGame t (evTriggerTime t) g
+   evaluate g'
+   return g'
 
-timeExceptionHandler :: Game -> ErrorCall -> IO Game
-timeExceptionHandler g e = do
+timeExceptionHandler :: UTCTime -> Game -> ErrorCall -> IO Game
+timeExceptionHandler t g e = do
    putStrLn $ "Error in triggerTimeEvent: " ++ (show e)
-   execWithGame (outputAll $ "Error while triggering a time event: " ++ (show e) ++
+   return $ execWithGame t (outputAll $ "Error while triggering a time event: " ++ (show e) ++
                            "\nThe event have been canceled. Please remove/fix the faulty rule.") g
-
-
--- | get all events that has not been triggered yet
-getTimeEvents :: UTCTime -> TVar Multi -> IO([UTCTime])
-getTimeEvents now tm = do
-    m <- atomically $ readTVar tm
-    let times = catMaybes $ map getTimes $ concatMap events $ games m
-    return $ filter (\t -> t <= now) times
-
---TODO: fix this
-launchTimeEvents :: TVar Multi -> IO()
-launchTimeEvents tm = do
-    now <- getCurrentTime
-    putStrLn $ "tick " ++ (show now)
-    schedule <- getTimeEvents now tm
-    when (length schedule /= 0) $ putStrLn "found time event"
-    mapM_ (triggerTimeEvent tm) schedule
-    --sleep 1 second roughly
-    threadDelay 1000000
-    launchTimeEvents tm
-
-
-getTimes :: EventHandler -> Maybe UTCTime
-getTimes (EH _ _ (Time t) _) = Just t
-getTimes _ = Nothing
 

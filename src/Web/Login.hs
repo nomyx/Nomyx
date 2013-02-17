@@ -15,7 +15,7 @@ import Language.Nomyx.Expression
 import Utils
 import Text.Reform.Happstack
 import Text.Reform
-
+import Debug.Trace.Helpers
 import Happstack.Server
 import Types
 import Serialize
@@ -69,20 +69,20 @@ newPlayerLogin tm (LoginPass login password) = do
     r <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing
     case r of
        (Right ms) -> do
-          mpn <- execCommand tm $ checkLoginWeb login password
+          mpn <- execCommand' tm $ checkLoginWeb login password
           case mpn of
              LoginOK pn -> do
                 link <- showURL $ Noop pn
-                execCommand tm $ update $ MultiMailSettings ms pn
+                webCommand tm $ MultiMailSettings ms pn
                 seeOther link $ string "Redirecting..."
              WrongPassword -> do
                 link <- showURL $ Login
                 seeOther link $ string "Redirecting..."
              NewLogin -> do
-                pn <- execCommand tm $ getNewPlayerNumber
+                pn <- execCommand' tm $ getNewPlayerNumber
                 link <- showURL $ Noop pn
-                execCommand tm $ update $ MultiNewPlayer PlayerMulti { mPlayerNumber = pn, mPlayerName = login, mPassword = password, inGame = Nothing, mMail = defaultMailSettings, lastRule = Nothing}
-                execCommand tm $ update $ MultiMailSettings ms pn
+                webCommand tm $ MultiNewPlayer PlayerMulti { mPlayerNumber = pn, mPlayerName = login, mPassword = password, inGame = Nothing, mMail = defaultMailSettings, lastRule = Nothing}
+                webCommand tm $ MultiMailSettings ms pn
                 seeOther link $ string "Redirecting..."
        (Left _) -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."
 
@@ -100,7 +100,7 @@ checkLoginPassword :: LoginPass -> (TVar Multi) -> RoutedNomyxServer Html
 checkLoginPassword lp@(LoginPass login password) tm = do
           liftRouteT $ lift $ putStrLn $ "login:" ++ login
           liftRouteT $ lift $ putStrLn $ "password:" ++ password
-          mpn <- execCommand tm $ checkLoginWeb login password
+          mpn <- execCommand' tm $ checkLoginWeb login password
           case mpn of
              LoginOK pn -> do
                 link <- showURL $ Noop pn
@@ -114,22 +114,22 @@ checkLoginPassword lp@(LoginPass login password) tm = do
 
 data LoginResult = LoginOK PlayerNumber | WrongPassword | NewLogin
 
-checkLoginWeb :: PlayerName -> PlayerPassword -> StateT Multi IO LoginResult
+checkLoginWeb :: PlayerName -> PlayerPassword -> State Multi LoginResult
 checkLoginWeb name pwd = do
    --find that name among the list
    mpn <- findPlayer name
    case mpn of
       Just pl -> do
-         say $ "Trying name:" ++ mPlayerName pl
+         traceM $ "Trying name:" ++ mPlayerName pl
          case pwd == mPassword pl of
             True -> do
-               say "password OK"
+               traceM "password OK"
                return $ LoginOK $ mPlayerNumber pl
             False -> do
-               say "password false"
+               traceM "password false"
                return WrongPassword
       Nothing -> do
-         say "New player"
+         traceM "New player"
          --add the new player to the list
          return NewLogin
          --pn <- getNewPlayerNumber

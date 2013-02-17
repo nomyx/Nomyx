@@ -23,6 +23,8 @@ import Types
 import Language.Nomyx.Expression
 import Data.List
 import Control.Applicative
+import Debug.Trace
+
          
 -- | this function will return just a if it can cast it to an a.
 maybeRead :: Read a => String -> Maybe a
@@ -51,15 +53,14 @@ liftT :: Show s => State s a -> StateT s IO a
 liftT st = do
     s1 <- get
     let (a, s) = runState st s1
-    --lift $ putStrLn $ "putting " ++ show s
     put s
     return a
 
 
-findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
+findPlayer :: PlayerName -> State Multi (Maybe PlayerMulti)
 findPlayer name = find (\PlayerMulti {mPlayerName = pname} -> pname==name) <$> gets mPlayers
 
-findPlayer' :: PlayerNumber -> StateT Multi IO (Maybe PlayerMulti)
+findPlayer' :: PlayerNumber -> State Multi (Maybe PlayerMulti)
 findPlayer' pn = find (\PlayerMulti {mPlayerNumber} -> pn==mPlayerNumber) <$> gets mPlayers
 
 nomyxURL :: Network -> String
@@ -89,3 +90,5 @@ getPlayersNameMay g pn = do
    case find (\(PlayerInfo n _) -> n==pn) (players g) of
       Nothing -> Nothing
       Just pm -> Just $ playerName pm
+
+

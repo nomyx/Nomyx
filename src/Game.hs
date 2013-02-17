@@ -69,11 +69,10 @@ rApplicationMetaRule = Rule  {
     rAssessedBy   = Nothing}
 
 -- | An helper function to use the state transformer GameState.
-execWithGame :: StateT Game IO () -> Game -> IO Game
-execWithGame gs g = do
-    t <- T.getCurrentTime
-    let g' = g {currentTime = t}
-    execStateT gs g'
+-- It additionally sets the current time.
+execWithGame :: UTCTime -> State Game () -> Game -> Game
+execWithGame t gs g = execState gs g {currentTime = t}
+
 
 
 --accessors

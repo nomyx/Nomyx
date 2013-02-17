@@ -116,12 +116,6 @@ nomyxPage multi pn = do
              (string $ "Welcome to Nomyx, " ++ (getPlayersName pn multi) ++ "!")
              False
 
-
---execute the given instructions (Comm) and embed the result in a web page
-nomyxPageComm :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
-nomyxPageComm pn tm comm = execCommand tm comm >> nomyxPageServer pn tm
-
-
 nomyxPageServer :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
 nomyxPageServer pn tm = do
    multi <- liftRouteT $ lift $ atomically $ readTVar tm
@@ -136,10 +130,10 @@ routedNomyxCommands _  (NewPlayer lp)              = newPlayerPage lp
 routedNomyxCommands tm (NewPlayerLogin lp)         = newPlayerLogin tm lp
 routedNomyxCommands tm (PostLogin)                 = postLogin tm
 routedNomyxCommands tm (Noop pn)                   = nomyxPageServer pn tm
-routedNomyxCommands tm (JoinGame pn game)          = nomyxPageComm pn tm (update $ MultiJoinGame game pn)
-routedNomyxCommands tm (LeaveGame pn)              = nomyxPageComm pn tm (update $ MultiLeaveGame pn)
-routedNomyxCommands tm (SubscribeGame pn game)     = nomyxPageComm pn tm (update $ MultiSubscribeGame game pn)
-routedNomyxCommands tm (UnsubscribeGame pn game)   = nomyxPageComm pn tm (update $ MultiUnsubscribeGame game pn)
+routedNomyxCommands tm (JoinGame pn game)          = webCommand tm (MultiJoinGame game pn)        >> nomyxPageServer pn tm
+routedNomyxCommands tm (LeaveGame pn)              = webCommand tm (MultiLeaveGame pn)            >> nomyxPageServer pn tm
+routedNomyxCommands tm (SubscribeGame pn game)     = webCommand tm (MultiSubscribeGame game pn)   >> nomyxPageServer pn tm
+routedNomyxCommands tm (UnsubscribeGame pn game)   = webCommand tm (MultiUnsubscribeGame game pn) >> nomyxPageServer pn tm
 routedNomyxCommands tm (NewRule pn)                = newRule pn tm
 routedNomyxCommands tm (NewGame pn)                = newGameWeb pn tm
 routedNomyxCommands tm (DoInputChoice pn en)       = newInputChoice pn en tm
@@ -194,7 +188,7 @@ newGameWeb pn tm = do
    link <- showURL $ Noop pn
    case r of
       Left _ -> error $ "error: newGame"
-      Right (NewGameForm name) -> execCommand tm (update $ MultiNewGame name pn)
+      Right (NewGameForm name) -> webCommand tm $ MultiNewGame name pn
    seeOther link $ string "Redirecting..."
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
@@ -206,7 +200,7 @@ newUpload pn tm = do
     r <- liftRouteT $ eitherForm environment "user" uploadForm
     link <- showURL $ Noop pn
     case r of
-       (Right (path,name,_)) -> execCommand tm $ update $ MultiInputUpload pn path name
+       (Right (path,name,_)) -> webCommand tm $ MultiInputUpload pn path name
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
     seeOther link $ string "Redirecting..."
 
