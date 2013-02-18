@@ -15,6 +15,7 @@
     
 module Main (main) where
 
+import Prelude hiding (catch)
 import System.Console.GetOpt 
 import System.Environment 
 import Web.MainPage
@@ -22,7 +23,7 @@ import Control.Concurrent
 import Interpret
 import Control.Concurrent.STM
 import qualified System.Posix.Signals as S
-import Control.Monad.CatchIO
+import Control.Monad.CatchIO hiding (catch)
 import Control.Monad.Trans
 import Language.Nomyx.Test
 import Data.Maybe
@@ -37,6 +38,7 @@ import System.Directory
 import Data.Time.Clock
 import Language.Nomyx.Expression
 import Control.Monad
+import Control.Exception hiding (bracket)
 
 defaultLogFile :: FilePath
 defaultLogFile = "Nomyx.log"
@@ -87,7 +89,8 @@ loadMulti f sh net = do
    fileExists <- doesFileExist fp
    t <- getCurrentTime
    multi <- case fileExists of
-      True -> loadEvents fp sh net
+      True -> (loadEvents fp sh net) `catch`
+              (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti sh fp net t))
       False -> return $ defaultMulti sh fp net t
    atomically $ newTVar multi
 
@@ -178,8 +181,8 @@ restoreHandlers h  = liftIO . sequence $ zipWith helper h signals
 protectHandlers :: MonadCatchIO m => m a -> m a
 protectHandlers a = bracket saveHandlers restoreHandlers $ const a
 
-triggerTimeEvent' :: TVar Multi -> UTCTime -> IO()
-triggerTimeEvent' tm t = do
+triggerTimeEvent :: TVar Multi -> UTCTime -> IO()
+triggerTimeEvent tm t = do
     m <- atomically $ readTVar tm
     m' <- execWithMulti t (update $ TE t (MultiTimeEvent t)) m
     atomically $ writeTVar tm m'
@@ -199,7 +202,7 @@ launchTimeEvents tm = do
     --putStrLn $ "tick " ++ (show now)
     timeEvents <- getTimeEvents now tm
     when (length timeEvents /= 0) $ putStrLn "found time event(s)"
-    mapM_ (triggerTimeEvent' tm) timeEvents
+    mapM_ (triggerTimeEvent tm) timeEvents
     --sleep 1 second roughly
     threadDelay 1000000
     launchTimeEvents tm

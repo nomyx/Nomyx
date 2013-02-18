@@ -23,7 +23,6 @@ import Types
 import Language.Nomyx.Expression
 import Data.List
 import Control.Applicative
-import Debug.Trace
 
          
 -- | this function will return just a if it can cast it to an a.

@@ -21,7 +21,6 @@ import Text.Reform
 import Happstack.Server
 import Data.List
 import qualified Web.Help as Help
-import Serialize
 import Web.Common
 import Types
 import Web.Routes.Happstack()

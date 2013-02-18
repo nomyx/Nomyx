@@ -21,7 +21,6 @@ import qualified Data.Text.Lazy as B
 default (Integer, Double, Data.Text.Text)
 
 
-
 sendMail :: String -> String -> String -> IO()
 sendMail to object body = do
    putStrLn $ "sending a mail to " ++ to
@@ -36,7 +35,7 @@ newRuleBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ do
    (toHtml $ "Description: " ++ desc) >> H.br
    (toHtml $ "Code: " ++ code) >> H.br >> H.br
    (toHtml $ "Please login into Nomyx for actions on this rule:") >> H.br
-   (toHtml $ nomyxURL net ++ "/Nomyx") >> H.br
+   (toHtml $ nomyxURL net ++ "/Nomyx") >> H.br >> H.br
    (toHtml $ "You received this mail because you subscribed to Nomyx. To stop receiving mails, login to Nomyx with the above address, go to Settings and uncheck the corresponding box.") >> H.br
 
 newRuleObject :: PlayerName -> String

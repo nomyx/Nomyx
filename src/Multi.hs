@@ -22,9 +22,7 @@ import Language.Nomyx.Expression
 import Data.Time
 import Language.Haskell.Interpreter.Server
 import Language.Nomyx.Evaluation
-import Control.Concurrent.STM
 import Data.Maybe
-import Control.Concurrent
 import System.Posix.Resource
 import Types
 import Control.Applicative
@@ -152,7 +150,6 @@ showSubscribtion pn = inPlayersGameDo_ pn $ do
 submitRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Multi IO ()
 submitRule sr pn sh = do
    mnr <- enterRule sr pn sh
-   m <- get
    case mnr of
       Just nr -> do
          inPlayersGameDo' pn $ do
@@ -255,10 +252,6 @@ displayPlayer :: PlayerMulti -> String
 displayPlayer (PlayerMulti pn name _ _ (Just game) _) = show pn ++ ": " ++ name ++ " in game: " ++ game ++ "\n"
 displayPlayer (PlayerMulti pn name _ _ Nothing _)     = show pn ++ ": " ++ name ++ "\n"
 
-
--- | quit the game
-quit :: PlayerNumber -> IO ()
-quit _ = putStrLn "quit"
 
 -- | Utility functions
 

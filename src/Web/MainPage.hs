@@ -30,7 +30,6 @@ import System.FilePath
 import System.Posix.Files
 import qualified Web.Help as Help
 import Types
-import Serialize
 import Web.Game
 import Web.Common
 import Web.Login

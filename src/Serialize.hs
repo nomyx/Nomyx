@@ -14,7 +14,7 @@ import Data.Time.Clock
 import Utils
 
 save :: FilePath -> [TimedEvent] -> IO()
-save fp ges = writeFile fp $ showMultiEvents ges
+save fp ges = writeFile fp $ concatMap (\a -> show a ++ "\n") ges
 
 save' :: StateT Multi IO ()
 save' = do
@@ -22,7 +22,7 @@ save' = do
    lift $ save (logFilePath lgs) (logEvents lgs)
 
 load :: FilePath -> IO([TimedEvent])
-load fp = readMultiEvents <$> readFile fp
+load fp = (map read . lines) <$> readFile fp
 
 logEvent :: TimedEvent -> StateT Multi IO ()
 logEvent le = do
@@ -61,13 +61,6 @@ loadEvents fp sh net = do
 loadEvents' :: FilePath -> StateT Multi IO ()
 loadEvents' fp = do
    les <- liftIO $ load fp
-   ls <- gets logs
-   m <- get
-   put m { logs = ls { logEvents = les}}
+   modify(\m -> m { logs = (logs m) { logEvents = les}})
    mapM_ (\a -> (lift $ putStrLn $ "loading " ++ (show a)) >> enactTimedEvent a) les
 
-readMultiEvents :: String -> [TimedEvent]
-readMultiEvents s = map read $ lines s
-
-showMultiEvents :: [TimedEvent] -> String
-showMultiEvents = concatMap (\a -> show a ++ "\n")

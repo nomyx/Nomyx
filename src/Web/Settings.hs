@@ -21,7 +21,6 @@ import Utils
 import Control.Concurrent.STM
 import Data.Maybe
 import Data.Text(Text)
-import Serialize (update)
 import Text.Blaze.Internal(string)
 default (Integer, Double, Data.Text.Text)
 

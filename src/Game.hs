@@ -15,8 +15,6 @@ import Data.List
 import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
 import Language.Nomyx.Examples
-import Data.Time.Clock as T
-
 
 
 -- | the initial rule set for a game.
@@ -72,7 +70,6 @@ rApplicationMetaRule = Rule  {
 -- It additionally sets the current time.
 execWithGame :: UTCTime -> State Game () -> Game -> Game
 execWithGame t gs g = execState gs g {currentTime = t}
-
 
 
 --accessors
