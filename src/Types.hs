@@ -55,7 +55,7 @@ data SubmitRule = SubmitRule RuleName String RuleCode deriving (Show, Read, Eq)
 data TimedEvent = TE UTCTime MultiEvent deriving (Show, Read, Eq)
 
 data MultiEvent =  MultiNewPlayer         PlayerMulti
-                 | MultiNewGame           String PlayerNumber
+                 | MultiNewGame           GameName String PlayerNumber
                  | MultiJoinGame          GameName PlayerNumber
                  | MultiLeaveGame         PlayerNumber
                  | MultiSubscribeGame     GameName PlayerNumber

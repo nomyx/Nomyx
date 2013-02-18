@@ -38,7 +38,7 @@ enactTimedEvent (TE t e) = putTime t >> enactEvent e
 
 enactEvent :: MultiEvent -> StateT Multi IO ()
 enactEvent (MultiNewPlayer pm)                = liftT $ newPlayerU pm
-enactEvent (MultiNewGame s pn)                = liftT $ newGame s pn
+enactEvent (MultiNewGame s d pn)              = liftT $ newGame s d pn
 enactEvent (MultiJoinGame gn pn)              = liftT $ joinGame gn pn
 enactEvent (MultiLeaveGame pn)                = liftT $ leaveGame pn
 enactEvent (MultiSubscribeGame gn pn)         = liftT $ subscribeGame gn pn

@@ -15,7 +15,7 @@ import Data.List
 import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
 import Language.Nomyx.Examples
-
+import Data.Time
 
 -- | the initial rule set for a game.
 rVoteUnanimity = Rule  {
@@ -38,8 +38,8 @@ rVictory5Rules = Rule  {
     rStatus       = Active,
     rAssessedBy   = Nothing}
 
-emptyGame name date = Game { gameName      = name,
-                             gameDesc      = "",
+emptyGame name desc date = Game { gameName      = name,
+                             gameDesc      = desc,
                              rules         = [],
                              players       = [],
                              variables     = [],
@@ -48,8 +48,8 @@ emptyGame name date = Game { gameName      = name,
                              victory       = [],
                              currentTime   = date}
 
---initialGame :: Game
-initialGame name date = flip execState (emptyGame name date) $ do
+initialGame :: GameName -> String -> UTCTime -> Game
+initialGame name desc date = flip execState (emptyGame name desc date) $ do
     evAddRule rVoteUnanimity
     evActivateRule (rNumber rVoteUnanimity) 0
     evAddRule rVictory5Rules

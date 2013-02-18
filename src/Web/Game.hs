@@ -40,9 +40,10 @@ viewGame g pn sr = do
    ok $ table $ do
       td ! A.id "gameCol" $ do
          table $ do
-            tr $ td $ h3 $ string $ "Viewing game: " ++ gameName g  --div ! A.id "gameName"
-            tr $ td $ viewPlayers $ players g -- div ! A.id "citizens"
-            tr $ td $ viewVictory g --  div ! A.id "victory"
+            tr $ td $ h3 $ string $ "Viewing game: " ++ gameName g
+            tr $ td $ (string $ "Description: " ++ gameDesc g ++ "\n\n") >> br >> br
+            tr $ td $ viewPlayers $ players g
+            tr $ td $ viewVictory g
       td ! A.id "gameElem" $ do
          table $ do
          tr $ td $ div ! A.id "rules" $ viewAllRules g

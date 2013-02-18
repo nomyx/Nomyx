@@ -43,7 +43,7 @@ import Data.List
 import Data.Text(Text, pack)
 default (Integer, Double, Data.Text.Text)
 
-data NewGameForm = NewGameForm String
+data NewGameForm = NewGameForm GameName String
 
 
 viewMulti :: PlayerNumber -> Multi -> RoutedNomyxServer Html
@@ -105,6 +105,7 @@ viewGameName pn g = do
 
 newGameForm :: NomyxForm NewGameForm
 newGameForm = pure NewGameForm <*> (RB.inputText "") `RBC.setAttr` A.placeholder "Enter game name"
+                               <*> (RB.inputText "") `RBC.setAttr` A.placeholder "Enter game description"
 
 
 nomyxPage :: Multi -> PlayerNumber -> RoutedNomyxServer Html
@@ -187,7 +188,7 @@ newGameWeb pn tm = do
    link <- showURL $ Noop pn
    case r of
       Left _ -> error $ "error: newGame"
-      Right (NewGameForm name) -> webCommand tm $ MultiNewGame name pn
+      Right (NewGameForm name desc) -> webCommand tm $ MultiNewGame name desc pn
    seeOther link $ string "Redirecting..."
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)

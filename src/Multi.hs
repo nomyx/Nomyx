@@ -71,15 +71,15 @@ listGame _ = do
          traceM $ concatMap (\g -> gameName g ++ "\n") gs
 
 -- | starts a new game
-newGame :: String -> PlayerNumber -> State Multi ()
-newGame name _ = do
+newGame :: GameName -> String -> PlayerNumber -> State Multi ()
+newGame name desc _ = do
    gs <- gets games
    case null $ filter (\p -> gameName p == name) gs of
       True -> do
          traceM $ "Creating a new game of name: " ++ name
          t <- gets mCurrentTime
          -- create a game with zero players
-         modify (\m -> m {games = (initialGame name t):gs})
+         modify (\m -> m {games = (initialGame name desc t):gs})
       False -> traceM $ "this name is already used"
 
 uniqueGame :: String -> [Game] -> Bool
