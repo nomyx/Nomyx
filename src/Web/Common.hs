@@ -1,10 +1,10 @@
-{-# LANGUAGE TemplateHaskell, OverloadedStrings, GADTs#-}
+{-# LANGUAGE TemplateHaskell, OverloadedStrings, GADTs, ScopedTypeVariables#-}
 
 module Web.Common where
 
 
-import Prelude hiding (div)
-import Text.Blaze.Html5 hiding (map)
+import Prelude hiding (div, catch)
+import Text.Blaze.Html5 hiding (map, output)
 import Text.Blaze.Html5.Attributes hiding (dir, id)
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -27,6 +27,10 @@ import Data.Text(Text, pack)
 import Web.Routes.Happstack()
 import Data.Time
 import Serialize
+import Control.Exception
+import Data.Maybe
+import Utils
+import Multi
 default (Integer, Double, Data.Text.Text)
 
 
@@ -78,24 +82,29 @@ type NomyxServer       = ServerPartT IO
 type RoutedNomyxServer = RouteT PlayerCommand NomyxServer
 
 
-execCommand :: (TVar Multi) -> StateT Multi IO a -> RoutedNomyxServer a
-execCommand tm sm = do
+evalCommand :: (TVar Multi) -> State Multi a -> RoutedNomyxServer a
+evalCommand tm sm = do
     m <- liftRouteT $ lift $ atomically $ readTVar tm
-    (a, m') <- liftRouteT $ lift $ runStateT sm m
-    liftRouteT $ lift $ atomically $ writeTVar tm m'
-    return a
+    return $ evalState sm m
 
-execCommand' :: (TVar Multi) -> State Multi a -> RoutedNomyxServer a
-execCommand' tm sm = do
+execCommand_ :: (TVar Multi) -> PlayerNumber -> StateT Multi IO a -> RoutedNomyxServer ()
+execCommand_ tm pn sm = do
     m <- liftRouteT $ lift $ atomically $ readTVar tm
-    let (a, m') = runState sm m
+    m' <- liftRouteT $ lift $ (execStateT sm m) `catch` commandExceptionHandler pn m
     liftRouteT $ lift $ atomically $ writeTVar tm m'
-    return a
 
-webCommand :: (TVar Multi) -> MultiEvent -> RoutedNomyxServer ()
-webCommand tm me = do
+
+webCommand :: (TVar Multi) -> PlayerNumber -> MultiEvent -> RoutedNomyxServer ()
+webCommand tm pn me = do
    t <- liftRouteT $ lift $ getCurrentTime
-   execCommand tm (update $ TE t me)
+   execCommand_ tm pn (update $ TE t me)
+
+commandExceptionHandler :: PlayerNumber -> Multi -> ErrorCall -> IO Multi
+commandExceptionHandler pn m e = do
+   let g = fromJust $ getPlayersGame pn m
+   let g' = execState (output ("Error in command: " ++ (show e)) pn) g
+   putStrLn $ "Error in command: " ++ (show e)
+   return $ execState (modifyGame g') m
 
 blazeResponse :: Html -> Response
 blazeResponse html = toResponseBS (C.pack "text/html;charset=UTF-8") $ renderHtml html
@@ -107,8 +116,6 @@ blazeForm html link =
          ! A.enctype "multipart/form-data" $
             do html
                input ! A.type_ "submit" ! A.value "Submit"
-
-
 
 -- | Create a group of radio elements without BR between elements
 inputRadio' :: (Functor m, Monad m, FormError error, ErrorInputType error ~ input, FormInput input, ToMarkup lbl) =>

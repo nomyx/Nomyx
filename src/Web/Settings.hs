@@ -49,7 +49,7 @@ settingsPage pn ms = do
 
 settings :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
 settings pn tm  = do
-   pm <- execCommand' tm $ findPlayer' pn
+   pm <- evalCommand tm $ findPlayer' pn
    settingsPage pn $ mMail $ fromJust pm
 
 
@@ -59,6 +59,6 @@ newSettings pn tm = do
    r <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing
    link <- showURL $ Noop pn
    case r of
-       Right ms -> webCommand tm $ MultiMailSettings ms pn
+       Right ms -> webCommand tm pn $ MultiMailSettings ms pn
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."

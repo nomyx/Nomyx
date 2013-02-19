@@ -54,7 +54,7 @@ newPlayerPage lp = do
    mainPage (do
                 lf ! (disabled "")
                 H.br >> H.br
-                "New Player? Welcome!"
+                "New Player? Welcome!" >> H.br
                 (blazeForm mf link))
              "Login to Nomyx"
              "New Player"
@@ -68,20 +68,20 @@ newPlayerLogin tm (LoginPass login password) = do
     r <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing
     case r of
        (Right ms) -> do
-          mpn <- execCommand' tm $ checkLoginWeb login password
+          mpn <- evalCommand tm $ checkLoginWeb login password
           case mpn of
              LoginOK pn -> do
                 link <- showURL $ Noop pn
-                webCommand tm $ MultiMailSettings ms pn
+                webCommand tm pn $ MultiMailSettings ms pn
                 seeOther link $ string "Redirecting..."
              WrongPassword -> do
                 link <- showURL $ Login
                 seeOther link $ string "Redirecting..."
              NewLogin -> do
-                pn <- execCommand' tm $ getNewPlayerNumber
+                pn <- evalCommand tm $ getNewPlayerNumber
                 link <- showURL $ Noop pn
-                webCommand tm $ MultiNewPlayer PlayerMulti { mPlayerNumber = pn, mPlayerName = login, mPassword = password, inGame = Nothing, mMail = defaultMailSettings, lastRule = Nothing}
-                webCommand tm $ MultiMailSettings ms pn
+                webCommand tm pn $ MultiNewPlayer PlayerMulti { mPlayerNumber = pn, mPlayerName = login, mPassword = password, inGame = Nothing, mMail = defaultMailSettings, lastRule = Nothing}
+                webCommand tm pn $ MultiMailSettings ms pn
                 seeOther link $ string "Redirecting..."
        (Left _) -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."
 
@@ -99,7 +99,7 @@ checkLoginPassword :: LoginPass -> (TVar Multi) -> RoutedNomyxServer Html
 checkLoginPassword lp@(LoginPass login password) tm = do
           liftRouteT $ lift $ putStrLn $ "login:" ++ login
           liftRouteT $ lift $ putStrLn $ "password:" ++ password
-          mpn <- execCommand' tm $ checkLoginWeb login password
+          mpn <- evalCommand tm $ checkLoginWeb login password
           case mpn of
              LoginOK pn -> do
                 link <- showURL $ Noop pn
@@ -115,7 +115,6 @@ data LoginResult = LoginOK PlayerNumber | WrongPassword | NewLogin
 
 checkLoginWeb :: PlayerName -> PlayerPassword -> State Multi LoginResult
 checkLoginWeb name pwd = do
-   --find that name among the list
    mpn <- findPlayer name
    case mpn of
       Just pl -> do
@@ -129,9 +128,6 @@ checkLoginWeb name pwd = do
                return WrongPassword
       Nothing -> do
          traceM "New player"
-         --add the new player to the list
          return NewLogin
-         --pn <- getNewPlayerNumber
-         --update $ MultiNewPlayer PlayerMulti { mPlayerNumber = pn, mPlayerName = name, mPassword = pwd, inGame = Nothing, mMail = defaultMailSettings}
-        -- return (Just pn)
+
 

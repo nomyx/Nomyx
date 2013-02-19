@@ -25,6 +25,7 @@ sendMail :: String -> String -> String -> IO()
 sendMail to object body = do
    putStrLn $ "sending a mail to " ++ to
    forkIO $ simpleMail (Address Nothing (pack to)) (Address (Just "Nomyx Game") "corentin.dupont@gmail.com") (pack object) "" (B.pack body) [] >>= renderSendMail
+   putStrLn $ "done"
    return ()
 
 newRuleBody :: PlayerName -> SubmitRule -> PlayerName -> Network -> Html

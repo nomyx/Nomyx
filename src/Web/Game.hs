@@ -190,7 +190,7 @@ newRule pn tm = do
    case r of
        Right sr -> do
          liftRouteT $ lift $ sendMailsNewRule m sr pn
-         webCommand tm $ MultiSubmitRule sr pn
+         webCommand tm pn $ MultiSubmitRule sr pn
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
 
@@ -218,7 +218,7 @@ newInputChoice pn en tm = do
     case r of
        (Right c) -> do
           liftRouteT $ lift $ putStrLn $ "choice:" ++ (show c)
-          webCommand tm $ MultiInputChoiceResult en c pn
+          webCommand tm pn $ MultiInputChoiceResult en c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
@@ -236,7 +236,7 @@ newInputString pn title tm = do
     case r of
        (Right c) -> do
           liftRouteT $ lift $ putStrLn $ "entered:" ++ (show c)
-          webCommand tm $ MultiInputStringResult title c pn
+          webCommand tm pn $ MultiInputStringResult title c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"

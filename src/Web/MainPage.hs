@@ -77,7 +77,7 @@ viewGamesTab pn gs = do
       br >> "Create a new game:" >> br
       blazeForm ng (newGameLink)
       br >> "Rule language files:" >> br
-      H.a "Rules examples" ! (href $ "/examples/Examples.hs") >> br
+      H.a "Rules examples" ! (href $ "/src/Language/Nomyx/Examples.hs") >> br
       H.a "Rules definitions" ! (href $ "/src/Language/Nomyx/Rule.hs") >> br
       H.a "Rules types" ! (href $ "/src/Language/Nomyx/Expression.hs") >> br
       mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) fmods
@@ -130,10 +130,10 @@ routedNomyxCommands _  (NewPlayer lp)              = newPlayerPage lp
 routedNomyxCommands tm (NewPlayerLogin lp)         = newPlayerLogin tm lp
 routedNomyxCommands tm (PostLogin)                 = postLogin tm
 routedNomyxCommands tm (Noop pn)                   = nomyxPageServer pn tm
-routedNomyxCommands tm (JoinGame pn game)          = webCommand tm (MultiJoinGame game pn)        >> nomyxPageServer pn tm
-routedNomyxCommands tm (LeaveGame pn)              = webCommand tm (MultiLeaveGame pn)            >> nomyxPageServer pn tm
-routedNomyxCommands tm (SubscribeGame pn game)     = webCommand tm (MultiSubscribeGame game pn)   >> nomyxPageServer pn tm
-routedNomyxCommands tm (UnsubscribeGame pn game)   = webCommand tm (MultiUnsubscribeGame game pn) >> nomyxPageServer pn tm
+routedNomyxCommands tm (JoinGame pn game)          = webCommand tm pn (MultiJoinGame game pn)        >> nomyxPageServer pn tm
+routedNomyxCommands tm (LeaveGame pn)              = webCommand tm pn (MultiLeaveGame pn)            >> nomyxPageServer pn tm
+routedNomyxCommands tm (SubscribeGame pn game)     = webCommand tm pn (MultiSubscribeGame game pn)   >> nomyxPageServer pn tm
+routedNomyxCommands tm (UnsubscribeGame pn game)   = webCommand tm pn (MultiUnsubscribeGame game pn) >> nomyxPageServer pn tm
 routedNomyxCommands tm (NewRule pn)                = newRule pn tm
 routedNomyxCommands tm (NewGame pn)                = newGameWeb pn tm
 routedNomyxCommands tm (DoInputChoice pn en)       = newInputChoice pn en tm
@@ -188,7 +188,7 @@ newGameWeb pn tm = do
    link <- showURL $ Noop pn
    case r of
       Left _ -> error $ "error: newGame"
-      Right (NewGameForm name desc) -> webCommand tm $ MultiNewGame name desc pn
+      Right (NewGameForm name desc) -> webCommand tm pn $ MultiNewGame name desc pn
    seeOther link $ string "Redirecting..."
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
@@ -200,14 +200,14 @@ newUpload pn tm = do
     r <- liftRouteT $ eitherForm environment "user" uploadForm
     link <- showURL $ Noop pn
     case r of
-       (Right (path,name,_)) -> webCommand tm $ MultiInputUpload pn path name
+       (Right (path,name,_)) -> webCommand tm pn $ MultiInputUpload pn path name
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
     seeOther link $ string "Redirecting..."
 
 
 launchWebServer :: (TVar Multi) -> Network -> IO ()
 launchWebServer tm net = do
-   putStrLn $ "Starting web server...\nTo connect, drive your browser to\"" ++ nomyxURL net ++ "/Nomyx\""
+   putStrLn $ "Starting web server...\nTo connect, drive your browser to \"" ++ nomyxURL net ++ "/Nomyx\""
    d <- PN.getDataDir
    d' <- PNR.getDataDir
    simpleHTTP nullConf {HS.port = Types.port net} $ server d d' tm net

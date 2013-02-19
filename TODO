@@ -27,4 +27,6 @@ BUGS
 - fix rule number for variables
 - check when error on parameters (for victory for example)
 - concurrent access to log file
+- sendmail is blocking the game
+- delete invalid events
 
