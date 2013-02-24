@@ -1,5 +1,5 @@
 -- | This module starts a Interpreter server that will read our strings representing rules to convert them to plain Rules.
-module Interpret(startInterpreter, interpretRule, loadModule) where
+module Interpret where
 
 import Language.Haskell.Interpreter
 import Language.Haskell.Interpreter.Server
@@ -11,10 +11,11 @@ import System.FilePath
 import System.Posix.Files
 import Control.Monad
 import System.Posix.Resource
-import Control.Exception as CE
 
 modDir = "modules"
-
+importList = ["Prelude", "Language.Nomyx.Rule", "Language.Nomyx.Expression", "Language.Nomyx.Test",
+              "Language.Nomyx.Examples", "GHC.Base", "Data.Maybe"]
+              
 -- | the server handle
 startInterpreter :: IO ServerHandle
 startInterpreter = do
@@ -45,12 +46,12 @@ initializeInterpreter = do
    dataDir <- liftIO getDataDir
    set [searchPath := [dataDir], languageExtensions := [GADTs, ScopedTypeVariables]] --, languageExtensions := [], installedModulesInScope := False
    --TODO: get all exported modules of Nomyx library
-   setImports ["Prelude", "Language.Nomyx.Rule", "Language.Nomyx.Expression", "Language.Nomyx.Test", "Language.Nomyx.Examples", "GHC.Base", "Data.Maybe"]
+   setImports importList
    return ()
 
--- | reads maybe a Rule out of a string.
+---- | reads maybe a Rule out of a string.
 interpretRule :: String -> ServerHandle -> IO (Either InterpreterError RuleFunc)
-interpretRule s sh = flip CE.catch (\e -> return (Left $ NotAllowed $ "Caught exception: " ++ (show (e:: IOException) ))) $ do --TODO check exception
+interpretRule s sh = do --flip CE.catch (\e -> return (Left $ NotAllowed $ "Caught exception: " ++ (show (e:: IOException) ))) 
    liftIO $ runIn sh $ do
       liftIO $ mapM_ (uncurry setResourceLimit) limits
       interpret s (as :: RuleFunc)
@@ -77,7 +78,7 @@ loadModule dir name sh = do
             runIn sh $ initializeInterpreter
             return $ Left e
 
--- | check if a module is valid. Context will be reset.
+---- | check if a module is valid. Context will be reset.
 checkModule :: FilePath -> ServerHandle -> IO (Either InterpreterError ())
 checkModule dir sh = runIn sh $ do
    fmods <- liftIO getUploadModules

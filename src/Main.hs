@@ -11,7 +11,7 @@
 -- |
 --
 -----------------------------------------------------------------------------
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs, DoAndIfThenElse #-}
     
 module Main (main) where
 
@@ -39,9 +39,11 @@ import Data.Time.Clock
 import Language.Nomyx.Expression
 import Control.Monad
 import Control.Exception hiding (bracket)
+import Test
+import Utils
 
 defaultLogFile :: FilePath
-defaultLogFile = "Nomyx.log"
+defaultLogFile = "Nomyx.save"
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -51,14 +53,9 @@ main = do
    (flags, _) <- nomyxOpts args
    --parseActions flags
    --let verbose = Verbose `elem` flags
-   if Test `elem` flags
-      then do
-         putStrLn $ "Tests result: " ++ show allTests
-         return allTests
-      else do
-         case (Daemon `elem` flags) of
-            True -> (daemonize $ start flags) >> return True
-            False -> start flags >> return True
+   case (Daemon `elem` flags) of
+       True -> (daemonize $ start flags) >> return True
+       False -> start flags >> return True
 
 start :: [Flag] -> IO ()
 start flags = do
@@ -80,8 +77,13 @@ start flags = do
          --start the web server
          forkIO $ launchWebServer multi (Network host port)
          forkIO $ launchTimeEvents multi
-         --loop
-         serverLoop multi logFile
+         if Test `elem` flags then do
+            putStrLn $ "Nomyx Language Tests results: " ++ show allTests
+            res <- playTests sh
+            putStrLn $ "Nomyx Game Tests results:" ++ (show res)
+         else do
+            --main loop
+            serverLoop multi logFile
 
 loadMulti :: FilePath -> ServerHandle -> Network -> IO (TVar Multi)
 loadMulti f sh net = do
@@ -135,7 +137,7 @@ options =
      , Option ['t']     ["tests"]   (NoArg Test)                 "perform routine check"
      , Option ['h']     ["host"]    (ReqArg HostName "Hostname") "specify host name"
      , Option ['p']     ["port"]    (ReqArg Port "Port")         "specify port"
-     , Option ['r']     ["read"]    (ReqArg LogFile "LogFile")   "specify log file"
+     , Option ['r']     ["read"]    (ReqArg LogFile "SaveFile")  "specify save file"
      , Option ['d']     ["daemon"]  (NoArg Daemon)               "run in daemon mode"
      ]
     
@@ -160,6 +162,7 @@ findSaveFile :: [Flag] -> Maybe FilePath
 findSaveFile fs = headMay $ catMaybes $ map isSaveFile fs where
     isSaveFile (LogFile a) = Just a
     isSaveFile _ = Nothing
+
 
 helper :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
 helper handler signal = liftIO $ S.installHandler signal handler Nothing
@@ -193,7 +196,7 @@ getTimeEvents :: UTCTime -> TVar Multi -> IO([UTCTime])
 getTimeEvents now tm = do
     m <- atomically $ readTVar tm
     let times = catMaybes $ map getTimes $ concatMap events $ games m
-    return $ filter (\t -> t <= now) times
+    return $ filter (\t -> t <= now && t > (-2) `addUTCTime` now) times
 
 
 launchTimeEvents :: TVar Multi -> IO()
