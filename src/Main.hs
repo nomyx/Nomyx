@@ -63,9 +63,9 @@ start flags = do
    --start the haskell interpreter
    sh <- protectHandlers startInterpreter
    if Test `elem` flags then do
-      putStrLn $ "Nomyx Language Tests results: " ++ show LT.tests
-      res <- playTests sh
-      putStrLn $ "Nomyx Game Tests results:" ++ (show res)
+      putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
+      ts <- playTests sh
+      putStrLn $ "\nNomyx Game Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts)
    else do
       --creating game structures
       logFile <- case (findSaveFile flags) of
@@ -91,8 +91,10 @@ loadMulti f sh net = do
    fileExists <- doesFileExist fp
    t <- getCurrentTime
    multi <- case fileExists of
-      True -> (loadEvents fp sh net) `catch`
-              (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti sh fp net t))
+      True -> do
+         putStrLn "Loading previous game"
+         (loadEvents fp sh net) `catch`
+            (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti sh fp net t))
       False -> return $ defaultMulti sh fp net t
    atomically $ newTVar multi
 

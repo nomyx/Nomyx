@@ -95,7 +95,7 @@ getPlayersNameMay g pn = do
 
 commandExceptionHandler :: Maybe PlayerNumber -> Multi -> ErrorCall -> IO Multi
 commandExceptionHandler mpn m e = do
-   putStrLn $ "Error in command: " ++ (show e)
+   putStrLn $ "Exception in rule: " ++ (show e)
    case mpn of
       Just pn -> do
          let g = fromJust $ getPlayersGame pn m

@@ -80,4 +80,4 @@ loadEvents' fp = do
 loadTimedEvents :: [TimedEvent] -> StateT Multi IO ()
 loadTimedEvents les = do
    modify(\m -> m { logs = (logs m) { logEvents = les}})
-   mapM_ (\a -> (lift $ putStrLn $ "loading " ++ (show a)) >> update' a (Just 1)) les
+   mapM_ (\a -> update' a (Just 1)) les --(lift $ putStrLn $ "loading " ++ (show a)) >>

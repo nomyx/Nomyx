@@ -27,8 +27,6 @@ import Data.Text(Text, pack)
 import Web.Routes.Happstack()
 import Data.Time
 import Serialize
-import Control.Exception
-import Utils
 default (Integer, Double, Data.Text.Text)
 
 

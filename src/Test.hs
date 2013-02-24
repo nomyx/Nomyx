@@ -33,11 +33,12 @@ playTests :: ServerHandle -> IO [(String, Bool)]
 playTests sh = mapM (\(title, t, cond) -> (title,) <$> test sh t cond) tests
 
 tests :: [(String, [TimedEvent], Multi -> Bool)]
-tests = [("hello World", noTime gameHelloWorld, condHelloWorld),
+tests = [("hello World",           noTime gameHelloWorld,         condHelloWorld),
          ("hello World 2 players", noTime gameHelloWorld2Players, condHelloWorld2Players),
-         ("Partial Function 1", noTime gamePartialFunction1, condPartialFunction1),
-         ("Partial Function 2", gamePartialFunction2, condPartialFunction2),
-         ("Partial Function 3", noTime gamePartialFunction3, condPartialFunction3)]
+         ("Partial Function 1",    noTime gamePartialFunction1,   condPartialFunction1),
+         ("Partial Function 2",    gamePartialFunction2,          condPartialFunction2),
+         ("Partial Function 3",    noTime gamePartialFunction3,   condPartialFunction3),
+         ("Money tranfer",         noTime gameMoneyTransfer,      condMoneyTransfer)]
 
 dayZero :: UTCTime
 dayZero = UTCTime (ModifiedJulianDay 0) 0
@@ -47,10 +48,10 @@ noTime mes = map (TE dayZero) mes
 
 test :: ServerHandle -> [TimedEvent] -> (Multi -> Bool) -> IO Bool
 test sh tes cond = do
-   putStrLn $ "\n\n\nTEST"
+   --putStrLn $ "\n\n\nTEST"
    let m = defaultMulti sh "" defaultNetwork dayZero
    m' <- (test' tes m)
-   putStrLn $ show m'
+   --putStrLn $ show m'
    return $ cond m'
 
 test' ::  [TimedEvent] -> Multi -> IO Multi
@@ -143,3 +144,19 @@ gamePartialFunction3 = onePlayerOneGame ++ (submitRule partialFunction3) ++ (sub
 condPartialFunction3 :: Multi -> Bool
 condPartialFunction3 m = (length $ rules $ head $ games m) == 3
 
+gameMoneyTransfer :: [MultiEvent]
+gameMoneyTransfer = twoPlayersOneGame ++
+   [MultiSubmitRule (SubmitRule "" "" "createBankAccount") 1,
+   (MultiInputChoiceResult 5 0 1),
+   (MultiInputChoiceResult 4 0 2),
+   (MultiSubmitRule (SubmitRule "" "" "winXEcuOnRuleAccepted 100") 1),
+   (MultiInputChoiceResult 8 0 1),
+   (MultiInputChoiceResult 7 0 2),
+   (MultiSubmitRule (SubmitRule "" "" "moneyTransfer") 2)]
+--   (MultiInputChoiceResult 7 0 2)]
+   --(MultiInputChoiceResult 8 0 1)]
+--   (MultiInputChoiceResult 7 0 2),
+--   (MultiInputStringResult "Select Amount to transfert to player: 1" "50" 2)]
+
+condMoneyTransfer :: Multi -> Bool
+condMoneyTransfer m = (length $ variables $ head $ games m) == 1
