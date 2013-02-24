@@ -28,7 +28,6 @@ import qualified Text.Reform.Blaze.String as RB hiding (form)
 import Control.Applicative
 import Utils
 import Mail
-import Data.Time
 import Data.Text(Text)
 import qualified Text.Reform.Blaze.Common as RBC
 default (Integer, Double, Data.Text.Text)
@@ -190,12 +189,16 @@ newRule pn tm = do
    link <- showURL $ Noop pn
    case r of
        Right sr -> do
-          t <- liftRouteT $ lift $ getCurrentTime
-          liftRouteT $ lift $ putStrLn $ "before: " ++ (show m) ++"\n" ++ (show t) ++"\n"
-          liftRouteT $ lift $ sendMailsNewRule m sr pn
-          t' <- liftRouteT $ lift $ getCurrentTime
-          liftRouteT $ lift $ putStrLn $ "after: " ++ (show m) ++"\n" ++ (show t') ++"\n"
+          --t <- liftRouteT $ lift $ getCurrentTime
+          --liftRouteT $ lift $ putStrLn $ "before: " ++ (show m) ++"\n" ++ (show t) ++"\n"
+
+          --t' <- liftRouteT $ lift $ getCurrentTime
+          --liftRouteT $ lift $ putStrLn $ "after: " ++ (show m) ++"\n" ++ (show t') ++"\n"
           webCommand tm pn $ MultiSubmitRule sr pn
+          m' <- liftRouteT $ lift $ readTVarIO tm
+          let rs = rules $ fromJust $ getPlayersGame pn m
+          let rs' = rules $ fromJust $ getPlayersGame pn m'
+          when (length rs' > length rs) $ liftRouteT $ lift $ sendMailsNewRule m' sr pn
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
 

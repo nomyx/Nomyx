@@ -146,13 +146,13 @@ condPartialFunction3 m = (length $ rules $ head $ games m) == 3
 
 gameMoneyTransfer :: [MultiEvent]
 gameMoneyTransfer = twoPlayersOneGame ++
-   [MultiSubmitRule (SubmitRule "" "" "createBankAccount") 1,
+   [MultiSubmitRule (SubmitRule "" "" [cr|createBankAccount|]) 1,
    (MultiInputChoiceResult 5 0 1),
    (MultiInputChoiceResult 4 0 2),
-   (MultiSubmitRule (SubmitRule "" "" "winXEcuOnRuleAccepted 100") 1),
+   (MultiSubmitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1),
    (MultiInputChoiceResult 8 0 1),
    (MultiInputChoiceResult 7 0 2),
-   (MultiSubmitRule (SubmitRule "" "" "moneyTransfer") 2)]
+   (MultiSubmitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2)]
 --   (MultiInputChoiceResult 7 0 2)]
    --(MultiInputChoiceResult 8 0 1)]
 --   (MultiInputChoiceResult 7 0 2),

@@ -31,5 +31,5 @@ BUGS
 - concurrent access to log file
 - sendmail is blocking the game
 - delete invalid events
-- events may be triggered twice if not deleted
-- don't send mail if rule broken
+- events may be triggered twice if not deleted (in case of exception)
+
