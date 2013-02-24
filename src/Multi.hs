@@ -20,10 +20,9 @@ import Interpret
 import Debug.Trace.Helpers()
 import Language.Nomyx.Expression
 import Data.Time
-import Language.Haskell.Interpreter.Server
+import Language.Haskell.Interpreter.Server (ServerHandle)
 import Language.Nomyx.Evaluation
 import Data.Maybe
-import System.Posix.Resource
 import Types
 import Control.Applicative
 import Control.Exception
@@ -188,10 +187,10 @@ updateLastRule msr pn = do
    let pls' = replace pm (pm {lastRule = msr}) pls
    modify (\m -> m{mPlayers = pls'})
 
-cpuTimeLimitSoft = ResourceLimit 4
-cpuTimeLimitHard = ResourceLimit 5
-limits :: [(Resource, ResourceLimits)]
-limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHard)]
+--cpuTimeLimitSoft = ResourceLimit 4
+--cpuTimeLimitHard = ResourceLimit 5
+--limits :: [(Resource, ResourceLimits)]
+--limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHard)]
 
 inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> State Multi ()
 inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo_ pn $ triggerChoice eventNumber choiceIndex
@@ -211,11 +210,6 @@ inputUpload pn dir mod sh = do
          inPlayersGameDo'_ pn $ output ("Compiler error: " ++ show e ++ "\n") pn
          return ()
 
-output :: String -> PlayerNumber -> State Game ()
-output s pn = modify (\game -> game { outputs = (pn, s) : (outputs game)})
-
-outputAll :: String -> State Game ()
-outputAll s = gets players >>= mapM_ ((output s) . playerNumber)
 
 mailSettings :: MailSettings -> PlayerNumber -> State Multi ()
 mailSettings mailSettings pn = do
@@ -225,19 +219,6 @@ mailSettings mailSettings pn = do
       Just pm -> do
          let newmps = replace pm pm{mMail=mailSettings} mps
          modify (\m -> m{mPlayers = newmps})
-
-
--- | finds the corresponding game in the multistate and replaces it.
-modifyGame :: Game -> State Multi ()
-modifyGame g = do
-   m@(Multi {games=gs}) <- get
-   case find (\myg -> gameName g == gameName myg) gs of
-      Nothing -> error "modifyGame: No game by that name"
-      Just oldg -> do
-         let newgs = replace oldg g gs
-         put (m {games=newgs})
-
-
 
 -- | show the constitution.
 showConstitution :: PlayerNumber -> State Multi ()

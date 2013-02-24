@@ -15,7 +15,6 @@ import Data.List
 import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
 import Language.Nomyx.Examples
-import Data.Time
 
 -- | the initial rule set for a game.
 rVoteUnanimity = Rule  {
@@ -82,9 +81,6 @@ pendingRules = sort . filter (\(Rule {rStatus=rs}) -> rs==Pending) . rules
 
 rejectedRules :: Game -> [Rule]
 rejectedRules = sort . filter (\(Rule {rStatus=rs}) -> rs==Reject) . rules
-
-
-
 
 instance Ord PlayerInfo where
    h <= g = (playerNumber h) <= (playerNumber g)

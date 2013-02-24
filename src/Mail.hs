@@ -14,9 +14,9 @@ import Types
 import Language.Nomyx.Expression
 import Data.Text(Text, pack)
 import Control.Concurrent
-import Data.List
 import Data.Maybe
 import Utils
+import Control.Exception
 import qualified Data.Text.Lazy as B
 default (Integer, Double, Data.Text.Text)
 
@@ -44,24 +44,12 @@ newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 
 sendMailsNewRule :: Multi -> SubmitRule -> PlayerNumber -> IO()
 sendMailsNewRule m sr pn = do
+   evaluate m
    let gn = gameName $ fromJust $ getPlayersGame pn m
    let proposer = getPlayersName pn m
    forM_ (mPlayers m) $ send proposer gn
    where send prop gn pm = when ((Just gn == inGame pm) && (mailNewRule $ mMail pm)) $ \
       sendMail (mailTo $ mMail pm) (newRuleObject prop) (renderHtml $ newRuleBody (mPlayerName pm) sr prop (net m))
-
-
-outputBody :: String -> String
-outputBody o = "New message for you: " ++ o
-
-sendMailsOutputs :: Multi -> Multi -> IO ()
-sendMailsOutputs before after = do
-   let newOutputs = (getOutputs after) \\ (getOutputs before)
-   mapM_  (send $ mPlayers after) newOutputs
-   where
-   send pms (pn, o) = do
-      let mail = mMail $ fromJust $ find (\PlayerMulti {mPlayerNumber} -> pn==mPlayerNumber) pms
-      when (mailNewOutput mail) $ sendMail (mailTo mail) (outputBody o) (outputBody o)
 
    
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]

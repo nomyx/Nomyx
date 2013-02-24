@@ -7,19 +7,19 @@ import Language.Nomyx.Expression
 import Data.Typeable
 import Data.List
 import Data.Function
-import Language.Haskell.Interpreter.Server
+import Language.Haskell.Interpreter.Server (ServerHandle)
 import Text.Blaze.Html5 hiding (map, label)
 import Text.Reform
 import Happstack.Server
 import Text.Reform.Happstack()
 import Network.BSD
 import Data.Time
-import Control.Monad.State
+
 
 type PlayerPassword = String
 type Port = Int
 data Network = Network {host :: HostName, port :: Port}
-
+defaultNetwork = Network "" 0
 
 data PlayerMulti = PlayerMulti   { mPlayerNumber :: PlayerNumber,
                                    mPlayerName :: PlayerName,
@@ -88,9 +88,3 @@ instance FormError String where
     type ErrorInputType String = [Input]
     commonFormError _ = "common error"
 
-
-
-execWithMulti :: UTCTime -> StateT Multi IO () -> Multi -> IO Multi
-execWithMulti t ms m = do
-   let m' = m { games = map (\g -> g {currentTime = t}) (games m)}
-   execStateT ms m'

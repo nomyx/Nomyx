@@ -5,7 +5,7 @@ Features to add:
 
 - interpreter (like tryhaskell.org) on the web page to debug rules
 - make a command line client
-- make a session system
+- make a session system with cookie
 - colorize code
 - make code instructions in the active rules table clickable to access haddock documentation
 
@@ -14,10 +14,9 @@ Improves:
 
 - refresh web page when new event (currently, player needs to hit F5)
 - input sanitization and error reporting
-- avoid unrecoverable "error" in variables
-- add tests in main Nomyx
 - secure interpreter with mueval: time limits, no unsafe instructions, memory limits...
 - add a name to events to be able to delete categories of them
+- add "back to main page" links
 
 Futur Nomic:
 - ability to analyse rules, proof system
@@ -29,4 +28,6 @@ BUGS
 - concurrent access to log file
 - sendmail is blocking the game
 - delete invalid events
-
+- events may be triggered twice if not deleted
+- add catch in serialize 
+- don't send mail if rule broken

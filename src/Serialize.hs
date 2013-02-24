@@ -61,6 +61,9 @@ loadEvents fp sh net = do
 loadEvents' :: FilePath -> StateT Multi IO ()
 loadEvents' fp = do
    les <- liftIO $ load fp
+   loadTimedEvents les
+
+loadTimedEvents :: [TimedEvent] -> StateT Multi IO ()
+loadTimedEvents les = do
    modify(\m -> m { logs = (logs m) { logEvents = les}})
    mapM_ (\a -> (lift $ putStrLn $ "loading " ++ (show a)) >> enactTimedEvent a) les
-

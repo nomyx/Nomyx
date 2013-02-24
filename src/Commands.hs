@@ -1,6 +1,6 @@
 
-
 -- | This module handles intrepreting players' commands.
+-- DEPRECATED
 module Commands where
 
 import Text.ParserCombinators.Parsec

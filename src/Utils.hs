@@ -23,6 +23,9 @@ import Types
 import Language.Nomyx.Expression
 import Data.List
 import Control.Applicative
+import Control.Exception
+import Data.Time
+
 
          
 -- | this function will return just a if it can cast it to an a.
@@ -89,5 +92,35 @@ getPlayersNameMay g pn = do
    case find (\(PlayerInfo n _) -> n==pn) (players g) of
       Nothing -> Nothing
       Just pm -> Just $ playerName pm
+
+commandExceptionHandler :: PlayerNumber -> Multi -> ErrorCall -> IO Multi
+commandExceptionHandler pn m e = do
+   let g = fromJust $ getPlayersGame pn m
+   let g' = execState (output ("Error in command: " ++ (show e)) pn) g
+   putStrLn $ "Error in command: " ++ (show e)
+   return $ execState (modifyGame g') m
+
+
+-- | finds the corresponding game in the multistate and replaces it.
+modifyGame :: Game -> State Multi ()
+modifyGame g = do
+   m@(Multi {games=gs}) <- get
+   case find (\myg -> gameName g == gameName myg) gs of
+      Nothing -> error "modifyGame: No game by that name"
+      Just oldg -> do
+         let newgs = replace oldg g gs
+         put (m {games=newgs})
+
+output :: String -> PlayerNumber -> State Game ()
+output s pn = modify (\game -> game { outputs = (pn, s) : (outputs game)})
+
+outputAll :: String -> State Game ()
+outputAll s = gets players >>= mapM_ ((output s) . playerNumber)
+
+
+execWithMulti :: UTCTime -> StateT Multi IO () -> Multi -> IO Multi
+execWithMulti t ms m = do
+   let m' = m { games = map (\g -> g {currentTime = t}) (games m)}
+   execStateT ms m'
 
 
