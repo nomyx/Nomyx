@@ -28,6 +28,7 @@ import qualified Text.Reform.Blaze.String as RB hiding (form)
 import Control.Applicative
 import Utils
 import Mail
+import Data.Time
 import Data.Text(Text)
 import qualified Text.Reform.Blaze.Common as RBC
 default (Integer, Double, Data.Text.Text)
@@ -184,13 +185,17 @@ viewRuleForm pn sr = do
 newRule :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
 newRule pn tm = do
    methodM POST
-   m <- liftRouteT $ lift $ atomically $ readTVar tm
+   m <- liftRouteT $ lift $ readTVarIO tm
    r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing)
    link <- showURL $ Noop pn
    case r of
        Right sr -> do
-         liftRouteT $ lift $ sendMailsNewRule m sr pn
-         webCommand tm pn $ MultiSubmitRule sr pn
+          t <- liftRouteT $ lift $ getCurrentTime
+          liftRouteT $ lift $ putStrLn $ "before: " ++ (show m) ++"\n" ++ (show t) ++"\n"
+          liftRouteT $ lift $ sendMailsNewRule m sr pn
+          t' <- liftRouteT $ lift $ getCurrentTime
+          liftRouteT $ lift $ putStrLn $ "after: " ++ (show m) ++"\n" ++ (show t') ++"\n"
+          webCommand tm pn $ MultiSubmitRule sr pn
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
 

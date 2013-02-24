@@ -28,9 +28,7 @@ import Web.Routes.Happstack()
 import Data.Time
 import Serialize
 import Control.Exception
-import Data.Maybe
 import Utils
-import Multi
 default (Integer, Double, Data.Text.Text)
 
 
@@ -59,6 +57,7 @@ data PlayerCommand = Login
                    | DoInputString   PlayerNumber String
                    | NewRule         PlayerNumber
                    | NewGame         PlayerNumber
+                   | SubmitNewGame   PlayerNumber
                    | Upload          PlayerNumber
                    | Settings        PlayerNumber
                    | SubmitSettings  PlayerNumber
@@ -87,24 +86,18 @@ evalCommand tm sm = do
     m <- liftRouteT $ lift $ atomically $ readTVar tm
     return $ evalState sm m
 
-execCommand_ :: (TVar Multi) -> PlayerNumber -> StateT Multi IO a -> RoutedNomyxServer ()
+execCommand_ :: (TVar Multi) -> PlayerNumber -> StateT Multi IO a -> IO ()
 execCommand_ tm pn sm = do
-    m <- liftRouteT $ lift $ atomically $ readTVar tm
-    m' <- liftRouteT $ lift $ (execStateT sm m) `catch` commandExceptionHandler pn m
-    liftRouteT $ lift $ atomically $ writeTVar tm m'
+    m <- atomically $ readTVar tm
+    m' <- (execStateT sm m) `catch` commandExceptionHandler pn m
+    atomically $ writeTVar tm m'
 
 
 webCommand :: (TVar Multi) -> PlayerNumber -> MultiEvent -> RoutedNomyxServer ()
 webCommand tm pn me = do
    t <- liftRouteT $ lift $ getCurrentTime
-   execCommand_ tm pn (update $ TE t me)
+   liftRouteT $ lift $ execCommand_ tm pn (update $ TE t me)
 
-commandExceptionHandler :: PlayerNumber -> Multi -> ErrorCall -> IO Multi
-commandExceptionHandler pn m e = do
-   let g = fromJust $ getPlayersGame pn m
-   let g' = execState (output ("Error in command: " ++ (show e)) pn) g
-   putStrLn $ "Error in command: " ++ (show e)
-   return $ execState (modifyGame g') m
 
 blazeResponse :: Html -> Response
 blazeResponse html = toResponseBS (C.pack "text/html;charset=UTF-8") $ renderHtml html
@@ -143,4 +136,4 @@ mainPage body title header footer = do
         H.div ! A.id "container" $ do
            H.div ! A.id "header" $ header
            body
-           when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012"
+           when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012-2013"

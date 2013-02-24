@@ -34,16 +34,13 @@ import Web.Game
 import Web.Common
 import Web.Login
 import Web.Settings
+import Web.NewGame
 import qualified Text.Reform.Blaze.String as RB
-import qualified Text.Reform.Blaze.Common as RBC
-import Control.Applicative
 import Utils
 import Data.Maybe
 import Data.List
 import Data.Text(Text, pack)
 default (Integer, Double, Data.Text.Text)
-
-data NewGameForm = NewGameForm GameName String
 
 
 viewMulti :: PlayerNumber -> Multi -> RoutedNomyxServer Html
@@ -61,29 +58,28 @@ viewGamesTab :: PlayerNumber -> [Game] -> RoutedNomyxServer Html
 viewGamesTab pn gs = do
    gns <- mapM (viewGameName pn) gs
    newGameLink <- showURL (NewGame pn)
-   ng  <- lift $ viewForm "user" $ newGameForm
    uploadLink <- showURL (Upload pn)
+   settingsLink <- showURL (Settings pn)
    up  <- lift $ viewForm "user" uploadForm
    dd <- lift $ lift $ PN.getDataDir
    mods <- lift $ lift $ getDirectoryContents $ dd </> modDir
    fmods <- lift $ lift $ filterM (getFileStatus . (\f -> joinPath [dd, modDir, f]) >=> return . isRegularFile) $ mods
-   settingsLink <- showURL (Settings pn)
    ok $ do
-      h3 "Games:"
+      h3 "Main menu" >> br
+      "Active games:" >> br
       table $ do
          case gs of
             [] -> tr $ td "No Games"
             _ ->  sequence_ gns
-      br >> "Create a new game:" >> br
-      blazeForm ng (newGameLink)
-      br >> "Rule language files:" >> br
+      br >> "Nomyx language files:" >> br
       H.a "Rules examples" ! (href $ "/src/Language/Nomyx/Examples.hs") >> br
       H.a "Rules definitions" ! (href $ "/src/Language/Nomyx/Rule.hs") >> br
       H.a "Rules types" ! (href $ "/src/Language/Nomyx/Expression.hs") >> br
       mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) fmods
       br >> "Upload new rules file:" >> br
       blazeForm up (uploadLink) ! (A.title $ toValue Help.upload)
-      br >> "Settings" >> br
+      br >> "Settings:" >> br
+      H.a "Create a new game" ! (href $ toValue newGameLink) >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
 
 
@@ -102,10 +98,6 @@ viewGameName pn g = do
          --td $ H.a "Subscribe" ! (href $ toValue subscribe)
          td $ H.a "Unsubscribe" ! (href $ toValue unsubscribe)
 
-
-newGameForm :: NomyxForm NewGameForm
-newGameForm = pure NewGameForm <*> (RB.inputText "") `RBC.setAttr` A.placeholder "Enter game name"
-                               <*> (RB.inputText "") `RBC.setAttr` A.placeholder "Enter game description"
 
 
 nomyxPage :: Multi -> PlayerNumber -> RoutedNomyxServer Html
@@ -135,7 +127,8 @@ routedNomyxCommands tm (LeaveGame pn)              = webCommand tm pn (MultiLeav
 routedNomyxCommands tm (SubscribeGame pn game)     = webCommand tm pn (MultiSubscribeGame game pn)   >> nomyxPageServer pn tm
 routedNomyxCommands tm (UnsubscribeGame pn game)   = webCommand tm pn (MultiUnsubscribeGame game pn) >> nomyxPageServer pn tm
 routedNomyxCommands tm (NewRule pn)                = newRule pn tm
-routedNomyxCommands tm (NewGame pn)                = newGameWeb pn tm
+routedNomyxCommands _  (NewGame pn)                = newGamePage pn
+routedNomyxCommands tm (SubmitNewGame pn)          = newGame pn tm
 routedNomyxCommands tm (DoInputChoice pn en)       = newInputChoice pn en tm
 routedNomyxCommands tm (DoInputString pn en)       = newInputString pn en tm
 routedNomyxCommands tm (Upload pn)                 = newUpload pn tm
@@ -181,15 +174,6 @@ execBlocking sm m mv = do
    putMVar mv (Just res')
 -}
 
-newGameWeb :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
-newGameWeb pn tm = do
-   methodM POST
-   r <- liftRouteT $ eitherForm environment "user" newGameForm
-   link <- showURL $ Noop pn
-   case r of
-      Left _ -> error $ "error: newGame"
-      Right (NewGameForm name desc) -> webCommand tm pn $ MultiNewGame name desc pn
-   seeOther link $ string "Redirecting..."
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
 uploadForm = RB.inputFile
