@@ -29,5 +29,4 @@ BUGS
 - sendmail is blocking the game
 - delete invalid events
 - events may be triggered twice if not deleted
-- add catch in serialize 
 - don't send mail if rule broken

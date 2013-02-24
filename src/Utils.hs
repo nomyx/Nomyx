@@ -93,12 +93,15 @@ getPlayersNameMay g pn = do
       Nothing -> Nothing
       Just pm -> Just $ playerName pm
 
-commandExceptionHandler :: PlayerNumber -> Multi -> ErrorCall -> IO Multi
-commandExceptionHandler pn m e = do
-   let g = fromJust $ getPlayersGame pn m
-   let g' = execState (output ("Error in command: " ++ (show e)) pn) g
+commandExceptionHandler :: Maybe PlayerNumber -> Multi -> ErrorCall -> IO Multi
+commandExceptionHandler mpn m e = do
    putStrLn $ "Error in command: " ++ (show e)
-   return $ execState (modifyGame g') m
+   case mpn of
+      Just pn -> do
+         let g = fromJust $ getPlayersGame pn m
+         let g' = execState (output ("Error in command: " ++ (show e)) pn) g
+         return $ execState (modifyGame g') m
+      Nothing -> return m
 
 
 -- | finds the corresponding game in the multistate and replaces it.

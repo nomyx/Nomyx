@@ -3,7 +3,7 @@
 
 module Serialize where
 
-import Prelude hiding (log)
+import Prelude hiding (log, catch)
 import Language.Nomyx.Expression
 import Control.Monad.State
 import Types
@@ -12,6 +12,7 @@ import Language.Haskell.Interpreter.Server
 import Control.Applicative
 import Data.Time.Clock
 import Utils
+import Control.Exception
 
 save :: FilePath -> [TimedEvent] -> IO()
 save fp ges = writeFile fp $ concatMap (\a -> show a ++ "\n") ges
@@ -34,7 +35,9 @@ putTime :: UTCTime -> StateT Multi IO ()
 putTime t = modify (\m -> m{mCurrentTime = t})
 
 enactTimedEvent :: TimedEvent -> StateT Multi IO ()
-enactTimedEvent (TE t e) = putTime t >> enactEvent e
+enactTimedEvent (TE t e) = do
+   putTime t
+   enactEvent e
 
 enactEvent :: MultiEvent -> StateT Multi IO ()
 enactEvent (MultiNewPlayer pm)                = liftT $ newPlayerU pm
@@ -50,8 +53,19 @@ enactEvent (MultiInputUpload pn dir mod)      = gets sh >>= inputUpload pn dir m
 enactEvent (MultiTimeEvent t)                 = triggerTimeEvent t
 enactEvent (MultiMailSettings mms pn)         = liftT $ mailSettings mms pn
 
-update :: TimedEvent -> StateT Multi IO ()
-update le = logEvent le >> enactTimedEvent le >> save'
+update :: TimedEvent -> (Maybe PlayerNumber) -> StateT Multi IO ()
+update te mpn = logEvent te >> update' te mpn >> save'
+
+update' :: TimedEvent -> (Maybe PlayerNumber) -> StateT Multi IO ()
+update' te mpn = do
+   m <- get
+   m' <- lift $ (enactTimedEvent' te m) `catch` commandExceptionHandler mpn m
+   put m'
+
+enactTimedEvent' te m = do
+   m' <- (execStateT (enactTimedEvent te) m)
+   evaluate m'
+   return m'
 
 loadEvents :: FilePath -> ServerHandle -> Network -> IO Multi
 loadEvents fp sh net = do
@@ -66,4 +80,4 @@ loadEvents' fp = do
 loadTimedEvents :: [TimedEvent] -> StateT Multi IO ()
 loadTimedEvents les = do
    modify(\m -> m { logs = (logs m) { logEvents = les}})
-   mapM_ (\a -> (lift $ putStrLn $ "loading " ++ (show a)) >> enactTimedEvent a) les
+   mapM_ (\a -> (lift $ putStrLn $ "loading " ++ (show a)) >> update' a (Just 1)) les

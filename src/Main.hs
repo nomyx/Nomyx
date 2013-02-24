@@ -25,7 +25,7 @@ import Control.Concurrent.STM
 import qualified System.Posix.Signals as S
 import Control.Monad.CatchIO hiding (catch)
 import Control.Monad.Trans
-import Language.Nomyx.Test
+import Language.Nomyx.Test as LT
 import Data.Maybe
 import Safe
 import Network.BSD
@@ -59,31 +59,31 @@ main = do
 
 start :: [Flag] -> IO ()
 start flags = do
-         serverCommandUsage
-         --start the haskell interpreter
-         sh <- protectHandlers startInterpreter
-         --creating game structures
-         logFile <- case (findSaveFile flags) of
-            Just f -> return f
-            Nothing -> return defaultLogFile
-         port <- case (findPort flags) of
-            Just p -> return $ read p
-            Nothing -> return $ 8000
-         host <- case (findHost flags) of
-            Just h -> return h
-            Nothing -> getHostName >>= return
-         --load previous state
-         multi <- loadMulti logFile sh (Network host port)
-         --start the web server
-         forkIO $ launchWebServer multi (Network host port)
-         forkIO $ launchTimeEvents multi
-         if Test `elem` flags then do
-            putStrLn $ "Nomyx Language Tests results: " ++ show allTests
-            res <- playTests sh
-            putStrLn $ "Nomyx Game Tests results:" ++ (show res)
-         else do
-            --main loop
-            serverLoop multi logFile
+   serverCommandUsage
+   --start the haskell interpreter
+   sh <- protectHandlers startInterpreter
+   if Test `elem` flags then do
+      putStrLn $ "Nomyx Language Tests results: " ++ show LT.tests
+      res <- playTests sh
+      putStrLn $ "Nomyx Game Tests results:" ++ (show res)
+   else do
+      --creating game structures
+      logFile <- case (findSaveFile flags) of
+         Just f -> return f
+         Nothing -> return defaultLogFile
+      port <- case (findPort flags) of
+         Just p -> return $ read p
+         Nothing -> return $ 8000
+      host <- case (findHost flags) of
+         Just h -> return h
+         Nothing -> getHostName >>= return
+      --load previous state
+      multi <- loadMulti logFile sh (Network host port)
+      --start the web server
+      forkIO $ launchWebServer multi (Network host port)
+      forkIO $ launchTimeEvents multi
+      --main loop
+      serverLoop multi logFile
 
 loadMulti :: FilePath -> ServerHandle -> Network -> IO (TVar Multi)
 loadMulti f sh net = do
@@ -187,7 +187,7 @@ protectHandlers a = bracket saveHandlers restoreHandlers $ const a
 triggerTimeEvent :: TVar Multi -> UTCTime -> IO()
 triggerTimeEvent tm t = do
     m <- atomically $ readTVar tm
-    m' <- execWithMulti t (update $ TE t (MultiTimeEvent t)) m
+    m' <- execWithMulti t (update (TE t (MultiTimeEvent t)) Nothing) m
     atomically $ writeTVar tm m'
 
 

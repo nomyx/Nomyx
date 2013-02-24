@@ -86,17 +86,13 @@ evalCommand tm sm = do
     m <- liftRouteT $ lift $ atomically $ readTVar tm
     return $ evalState sm m
 
-execCommand_ :: (TVar Multi) -> PlayerNumber -> StateT Multi IO a -> IO ()
-execCommand_ tm pn sm = do
-    m <- atomically $ readTVar tm
-    m' <- (execStateT sm m) `catch` commandExceptionHandler pn m
-    atomically $ writeTVar tm m'
-
 
 webCommand :: (TVar Multi) -> PlayerNumber -> MultiEvent -> RoutedNomyxServer ()
-webCommand tm pn me = do
-   t <- liftRouteT $ lift $ getCurrentTime
-   liftRouteT $ lift $ execCommand_ tm pn (update $ TE t me)
+webCommand tm pn me = liftRouteT $ lift $ do
+   t <- getCurrentTime
+   m <- atomically $ readTVar tm
+   m' <- execStateT (update (TE t me) (Just pn)) m
+   atomically $ writeTVar tm m'
 
 
 blazeResponse :: Html -> Response

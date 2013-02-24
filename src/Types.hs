@@ -39,7 +39,8 @@ data Multi = Multi { games   :: [Game],
                      deriving (Typeable)
 
 instance Show Multi where
-   show Multi{games=gs, mPlayers=mps} = show (sort gs) ++ "\n" ++ show (sort mps)
+   show Multi{games, mPlayers} = "Games: " ++ show (sort games) ++ "\n" ++
+                                 "Players: " ++ show (sort mPlayers) ++ "\n"
 
 defaultMulti :: ServerHandle -> FilePath -> Network -> UTCTime -> Multi
 defaultMulti sh fp net t = Multi [] [] (defaultLog fp) sh net t
