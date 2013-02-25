@@ -24,7 +24,6 @@ Futur Nomic:
 - ability to analyse rules, proof system
 
 BUGS
-- fix moneyTransfer: accept new players, check balance is positive
 - fix rule number for variables
 - check when error on parameters (for victory for example)
 - concurrent access to log file
