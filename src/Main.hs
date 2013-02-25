@@ -77,17 +77,19 @@ start flags = do
       host <- case (findHost flags) of
          Just h -> return h
          Nothing -> getHostName >>= return
-      --load previous state
-      multi <- loadMulti logFile sh (Network host port)
+      logFilePath <- getDataFileName logFile
+      multi <- case (findLoadTest flags) of
+         Just testName -> loadTestName logFilePath sh (Network host port) testName
+         Nothing -> loadMulti logFilePath sh (Network host port)
+      tvMulti <- atomically $ newTVar multi
       --start the web server
-      forkIO $ launchWebServer multi (Network host port)
-      forkIO $ launchTimeEvents multi
+      forkIO $ launchWebServer tvMulti (Network host port)
+      forkIO $ launchTimeEvents tvMulti
       --main loop
-      serverLoop multi logFile
+      serverLoop tvMulti logFile
 
-loadMulti :: FilePath -> ServerHandle -> Network -> IO (TVar Multi)
-loadMulti f sh net = do
-   fp <- getDataFileName f
+loadMulti :: FilePath -> ServerHandle -> Network -> IO Multi
+loadMulti fp sh net = do
    fileExists <- doesFileExist fp
    t <- getCurrentTime
    multi <- case fileExists of
@@ -96,7 +98,7 @@ loadMulti f sh net = do
          (loadEvents fp sh net) `catch`
             (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti sh fp net t))
       False -> return $ defaultMulti sh fp net t
-   atomically $ newTVar multi
+   return multi
 
 
 -- | a loop that will handle server commands
@@ -128,19 +130,20 @@ serverCommandUsage = do
 
 -- | Launch mode 
 data Flag 
-     = Verbose | Version | Test | HostName String | Port String | LogFile FilePath | Daemon
+     = Verbose | Version | Test | HostName String | Port String | LogFile FilePath | Daemon | LoadTest String
        deriving (Show, Eq)
 
 -- | launch options description
 options :: [OptDescr Flag]
 options =
-     [ Option ['v']     ["verbose"] (NoArg Verbose)              "chatty output on stderr"
-     , Option ['V','?'] ["version"] (NoArg Version)              "show version number"
-     , Option ['t']     ["tests"]   (NoArg Test)                 "perform routine check"
-     , Option ['h']     ["host"]    (ReqArg HostName "Hostname") "specify host name"
-     , Option ['p']     ["port"]    (ReqArg Port "Port")         "specify port"
-     , Option ['r']     ["read"]    (ReqArg LogFile "SaveFile")  "specify save file"
-     , Option ['d']     ["daemon"]  (NoArg Daemon)               "run in daemon mode"
+     [ Option ['v']     ["verbose"]  (NoArg Verbose)              "chatty output on stderr"
+     , Option ['V','?'] ["version"]  (NoArg Version)              "show version number"
+     , Option ['t']     ["tests"]    (NoArg Test)                 "perform routine check"
+     , Option ['h']     ["host"]     (ReqArg HostName "Hostname") "specify host name"
+     , Option ['p']     ["port"]     (ReqArg Port "Port")         "specify port"
+     , Option ['r']     ["read"]     (ReqArg LogFile "SaveFile")  "specify save file"
+     , Option ['d']     ["daemon"]   (NoArg Daemon)               "run in daemon mode"
+     , Option ['l']     ["loadtest"] (ReqArg LoadTest "TestName") "specify name of test to load"
      ]
     
 nomyxOpts :: [String] -> IO ([Flag], [String])
@@ -160,11 +163,15 @@ findHost fs = headMay $ catMaybes $ map isHost fs where
     isHost (HostName a) = Just a
     isHost _ = Nothing
 
+findLoadTest :: [Flag] -> Maybe String
+findLoadTest fs = headMay $ catMaybes $ map isLoadTest fs where
+    isLoadTest (LoadTest a) = Just a
+    isLoadTest _ = Nothing
+
 findSaveFile :: [Flag] -> Maybe FilePath
 findSaveFile fs = headMay $ catMaybes $ map isSaveFile fs where
     isSaveFile (LogFile a) = Just a
     isSaveFile _ = Nothing
-
 
 helper :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
 helper handler signal = liftIO $ S.installHandler signal handler Nothing

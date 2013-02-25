@@ -28,6 +28,8 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Syntax as THS
 import System.IO.Unsafe
 import Quotes
+import Data.List
+import Data.Time.Clock
 
 playTests :: ServerHandle -> IO [(String, Bool)]
 playTests sh = mapM (\(title, t, cond) -> (title,) <$> test sh t cond) tests
@@ -38,7 +40,7 @@ tests = [("hello World",           noTime gameHelloWorld,         condHelloWorld
          ("Partial Function 1",    noTime gamePartialFunction1,   condPartialFunction1),
          ("Partial Function 2",    gamePartialFunction2,          condPartialFunction2),
          ("Partial Function 3",    noTime gamePartialFunction3,   condPartialFunction3),
-         ("Money tranfer",         noTime gameMoneyTransfer,      condMoneyTransfer)]
+         ("Money transfer",        noTime gameMoneyTransfer,      condMoneyTransfer)]
 
 dayZero :: UTCTime
 dayZero = UTCTime (ModifiedJulianDay 0) 0
@@ -50,12 +52,12 @@ test :: ServerHandle -> [TimedEvent] -> (Multi -> Bool) -> IO Bool
 test sh tes cond = do
    --putStrLn $ "\n\n\nTEST"
    let m = defaultMulti sh "" defaultNetwork dayZero
-   m' <- (test' tes m)
+   m' <- (loadTest tes m)
    --putStrLn $ show m'
-   return $ cond m'
+   (return $ cond m') `catch` (\(e::IOError) -> (putStrLn $ show e) >> return False)
 
-test' ::  [TimedEvent] -> Multi -> IO Multi
-test' tes m = do
+loadTest ::  [TimedEvent] -> Multi -> IO Multi
+loadTest tes m = do
    m' <- execStateT (loadTimedEvents tes) m
    evaluate m'
    return m'
@@ -64,6 +66,15 @@ testException :: Multi -> SomeException -> IO Multi
 testException m e = do
    putStrLn $ "Test Exception: " ++ show e
    return m
+
+loadTestName :: FilePath -> ServerHandle -> Network -> String -> IO Multi
+loadTestName fp sh net testName = do
+   let mt = find (\(name, _, _) -> name == testName) tests
+   t <- getCurrentTime
+   let m = defaultMulti sh fp net t
+   case mt of
+      Just (n, t, _) -> putStrLn ("Loading test game: " ++ n)  >> loadTest t m
+      Nothing -> putStrLn "Test name not found" >> return m
 
 printRule :: Q THS.Exp -> String
 printRule r = unsafePerformIO $ do
@@ -80,9 +91,9 @@ onePlayerOneGame =
 
 twoPlayersOneGame :: [MultiEvent]
 twoPlayersOneGame = onePlayerOneGame ++
-   [MultiNewPlayer (PlayerMulti {mPlayerNumber = 1, mPlayerName = "bat", mPassword = "bat", mMail = MailSettings {mailTo = "", mailNewInput = False, mailNewRule = False, mailNewOutput = False, mailConfirmed = False}, inGame = Nothing, lastRule = Nothing}),
-    MultiMailSettings (MailSettings {mailTo = "c", mailNewInput = True, mailNewRule = True, mailNewOutput = True, mailConfirmed = True}) 1,
-    MultiJoinGame "test" 1]
+   [MultiNewPlayer (PlayerMulti {mPlayerNumber = 2, mPlayerName = "bat", mPassword = "bat", mMail = MailSettings {mailTo = "", mailNewInput = False, mailNewRule = False, mailNewOutput = False, mailConfirmed = False}, inGame = Nothing, lastRule = Nothing}),
+    MultiMailSettings (MailSettings {mailTo = "c", mailNewInput = True, mailNewRule = True, mailNewOutput = True, mailConfirmed = True}) 2,
+    MultiJoinGame "test" 2]
 
 submitRule ::  String -> [MultiEvent]
 submitRule r = onePlayerOneGame ++
@@ -100,7 +111,7 @@ condHelloWorld m = (head $ outputs $ head $ games m) == (1, "hello, world!")
 gameHelloWorld2Players :: [MultiEvent]
 gameHelloWorld2Players = twoPlayersOneGame ++
    [MultiSubmitRule (SubmitRule "" "" [cr|helloWorld|]) 1,
-   MultiInputChoiceResult 4 0 1,
+   MultiInputChoiceResult 5 0 1,
    MultiInputChoiceResult 4 0 2]
 
 condHelloWorld2Players :: Multi -> Bool
@@ -144,19 +155,20 @@ gamePartialFunction3 = onePlayerOneGame ++ (submitRule partialFunction3) ++ (sub
 condPartialFunction3 :: Multi -> Bool
 condPartialFunction3 m = (length $ rules $ head $ games m) == 3
 
+--Create bank accounts, win 100 Ecu on rule accepted (so 100 Ecu is won for each player), transfer 50 Ecu
 gameMoneyTransfer :: [MultiEvent]
 gameMoneyTransfer = twoPlayersOneGame ++
    [MultiSubmitRule (SubmitRule "" "" [cr|createBankAccount|]) 1,
    (MultiInputChoiceResult 5 0 1),
    (MultiInputChoiceResult 4 0 2),
    (MultiSubmitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1),
+   (MultiInputChoiceResult 7 0 1),
+   (MultiInputChoiceResult 6 0 2),
+   (MultiSubmitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2),
    (MultiInputChoiceResult 8 0 1),
    (MultiInputChoiceResult 7 0 2),
-   (MultiSubmitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2)]
---   (MultiInputChoiceResult 7 0 2)]
-   --(MultiInputChoiceResult 8 0 1)]
---   (MultiInputChoiceResult 7 0 2),
---   (MultiInputStringResult "Select Amount to transfert to player: 1" "50" 2)]
+   (MultiInputChoiceResult 7 0 1),
+   (MultiInputStringResult "Select Amount to transfert to player: 2" "50" 1)]
 
 condMoneyTransfer :: Multi -> Bool
-condMoneyTransfer m = (length $ variables $ head $ games m) == 1
+condMoneyTransfer m = (vName $ head $ variables $ head $ games m) == "Accounts"

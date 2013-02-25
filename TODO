@@ -19,7 +19,6 @@ Improves:
 - add "back to main page" links
 - recognize array vars to display them properly on HCI
 - add command to rm save file
-- add command to load specific tests
 
 Futur Nomic:
 - ability to analyse rules, proof system
