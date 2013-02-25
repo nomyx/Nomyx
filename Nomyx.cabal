@@ -1,5 +1,5 @@
 name: Nomyx
-version: 0.0.3
+version: 0.1.0
 cabal-version: >=1.6
 build-type: Simple
 license: BSD3
@@ -18,7 +18,7 @@ extra-source-files: AUTHORS README TODO
  
 executable Nomyx
     build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
-                   Nomyx-Rules ==0.0.3, QuickCheck -any, acid-state -any, base <5,
+                   Nomyx-Rules ==0.1.0, QuickCheck -any, acid-state -any, base <5,
                    binary -any, blaze-html ==0.5.*, blaze-markup -any,
                    bytestring -any, containers -any, data-accessor-transformers -any,
                    directory -any, eprocess -any, extensible-exceptions -any,
@@ -37,5 +37,5 @@ executable Nomyx
     other-modules: Quotes Types Mail Game Test Multi Server Serialize
                    Utils Interpret Commands Web.Common Web.Help Web.Game Web.Login
                    Web.Settings Web.MainPage Web.NewGame
-    ghc-options: -W
- 
+    ghc-options: -W 
+    -- no-omit-yield
