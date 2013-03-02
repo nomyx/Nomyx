@@ -6,7 +6,6 @@ Features to add:
 - interpreter (like tryhaskell.org) on the web page to debug rules
 - make a command line client
 - make a session system with cookie
-- colorize code
 - make code instructions in the active rules table clickable to access haddock documentation
 - option to read step by step the save file for analysis
 
@@ -25,6 +24,7 @@ Improves:
 - add a field "Agora" in games and make it a link
 - manage creation of game safely
 - warn when password false
+- possibility to modify game details
 
 Futur Nomic:
 - ability to analyse rules, proof system
@@ -40,4 +40,5 @@ BUGS
 - accept line returns in the "code of the rule" column, in the mails also
 - all players need to cast their vote, even if quorum is already reached
 - don't send a mail when replaying a game with -r (?)
+- empty login/password and game name
 

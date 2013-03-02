@@ -126,6 +126,10 @@ thead {
   /* height:150px;*/
 }
 
+.agora {
+   width:400px;
+}
+
 input[type="file"]{
    font: normal 11px Arial;
 }

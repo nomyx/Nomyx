@@ -86,7 +86,7 @@ onePlayerOneGame :: [MultiEvent]
 onePlayerOneGame =
    [MultiNewPlayer (PlayerMulti {mPlayerNumber = 1, mPlayerName = "coco", mPassword = "coco", mMail = MailSettings {mailTo = "", mailNewInput = False, mailNewRule = False, mailNewOutput = False, mailConfirmed = False}, inGame = Nothing, lastRule = Nothing}),
     MultiMailSettings (MailSettings {mailTo = "c", mailNewInput = True, mailNewRule = True, mailNewOutput = True, mailConfirmed = True}) 1,
-    MultiNewGame "test" "" 1,
+    MultiNewGame "test" (GameDesc "" "") 1,
     MultiJoinGame "test" 1]
 
 twoPlayersOneGame :: [MultiEvent]

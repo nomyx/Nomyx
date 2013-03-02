@@ -24,13 +24,15 @@ import Text.Blaze.Internal(string)
 default (Integer, Double, Data.Text.Text)
 
 
-data NewGameForm = NewGameForm GameName String
+data NewGameForm = NewGameForm GameName GameDesc
 
 newGameForm :: NomyxForm NewGameForm
-newGameForm = pure NewGameForm <*> br ++> label "Enter new game name: " ++> (inputText "") `RBC.setAttr` placeholder "Game name"  <++ br <++ br
-                               <*> label "Enter game description, including a link to a place (e.g. a forum, a mailing list...) where the players can discuss their rules: " ++> br
-                                   ++> (textarea 40 3 "") `RBC.setAttr` placeholder "Enter game description" `RBC.setAttr` class_ "gameDesc"
+newGameForm = pure NewGameForm <*> (br ++> label "Enter new game name: " ++> (inputText "") `RBC.setAttr` placeholder "Game name"  <++ br <++ br)
+                                 <*> newGameDesc
 
+newGameDesc :: NomyxForm GameDesc
+newGameDesc = pure GameDesc <*> label "Enter game description:" ++> br ++> (textarea 40 3 "") `RBC.setAttr` placeholder "Enter game description" `RBC.setAttr` class_ "gameDesc" <++ br <++ br
+                             <*> label "Enter a link to an agora (e.g. a forum, a mailing list...) where the players can discuss their rules: " ++> br ++> (inputText "") `RBC.setAttr` placeholder "Agora URL" `RBC.setAttr` class_ "agora" <++ br <++ br
 
 newGamePage :: PlayerNumber -> RoutedNomyxServer Html
 newGamePage pn = do

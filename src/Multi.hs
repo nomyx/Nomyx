@@ -70,7 +70,7 @@ listGame _ = do
          traceM $ concatMap (\g -> gameName g ++ "\n") gs
 
 -- | starts a new game
-newGame :: GameName -> String -> PlayerNumber -> State Multi ()
+newGame :: GameName -> GameDesc -> PlayerNumber -> State Multi ()
 newGame name desc _ = do
    gs <- gets games
    case null $ filter (\p -> gameName p == name) gs of

@@ -43,7 +43,8 @@ viewGame g pn sr = do
       td ! A.id "gameCol" $ do
          table $ do
             tr $ td $ h3 $ string $ "Viewing game: " ++ gameName g
-            tr $ td $ (string $ "Description:\n" ++ gameDesc g ++ "\n\n") >> br >> br
+            tr $ td $ "Description:" >> br >> string (desc $ gameDesc g) >> br
+            tr $ td $ (a "Agora" ! (A.href $ toValue (agora $ gameDesc g))) >> br >> br
             tr $ td $ viewPlayers $ players g
             tr $ td $ viewVictory g
       td ! A.id "gameElem" $ do
@@ -101,7 +102,7 @@ viewRule nr = tr $ do
    td ! A.class_ "td" $ string $ rName nr
    td ! A.class_ "td" $ string $ rDescription nr
    td ! A.class_ "td" $ string $ if rProposedBy nr == 0 then "System" else "Player " ++ (show $ rProposedBy nr)
-   td ! A.class_ "td" $ preEscapedString $ HSC.hscolour defaultColourPrefs False $  rRuleCode nr
+   td ! A.class_ "td" $ preEscapedString $ HSC.hscolour defaultColourPrefs False $ rRuleCode nr
    td ! A.class_ "td" $ string $ case rAssessedBy nr of
       Nothing -> "Not assessed"
       Just 0  -> "System"

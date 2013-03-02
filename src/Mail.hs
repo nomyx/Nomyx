@@ -18,13 +18,16 @@ import Data.Maybe
 import Utils
 import Control.Exception
 import qualified Data.Text.Lazy as B
+import qualified Language.Haskell.HsColour.HTML as HSC
+import Language.Haskell.HsColour.Colourise hiding (string)
+import Text.Blaze.Internal
 default (Integer, Double, Data.Text.Text)
 
 
 sendMail :: String -> String -> String -> IO()
 sendMail to object body = do
    putStrLn $ "sending a mail to " ++ to
-   forkIO $ simpleMail (Address Nothing (pack to)) (Address (Just "Nomyx Game") "corentin.dupont@gmail.com") (pack object) "" (B.pack body) [] >>= renderSendMail
+   forkIO $ simpleMail (Address Nothing (pack to)) (Address (Just "Nomyx Game") "Nomyx.Game@gmail.com") (pack object) "" (B.pack body) [] >>= renderSendMail
    putStrLn $ "done"
    return ()
 
@@ -34,7 +37,7 @@ newRuleBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ do
    (toHtml $ "a new rule has been proposed by player " ++ prop ++ ".") >> H.br
    (toHtml $ "Name: " ++ name) >> H.br
    (toHtml $ "Description: " ++ desc) >> H.br
-   (toHtml $ "Code: " ++ code) >> H.br >> H.br
+   (toHtml $ "Code: ") >> H.br >> (preEscapedString $ HSC.hscolour defaultColourPrefs False $ code) >> H.br >> H.br
    (toHtml $ "Please login into Nomyx for actions on this rule:") >> H.br
    (toHtml $ nomyxURL net ++ "/Nomyx") >> H.br >> H.br
    (toHtml $ "You received this mail because you subscribed to Nomyx. To stop receiving mails, login to Nomyx with the above address, go to Settings and uncheck the corresponding box.") >> H.br

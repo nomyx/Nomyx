@@ -47,7 +47,7 @@ emptyGame name desc date = Game { gameName      = name,
                              victory       = [],
                              currentTime   = date}
 
-initialGame :: GameName -> String -> UTCTime -> Game
+initialGame :: GameName -> GameDesc -> UTCTime -> Game
 initialGame name desc date = flip execState (emptyGame name desc date) $ do
     evAddRule rVoteUnanimity
     evActivateRule (rNumber rVoteUnanimity) 0
