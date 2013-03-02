@@ -99,11 +99,14 @@ viewRule nr = tr $ do
    td ! A.class_ "td" $ string $ rName nr
    td ! A.class_ "td" $ string $ rDescription nr
    td ! A.class_ "td" $ string $ if rProposedBy nr == 0 then "System" else "Player " ++ (show $ rProposedBy nr)
-   td ! A.class_ "td" $ string $ rRuleCode nr
+   td ! A.class_ "td" $ multiLineString $ rRuleCode nr
    td ! A.class_ "td" $ string $ case rAssessedBy nr of
       Nothing -> "Not assessed"
       Just 0  -> "System"
       Just a  -> "Rule " ++ (show $ a)
+
+concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
+concatMapM f xs   =  liftM concat (mapM f xs)
 
 viewEvents :: [EventHandler] -> Html
 viewEvents [] = h3 "Events" >> h5 "No Events"

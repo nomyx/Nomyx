@@ -17,16 +17,17 @@ data-dir: data
 extra-source-files: AUTHORS README TODO
  
 executable Nomyx
-    build-depends: DebugTraceHelpers -any, MonadCatchIO-mtl -any,
-                   Nomyx-Rules ==0.1.0, QuickCheck -any, acid-state -any, base <5,
-                   binary -any, blaze-html ==0.5.*, blaze-markup -any,
-                   bytestring -any, containers -any, data-accessor-transformers -any,
-                   directory -any, eprocess -any, extensible-exceptions -any,
-                   filepath -any, happstack-server ==7.*, hdaemonize -any, hint -any,
-                   hint-server -any, hslogger -any, mime-mail -any, monad-loops -any,
-                   mtl ==2.*, mueval -any, network -any, process -any, reform -any,
-                   reform-blaze -any, reform-happstack -any, regular -any, safe -any,
-                   stm -any, template-haskell -any, text -any, time -any, unix -any,
+    build-depends: DebugTraceHelpers -any, MissingH -any,
+                   MonadCatchIO-mtl -any, Nomyx-Rules ==0.1.0, QuickCheck -any,
+                   acid-state -any, base <5, binary -any, blaze-html ==0.5.*,
+                   blaze-markup -any, bytestring -any, containers -any,
+                   data-accessor-transformers -any, directory -any, eprocess -any,
+                   extensible-exceptions -any, filepath -any, happstack-server ==7.*,
+                   hdaemonize -any, hint -any, hint-server -any, hslogger -any,
+                   mime-mail -any, monad-loops -any, mtl ==2.*, mueval -any,
+                   network -any, process -any, reform -any, reform-blaze -any,
+                   reform-happstack -any, regular -any, safe -any, stm -any,
+                   template-haskell -any, text -any, time -any, unix -any,
                    utf8-string -any, web-routes ==0.27.*,
                    web-routes-happstack ==0.23.*, web-routes-regular ==0.19.*,
                    web-routes-th -any
@@ -34,8 +35,8 @@ executable Nomyx
     buildable: True
     extensions: CPP
     hs-source-dirs: src
-    other-modules: Quotes Types Mail Game Test Multi Server Serialize
-                   Utils Interpret Commands Web.Common Web.Help Web.Game Web.Login
-                   Web.Settings Web.MainPage Web.NewGame
-    ghc-options: -W 
-    -- no-omit-yield
+    other-modules: Types Mail Game Mail Test Multi Server Serialize
+                   Utils Interpret Quotes Commands Web.Common Web.Help Web.NewGame
+                   Web.Game Web.Login Web.Settings Web.MainPage
+    ghc-options: -W
+ 

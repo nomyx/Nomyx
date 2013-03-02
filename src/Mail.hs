@@ -48,8 +48,8 @@ sendMailsNewRule m sr pn = do
    let gn = gameName $ fromJust $ getPlayersGame pn m
    let proposer = getPlayersName pn m
    forM_ (mPlayers m) $ send proposer gn
-   where send prop gn pm = when ((Just gn == inGame pm) && (mailNewRule $ mMail pm)) $ \
-      sendMail (mailTo $ mMail pm) (newRuleObject prop) (renderHtml $ newRuleBody (mPlayerName pm) sr prop (net m))
+   where send prop gn pm = when ((Just gn == inGame pm) && (mailNewRule $ mMail pm))
+          $ sendMail (mailTo $ mMail pm) (newRuleObject prop) (renderHtml $ newRuleBody (mPlayerName pm) sr prop (net m))
 
    
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
