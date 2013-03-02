@@ -30,6 +30,8 @@ import Utils
 import Mail
 import Data.Text(Text)
 import qualified Text.Reform.Blaze.Common as RBC
+import qualified Language.Haskell.HsColour.HTML as HSC
+import Language.Haskell.HsColour.Colourise hiding (string)
 default (Integer, Double, Data.Text.Text)
 
 
@@ -99,7 +101,7 @@ viewRule nr = tr $ do
    td ! A.class_ "td" $ string $ rName nr
    td ! A.class_ "td" $ string $ rDescription nr
    td ! A.class_ "td" $ string $ if rProposedBy nr == 0 then "System" else "Player " ++ (show $ rProposedBy nr)
-   td ! A.class_ "td" $ multiLineString $ rRuleCode nr
+   td ! A.class_ "td" $ preEscapedString $ HSC.hscolour defaultColourPrefs False $  rRuleCode nr
    td ! A.class_ "td" $ string $ case rAssessedBy nr of
       Nothing -> "Not assessed"
       Just 0  -> "System"

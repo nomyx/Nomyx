@@ -27,7 +27,6 @@ import Data.Text(Text, pack)
 import Web.Routes.Happstack()
 import Data.Time
 import Serialize
-import Data.String.Utils
 default (Integer, Double, Data.Text.Text)
 
 
@@ -133,5 +132,3 @@ mainPage body title header footer = do
            body
            when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012-2013"
 
-multiLineString :: String -> Markup
-multiLineString s = preEscapedToMarkup $ replace "\n" "<br>" $ replace " " "&nbsp;" s
