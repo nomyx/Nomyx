@@ -33,7 +33,7 @@ settingsForm Nothing = settingsForm' "" True
 settingsForm':: String -> Bool -> NomyxForm MailSettings
 settingsForm' mailTo mailNewRule = pure MailSettings <*> label "Please enter your mail: " ++> inputText mailTo <++ br
                              <*> pure True --label " send mail on new input needed from you: " ++> inputCheckbox True <++ label " " <++ br
-                             <*> inputCheckbox mailNewRule <++ label " I want to be notified by email if a player proposes a new rule (recommended)" <++ br
+                             <*> inputCheckbox mailNewRule <++ label " I want to be notified by email when a player proposes a new rule in my game (recommended)" <++ br
                              <*> pure True --label " send mail on new output: " ++> inputCheckbox True <++ label " "
                              <*> pure True
 

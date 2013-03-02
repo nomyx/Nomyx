@@ -8,7 +8,7 @@ Features to add:
 - make a session system with cookie
 - colorize code
 - make code instructions in the active rules table clickable to access haddock documentation
-
+- option to read step by step the save file for analysis
 
 Improves:
 
@@ -19,6 +19,12 @@ Improves:
 - add "back to main page" links
 - recognize array vars to display them properly on HCI
 - add command to rm save file
+- do the export file
+- traces with PN, traces on submit rule, traces on input
+- use TH in addRuleParams
+- add a field "Agora" in games and make it a link
+- manage creation of game safely
+- warn when password false
 
 Futur Nomic:
 - ability to analyse rules, proof system
@@ -30,4 +36,8 @@ BUGS
 - sendmail is blocking the game
 - delete invalid events
 - events may be triggered twice if not deleted (in case of exception)
+- reading save file does not take absolute path
+- accept line returns in the "code of the rule" column, in the mails also
+- all players need to cast their vote, even if quorum is already reached
+- don't send a mail when replaying a game with -r (?)
 

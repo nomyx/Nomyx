@@ -166,7 +166,6 @@ enterRule (SubmitRule name desc code) pn sh = do
    join <$> (inPlayersGameDo' pn $ do
       rs <- gets rules
       let rn = getFreeNumber $ map rNumber rs
-
       case mrr of
          Right ruleFunc -> return $ Just Rule {rNumber = rn,
                       rName = name,

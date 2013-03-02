@@ -52,7 +52,7 @@ initializeInterpreter = do
 ---- | reads maybe a Rule out of a string.
 interpretRule :: String -> ServerHandle -> IO (Either InterpreterError RuleFunc)
 interpretRule s sh = liftIO $ runIn sh $ do
-      liftIO $ mapM_ (uncurry setResourceLimit) limits
+      --liftIO $ mapM_ (uncurry setResourceLimit) limits
       interpret s (as :: RuleFunc)
       
 cpuTimeLimitSoft = ResourceLimit 4

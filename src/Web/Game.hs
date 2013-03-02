@@ -41,7 +41,7 @@ viewGame g pn sr = do
       td ! A.id "gameCol" $ do
          table $ do
             tr $ td $ h3 $ string $ "Viewing game: " ++ gameName g
-            tr $ td $ (string $ "Description: " ++ gameDesc g ++ "\n\n") >> br >> br
+            tr $ td $ (string $ "Description:\n" ++ gameDesc g ++ "\n\n") >> br >> br
             tr $ td $ viewPlayers $ players g
             tr $ td $ viewVictory g
       td ! A.id "gameElem" $ do
