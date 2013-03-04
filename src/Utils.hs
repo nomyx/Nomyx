@@ -25,7 +25,7 @@ import Data.List
 import Control.Applicative
 import Control.Exception
 import Data.Time
-
+import Debug.Trace.Helpers
 
          
 -- | this function will return just a if it can cast it to an a.
@@ -126,4 +126,5 @@ execWithMulti t ms m = do
    let m' = m { games = map (\g -> g {currentTime = t}) (games m)}
    execStateT ms m'
 
-
+tracePN :: (Monad m ) => PlayerNumber -> String -> m ()
+tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s

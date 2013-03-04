@@ -18,13 +18,14 @@ Improves:
 - add "back to main page" links
 - recognize array vars to display them properly on HCI
 - do the export file
-- traces with PN, traces on submit rule, traces on input
 - use TH in addRuleParams
 - manage creation of game safely
 - warn when password false
 - possibility to modify game details
 - suppress "delRule"
 - remove references to "multi" to improve flow
+- add a proper log system
+- change vocabulary: join,subscribing -> view, join
 
 Futur Nomic:
 - ability to analyse rules, proof system

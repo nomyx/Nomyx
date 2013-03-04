@@ -59,27 +59,17 @@ joinGamePlayer pn game = modify (\multi -> multi {mPlayers = mayJoinGame (Just g
 leaveGameU :: PlayerNumber -> State Multi ()
 leaveGameU pn = modify (\multi -> multi {mPlayers = mayJoinGame Nothing pn (mPlayers multi)})
 
--- | list the active games
-listGame :: PlayerNumber -> State Multi ()
-listGame _ = do
-   gs <- gets games
-   case length gs of
-      0 -> traceM "No active games"
-      _ -> do
-         traceM "Active games:"
-         traceM $ concatMap (\g -> gameName g ++ "\n") gs
-
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> State Multi ()
-newGame name desc _ = do
+newGame name desc pn = do
    gs <- gets games
    case null $ filter (\p -> gameName p == name) gs of
       True -> do
-         traceM $ "Creating a new game of name: " ++ name
+         tracePN pn $ "Creating a new game of name: " ++ name
          t <- gets mCurrentTime
          -- create a game with zero players
          modify (\m -> m {games = (initialGame name desc t):gs})
-      False -> traceM $ "this name is already used"
+      False -> tracePN pn "this name is already used"
 
 uniqueGame :: String -> [Game] -> Bool
 uniqueGame s gs = null $ filter (\p -> gameName p == s) gs
@@ -89,11 +79,11 @@ joinGame :: GameName -> PlayerNumber -> State Multi ()
 joinGame game pn = do
    mg <- getGameByName game
    case mg of
-      Nothing -> traceM $ "No game by that name"
+      Nothing -> tracePN pn "No game by that name"
       Just g -> do
-         traceM "subscribing first."
+         tracePN pn "subscribing first."
          subscribeGame (gameName g) pn
-         traceM $ "Joining game: " ++ game
+         tracePN pn $ "Joining game: " ++ game
          joinGamePlayer pn game
 
 
@@ -101,7 +91,7 @@ joinGame game pn = do
 leaveGame :: PlayerNumber -> State Multi ()
 leaveGame pn = do
    leaveGameU pn
-   traceM "You left the game (you remain subscribed)."
+   tracePN pn "You left the game (you remain subscribed)."
 
 
 -- | subcribe to a game.
@@ -111,9 +101,9 @@ subscribeGame game pn = do
    inGameDo game $ do
       g <- get
       case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
-         Just _ -> traceM "Already subscribed!"
+         Just _ -> tracePN pn  "Already subscribed!"
          Nothing -> do
-            traceM $ "Subscribing to game: " ++ game
+            tracePN pn $ "Subscribing to game: " ++ game
             let player = PlayerInfo { playerNumber = pn, playerName = getPlayersName pn m}
             put g {players = player : (players g)}
             triggerEvent (Player Arrive) (PlayerData player)
@@ -124,9 +114,9 @@ unsubscribeGame :: GameName -> PlayerNumber -> State Multi ()
 unsubscribeGame game pn = inGameDo game $ do
    g <- get
    case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
-      Nothing -> traceM "Not subscribed!"
+      Nothing -> tracePN pn "Not subscribed!"
       Just _ -> do
-         traceM $ "Unsubscribing to game: " ++ game
+         tracePN pn $ "Unsubscribing to game: " ++ game
          let player = PlayerInfo { playerNumber = pn, playerName = getPlayersName' g pn}
          put g {players = filter (\PlayerInfo { playerNumber = mypn} -> mypn /= pn) (players g)}
          triggerEvent (Player Leave) (PlayerData player)
@@ -149,12 +139,13 @@ showSubscribtion pn = inPlayersGameDo_ pn $ do
 submitRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Multi IO ()
 submitRule sr pn sh = do
    mnr <- enterRule sr pn sh
+   tracePN pn $ " proposed " ++ (show sr)
    case mnr of
       Just nr -> do
          inPlayersGameDo' pn $ do
             r <- evProposeRule nr
-            if r == True then traceM $ "Your rule has been added to pending rules."
-            else traceM $ "Error: Rule could not be proposed"
+            if r == True then tracePN pn $ "Your rule has been added to pending rules."
+            else tracePN pn $ "Error: Rule could not be proposed"
          liftT $ updateLastRule Nothing pn
       Nothing -> liftT $ updateLastRule (Just sr) pn
 
@@ -177,6 +168,7 @@ enterRule (SubmitRule name desc code) pn sh = do
                       rAssessedBy = Nothing}
          Left e -> do
             output ("Compiler error: " ++ show e ++ "\n") pn
+            tracePN pn ("Compiler error: " ++ show e ++ "\n")
             return Nothing)
 
 updateLastRule :: Maybe SubmitRule -> PlayerNumber -> State Multi ()
@@ -192,7 +184,9 @@ updateLastRule msr pn = do
 --limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHard)]
 
 inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> State Multi ()
-inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo_ pn $ triggerChoice eventNumber choiceIndex
+inputChoiceResult eventNumber choiceIndex pn = do
+   tracePN pn $ "input choice result: Event " ++ (show eventNumber) ++ ", choice " ++  (show choiceIndex)
+   inPlayersGameDo_ pn $ triggerChoice eventNumber choiceIndex
 
 -- TODO maybe homogeneise both inputs event
 inputStringResult :: Event InputString -> String -> PlayerNumber -> State Multi ()
@@ -201,12 +195,15 @@ inputStringResult event input pn = inPlayersGameDo_ pn $ triggerEvent event (Inp
 inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Multi IO ()
 inputUpload pn dir mod sh = do
     m <- lift $ loadModule dir mod sh
+    tracePN pn $ " uploaded " ++ (show mod)
     case m of
       Right _ -> do
          inPlayersGameDo'_ pn $ output ("File loaded: " ++ show dir ++ " Module " ++ show mod ++"\n") pn
+         tracePN pn "upload success"
          return ()
       Left e -> do
          inPlayersGameDo'_ pn $ output ("Compiler error: " ++ show e ++ "\n") pn
+         tracePN pn "upload failed"
          return ()
 
 
@@ -214,8 +211,9 @@ mailSettings :: MailSettings -> PlayerNumber -> State Multi ()
 mailSettings mailSettings pn = do
    mps <- gets mPlayers
    case find (\(PlayerMulti {mPlayerNumber}) -> pn==mPlayerNumber) mps of
-      Nothing -> traceM "settings not modified!"
+      Nothing -> tracePN pn "settings not modified!"
       Just pm -> do
+         tracePN pn $ "mail settings " ++ (show mailSettings)
          let newmps = replace pm pm{mMail=mailSettings} mps
          modify (\m -> m{mPlayers = newmps})
 
@@ -250,7 +248,7 @@ inPlayersGameDo pn action = do
    t <- gets mCurrentTime
    let mg = getPlayersGame pn multi
    case mg of
-      Nothing -> traceM "You must be in a game" >> return Nothing
+      Nothing -> tracePN pn "You must be in a game" >> return Nothing
       Just g -> do
          (a, myg) <- lift $ runStateT action (g { currentTime = t})
          modifyGame myg

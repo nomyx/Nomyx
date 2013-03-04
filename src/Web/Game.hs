@@ -221,7 +221,6 @@ newInputChoice pn en tm = do
     link <- showURL $ Noop pn
     case r of
        (Right c) -> do
-          liftRouteT $ lift $ putStrLn $ "choice:" ++ (show c)
           webCommand tm pn $ MultiInputChoiceResult en c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
@@ -239,7 +238,6 @@ newInputString pn title tm = do
     link <- showURL $ Noop pn
     case r of
        (Right c) -> do
-          liftRouteT $ lift $ putStrLn $ "entered:" ++ (show c)
           webCommand tm pn $ MultiInputStringResult title c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
