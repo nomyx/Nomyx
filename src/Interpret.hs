@@ -11,6 +11,7 @@ import System.FilePath
 import System.Posix.Files
 import Control.Monad
 import System.Posix.Resource
+import Control.Exception as CE
 
 modDir = "modules"
 importList = ["Prelude", "Language.Nomyx.Rule", "Language.Nomyx.Expression", "Language.Nomyx.Test",
@@ -51,10 +52,10 @@ initializeInterpreter = do
 
 ---- | reads maybe a Rule out of a string.
 interpretRule :: String -> ServerHandle -> IO (Either InterpreterError RuleFunc)
-interpretRule s sh = liftIO $ runIn sh $ do
-      --liftIO $ mapM_ (uncurry setResourceLimit) limits
-      interpret s (as :: RuleFunc)
-      
+interpretRule s sh = (liftIO $ runIn sh $ interpret s (as :: RuleFunc))
+   `CE.catch` (\e -> return $ Left $ NotAllowed $ "Caught exception: " ++ (show (e:: IOException)))
+
+--liftIO $ mapM_ (uncurry setResourceLimit) limits      
 cpuTimeLimitSoft = ResourceLimit 4
 cpuTimeLimitHard = ResourceLimit 5
 
