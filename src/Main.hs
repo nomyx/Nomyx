@@ -41,6 +41,7 @@ import Control.Monad
 import Control.Exception hiding (bracket)
 import Test
 import Utils
+import Data.Version (showVersion)
 
 defaultLogFile :: FilePath
 defaultLogFile = "Nomyx.save"
@@ -48,18 +49,21 @@ defaultLogFile = "Nomyx.save"
 -- | Entry point of the program.
 main :: IO Bool
 main = do
-   putStrLn "Welcome to Nomyx!"
    args <- getArgs 
    (flags, _) <- nomyxOpts args
-   --parseActions flags
-   --let verbose = Verbose `elem` flags
-   case (Daemon `elem` flags) of
-       True -> (daemonize $ start flags) >> return True
-       False -> start flags >> return True
+   if (Version `elem` flags) then do
+      putStrLn $ "Nomyx " ++ showVersion version
+      return True
+   else do
+      putStrLn "Welcome to Nomyx!" 
+      case (Daemon `elem` flags) of
+         True -> (daemonize $ start flags) >> return True
+         False -> start flags >> return True
 
 start :: [Flag] -> IO ()
 start flags = do
    serverCommandUsage
+
    --start the haskell interpreter
    sh <- protectHandlers startInterpreter
    if Test `elem` flags then do
@@ -80,7 +84,7 @@ start flags = do
       logFilePath <- getDataFileName logFile
       multi <- case (findLoadTest flags) of
          Just testName -> loadTestName logFilePath sh (Network host port) testName
-         Nothing -> loadMulti logFilePath sh (Network host port)
+         Nothing -> loadMulti logFilePath (not $ NoReadSaveFile `elem` flags) sh (Network host port)
       tvMulti <- atomically $ newTVar multi
       --start the web server
       forkIO $ launchWebServer tvMulti (Network host port)
@@ -88,11 +92,11 @@ start flags = do
       --main loop
       serverLoop tvMulti logFile
 
-loadMulti :: FilePath -> ServerHandle -> Network -> IO Multi
-loadMulti fp sh net = do
+loadMulti :: FilePath -> Bool -> ServerHandle -> Network -> IO Multi
+loadMulti fp readSaveFile sh net = do
    fileExists <- doesFileExist fp
    t <- getCurrentTime
-   multi <- case fileExists of
+   multi <- case fileExists && readSaveFile of
       True -> do
          putStrLn "Loading previous game"
          (loadEvents fp sh net) `catch`
@@ -130,7 +134,7 @@ serverCommandUsage = do
 
 -- | Launch mode 
 data Flag 
-     = Verbose | Version | Test | HostName String | Port String | LogFile FilePath | Daemon | LoadTest String
+     = Verbose | Version | Test | HostName String | Port String | LogFile FilePath | Daemon | LoadTest String | NoReadSaveFile
        deriving (Show, Eq)
 
 -- | launch options description
@@ -141,7 +145,8 @@ options =
      , Option ['t']     ["tests"]    (NoArg Test)                 "perform routine check"
      , Option ['h']     ["host"]     (ReqArg HostName "Hostname") "specify host name"
      , Option ['p']     ["port"]     (ReqArg Port "Port")         "specify port"
-     , Option ['r']     ["read"]     (ReqArg LogFile "SaveFile")  "specify save file"
+     , Option ['r']     ["read"]     (ReqArg LogFile "SaveFile")  "specify save file (default is Nomyx.save)"
+     , Option ['n']     ["noread"]   (NoArg NoReadSaveFile)       "don't read save file, just overwrite"
      , Option ['d']     ["daemon"]   (NoArg Daemon)               "run in daemon mode"
      , Option ['l']     ["loadtest"] (ReqArg LoadTest "TestName") "specify name of test to load"
      ]

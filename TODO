@@ -17,14 +17,14 @@ Improves:
 - add a name to events to be able to delete categories of them
 - add "back to main page" links
 - recognize array vars to display them properly on HCI
-- add command to rm save file
 - do the export file
 - traces with PN, traces on submit rule, traces on input
 - use TH in addRuleParams
-- add a field "Agora" in games and make it a link
 - manage creation of game safely
 - warn when password false
 - possibility to modify game details
+- suppress "delRule"
+- remove references to "multi" to improve flow
 
 Futur Nomic:
 - ability to analyse rules, proof system
@@ -32,7 +32,6 @@ Futur Nomic:
 BUGS
 - fix rule number for variables
 - check when error on parameters (for victory for example)
-- concurrent access to log file
 - sendmail is blocking the game
 - delete invalid events
 - events may be triggered twice if not deleted (in case of exception)

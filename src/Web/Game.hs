@@ -28,6 +28,8 @@ import qualified Text.Reform.Blaze.String as RB hiding (form)
 import Control.Applicative
 import Utils
 import Mail
+import Text.Printf
+import Data.String
 import Data.Text(Text)
 import qualified Text.Reform.Blaze.Common as RBC
 import qualified Language.Haskell.HsColour.HTML as HSC
@@ -78,15 +80,13 @@ viewVictory g = do
 viewAllRules :: Game -> Html
 viewAllRules g = do
    h3 "Rules"
-   viewRules "Active rules:" (activeRules g) ! (A.title $ toValue Help.actives)
-   viewRules "Pending rules:" (pendingRules g) ! (A.title $ toValue Help.pendings)
-   viewRules "Suppressed rules:" $ rejectedRules g
+   viewRules "Active rules" (activeRules g) True ! (A.title $ toValue Help.actives) >> br
+   viewRules "Pending rules" (pendingRules g) True ! (A.title $ toValue Help.pendings) >> br
+   viewRules "Suppressed rules" (rejectedRules g) False >> br
 
-viewRules :: Html -> [Rule] -> Html
-viewRules _ [] = return ()
-viewRules title nrs = do
-   table ! A.class_ "table" $ do
-      caption $ h4 title
+viewRules :: String -> [Rule] -> Bool -> Html
+viewRules title nrs visible = do
+   showHideTitle title visible (length nrs == 0) (h4 ! A.style "text-align:center;" $ toHtml title ) $ table ! A.class_ "table" $ do
       thead $ do
          td ! A.class_ "td" $ text "Number"
          td ! A.class_ "td" $ text "Name"
@@ -112,15 +112,14 @@ concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
 
 viewEvents :: [EventHandler] -> Html
-viewEvents [] = h3 "Events" >> h5 "No Events"
 viewEvents ehs = do
-   h3 "Events"
-   table ! A.class_ "table" $ do
-      thead $ do
-         td ! A.class_ "td" $ text "Event Number"
-         td ! A.class_ "td" $ text "By Rule"
-         td ! A.class_ "td" $ text "Event"
-      mapM_ viewEvent $ sort ehs
+   showHideTitle "Events" False (length ehs == 0) (h3 "Events") $ table ! A.class_ "table" $ do
+         thead $ do
+            td ! A.class_ "td" $ text "Event Number"
+            td ! A.class_ "td" $ text "By Rule"
+            td ! A.class_ "td" $ text "Event"
+         mapM_ viewEvent $ sort ehs
+
 
 viewEvent :: EventHandler -> Html
 viewEvent (EH eventNumber ruleNumber event _) = tr $ do
@@ -132,12 +131,7 @@ viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomyxServer Html
 viewInputs pn ehs = do
    mis <- mapM (viewInput pn) $ sort ehs
    let is = catMaybes mis
-   case length is of
-      0 -> ok $ h3 "Inputs" >> h5 "No Inputs"
-      _ -> ok $ do
-         h3 "Inputs"
-         table $ do
-            mconcat is
+   ok $ showHideTitle "Inputs" True (length is == 0) (h3 "Inputs") $ table $ mconcat is
 
 viewInput :: PlayerNumber -> EventHandler -> RoutedNomyxServer (Maybe Html)
 viewInput me (EH eventNumber _ (InputChoice pn title choices def) _) | me == pn = do
@@ -151,10 +145,8 @@ viewInput me (EH _ _ (InputString pn title) _) | me == pn = do
 viewInput _ _ = return Nothing
 
 viewVars :: [Var] -> Html
-viewVars [] = h3 "Variables" >> h5 "No Variables"
 viewVars vs = do
-   h3 "Variables"
-   table ! A.class_ "table" $ do
+   showHideTitle "Variables" False (length vs == 0) (h3 "Variables") $ table ! A.class_ "table" $ do
       thead $ do
          td ! A.class_ "td" $ text "Rule number"
          td ! A.class_ "td" $ text "Name"
@@ -210,11 +202,9 @@ newRule pn tm = do
 
 
 viewOutput :: [Output] -> PlayerNumber -> Html
-viewOutput [] _ = h3 "Output" >> h5 "No Output"
 viewOutput os pn = do
-   h3 "Output"
    let myos = map snd $ filter (\o -> fst o == pn) os
-   mapM_ viewMessages [myos]
+   showHideTitle "Output" True (length myos == 0) (h3 "Output") $ mapM_ viewMessages [myos]
 
 viewMessages :: [String] -> Html
 viewMessages = mapM_ (\s -> string s >> br)
@@ -263,3 +253,10 @@ inputChoiceForm title choices def = RB.label (title ++ " ") ++> inputRadio' (zip
 inputStringForm :: String -> NomyxForm String
 inputStringForm title = RB.label (title ++ " ") ++> RB.inputText ""
 
+showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
+showHideTitle id visible empty title rest = do
+   div ! A.onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id id) $ table ! A.width "100%" $ tr $ do
+      td $ title ! A.width "80%"
+      td ! A.style "text-align:right;" $ h5 (if visible then "[Hide]" else "[Show]") ! A.id (fromString $ printf "%sShow" id) ! A.width "20%"
+   div ! A.id (fromString $ printf "%sBody" id) ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
+      if (empty) then (toHtml $ "No " ++ id) else rest

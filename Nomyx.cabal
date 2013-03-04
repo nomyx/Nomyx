@@ -12,7 +12,7 @@ description: A Nomic game in Haskell, with a dedicated language to create new ru
              Indeed, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that could be changed! The original (paper) game: www.nomic.net
 category: game
 author: Corentin Dupont
-data-files: static/css/nomyx.css
+data-files: static/css/nomyx.css static/nomyx.js
 data-dir: data
 extra-source-files: AUTHORS README TODO
  

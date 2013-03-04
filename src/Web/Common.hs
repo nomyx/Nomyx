@@ -126,6 +126,7 @@ mainPage body title header footer = do
         H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"
         H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
         H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
+        H.script ! A.type_ "text/JavaScript" ! A.src "/static/nomyx.js" $ ""
       H.body $ do
         H.div ! A.id "container" $ do
            H.div ! A.id "header" $ header
