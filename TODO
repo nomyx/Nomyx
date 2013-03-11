@@ -26,6 +26,9 @@ Improves:
 - remove references to "multi" to improve flow
 - add a proper log system
 - change vocabulary: join,subscribing -> view, join
+- hide when no information
+- implement quorums
+- make page to open code full screen
 
 Futur Nomic:
 - ability to analyse rules, proof system
@@ -37,8 +40,9 @@ BUGS
 - delete invalid events
 - events may be triggered twice if not deleted (in case of exception)
 - reading save file does not take absolute path
-- accept line returns in the "code of the rule" column, in the mails also
-- all players need to cast their vote, even if quorum is already reached
-- don't send a mail when replaying a game with -r (?)
+- add option to don't send mails
 - empty login/password and game name
+
+Forum:
+- start another VM to run Nomyx alone
 

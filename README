@@ -15,7 +15,7 @@ To install, follow this procedure:
 - download the source tar.gz
 - extract it somewhere
 
-$ cd <name>/Nomyx-Rules
+$ cd <name>/Nomyx-Language
 $ cabal install
 $ cd ../Nomyx 
 $ cabal install
