@@ -30,6 +30,8 @@ import System.IO.Unsafe
 import Quotes
 import Data.List
 import Data.Time.Clock
+import Data.Lens
+import Safe
 
 playTests :: ServerHandle -> IO [(String, Bool)]
 playTests sh = mapM (\(title, t, cond) -> (title,) <$> test sh t cond) tests
@@ -50,11 +52,10 @@ noTime mes = map (TE dayZero) mes
 
 test :: ServerHandle -> [TimedEvent] -> (Multi -> Bool) -> IO Bool
 test sh tes cond = do
-   --putStrLn $ "\n\n\nTEST"
-   let m = defaultMulti sh "" defaultNetwork dayZero
+   let m = defaultMulti (Settings (defaultLog "") sh defaultNetwork False) dayZero
    m' <- (loadTest tes m)
-   --putStrLn $ show m'
-   (return $ cond m') `catch` (\(e::IOError) -> (putStrLn $ show e) >> return False)
+   (evaluate $ cond m') `catch` (\(e::SomeException) -> (putStrLn $ "Exception in test: " ++ show e) >> return False)
+
 
 loadTest ::  [TimedEvent] -> Multi -> IO Multi
 loadTest tes m = do
@@ -67,11 +68,11 @@ testException m e = do
    putStrLn $ "Test Exception: " ++ show e
    return m
 
-loadTestName :: FilePath -> ServerHandle -> Network -> String -> IO Multi
-loadTestName fp sh net testName = do
+loadTestName :: Settings -> String -> IO Multi
+loadTestName set testName = do
    let mt = find (\(name, _, _) -> name == testName) tests
    t <- getCurrentTime
-   let m = defaultMulti sh fp net t
+   let m = defaultMulti set t
    case mt of
       Just (n, t, _) -> putStrLn ("Loading test game: " ++ n)  >> loadTest t m
       Nothing -> putStrLn "Test name not found" >> return m
@@ -84,21 +85,21 @@ printRule r = unsafePerformIO $ do
 
 onePlayerOneGame :: [MultiEvent]
 onePlayerOneGame =
-   [MultiNewPlayer (PlayerMulti {mPlayerNumber = 1, mPlayerName = "coco", mPassword = "coco", mMail = MailSettings {mailTo = "", mailNewInput = False, mailNewRule = False, mailNewOutput = False, mailConfirmed = False}, inGame = Nothing, lastRule = Nothing}),
-    MultiMailSettings (MailSettings {mailTo = "c", mailNewInput = True, mailNewRule = True, mailNewOutput = True, mailConfirmed = True}) 1,
+   [MultiNewPlayer (PlayerMulti {_mPlayerNumber = 1, _mPlayerName = "coco", _mPassword = "coco", _mMail = MailSettings {_mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}, _inGame = Nothing, _lastRule = Nothing}),
+    MultiMailSettings (MailSettings {_mailTo = "c", _mailNewInput = True, _mailNewRule = True, _mailNewOutput = True, _mailConfirmed = True}) 1,
     MultiNewGame "test" (GameDesc "" "") 1,
     MultiJoinGame "test" 1]
 
 twoPlayersOneGame :: [MultiEvent]
 twoPlayersOneGame = onePlayerOneGame ++
-   [MultiNewPlayer (PlayerMulti {mPlayerNumber = 2, mPlayerName = "bat", mPassword = "bat", mMail = MailSettings {mailTo = "", mailNewInput = False, mailNewRule = False, mailNewOutput = False, mailConfirmed = False}, inGame = Nothing, lastRule = Nothing}),
-    MultiMailSettings (MailSettings {mailTo = "c", mailNewInput = True, mailNewRule = True, mailNewOutput = True, mailConfirmed = True}) 2,
+   [MultiNewPlayer (PlayerMulti {_mPlayerNumber = 2, _mPlayerName = "bat", _mPassword = "bat", _mMail = MailSettings {_mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}, _inGame = Nothing, _lastRule = Nothing}),
+    MultiMailSettings (MailSettings {_mailTo = "c", _mailNewInput = True, _mailNewRule = True, _mailNewOutput = True, _mailConfirmed = True}) 2,
     MultiJoinGame "test" 2]
 
 submitRule ::  String -> [MultiEvent]
 submitRule r = onePlayerOneGame ++
    [MultiSubmitRule (SubmitRule "" "" r) 1,
-    MultiInputChoiceResult 4 0 1]
+    MultiInputChoiceResult 3 0 1]
 
 
 
@@ -106,16 +107,16 @@ gameHelloWorld :: [MultiEvent]
 gameHelloWorld = onePlayerOneGame ++ submitRule [cr|helloWorld|]
 
 condHelloWorld :: Multi -> Bool
-condHelloWorld m = (head $ outputs $ head $ games m) == (1, "hello, world!")
+condHelloWorld m = (head $ outputs $ head $ games ^$ m) == (1, "hello, world!")
 
 gameHelloWorld2Players :: [MultiEvent]
 gameHelloWorld2Players = twoPlayersOneGame ++
    [MultiSubmitRule (SubmitRule "" "" [cr|helloWorld|]) 1,
-   MultiInputChoiceResult 5 0 1,
+   MultiInputChoiceResult 3 0 1,
    MultiInputChoiceResult 4 0 2]
 
 condHelloWorld2Players :: Multi -> Bool
-condHelloWorld2Players m = (head $ outputs $ head $ games m) == (1, "hello, world!")
+condHelloWorld2Players m = (head $ outputs $ head $ games ^$ m) == (1, "hello, world!")
 
 partialFunction1 :: String
 partialFunction1 = [cr|VoidRule $ readVar_ (V "toto1")|]
@@ -125,8 +126,8 @@ gamePartialFunction1 = onePlayerOneGame ++ (submitRule partialFunction1)
 
 -- rule has not been accepted due to exception
 condPartialFunction1 :: Multi -> Bool
-condPartialFunction1 m = (rStatus $ head $ rules $ head $ games m) == Pending &&
-                         (take 5 $ snd $ head $ outputs $ head $ games m) == "Error"
+condPartialFunction1 m = (rStatus $ head $ rules $ head $ games ^$ m) == Pending &&
+                         (take 5 $ snd $ head $ outputs $ head $ games ^$ m) == "Error"
 
 partialFunction2 :: String
 partialFunction2 = [cr|VoidRule $ do
@@ -139,8 +140,8 @@ gamePartialFunction2 = noTime onePlayerOneGame ++ (noTime $ submitRule partialFu
 
 -- rule has been accepted but exception happened later
 condPartialFunction2 :: Multi -> Bool
-condPartialFunction2 m = (rStatus $ head $ rules $ head $ games m) == Active &&
-                         (take 5 $ snd $ head $ outputs $ head $ games m) == "Error"
+condPartialFunction2 m = (rStatus $ headNote "cond failed" $ rules $ headNote "cond failed" $ games ^$ m) == Active &&
+                         (take 5 $ snd $ headNote "cond failed" $ outputs $ headNote "cond failed" $ games ^$ m) == "Error"
 
 --This rule blocks the game: the exception (variable not existing) is triggered during a "rule proposed" event,
 --thus preventing to propose any new rule to the game.
@@ -153,7 +154,7 @@ gamePartialFunction3 = onePlayerOneGame ++ (submitRule partialFunction3) ++ (sub
 
 -- rule has been accepted but no more rule can be proposed
 condPartialFunction3 :: Multi -> Bool
-condPartialFunction3 m = (length $ rules $ head $ games m) == 3
+condPartialFunction3 m = (length $ rules $ head $ games ^$ m) == 3
 
 --Create bank accounts, win 100 Ecu on rule accepted (so 100 Ecu is won for each player), transfer 50 Ecu
 gameMoneyTransfer :: [MultiEvent]
@@ -171,4 +172,4 @@ gameMoneyTransfer = twoPlayersOneGame ++
    (MultiInputStringResult "Select Amount to transfert to player: 2" "50" 1)]
 
 condMoneyTransfer :: Multi -> Bool
-condMoneyTransfer m = (vName $ head $ variables $ head $ games m) == "Accounts"
+condMoneyTransfer m = (vName $ head $ variables $ head $ games ^$ m) == "Accounts"

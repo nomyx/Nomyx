@@ -25,6 +25,7 @@ import Web.Routes.Happstack()
 import Control.Applicative
 import Text.Reform.Blaze.String hiding (form)
 import Data.Text hiding (map, zip, concatMap)
+import Data.Lens
 default (Integer, Double, Data.Text.Text)
 
 
@@ -80,7 +81,7 @@ newPlayerLogin tm (LoginPass login password) = do
              NewLogin -> do
                 pn <- evalCommand tm $ getNewPlayerNumber
                 link <- showURL $ Noop pn
-                webCommand tm pn $ MultiNewPlayer PlayerMulti { mPlayerNumber = pn, mPlayerName = login, mPassword = password, inGame = Nothing, mMail = defaultMailSettings, lastRule = Nothing}
+                webCommand tm pn $ MultiNewPlayer PlayerMulti { _mPlayerNumber = pn, _mPlayerName = login, _mPassword = password, _inGame = Nothing, _mMail = defaultMailSettings, _lastRule = Nothing}
                 webCommand tm pn $ MultiMailSettings ms pn
                 seeOther link $ string "Redirecting..."
        (Left _) -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."
@@ -118,11 +119,11 @@ checkLoginWeb name pwd = do
    mpn <- findPlayer name
    case mpn of
       Just pl -> do
-         traceM $ "Trying name:" ++ mPlayerName pl
-         case pwd == mPassword pl of
+         traceM $ "Trying name:" ++ (mPlayerName ^$ pl)
+         case pwd == (mPassword ^$ pl) of
             True -> do
                traceM "password OK"
-               return $ LoginOK $ mPlayerNumber pl
+               return $ LoginOK $ mPlayerNumber ^$ pl
             False -> do
                traceM "password false"
                return WrongPassword

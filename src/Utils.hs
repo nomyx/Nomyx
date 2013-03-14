@@ -26,7 +26,7 @@ import Control.Applicative
 import Control.Exception
 import Data.Time
 import Debug.Trace.Helpers
-
+import Data.Lens
          
 -- | this function will return just a if it can cast it to an a.
 maybeRead :: Read a => String -> Maybe a
@@ -60,19 +60,19 @@ liftT st = do
 
 
 findPlayer :: PlayerName -> State Multi (Maybe PlayerMulti)
-findPlayer name = find (\PlayerMulti {mPlayerName = pname} -> pname==name) <$> gets mPlayers
+findPlayer name = find ((==) name . getL mPlayerName) <$> access mPlayers
 
 findPlayer' :: PlayerNumber -> State Multi (Maybe PlayerMulti)
-findPlayer' pn = find (\PlayerMulti {mPlayerNumber} -> pn==mPlayerNumber) <$> gets mPlayers
+findPlayer' pn = find ((==) pn . getL mPlayerNumber) <$> access mPlayers
 
 nomyxURL :: Network -> String
 nomyxURL (Network host port) = "http://" ++ host ++ ":" ++ (show port)
 
 getPlayersName :: PlayerNumber -> Multi -> PlayerName
 getPlayersName pn multi = do
-   case find (\(PlayerMulti n _ _ _ _ _) -> n==pn) (mPlayers multi) of
+   case find (\(PlayerMulti n _ _ _ _ _) -> n==pn) (mPlayers ^$ multi) of
       Nothing -> error "getPlayersName: No player by that number"
-      Just pm -> mPlayerName pm
+      Just pm -> mPlayerName ^$ pm
 
 getPlayersName' :: Game -> PlayerNumber -> PlayerName
 getPlayersName' g pn = do
@@ -83,9 +83,9 @@ getPlayersName' g pn = do
 -- | returns the game the player is in
 getPlayersGame :: PlayerNumber -> Multi -> Maybe Game
 getPlayersGame pn multi = do
-        pi <- find (\(PlayerMulti n _ _ _ _ _) -> n==pn) (mPlayers multi)
-        gn <- inGame pi
-        find (\(Game {gameName=name}) -> name==gn) (games multi)
+        pi <- find (\(PlayerMulti n _ _ _ _ _) -> n==pn) (mPlayers ^$ multi)
+        gn <- inGame ^$ pi
+        find (\(Game {gameName=name}) -> name==gn) (games ^$ multi)
 
 getPlayersNameMay :: Game -> PlayerNumber -> Maybe PlayerName
 getPlayersNameMay g pn = do
@@ -107,12 +107,14 @@ commandExceptionHandler mpn m e = do
 -- | finds the corresponding game in the multistate and replaces it.
 modifyGame :: Game -> State Multi ()
 modifyGame g = do
-   m@(Multi {games=gs}) <- get
+   gs <- access games
    case find (\myg -> gameName g == gameName myg) gs of
       Nothing -> error "modifyGame: No game by that name"
       Just oldg -> do
          let newgs = replace oldg g gs
-         put (m {games=newgs})
+         games ~= newgs
+         return ()
+
 
 output :: String -> PlayerNumber -> State Game ()
 output s pn = modify (\game -> game { outputs = (pn, s) : (outputs game)})
@@ -123,8 +125,12 @@ outputAll s = gets players >>= mapM_ ((output s) . playerNumber)
 
 execWithMulti :: UTCTime -> StateT Multi IO () -> Multi -> IO Multi
 execWithMulti t ms m = do
-   let m' = m { games = map (\g -> g {currentTime = t}) (games m)}
+   let setTime g = g {currentTime = t}
+   let m' = games `modL` (map setTime) $ m
    execStateT ms m'
 
 tracePN :: (Monad m ) => PlayerNumber -> String -> m ()
 tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s
+
+
+

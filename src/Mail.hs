@@ -7,7 +7,7 @@ import Text.Blaze.Html5 hiding (map, label, br)
 import qualified Text.Blaze.Html5 as H
 import Text.Blaze.Html.Renderer.String
 import Network.Mail.Mime hiding (mailTo)
-import Prelude hiding (div)
+import Prelude hiding (div, (.))
 import Text.Reform.Happstack()
 import Control.Monad
 import Types
@@ -21,6 +21,8 @@ import qualified Data.Text.Lazy as B
 import qualified Language.Haskell.HsColour.HTML as HSC
 import Language.Haskell.HsColour.Colourise hiding (string)
 import Text.Blaze.Internal
+import Data.Lens
+import Control.Category
 default (Integer, Double, Data.Text.Text)
 
 
@@ -50,16 +52,18 @@ sendMailsNewRule m sr pn = do
    evaluate m
    let gn = gameName $ fromJust $ getPlayersGame pn m
    let proposer = getPlayersName pn m
-   forM_ (mPlayers m) $ send proposer gn
-   where send prop gn pm = when ((Just gn == inGame pm) && (mailNewRule $ mMail pm))
-          $ sendMail (mailTo $ mMail pm) (newRuleObject prop) (renderHtml $ newRuleBody (mPlayerName pm) sr prop (net m))
+   forM_ (mPlayers ^$ m) $ send proposer gn
+   where
+      send :: PlayerName -> GameName -> PlayerMulti -> IO()
+      send prop gn pm = when ((Just gn == (inGame ^$ pm)) && (mailNewRule ^$ mMail ^$ pm))
+          $ sendMail (mailTo ^$ mMail ^$ pm) (newRuleObject prop) (renderHtml $ newRuleBody (mPlayerName ^$ pm) sr prop (net ^$ mSettings ^$ m))
 
    
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
 mapMaybeM f = liftM catMaybes . mapM f
 
 getOutputs :: Multi -> [Output]
-getOutputs m = concatMap outputs $ games m
+getOutputs m = concatMap outputs $ games ^$ m
 
 newRulebody :: Rule -> String
 newRulebody (Rule {rNumber, rProposedBy}) = "Rule number " ++ (show rNumber) ++ " has been proposed by player " ++ (show rProposedBy)

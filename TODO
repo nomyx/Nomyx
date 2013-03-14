@@ -29,6 +29,7 @@ Improves:
 - hide when no information
 - implement quorums
 - make page to open code full screen
+- generate better messages for partial functions
 
 Futur Nomic:
 - ability to analyse rules, proof system

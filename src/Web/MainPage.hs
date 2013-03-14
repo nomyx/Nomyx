@@ -17,7 +17,7 @@ import Web.Routes.RouteT
 import Text.Blaze.Internal
 import Control.Monad
 import Paths_Nomyx as PN
-import Paths_Nomyx_Rules as PNR
+import Paths_Nomyx_Language as PNL
 import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
@@ -40,15 +40,16 @@ import Utils
 import Data.Maybe
 import Data.List
 import Data.Text(Text, pack)
+import Data.Lens
 default (Integer, Double, Data.Text.Text)
 
 
 viewMulti :: PlayerNumber -> Multi -> RoutedNomyxServer Html
 viewMulti pn m = do
-   let pl = fromJust $ find (\PlayerMulti {mPlayerNumber} -> pn==mPlayerNumber) (mPlayers m)
-   gns <- viewGamesTab pn (games m)
+   let pl = fromJust $ find ((==) pn . getL mPlayerNumber) (_mPlayers m)
+   gns <- viewGamesTab pn (_games m)
    g <- case getPlayersGame pn m of
-            Just g -> viewGame g pn (lastRule pl)
+            Just g -> viewGame g pn (_lastRule pl)
             Nothing -> ok $ h3 "Not in game"
    ok $ do
       div ! A.id "gameList" $ gns
@@ -59,7 +60,7 @@ viewGamesTab pn gs = do
    gns <- mapM (viewGameName pn) gs
    newGameLink <- showURL (NewGame pn)
    uploadLink <- showURL (Upload pn)
-   settingsLink <- showURL (Settings pn)
+   settingsLink <- showURL (PlayerSettings pn)
    up  <- lift $ viewForm "user" uploadForm
    dd <- lift $ lift $ PN.getDataDir
    mods <- lift $ lift $ getDirectoryContents $ dd </> modDir
@@ -132,8 +133,8 @@ routedNomyxCommands tm (SubmitNewGame pn)          = newGame pn tm
 routedNomyxCommands tm (DoInputChoice pn en)       = newInputChoice pn en tm
 routedNomyxCommands tm (DoInputString pn en)       = newInputString pn en tm
 routedNomyxCommands tm (Upload pn)                 = newUpload pn tm
-routedNomyxCommands tm (Settings pn)               = settings pn tm
-routedNomyxCommands tm (SubmitSettings pn)         = newSettings pn tm
+routedNomyxCommands tm (PlayerSettings pn)         = settings pn tm
+routedNomyxCommands tm (SubmitPlayerSettings pn)   = newSettings pn tm
 
 
 
@@ -193,8 +194,8 @@ launchWebServer :: (TVar Multi) -> Network -> IO ()
 launchWebServer tm net = do
    putStrLn $ "Starting web server...\nTo connect, drive your browser to \"" ++ nomyxURL net ++ "/Nomyx\""
    d <- PN.getDataDir
-   d' <- PNR.getDataDir
-   simpleHTTP nullConf {HS.port = Types.port net} $ server d d' tm net
+   d' <- PNL.getDataDir
+   simpleHTTP nullConf {HS.port = Types._port net} $ server d d' tm net
 
 --serving Nomyx web page as well as data from this package and the language library package
 server :: FilePath -> FilePath -> (TVar Multi) -> Network -> NomyxServer Response

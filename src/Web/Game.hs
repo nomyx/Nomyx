@@ -254,6 +254,8 @@ inputStringForm title = RB.label (title ++ " ") ++> RB.inputText ""
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do
    div ! A.onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id id) $ table ! A.width "100%" $ tr $ do
+   --div ! A.onclick (toStringFronFay (ToggleVisibility id)) $ table ! A.width "100%" $ tr $ do
+   -- toStringFromFay Toggle.... -> dispatch(ToggleVisibility id)
       td $ title ! A.width "80%"
       td ! A.style "text-align:right;" $ h5 (if visible then "[Hide]" else "[Show]") ! A.id (fromString $ printf "%sShow" id) ! A.width "20%"
    div ! A.id (fromString $ printf "%sBody" id) ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $

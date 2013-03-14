@@ -57,8 +57,8 @@ data PlayerCommand = Login
                    | NewGame         PlayerNumber
                    | SubmitNewGame   PlayerNumber
                    | Upload          PlayerNumber
-                   | Settings        PlayerNumber
-                   | SubmitSettings  PlayerNumber
+                   | PlayerSettings  PlayerNumber
+                   | SubmitPlayerSettings  PlayerNumber
                    deriving (Show)
 
 $(derivePathInfo ''PlayerCommand)

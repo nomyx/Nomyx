@@ -27,48 +27,48 @@ import Types
 import Control.Applicative
 import Control.Exception
 import Debug.Trace.Helpers
+import Data.Lens
+
 
 -- | helper function to change a player's ingame status.
 mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
 mayJoinGame maybename pn pl = case find (\(PlayerMulti mypn _ _ _ _ _) -> mypn == pn) pl of
-                     Just o -> replace o o{ inGame = maybename} pl
+                     Just o -> replace o o{ _inGame = maybename} pl
                      Nothing -> pl
 
 newPlayerU :: PlayerMulti -> State Multi ()
-newPlayerU pm = do
-   pms <- gets mPlayers
-   modify (\multi -> multi { mPlayers = pm : pms})
+newPlayerU pm = void $ mPlayers %= (pm:)
 
 
 getNewPlayerNumber :: State Multi PlayerNumber
 getNewPlayerNumber = do
-   ps <- gets mPlayers
+   ps <- access mPlayers
    return $ length ps + 1
 
 
 addNewGame :: Game -> State Multi ()
-addNewGame new = modify (\multi@Multi {games=gs} -> multi {games =  new:gs})
+addNewGame new = void $ games %= (new:)
 
 getGameByName :: GameName -> State Multi (Maybe Game)
-getGameByName gn =  fmap (find (\(Game {gameName = n}) -> n==gn)) (gets games)
+getGameByName gn =  fmap (find (\(Game {gameName = n}) -> n==gn)) (access games)
 
 joinGamePlayer :: PlayerNumber -> GameName -> State Multi ()
-joinGamePlayer pn game = modify (\multi -> multi {mPlayers = mayJoinGame (Just game) pn (mPlayers multi)})
+joinGamePlayer pn game = void $ mPlayers %= mayJoinGame (Just game) pn
 
 
 leaveGameU :: PlayerNumber -> State Multi ()
-leaveGameU pn = modify (\multi -> multi {mPlayers = mayJoinGame Nothing pn (mPlayers multi)})
+leaveGameU pn = void $ mPlayers %= mayJoinGame Nothing pn
 
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> State Multi ()
 newGame name desc pn = do
-   gs <- gets games
+   gs <- access games
    case null $ filter (\p -> gameName p == name) gs of
       True -> do
          tracePN pn $ "Creating a new game of name: " ++ name
-         t <- gets mCurrentTime
+         t <- access mCurrentTime
          -- create a game with zero players
-         modify (\m -> m {games = (initialGame name desc t):gs})
+         void $ games ~= (initialGame name desc t):gs
       False -> tracePN pn "this name is already used"
 
 uniqueGame :: String -> [Game] -> Bool
@@ -81,9 +81,7 @@ joinGame game pn = do
    case mg of
       Nothing -> tracePN pn "No game by that name"
       Just g -> do
-         tracePN pn "subscribing first."
          subscribeGame (gameName g) pn
-         tracePN pn $ "Joining game: " ++ game
          joinGamePlayer pn game
 
 
@@ -101,7 +99,7 @@ subscribeGame game pn = do
    inGameDo game $ do
       g <- get
       case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
-         Just _ -> tracePN pn  "Already subscribed!"
+         Just _ -> return ()
          Nothing -> do
             tracePN pn $ "Subscribing to game: " ++ game
             let player = PlayerInfo { playerNumber = pn, playerName = getPlayersName pn m}
@@ -139,7 +137,7 @@ showSubscribtion pn = inPlayersGameDo_ pn $ do
 submitRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Multi IO ()
 submitRule sr pn sh = do
    mnr <- enterRule sr pn sh
-   tracePN pn $ " proposed " ++ (show sr)
+   tracePN pn $ "proposed " ++ (show sr)
    case mnr of
       Just nr -> do
          inPlayersGameDo' pn $ do
@@ -174,9 +172,9 @@ enterRule (SubmitRule name desc code) pn sh = do
 updateLastRule :: Maybe SubmitRule -> PlayerNumber -> State Multi ()
 updateLastRule msr pn = do
    pm <- fromJust <$> findPlayer' pn
-   pls <- gets mPlayers
-   let pls' = replace pm (pm {lastRule = msr}) pls
-   modify (\m -> m{mPlayers = pls'})
+   pls <- access mPlayers
+   let pls' = replace pm (pm {_lastRule = msr}) pls
+   void $ mPlayers ~= pls'
 
 --cpuTimeLimitSoft = ResourceLimit 4
 --cpuTimeLimitHard = ResourceLimit 5
@@ -209,13 +207,13 @@ inputUpload pn dir mod sh = do
 
 mailSettings :: MailSettings -> PlayerNumber -> State Multi ()
 mailSettings mailSettings pn = do
-   mps <- gets mPlayers
-   case find (\(PlayerMulti {mPlayerNumber}) -> pn==mPlayerNumber) mps of
+   mps <- access mPlayers
+   case find ((==) pn . getL mPlayerNumber) mps of
       Nothing -> tracePN pn "settings not modified!"
       Just pm -> do
          tracePN pn $ "mail settings " ++ (show mailSettings)
-         let newmps = replace pm pm{mMail=mailSettings} mps
-         modify (\m -> m{mPlayers = newmps})
+         let newmps = replace pm pm{_mMail=mailSettings} mps
+         void $ mPlayers ~= newmps
 
 -- | show the constitution.
 showConstitution :: PlayerNumber -> State Multi ()
@@ -236,7 +234,7 @@ displayPlayer (PlayerMulti pn name _ _ Nothing _)     = show pn ++ ": " ++ name 
 -- | replace the player's name in the list
 setName :: String -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
 setName name pn pl = case find (\(PlayerMulti h _ _ _ _ _) -> h == pn) pl of
-                        Just o -> replace o o{ mPlayerName = name} pl
+                        Just o -> replace o o{ _mPlayerName = name} pl
                         Nothing -> pl
 
 
@@ -245,7 +243,7 @@ setName name pn pl = case find (\(PlayerMulti h _ _ _ _ _) -> h == pn) pl of
 inPlayersGameDo :: PlayerNumber -> State Game a -> State Multi (Maybe a)
 inPlayersGameDo pn action = do
    multi <- get
-   t <- gets mCurrentTime
+   t <- access mCurrentTime
    let mg = getPlayersGame pn multi
    case mg of
       Nothing -> tracePN pn "You must be in a game" >> return Nothing
@@ -269,20 +267,20 @@ inPlayersGameDo'_ pn action = inPlayersGameDo' pn action >> return ()
 
 inGameDo :: GameName -> State Game () -> State Multi ()
 inGameDo game action = do
-   gs <- gets games
+   gs <- access games
    case find (\(Game {gameName =n}) -> n==game) gs of
       Nothing -> traceM "No game by that name"
       Just g -> do
-         t <- gets mCurrentTime
+         t <- access mCurrentTime
          let myg = execWithGame t action g
          modifyGame myg
 
 
 triggerTimeEvent :: UTCTime -> StateT Multi IO ()
 triggerTimeEvent t = do
-   gs <- gets games
+   gs <- access games
    gs' <- lift $ mapM (\g -> trig t g `catch` timeExceptionHandler t g) gs
-   modify(\m -> m{games = gs'})
+   void $ games ~= gs'
 
 
 trig :: UTCTime -> Game -> IO Game

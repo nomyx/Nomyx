@@ -20,6 +20,7 @@ import Language.Haskell.TH.Quote
 import Language.Haskell.Interpreter hiding (get)
 import Interpret
 
+
 cr :: QuasiQuoter
 cr = QuasiQuoter { quoteExp = quoteRuleFunc,
                    quotePat = undefined,
@@ -36,5 +37,8 @@ quoteRuleFunc s = do
       Right _ -> fail $ "Rule doesn't typecheck"
       Left e -> fail $ show e
 
+
+-- addRuleParams'_ :: RuleName -> String -> RuleNumber -> String -> Exp ()
+-- addRuleParams'_ name code number desc = addRuleParams_ name (VoidRule $ return ()) $( [|code|] ) number desc
 
 

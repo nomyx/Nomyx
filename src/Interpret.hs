@@ -14,7 +14,7 @@ import System.Posix.Resource
 import Control.Exception as CE
 
 modDir = "modules"
-importList = ["Prelude", "Language.Nomyx.Rule", "Language.Nomyx.Expression", "Language.Nomyx.Test",
+importList = ["Prelude", "Language.Nomyx.Definition", "Language.Nomyx.Rule", "Language.Nomyx.Expression", "Language.Nomyx.Test",
               "Language.Nomyx.Examples", "GHC.Base", "Data.Maybe"]
               
 -- | the server handle

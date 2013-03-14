@@ -33,7 +33,6 @@ import System.Posix.Daemonize
 import Types
 import Serialize
 import Paths_Nomyx as PN
-import Language.Haskell.Interpreter.Server hiding (start)
 import System.Directory
 import Data.Time.Clock
 import Language.Nomyx.Expression
@@ -42,6 +41,7 @@ import Control.Exception hiding (bracket)
 import Test
 import Utils
 import Data.Version (showVersion)
+import Data.Lens
 
 defaultLogFile :: FilePath
 defaultLogFile = "Nomyx.save"
@@ -82,9 +82,10 @@ start flags = do
          Just h -> return h
          Nothing -> getHostName >>= return
       logFilePath <- getDataFileName logFile
+      let settings sendMail = Settings (defaultLog logFilePath) sh (Network host port) sendMail
       multi <- case (findLoadTest flags) of
-         Just testName -> loadTestName logFilePath sh (Network host port) testName
-         Nothing -> loadMulti logFilePath (not $ NoReadSaveFile `elem` flags) sh (Network host port)
+         Just testName -> loadTestName (settings False)  testName
+         Nothing -> loadMulti (settings True) (not $ NoReadSaveFile `elem` flags)
       tvMulti <- atomically $ newTVar multi
       --start the web server
       forkIO $ launchWebServer tvMulti (Network host port)
@@ -92,16 +93,16 @@ start flags = do
       --main loop
       serverLoop tvMulti logFile
 
-loadMulti :: FilePath -> Bool -> ServerHandle -> Network -> IO Multi
-loadMulti fp readSaveFile sh net = do
-   fileExists <- doesFileExist fp
+loadMulti :: Settings -> Bool -> IO Multi
+loadMulti set readSaveFile = do
+   fileExists <- doesFileExist $ logFilePath ^$ logs ^$ set
    t <- getCurrentTime
    multi <- case fileExists && readSaveFile of
       True -> do
          putStrLn "Loading previous game"
-         (loadEvents fp sh net) `catch`
-            (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti sh fp net t))
-      False -> return $ defaultMulti sh fp net t
+         loadEvents set `catch`
+            (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set t))
+      False -> return $ defaultMulti set t
    return multi
 
 
@@ -118,7 +119,7 @@ serverLoop tm f = do
          putStrLn "saving state..."
          m <- atomically $ readTVar tm
          fp <- getDataFileName f
-         save fp $ logEvents $ logs m
+         save fp $ logEvents ^$ logs ^$ mSettings ^$ m
          serverLoop tm f
       "q" -> return ()
       _ -> do
@@ -209,7 +210,7 @@ triggerTimeEvent tm t = do
 getTimeEvents :: UTCTime -> TVar Multi -> IO([UTCTime])
 getTimeEvents now tm = do
     m <- atomically $ readTVar tm
-    let times = catMaybes $ map getTimes $ concatMap events $ games m
+    let times = catMaybes $ map getTimes $ concatMap events $ _games m
     return $ filter (\t -> t <= now && t > (-2) `addUTCTime` now) times
 
 

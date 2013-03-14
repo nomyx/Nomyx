@@ -23,7 +23,7 @@ rVoteUnanimity = Rule  {
     rDescription  = "A proposed rule will be activated if all players vote for it",
     rProposedBy   = 0,
     rRuleCode     = "onRuleProposed $ voteWith unanimity",
-    rRuleFunc     = onRuleProposed $ voteWith unanimity,
+    rRuleFunc     = onRuleProposed $ voteWith unanimity $ assessOnEveryVotes,
     rStatus       = Active,
     rAssessedBy   = Nothing}
 

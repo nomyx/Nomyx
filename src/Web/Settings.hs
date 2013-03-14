@@ -22,12 +22,13 @@ import Control.Concurrent.STM
 import Data.Maybe
 import Data.Text(Text)
 import Text.Blaze.Internal(string)
+import Data.Lens
 default (Integer, Double, Data.Text.Text)
 
 
 
 settingsForm :: (Maybe MailSettings) -> NomyxForm MailSettings
-settingsForm (Just (MailSettings {mailTo, mailNewRule})) = settingsForm' mailTo mailNewRule
+settingsForm (Just (MailSettings {_mailTo, _mailNewRule})) = settingsForm' _mailTo _mailNewRule
 settingsForm Nothing = settingsForm' "" True
 
 settingsForm':: String -> Bool -> NomyxForm MailSettings
@@ -39,7 +40,7 @@ settingsForm' mailTo mailNewRule = pure MailSettings <*> label "Please enter you
 
 settingsPage :: PlayerNumber -> MailSettings -> RoutedNomyxServer Html
 settingsPage pn ms = do
-   settingsLink <- showURL (SubmitSettings pn)
+   settingsLink <- showURL (SubmitPlayerSettings pn)
    mf <- lift $ viewForm "user" $ settingsForm (Just ms)
    mainPage (blazeForm mf settingsLink)
              "Player settings"
@@ -50,7 +51,7 @@ settingsPage pn ms = do
 settings :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
 settings pn tm  = do
    pm <- evalCommand tm $ findPlayer' pn
-   settingsPage pn $ mMail $ fromJust pm
+   settingsPage pn $ mMail ^$ fromJust pm
 
 
 newSettings :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
