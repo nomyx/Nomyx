@@ -50,7 +50,7 @@ newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 sendMailsNewRule :: Multi -> SubmitRule -> PlayerNumber -> IO()
 sendMailsNewRule m sr pn = do
    evaluate m
-   let gn = gameName $ fromJust $ getPlayersGame pn m
+   let gn = _gameName $ fromJust $ getPlayersGame pn m
    let proposer = getPlayersName pn m
    forM_ (mPlayers ^$ m) $ send proposer gn
    where
@@ -63,10 +63,10 @@ mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
 mapMaybeM f = liftM catMaybes . mapM f
 
 getOutputs :: Multi -> [Output]
-getOutputs m = concatMap outputs $ games ^$ m
+getOutputs m = concatMap _outputs $ _games m
 
 newRulebody :: Rule -> String
-newRulebody (Rule {rNumber, rProposedBy}) = "Rule number " ++ (show rNumber) ++ " has been proposed by player " ++ (show rProposedBy)
+newRulebody (Rule {_rNumber, _rProposedBy}) = "Rule number " ++ (show _rNumber) ++ " has been proposed by player " ++ (show _rProposedBy)
 
 
 

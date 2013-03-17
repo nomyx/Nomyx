@@ -87,7 +87,7 @@ viewGamesTab pn gs = do
 
 viewGameName :: PlayerNumber -> Game -> RoutedNomyxServer Html
 viewGameName pn g = do
-   let gn = gameName g
+   let gn = _gameName g
    join <- showURL (JoinGame pn gn)
    leave <- showURL (LeaveGame pn)
    --subscribe <- showURL (SubscribeGame pn gn)

@@ -70,6 +70,7 @@ start flags = do
       putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
       ts <- playTests sh
       putStrLn $ "\nNomyx Game Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts)
+      putStrLn $ "All Tests Pass: " ++ (show $ allTests && (all snd ts))
    else do
       --creating game structures
       logFile <- case (findSaveFile flags) of
@@ -210,7 +211,7 @@ triggerTimeEvent tm t = do
 getTimeEvents :: UTCTime -> TVar Multi -> IO([UTCTime])
 getTimeEvents now tm = do
     m <- atomically $ readTVar tm
-    let times = catMaybes $ map getTimes $ concatMap events $ _games m
+    let times = catMaybes $ map getTimes $ concatMap _events $ _games m
     return $ filter (\t -> t <= now && t > (-2) `addUTCTime` now) times
 
 

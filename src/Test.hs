@@ -109,7 +109,7 @@ gameHelloWorld :: [MultiEvent]
 gameHelloWorld = onePlayerOneGame ++ submitRule [cr|helloWorld|]
 
 condHelloWorld :: Multi -> Bool
-condHelloWorld m = (head $ outputs $ head $ games ^$ m) == (1, "hello, world!")
+condHelloWorld m = (head $ _outputs $ head $ _games m) == (1, "hello, world!")
 
 gameHelloWorld2Players :: [MultiEvent]
 gameHelloWorld2Players = twoPlayersOneGame ++
@@ -118,7 +118,7 @@ gameHelloWorld2Players = twoPlayersOneGame ++
    MultiInputChoiceResult 4 0 2]
 
 condHelloWorld2Players :: Multi -> Bool
-condHelloWorld2Players m = (head $ outputs $ head $ games ^$ m) == (1, "hello, world!")
+condHelloWorld2Players m = (head $ _outputs $ head $ _games m) == (1, "hello, world!")
 
 partialFunction1 :: String
 partialFunction1 = [cr|VoidRule $ readVar_ (V "toto1")|]
@@ -128,8 +128,8 @@ gamePartialFunction1 = onePlayerOneGame ++ (submitRule partialFunction1)
 
 -- rule has not been accepted due to exception
 condPartialFunction1 :: Multi -> Bool
-condPartialFunction1 m = (rStatus $ head $ rules $ head $ games ^$ m) == Pending &&
-                         (take 5 $ snd $ head $ outputs $ head $ games ^$ m) == "Error"
+condPartialFunction1 m = (_rStatus $ head $ _rules $ head $ _games m) == Pending &&
+                         (take 5 $ snd $ head $ _outputs $ head $ _games m) == "Error"
 
 partialFunction2 :: String
 partialFunction2 = [cr|VoidRule $ do
@@ -142,8 +142,8 @@ gamePartialFunction2 = noTime onePlayerOneGame ++ (noTime $ submitRule partialFu
 
 -- rule has been accepted but exception happened later
 condPartialFunction2 :: Multi -> Bool
-condPartialFunction2 m = (rStatus $ headNote "cond failed" $ rules $ headNote "cond failed" $ games ^$ m) == Active &&
-                         (take 5 $ snd $ headNote "cond failed" $ outputs $ headNote "cond failed" $ games ^$ m) == "Error"
+condPartialFunction2 m = (_rStatus $ headNote "cond failed" $ _rules $ headNote "cond failed" $ _games m) == Active &&
+                         (take 5 $ snd $ headNote "cond failed" $ _outputs $ headNote "cond failed" $ _games m) == "Error"
 
 --This rule blocks the game: the exception (variable not existing) is triggered during a "rule proposed" event,
 --thus preventing to propose any new rule to the game.
@@ -156,7 +156,7 @@ gamePartialFunction3 = onePlayerOneGame ++ (submitRule partialFunction3) ++ (sub
 
 -- rule has been accepted but no more rule can be proposed
 condPartialFunction3 :: Multi -> Bool
-condPartialFunction3 m = (length $ rules $ head $ games ^$ m) == 3
+condPartialFunction3 m = (length $ _rules $ head $ games ^$ m) == 3
 
 --Create bank accounts, win 100 Ecu on rule accepted (so 100 Ecu is won for each player), transfer 50 Ecu
 gameMoneyTransfer :: [MultiEvent]
@@ -174,4 +174,4 @@ gameMoneyTransfer = twoPlayersOneGame ++
    (MultiInputStringResult "Select Amount to transfert to player: 2" "50" 1)]
 
 condMoneyTransfer :: Multi -> Bool
-condMoneyTransfer m = (vName $ head $ variables $ head $ games ^$ m) == "Accounts"
+condMoneyTransfer m = (_vName $ head $ _variables $ head $ _games m) == "Accounts"

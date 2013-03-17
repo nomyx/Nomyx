@@ -76,22 +76,22 @@ getPlayersName pn multi = do
 
 getPlayersName' :: Game -> PlayerNumber -> PlayerName
 getPlayersName' g pn = do
-   case find (\(PlayerInfo n _) -> n==pn) (players g) of
+   case find ((==pn) . getL playerNumber) (_players g) of
       Nothing -> error "getPlayersName: No player by that number in that game"
-      Just pm -> playerName pm
+      Just pm -> _playerName pm
 
 -- | returns the game the player is in
 getPlayersGame :: PlayerNumber -> Multi -> Maybe Game
 getPlayersGame pn multi = do
-        pi <- find (\(PlayerMulti n _ _ _ _ _) -> n==pn) (mPlayers ^$ multi)
-        gn <- inGame ^$ pi
-        find (\(Game {gameName=name}) -> name==gn) (games ^$ multi)
+        pi <- find ((==pn) . getL mPlayerNumber) (mPlayers ^$ multi)
+        gn <- _inGame pi
+        find ((== gn) . getL gameName) (_games multi)
 
 getPlayersNameMay :: Game -> PlayerNumber -> Maybe PlayerName
 getPlayersNameMay g pn = do
-   case find (\(PlayerInfo n _) -> n==pn) (players g) of
+   case find ((==pn) . getL playerNumber) (_players g) of
       Nothing -> Nothing
-      Just pm -> Just $ playerName pm
+      Just pm -> Just $ _playerName pm
 
 commandExceptionHandler :: Maybe PlayerNumber -> Multi -> ErrorCall -> IO Multi
 commandExceptionHandler mpn m e = do
@@ -108,7 +108,7 @@ commandExceptionHandler mpn m e = do
 modifyGame :: Game -> State Multi ()
 modifyGame g = do
    gs <- access games
-   case find (\myg -> gameName g == gameName myg) gs of
+   case find ((== _gameName g) . getL gameName) gs of
       Nothing -> error "modifyGame: No game by that name"
       Just oldg -> do
          let newgs = replace oldg g gs
@@ -117,15 +117,15 @@ modifyGame g = do
 
 
 output :: String -> PlayerNumber -> State Game ()
-output s pn = modify (\game -> game { outputs = (pn, s) : (outputs game)})
+output s pn = void $ outputs %= ((pn, s) : )
 
 outputAll :: String -> State Game ()
-outputAll s = gets players >>= mapM_ ((output s) . playerNumber)
+outputAll s = access players >>= mapM_ ((output s) . _playerNumber)
 
 
 execWithMulti :: UTCTime -> StateT Multi IO () -> Multi -> IO Multi
 execWithMulti t ms m = do
-   let setTime g = g {currentTime = t}
+   let setTime g = g {_currentTime = t}
    let m' = games `modL` (map setTime) $ m
    execStateT ms m'
 

@@ -22,10 +22,10 @@ import Interpret
 
 
 cr :: QuasiQuoter
-cr = QuasiQuoter { quoteExp = quoteRuleFunc,
-                   quotePat = undefined,
+cr = QuasiQuoter { quoteExp  = quoteRuleFunc,
+                   quotePat  = undefined,
                    quoteType = undefined,
-                   quoteDec = undefined}
+                   quoteDec  = undefined}
 
 quoteRuleFunc :: String -> Q TH.Exp
 quoteRuleFunc s = do

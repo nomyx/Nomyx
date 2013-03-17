@@ -40,23 +40,23 @@ default (Integer, Double, Data.Text.Text)
 viewGame :: Game -> PlayerNumber -> (Maybe SubmitRule) -> RoutedNomyxServer Html
 viewGame g pn sr = do
    rf <- viewRuleForm pn sr
-   vi <- viewInputs pn $ events g
+   vi <- viewInputs pn $ _events g
    ok $ table $ do
       td ! A.id "gameCol" $ do
          table $ do
-            tr $ td $ h3 $ string $ "Viewing game: " ++ gameName g
-            tr $ td $ "Description:" >> br >> string (desc $ gameDesc g) >> br
-            tr $ td $ (a "Agora" ! (A.href $ toValue (agora $ gameDesc g))) >> br >> br
-            tr $ td $ viewPlayers $ players g
+            tr $ td $ h3 $ string $ "Viewing game: " ++ _gameName g
+            tr $ td $ "Description:" >> br >> string (_desc $ _gameDesc g) >> br
+            tr $ td $ (a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g))) >> br >> br
+            tr $ td $ viewPlayers $ _players g
             tr $ td $ viewVictory g
       td ! A.id "gameElem" $ do
          table $ do
          tr $ td $ div ! A.id "rules" $ viewAllRules g
-         tr $ td $ div ! A.id "inputs" ! A.title (toValue Help.inputs) $ vi
-         tr $ td $ div ! A.id "events" ! A.title (toValue Help.events) $ viewEvents $ events g
-         tr $ td $ div ! A.id "variables" ! A.title (toValue Help.variables)$ viewVars $ variables g
+         tr $ td $ div ! A.id "inputs"    ! A.title (toValue Help.inputs)    $ vi
+         tr $ td $ div ! A.id "events"    ! A.title (toValue Help.events)    $ viewEvents $ _events g
+         tr $ td $ div ! A.id "variables" ! A.title (toValue Help.variables) $ viewVars   $ _variables g
          tr $ td $ div ! A.id "newRule" $ rf
-         tr $ td $ div ! A.id "outputs" ! A.title (toValue Help.outputs)$ viewOutput (outputs g) pn
+         tr $ td $ div ! A.id "outputs"   ! A.title (toValue Help.outputs)   $ viewOutput (_outputs g) pn
 
 viewPlayers :: [PlayerInfo] -> Html
 viewPlayers pis = do
@@ -66,12 +66,12 @@ viewPlayers pis = do
 
 viewPlayer :: PlayerInfo -> Html
 viewPlayer pi = tr $ do
-    td $ string $ show $ playerNumber pi
-    td $ string $ playerName pi
+    td $ string $ show $ _playerNumber pi
+    td $ string $ _playerName pi
 
 viewVictory :: Game -> Html
 viewVictory g = do
-    let vs = mapMaybe (getPlayersNameMay g) (victory g)
+    let vs = mapMaybe (getPlayersNameMay g) (_victory g)
     case vs of
         []   -> br
         a:[] -> h3 $ string $ "Player " ++ (show a) ++ " won the game!"
@@ -80,8 +80,8 @@ viewVictory g = do
 viewAllRules :: Game -> Html
 viewAllRules g = do
    h3 "Rules"
-   viewRules "Active rules" (activeRules g) True ! (A.title $ toValue Help.actives) >> br
-   viewRules "Pending rules" (pendingRules g) True ! (A.title $ toValue Help.pendings) >> br
+   viewRules "Active rules"     (activeRules g) True ! (A.title $ toValue Help.actives) >> br
+   viewRules "Pending rules"    (pendingRules g) True ! (A.title $ toValue Help.pendings) >> br
    viewRules "Suppressed rules" (rejectedRules g) False >> br
 
 viewRules :: String -> [Rule] -> Bool -> Html
@@ -98,12 +98,12 @@ viewRules title nrs visible = do
 
 viewRule :: Rule -> Html
 viewRule nr = tr $ do
-   td ! A.class_ "td" $ string . show $ rNumber nr
-   td ! A.class_ "td" $ string $ rName nr
-   td ! A.class_ "td" $ string $ rDescription nr
-   td ! A.class_ "td" $ string $ if rProposedBy nr == 0 then "System" else "Player " ++ (show $ rProposedBy nr)
-   td ! A.class_ "td" $ preEscapedString $ HSC.hscolour defaultColourPrefs False $ rRuleCode nr
-   td ! A.class_ "td" $ string $ case rAssessedBy nr of
+   td ! A.class_ "td" $ string . show $ _rNumber nr
+   td ! A.class_ "td" $ string $ _rName nr
+   td ! A.class_ "td" $ string $ _rDescription nr
+   td ! A.class_ "td" $ string $ if _rProposedBy nr == 0 then "System" else "Player " ++ (show $ _rProposedBy nr)
+   td ! A.class_ "td" $ preEscapedString $ HSC.hscolour defaultColourPrefs False $ _rRuleCode nr
+   td ! A.class_ "td" $ string $ case _rAssessedBy nr of
       Nothing -> "Not assessed"
       Just 0  -> "System"
       Just a  -> "Rule " ++ (show $ a)
@@ -194,8 +194,8 @@ newRule pn tm = do
           --liftRouteT $ lift $ putStrLn $ "after: " ++ (show m) ++"\n" ++ (show t') ++"\n"
           webCommand tm pn $ MultiSubmitRule sr pn
           m' <- liftRouteT $ lift $ readTVarIO tm
-          let rs = rules $ fromJust $ getPlayersGame pn m
-          let rs' = rules $ fromJust $ getPlayersGame pn m'
+          let rs = _rules $ fromJust $ getPlayersGame pn m
+          let rs' = _rules $ fromJust $ getPlayersGame pn m'
           when (length rs' > length rs) $ liftRouteT $ lift $ sendMailsNewRule m' sr pn
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
@@ -214,7 +214,7 @@ newInputChoice :: PlayerNumber -> EventNumber -> (TVar Multi) -> RoutedNomyxServ
 newInputChoice pn en tm = do
     multi <- liftRouteT $ lift $ atomically $ readTVar tm
     let mg = fromJust $ getPlayersGame pn multi
-    let eventHandler = fromJust $ findEvent en (events mg)
+    let eventHandler = fromJust $ findEvent en (_events mg)
     methodM POST
     let (title, choices, def) = getChoices eventHandler
     r <- liftRouteT $ eitherForm environment "user" (inputChoiceForm title choices def)

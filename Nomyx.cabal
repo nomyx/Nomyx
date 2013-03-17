@@ -5,7 +5,7 @@ build-type: Simple
 license: BSD3
 license-file: LICENSE
 maintainer: corentin.dupont@gmail.com
-synopsis: A Nomic game in haskell, featuring automatic, machine-executed rules written by the players
+synopsis: A Nomic game in haskell
 description: A Nomic game in Haskell, with a dedicated language to create new rules.
              .
              Nomyx is a fabulous and strange game where you have the right to change the rules in the middle of the game!

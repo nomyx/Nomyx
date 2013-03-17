@@ -49,7 +49,7 @@ addNewGame :: Game -> State Multi ()
 addNewGame new = void $ games %= (new:)
 
 getGameByName :: GameName -> State Multi (Maybe Game)
-getGameByName gn =  fmap (find (\(Game {gameName = n}) -> n==gn)) (access games)
+getGameByName gn =  fmap (find ((==gn) . getL gameName)) (access games)
 
 joinGamePlayer :: PlayerNumber -> GameName -> State Multi ()
 joinGamePlayer pn game = void $ mPlayers %= mayJoinGame (Just game) pn
@@ -62,16 +62,16 @@ leaveGameU pn = void $ mPlayers %= mayJoinGame Nothing pn
 newGame :: GameName -> GameDesc -> PlayerNumber -> State Multi ()
 newGame name desc pn = do
    gs <- access games
-   case null $ filter (\p -> gameName p == name) gs of
+   case null $ filter ((== name) . getL gameName) gs of
       True -> do
          tracePN pn $ "Creating a new game of name: " ++ name
          t <- access mCurrentTime
          -- create a game with zero players
-         void $ games ~= (initialGame name desc t):gs
+         void $ games %= ((initialGame name desc t) : )
       False -> tracePN pn "this name is already used"
 
 uniqueGame :: String -> [Game] -> Bool
-uniqueGame s gs = null $ filter (\p -> gameName p == s) gs
+uniqueGame s gs = null $ filter ((== s) . getL gameName) gs
 
 -- | join a game.
 joinGame :: GameName -> PlayerNumber -> State Multi ()
@@ -80,7 +80,7 @@ joinGame game pn = do
    case mg of
       Nothing -> tracePN pn "No game by that name"
       Just g -> do
-         subscribeGame (gameName g) pn
+         subscribeGame (_gameName g) pn
          joinGamePlayer pn game
 
 
@@ -96,13 +96,13 @@ subscribeGame :: GameName -> PlayerNumber -> State Multi ()
 subscribeGame game pn = do
    m <- get
    inGameDo game $ do
-      g <- get
-      case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
+      pls <- access players
+      case find ((== pn) . getL playerNumber ) pls of
          Just _ -> return ()
          Nothing -> do
             tracePN pn $ "Subscribing to game: " ++ game
-            let player = PlayerInfo { playerNumber = pn, playerName = getPlayersName pn m}
-            put g {players = player : (players g)}
+            let player = PlayerInfo { _playerNumber = pn, _playerName = getPlayersName pn m}
+            players %= (player : )
             triggerEvent (Player Arrive) (PlayerData player)
 
 
@@ -110,23 +110,23 @@ subscribeGame game pn = do
 unsubscribeGame :: GameName -> PlayerNumber -> State Multi ()
 unsubscribeGame game pn = inGameDo game $ do
    g <- get
-   case find (\(PlayerInfo  { playerNumber=mypn}) -> mypn == pn ) (players g) of
+   case find ((== pn) . getL playerNumber ) (_players g) of
       Nothing -> tracePN pn "Not subscribed!"
       Just _ -> do
          tracePN pn $ "Unsubscribing to game: " ++ game
-         let player = PlayerInfo { playerNumber = pn, playerName = getPlayersName' g pn}
-         put g {players = filter (\PlayerInfo { playerNumber = mypn} -> mypn /= pn) (players g)}
+         let player = PlayerInfo {_playerNumber = pn, _playerName = getPlayersName' g pn}
+         players %= filter ((/= pn) . getL playerNumber)
          triggerEvent (Player Leave) (PlayerData player)
 
 
 showSubGame :: GameName -> PlayerNumber -> State Multi ()
 showSubGame g _ = inGameDo g $ do
-   ps <- gets players
+   ps <- access players
    traceM $ concatMap show ps
 
 showSubscribtion :: PlayerNumber -> State Multi ()
 showSubscribtion pn = inPlayersGameDo_ pn $ do
-   ps <- gets players
+   ps <- access players
    traceM $ concatMap show ps
 
 
@@ -152,17 +152,18 @@ enterRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Multi IO (Mayb
 enterRule (SubmitRule name desc code) pn sh = do
    mrr <- lift $ interpretRule code sh
    join <$> (inPlayersGameDo' pn $ do
-      rs <- gets rules
-      let rn = getFreeNumber $ map rNumber rs
+      rs <- access rules
+      let rn = getFreeNumber $ map _rNumber rs
       case mrr of
-         Right ruleFunc -> return $ Just Rule {rNumber = rn,
-                      rName = name,
-                      rDescription = desc,
-                      rProposedBy = pn,
-                      rRuleCode = code,
-                      rRuleFunc = ruleFunc,
-                      rStatus = Pending,
-                      rAssessedBy = Nothing}
+         Right ruleFunc -> return $
+            Just Rule {_rNumber = rn,
+                       _rName = name,
+                       _rDescription = desc,
+                       _rProposedBy = pn,
+                       _rRuleCode = code,
+                       _rRuleFunc = ruleFunc,
+                       _rStatus = Pending,
+                       _rAssessedBy = Nothing}
          Left e -> do
             output ("Compiler error: " ++ show e ++ "\n") pn
             tracePN pn ("Compiler error: " ++ show e ++ "\n")
@@ -221,7 +222,7 @@ showConstitution pn = inPlayersGameDo_ pn $ get >>= (traceM  .  show  .  activeR
 
 -- | show every rules (including pendings and deleted)
 showAllRules :: PlayerNumber -> State Multi ()	
-showAllRules pn = inPlayersGameDo_ pn $ get >>= (traceM . show . rules)
+showAllRules pn = inPlayersGameDo_ pn $ get >>= (traceM . show . _rules)
 
 displayPlayer :: PlayerMulti -> String
 displayPlayer (PlayerMulti pn name _ _ (Just game) _) = show pn ++ ": " ++ name ++ " in game: " ++ game ++ "\n"
@@ -247,7 +248,7 @@ inPlayersGameDo pn action = do
    case mg of
       Nothing -> tracePN pn "You must be in a game" >> return Nothing
       Just g -> do
-         (a, myg) <- lift $ runStateT action (g { currentTime = t})
+         (a, myg) <- lift $ runStateT action (g { _currentTime = t})
          modifyGame myg
          return (Just a)
 
@@ -267,7 +268,7 @@ inPlayersGameDo'_ pn action = inPlayersGameDo' pn action >> return ()
 inGameDo :: GameName -> State Game () -> State Multi ()
 inGameDo game action = do
    gs <- access games
-   case find (\(Game {gameName =n}) -> n==game) gs of
+   case find ((==game) . getL gameName) gs of
       Nothing -> traceM "No game by that name"
       Just g -> do
          t <- access mCurrentTime
