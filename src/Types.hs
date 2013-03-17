@@ -46,7 +46,10 @@ data Multi = Multi {  _games   :: [Game],
 
 instance Show Multi where
    show Multi{_games, _mPlayers} = "Games: " ++ show (sort _games) ++ "\n" ++
-                                 "Players: " ++ show (sort _mPlayers) ++ "\n"
+                                 "Players: " ++ show (sort _mPlayers) ++ "\n" ++
+                                 "Settings: " ++ (show _mSettings) ++ "\n" ++
+                                 "current Time: " ++ (show _mCurrentTime) ++ "\n"
+
 
 defaultMulti :: Settings -> UTCTime -> Multi
 defaultMulti set t = Multi [] [] set t

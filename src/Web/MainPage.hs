@@ -73,9 +73,10 @@ viewGamesTab pn gs = do
             [] -> tr $ td "No Games"
             _ ->  sequence_ gns
       br >> "Nomyx language files:" >> br
-      H.a "Rules examples" ! (href $ "/src/Language/Nomyx/Examples.hs") >> br
-      H.a "Rules definitions" ! (href $ "/src/Language/Nomyx/Rule.hs") >> br
-      H.a "Rules types" ! (href $ "/src/Language/Nomyx/Expression.hs") >> br
+      H.a "Rules examples"    ! (href $ "/src/Language/Nomyx/Examples.hs") >> br
+      H.a "Basic rules"       ! (href $ "/src/Language/Nomyx/Rule.hs") >> br
+      H.a "Rules definitions" ! (href $ "/src/Language/Nomyx/Definition.hs") >> br
+      H.a "Rules types"       ! (href $ "/src/Language/Nomyx/Expression.hs") >> br
       mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) fmods
       br >> "Upload new rules file:" >> br
       blazeForm up (uploadLink) ! (A.title $ toValue Help.upload)

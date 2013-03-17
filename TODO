@@ -30,6 +30,7 @@ Improves:
 - implement quorums
 - make page to open code full screen
 - generate better messages for partial functions
+- a rule can delete signals from another rule: is that normal? in that cas should we reallocate immediatly event numbers?
 
 Futur Nomic:
 - ability to analyse rules, proof system
@@ -43,6 +44,8 @@ BUGS
 - reading save file does not take absolute path
 - add option to don't send mails
 - empty login/password and game name
+- players seems to be added twice
+- store hide/show status of divs
 
 Forum:
 - start another VM to run Nomyx alone

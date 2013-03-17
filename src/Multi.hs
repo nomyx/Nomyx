@@ -17,7 +17,6 @@ import Control.Monad.State
 import Game
 import Utils
 import Interpret
-import Debug.Trace.Helpers()
 import Language.Nomyx.Expression
 import Data.Time
 import Language.Haskell.Interpreter.Server (ServerHandle)

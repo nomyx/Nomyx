@@ -32,6 +32,8 @@ import Data.List
 import Data.Time.Clock
 import Data.Lens
 import Safe
+import Debug.Trace.Helpers
+
 
 playTests :: ServerHandle -> IO [(String, Bool)]
 playTests sh = mapM (\(title, t, cond) -> (title,) <$> test sh t cond) tests
@@ -136,7 +138,7 @@ partialFunction2 = [cr|VoidRule $ do
 
 gamePartialFunction2 :: [TimedEvent]
 gamePartialFunction2 = noTime onePlayerOneGame ++ (noTime $ submitRule partialFunction2) ++
-    [TE (5 `addUTCTime` dayZero) $  (MultiTimeEvent $ 5 `addUTCTime` dayZero)]
+   [TE (5 `addUTCTime` dayZero) $  (MultiTimeEvent $ 5 `addUTCTime` dayZero)]
 
 -- rule has been accepted but exception happened later
 condPartialFunction2 :: Multi -> Bool
@@ -160,15 +162,15 @@ condPartialFunction3 m = (length $ rules $ head $ games ^$ m) == 3
 gameMoneyTransfer :: [MultiEvent]
 gameMoneyTransfer = twoPlayersOneGame ++
    [MultiSubmitRule (SubmitRule "" "" [cr|createBankAccount|]) 1,
-   (MultiInputChoiceResult 5 0 1),
-   (MultiInputChoiceResult 4 0 2),
    (MultiSubmitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1),
-   (MultiInputChoiceResult 7 0 1),
-   (MultiInputChoiceResult 6 0 2),
    (MultiSubmitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2),
-   (MultiInputChoiceResult 8 0 1),
-   (MultiInputChoiceResult 7 0 2),
-   (MultiInputChoiceResult 7 0 1),
+   (MultiInputChoiceResult 4 0 1),
+   (MultiInputChoiceResult 3 0 2),
+   (MultiInputChoiceResult 9 0 1),
+   (MultiInputChoiceResult 8 0 2),
+   (MultiInputChoiceResult 14 0 1),
+   (MultiInputChoiceResult 13 0 2),
+   (MultiInputChoiceResult 5 0 1),
    (MultiInputStringResult "Select Amount to transfert to player: 2" "50" 1)]
 
 condMoneyTransfer :: Multi -> Bool
