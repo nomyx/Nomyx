@@ -38,15 +38,16 @@ rVictory5Rules = Rule  {
     _rStatus       = Active,
     _rAssessedBy   = Nothing}
 
-emptyGame name desc date = Game { _gameName      = name,
-                                  _gameDesc      = desc,
-                                  _rules         = [],
-                                  _players       = [],
-                                  _variables     = [],
-                                  _events        = [],
-                                  _outputs       = [],
-                                  _victory       = [],
-                                  _currentTime   = date}
+emptyGame name desc date = Game {
+    _gameName      = name,
+    _gameDesc      = desc,
+    _rules         = [],
+    _players       = [],
+    _variables     = [],
+    _events        = [],
+    _outputs       = [],
+    _victory       = [],
+    _currentTime   = date}
 
 initialGame :: GameName -> GameDesc -> UTCTime -> Game
 initialGame name desc date = flip execState (emptyGame name desc date) $ do
@@ -55,16 +56,16 @@ initialGame name desc date = flip execState (emptyGame name desc date) $ do
     evAddRule rVictory5Rules
     evActivateRule (_rNumber rVictory5Rules) 0
 
--- | the initial rule set for a game.
-rApplicationMetaRule = Rule  {
-    _rNumber       = 0,
-    _rName         = "Evaluate rule using meta-rules",
-    _rDescription  = "a proposed rule will be activated if all active metarules return true",
-    _rProposedBy   = 0,
-    _rRuleCode     = "applicationMetaRule",
-    _rRuleFunc     = onRuleProposed checkWithMetarules,
-    _rStatus       = Active,
-    _rAssessedBy   = Nothing}
+---- | the initial rule set for a game.
+--rApplicationMetaRule = Rule  {
+--    _rNumber       = 0,
+--    _rName         = "Evaluate rule using meta-rules",
+--    _rDescription  = "a proposed rule will be activated if all active metarules return true",
+--    _rProposedBy   = 0,
+--    _rRuleCode     = "applicationMetaRule",
+--    _rRuleFunc     = onRuleProposed checkWithMetarules,
+--    _rStatus       = Active,
+--    _rAssessedBy   = Nothing}
 
 -- | An helper function to use the state transformer GameState.
 -- It additionally sets the current time.

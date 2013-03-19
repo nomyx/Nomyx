@@ -121,7 +121,7 @@ condHelloWorld2Players :: Multi -> Bool
 condHelloWorld2Players m = (head $ _outputs $ head $ _games m) == (1, "hello, world!")
 
 partialFunction1 :: String
-partialFunction1 = [cr|VoidRule $ readVar_ (V "toto1")|]
+partialFunction1 = [cr|voidRule $ readVar_ (V "toto1")|]
 
 gamePartialFunction1 :: [MultiEvent]
 gamePartialFunction1 = onePlayerOneGame ++ (submitRule partialFunction1)
@@ -132,7 +132,7 @@ condPartialFunction1 m = (_rStatus $ head $ _rules $ head $ _games m) == Pending
                          (take 5 $ snd $ head $ _outputs $ head $ _games m) == "Error"
 
 partialFunction2 :: String
-partialFunction2 = [cr|VoidRule $ do
+partialFunction2 = [cr|voidRule $ do
    t <- getCurrentTime
    onEventOnce_ (Time $ addUTCTime 5 t) $ const $ readVar_ (V "toto2")|]
 
@@ -148,7 +148,7 @@ condPartialFunction2 m = (_rStatus $ headNote "cond failed" $ _rules $ headNote 
 --This rule blocks the game: the exception (variable not existing) is triggered during a "rule proposed" event,
 --thus preventing to propose any new rule to the game.
 partialFunction3 :: String
-partialFunction3 = [cr|VoidRule $ do
+partialFunction3 = [cr|voidRule $ do
    onEvent_ (RuleEv Proposed) $ const $ readVar_ (V "toto3")|]
 
 gamePartialFunction3 :: [MultiEvent]

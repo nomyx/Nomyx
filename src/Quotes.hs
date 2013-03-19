@@ -33,8 +33,9 @@ quoteRuleFunc s = do
       setImports importList
       typeOf s
    case res of
+      Right "Nomex RuleResp" -> [| s |]
       Right "RuleFunc" -> [| s |]
-      Right _ -> fail $ "Rule doesn't typecheck"
+      Right a -> fail $ "Rule doesn't typecheck: " ++ (show a)
       Left e -> fail $ show e
 
 
