@@ -4,7 +4,7 @@
 module Serialize where
 
 import Prelude hiding (log, catch, (.))
-import Language.Nomyx.Expression
+import Language.Nomyx hiding (getCurrentTime)
 import Control.Monad.State
 import Types
 import Multi

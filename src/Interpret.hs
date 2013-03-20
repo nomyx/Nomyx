@@ -5,17 +5,15 @@ import Language.Haskell.Interpreter
 import Language.Haskell.Interpreter.Server
 import Control.Monad()
 import Paths_Nomyx
-import Language.Nomyx.Expression
+import Language.Nomyx
 import System.Directory
 import System.FilePath
 import System.Posix.Files
-import Control.Monad
 import System.Posix.Resource
 import Control.Exception as CE
 
 modDir = "modules"
-importList = ["Prelude", "Language.Nomyx.Definition", "Language.Nomyx.Rule", "Language.Nomyx.Expression", "Language.Nomyx.Test",
-              "Language.Nomyx.Examples", "GHC.Base", "Data.Maybe"]
+importList = ["Prelude", "Language.Nomyx", "GHC.Base", "Data.Maybe"]
               
 -- | the server handle
 startInterpreter :: IO ServerHandle

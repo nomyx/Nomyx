@@ -35,7 +35,7 @@ import Serialize
 import Paths_Nomyx as PN
 import System.Directory
 import Data.Time.Clock
-import Language.Nomyx.Expression
+import Language.Nomyx hiding (getCurrentTime)
 import Control.Monad
 import Control.Exception hiding (bracket)
 import Test

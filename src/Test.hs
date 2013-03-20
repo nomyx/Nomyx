@@ -21,7 +21,7 @@ import Data.Time hiding (getCurrentTime)
 import Control.Monad.State
 import Serialize
 import Language.Haskell.Interpreter.Server (ServerHandle)
-import Language.Nomyx.Expression
+import Language.Nomyx hiding (getCurrentTime)
 import Control.Applicative
 import Control.Exception
 import Language.Haskell.TH

@@ -3,7 +3,7 @@
              NamedFieldPuns, TemplateHaskell, FlexibleContexts #-}
 
 module Types where
-import Language.Nomyx.Expression
+import Language.Nomyx
 import Data.Typeable
 import Data.List
 import Data.Function

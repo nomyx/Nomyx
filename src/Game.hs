@@ -12,9 +12,7 @@ module Game (initialGame, activeRules, execWithGame, pendingRules, rejectedRules
 import Language.Nomyx.Rule
 import Control.Monad.State
 import Data.List
-import Language.Nomyx.Expression
-import Language.Nomyx.Evaluation
-import Language.Nomyx.Examples
+import Language.Nomyx
 import Data.Lens
 
 -- | the initial rule set for a game.

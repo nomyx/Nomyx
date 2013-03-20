@@ -17,10 +17,9 @@ import Control.Monad.State
 import Game
 import Utils
 import Interpret
-import Language.Nomyx.Expression
+import Language.Nomyx
 import Data.Time
 import Language.Haskell.Interpreter.Server (ServerHandle)
-import Language.Nomyx.Evaluation
 import Data.Maybe
 import Types
 import Control.Applicative
@@ -165,7 +164,7 @@ enterRule (SubmitRule name desc code) pn sh = do
                        _rStatus = Pending,
                        _rAssessedBy = Nothing}
          Left e -> do
-            output ("Compiler error: " ++ show e ++ "\n") pn
+            Utils.output ("Compiler error: " ++ show e ++ "\n") pn
             tracePN pn ("Compiler error: " ++ show e ++ "\n")
             return Nothing)
 
@@ -196,11 +195,11 @@ inputUpload pn dir mod sh = do
     tracePN pn $ " uploaded " ++ (show mod)
     case m of
       Right _ -> do
-         inPlayersGameDo'_ pn $ output ("File loaded: " ++ show dir ++ " Module " ++ show mod ++"\n") pn
+         inPlayersGameDo'_ pn $ Utils.output ("File loaded: " ++ show dir ++ " Module " ++ show mod ++"\n") pn
          tracePN pn "upload success"
          return ()
       Left e -> do
-         inPlayersGameDo'_ pn $ output ("Compiler error: " ++ show e ++ "\n") pn
+         inPlayersGameDo'_ pn $ Utils.output ("Compiler error: " ++ show e ++ "\n") pn
          tracePN pn "upload failed"
          return ()
 
@@ -292,6 +291,6 @@ trig t g =  do
 timeExceptionHandler :: UTCTime -> Game -> ErrorCall -> IO Game
 timeExceptionHandler t g e = do
    putStrLn $ "Error in triggerTimeEvent: " ++ (show e)
-   return $ execWithGame t (outputAll $ "Error while triggering a time event: " ++ (show e) ++
+   return $ execWithGame t (Utils.outputAll $ "Error while triggering a time event: " ++ (show e) ++
                            "\nThe event have been canceled. Please remove/fix the faulty rule.") g
 

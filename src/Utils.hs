@@ -20,7 +20,7 @@ import Data.Maybe
 import Data.Char
 import Control.Monad.State
 import Types
-import Language.Nomyx.Expression
+import Language.Nomyx
 import Data.List
 import Control.Applicative
 import Control.Exception
@@ -99,7 +99,7 @@ commandExceptionHandler mpn m e = do
    case mpn of
       Just pn -> do
          let g = fromJust $ getPlayersGame pn m
-         let g' = execState (output ("Error in command: " ++ (show e)) pn) g
+         let g' = execState (Utils.output ("Error in command: " ++ (show e)) pn) g
          return $ execState (modifyGame g') m
       Nothing -> return m
 
@@ -120,7 +120,7 @@ output :: String -> PlayerNumber -> State Game ()
 output s pn = void $ outputs %= ((pn, s) : )
 
 outputAll :: String -> State Game ()
-outputAll s = access players >>= mapM_ ((output s) . _playerNumber)
+outputAll s = access players >>= mapM_ ((Utils.output s) . _playerNumber)
 
 
 execWithMulti :: UTCTime -> StateT Multi IO () -> Multi -> IO Multi
