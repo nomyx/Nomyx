@@ -102,11 +102,23 @@ viewRule nr = tr $ do
    td ! A.class_ "td" $ string $ _rName nr
    td ! A.class_ "td" $ string $ _rDescription nr
    td ! A.class_ "td" $ string $ if _rProposedBy nr == 0 then "System" else "Player " ++ (show $ _rProposedBy nr)
-   td ! A.class_ "td" $ preEscapedString $ HSC.hscolour defaultColourPrefs False $ _rRuleCode nr
+   td ! A.class_ "td" $ viewRuleFunc $ nr
    td ! A.class_ "td" $ string $ case _rAssessedBy nr of
       Nothing -> "Not assessed"
       Just 0  -> "System"
       Just a  -> "Rule " ++ (show $ a)
+
+viewRuleFunc :: Rule -> Html
+viewRuleFunc nr = do
+      let code = preEscapedString $ HSC.hscolour defaultColourPrefs False $ _rRuleCode nr
+      let ref = "openModalCode" ++ (show $ _rNumber nr)
+      div ! A.id "showCodeLink" $ a ! (A.href $ toValue $ "#" ++ ref)  $ "show code" >> br
+      code
+      div ! A.id (toValue ref) ! A.class_ "modalDialog" $ do
+         div $ do
+            p $ "Code of the rule:"
+            a ! A.href "#close" ! A.title "Close" ! A.class_ "close" $ "X"
+            code
 
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)

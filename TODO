@@ -27,7 +27,6 @@ Improves:
 - add a proper log system (with levels)
 - change vocabulary: join,subscribing -> view, join
 - hide when no information
-- make page to open code full screen
 - generate better messages for partial functions
 
 Futur Nomic:
