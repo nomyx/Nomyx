@@ -25,9 +25,9 @@ Improves:
 - suppress "delRule"
 - remove references to "multi" to improve flow
 - add a proper log system (with levels)
-- change vocabulary: join,subscribing -> view, join
 - hide when no information
 - generate better messages for partial functions
+- cut rules too long
 
 Futur Nomic:
 - ability to analyse rules, proof system

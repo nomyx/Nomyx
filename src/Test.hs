@@ -87,14 +87,14 @@ printRule r = unsafePerformIO $ do
 
 onePlayerOneGame :: [MultiEvent]
 onePlayerOneGame =
-   [MultiNewPlayer (PlayerMulti {_mPlayerNumber = 1, _mPlayerName = "coco", _mPassword = "coco", _mMail = MailSettings {_mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}, _inGame = Nothing, _lastRule = Nothing}),
+   [MultiNewPlayer (PlayerMulti {_mPlayerNumber = 1, _mPlayerName = "coco", _mPassword = "coco", _mMail = MailSettings {_mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}, _viewingGame = Nothing, _lastRule = Nothing}),
     MultiMailSettings (MailSettings {_mailTo = "c", _mailNewInput = True, _mailNewRule = True, _mailNewOutput = True, _mailConfirmed = True}) 1,
     MultiNewGame "test" (GameDesc "" "") 1,
     MultiJoinGame "test" 1]
 
 twoPlayersOneGame :: [MultiEvent]
 twoPlayersOneGame = onePlayerOneGame ++
-   [MultiNewPlayer (PlayerMulti {_mPlayerNumber = 2, _mPlayerName = "bat", _mPassword = "bat", _mMail = MailSettings {_mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}, _inGame = Nothing, _lastRule = Nothing}),
+   [MultiNewPlayer (PlayerMulti {_mPlayerNumber = 2, _mPlayerName = "bat", _mPassword = "bat", _mMail = MailSettings {_mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}, _viewingGame = Nothing, _lastRule = Nothing}),
     MultiMailSettings (MailSettings {_mailTo = "c", _mailNewInput = True, _mailNewRule = True, _mailNewOutput = True, _mailConfirmed = True}) 2,
     MultiJoinGame "test" 2]
 

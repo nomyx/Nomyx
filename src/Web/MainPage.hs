@@ -88,18 +88,15 @@ viewGamesTab pn gs = do
 viewGameName :: PlayerNumber -> Game -> RoutedNomyxServer Html
 viewGameName pn g = do
    let gn = _gameName g
-   join <- showURL (JoinGame pn gn)
-   leave <- showURL (LeaveGame pn)
-   --subscribe <- showURL (SubscribeGame pn gn)
-   unsubscribe <- showURL (UnsubscribeGame pn gn)
+   join <-  showURL (JoinGame pn gn)
+   leave <- showURL (LeaveGame pn gn)
+   view <-  showURL (ViewGame pn gn)
    ok $ do
       tr $ do
-         td $ string $ gn
-         td $ H.a "Join" ! (href $ toValue join)
+         td ! A.id "gameName" $ string $ (gn ++ "   ")
+         td $ H.a "View"  ! (href $ toValue view)
+         td $ H.a "Join"  ! (href $ toValue join)
          td $ H.a "Leave" ! (href $ toValue leave)
-         --td $ H.a "Subscribe" ! (href $ toValue subscribe)
-         td $ H.a "Unsubscribe" ! (href $ toValue unsubscribe)
-
 
 
 nomyxPage :: Multi -> PlayerNumber -> RoutedNomyxServer Html
@@ -124,10 +121,9 @@ routedNomyxCommands _  (NewPlayer lp)              = newPlayerPage lp
 routedNomyxCommands tm (NewPlayerLogin lp)         = newPlayerLogin tm lp
 routedNomyxCommands tm (PostLogin)                 = postLogin tm
 routedNomyxCommands tm (Noop pn)                   = nomyxPageServer pn tm
-routedNomyxCommands tm (JoinGame pn game)          = webCommand tm pn (MultiJoinGame game pn)        >> nomyxPageServer pn tm
-routedNomyxCommands tm (LeaveGame pn)              = webCommand tm pn (MultiLeaveGame pn)            >> nomyxPageServer pn tm
-routedNomyxCommands tm (SubscribeGame pn game)     = webCommand tm pn (MultiSubscribeGame game pn)   >> nomyxPageServer pn tm
-routedNomyxCommands tm (UnsubscribeGame pn game)   = webCommand tm pn (MultiUnsubscribeGame game pn) >> nomyxPageServer pn tm
+routedNomyxCommands tm (JoinGame pn game)          = webCommand tm pn (MultiJoinGame game pn) >> nomyxPageServer pn tm
+routedNomyxCommands tm (LeaveGame pn game)         = webCommand tm pn (MultiLeaveGame game pn)>> nomyxPageServer pn tm
+routedNomyxCommands tm (ViewGame pn game)          = webCommand tm pn (MultiViewGame game pn) >> nomyxPageServer pn tm
 routedNomyxCommands tm (NewRule pn)                = newRule pn tm
 routedNomyxCommands _  (NewGame pn)                = newGamePage pn
 routedNomyxCommands tm (SubmitNewGame pn)          = newGame pn tm

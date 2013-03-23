@@ -29,9 +29,9 @@ import Data.Lens
 
 
 -- | helper function to change a player's ingame status.
-mayJoinGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
-mayJoinGame maybename pn pl = case find (\(PlayerMulti mypn _ _ _ _ _) -> mypn == pn) pl of
-                     Just o -> replace o o{ _inGame = maybename} pl
+mayViewGame :: Maybe GameName -> PlayerNumber -> [PlayerMulti] -> [PlayerMulti]
+mayViewGame maybename pn pl = case find (\(PlayerMulti mypn _ _ _ _ _) -> mypn == pn) pl of
+                     Just o -> replace o o{ _viewingGame = maybename} pl
                      Nothing -> pl
 
 newPlayerU :: PlayerMulti -> State Multi ()
@@ -50,12 +50,9 @@ addNewGame new = void $ games %= (new:)
 getGameByName :: GameName -> State Multi (Maybe Game)
 getGameByName gn =  fmap (find ((==gn) . getL gameName)) (access games)
 
-joinGamePlayer :: PlayerNumber -> GameName -> State Multi ()
-joinGamePlayer pn game = void $ mPlayers %= mayJoinGame (Just game) pn
 
-
-leaveGameU :: PlayerNumber -> State Multi ()
-leaveGameU pn = void $ mPlayers %= mayJoinGame Nothing pn
+unviewGamePlayer :: PlayerNumber -> State Multi ()
+unviewGamePlayer pn = void $ mPlayers %= mayViewGame Nothing pn
 
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> State Multi ()
@@ -72,27 +69,18 @@ newGame name desc pn = do
 uniqueGame :: String -> [Game] -> Bool
 uniqueGame s gs = null $ filter ((== s) . getL gameName) gs
 
--- | join a game.
-joinGame :: GameName -> PlayerNumber -> State Multi ()
-joinGame game pn = do
+-- | view a game.
+viewGame :: GameName -> PlayerNumber -> State Multi ()
+viewGame game pn = do
    mg <- getGameByName game
    case mg of
       Nothing -> tracePN pn "No game by that name"
-      Just g -> do
-         subscribeGame (_gameName g) pn
-         joinGamePlayer pn game
-
-
--- | leave a game (you remain subscribed).
-leaveGame :: PlayerNumber -> State Multi ()
-leaveGame pn = do
-   leaveGameU pn
-   tracePN pn "You left the game (you remain subscribed)."
+      Just _ -> void $ mPlayers %= mayViewGame (Just game) pn
 
 
 -- | subcribe to a game.
-subscribeGame :: GameName -> PlayerNumber -> State Multi ()
-subscribeGame game pn = do
+joinGame :: GameName -> PlayerNumber -> State Multi ()
+joinGame game pn = do
    m <- get
    inGameDo game $ do
       pls <- access players
@@ -105,9 +93,9 @@ subscribeGame game pn = do
             triggerEvent (Player Arrive) (PlayerData player)
 
 
--- | subcribe to a game.
-unsubscribeGame :: GameName -> PlayerNumber -> State Multi ()
-unsubscribeGame game pn = inGameDo game $ do
+-- | unsubcribe to a game.
+leaveGame :: GameName -> PlayerNumber -> State Multi ()
+leaveGame game pn = inGameDo game $ do
    g <- get
    case find ((== pn) . getL playerNumber ) (_players g) of
       Nothing -> tracePN pn "Not subscribed!"

@@ -47,10 +47,9 @@ data PlayerCommand = Login
                    | NewPlayer       LoginPass
                    | NewPlayerLogin  LoginPass
                    | Noop            PlayerNumber
+                   | ViewGame        PlayerNumber GameName
                    | JoinGame        PlayerNumber GameName
-                   | LeaveGame       PlayerNumber
-                   | SubscribeGame   PlayerNumber GameName
-                   | UnsubscribeGame PlayerNumber GameName
+                   | LeaveGame       PlayerNumber GameName
                    | DoInputChoice   PlayerNumber EventNumber
                    | DoInputString   PlayerNumber String
                    | NewRule         PlayerNumber

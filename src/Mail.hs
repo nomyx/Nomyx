@@ -50,12 +50,13 @@ newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 sendMailsNewRule :: Multi -> SubmitRule -> PlayerNumber -> IO()
 sendMailsNewRule m sr pn = do
    evaluate m
-   let gn = _gameName $ fromJust $ getPlayersGame pn m
+   let g = fromJust $ getPlayersGame pn m
    let proposer = getPlayersName pn m
-   forM_ (mPlayers ^$ m) $ send proposer gn
+   let pls = [ p { _mPlayerNumber = mypn} | p <- _mPlayers m, mypn <- map _playerNumber $ players ^$ g]
+   forM_ pls $ send proposer
    where
-      send :: PlayerName -> GameName -> PlayerMulti -> IO()
-      send prop gn pm = when ((Just gn == (inGame ^$ pm)) && (mailNewRule ^$ mMail ^$ pm))
+      send :: PlayerName -> PlayerMulti -> IO()
+      send prop pm = when (mailNewRule ^$ mMail ^$ pm)
           $ sendMail (mailTo ^$ mMail ^$ pm) (newRuleObject prop) (renderHtml $ newRuleBody (mPlayerName ^$ pm) sr prop (net ^$ mSettings ^$ m))
 
    

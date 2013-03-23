@@ -81,7 +81,7 @@ newPlayerLogin tm (LoginPass login password) = do
              NewLogin -> do
                 pn <- evalCommand tm $ getNewPlayerNumber
                 link <- showURL $ Noop pn
-                webCommand tm pn $ MultiNewPlayer PlayerMulti { _mPlayerNumber = pn, _mPlayerName = login, _mPassword = password, _inGame = Nothing, _mMail = defaultMailSettings, _lastRule = Nothing}
+                webCommand tm pn $ MultiNewPlayer PlayerMulti { _mPlayerNumber = pn, _mPlayerName = login, _mPassword = password, _viewingGame = Nothing, _mMail = defaultMailSettings, _lastRule = Nothing}
                 webCommand tm pn $ MultiMailSettings ms pn
                 seeOther link $ string "Redirecting..."
        (Left _) -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."

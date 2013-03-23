@@ -84,7 +84,7 @@ getPlayersName' g pn = do
 getPlayersGame :: PlayerNumber -> Multi -> Maybe Game
 getPlayersGame pn multi = do
         pi <- find ((==pn) . getL mPlayerNumber) (mPlayers ^$ multi)
-        gn <- _inGame pi
+        gn <- _viewingGame pi
         find ((== gn) . getL gameName) (_games multi)
 
 getPlayersNameMay :: Game -> PlayerNumber -> Maybe PlayerName

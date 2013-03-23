@@ -39,9 +39,8 @@ enactEvent :: MultiEvent -> StateT Multi IO ()
 enactEvent (MultiNewPlayer pm)                = liftT $ newPlayerU pm
 enactEvent (MultiNewGame s d pn)              = liftT $ newGame s d pn
 enactEvent (MultiJoinGame gn pn)              = liftT $ joinGame gn pn
-enactEvent (MultiLeaveGame pn)                = liftT $ leaveGame pn
-enactEvent (MultiSubscribeGame gn pn)         = liftT $ subscribeGame gn pn
-enactEvent (MultiUnsubscribeGame gn pn)       = liftT $ unsubscribeGame gn pn
+enactEvent (MultiLeaveGame gn pn)             = liftT $ leaveGame gn pn
+enactEvent (MultiViewGame gn pn)              = liftT $ viewGame gn pn
 enactEvent (MultiSubmitRule sr pn)            = access (mSettings >>> sh) >>= submitRule sr pn
 enactEvent (MultiInputChoiceResult en ci pn)  = liftT $ inputChoiceResult en ci pn
 enactEvent (MultiInputStringResult ti res pn) = liftT $ inputStringResult (InputString pn ti) res pn

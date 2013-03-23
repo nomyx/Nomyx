@@ -74,12 +74,6 @@ thead {
  font-weight:bold
  }
 
-#gameName {
-   float:left;
-   margin-left:5%;
-   padding:10px;
-}
-
 #victory {
    float:left;
    margin-left:5%;
@@ -99,6 +93,10 @@ thead {
 
 #showCodeLink {
    text-align:right;
+}
+
+#gameName {
+   padding-right: 10px;
 }
 
 /* #eventsBody {
