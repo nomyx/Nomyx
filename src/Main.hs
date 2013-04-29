@@ -15,7 +15,7 @@
     
 module Main (main) where
 
-import Prelude hiding (catch)
+import Prelude hiding (catch, (.))
 import System.Console.GetOpt 
 import System.Environment 
 import Web.MainPage
@@ -36,12 +36,13 @@ import Paths_Nomyx as PN
 import System.Directory
 import Data.Time.Clock
 import Language.Nomyx hiding (getCurrentTime)
-import Control.Monad
 import Control.Exception hiding (bracket)
 import Test
 import Utils
 import Data.Version (showVersion)
-import Data.Lens
+import Control.Category
+import Multi
+import Language.Haskell.Interpreter.Server hiding (start)
 
 defaultLogFile :: FilePath
 defaultLogFile = "Nomyx.save"
@@ -83,54 +84,54 @@ start flags = do
          Just h -> return h
          Nothing -> getHostName >>= return
       logFilePath <- getDataFileName logFile
-      let settings sendMail = Settings (defaultLog logFilePath) sh (Network host port) sendMail
-      multi <- case (findLoadTest flags) of
-         Just testName -> loadTestName (settings False)  testName
-         Nothing -> loadMulti (settings True) (not $ NoReadSaveFile `elem` flags)
-      tvMulti <- atomically $ newTVar multi
+      let settings sendMail = Settings logFilePath (Network host port) sendMail
+      session <- case (findLoadTest flags) of
+         Just testName -> loadTestName (settings False) testName sh
+         Nothing -> Main.loadMulti (settings True) (not $ NoReadSaveFile `elem` flags) sh
+      tvSession <- atomically $ newTVar session
       --start the web server
-      forkIO $ launchWebServer tvMulti (Network host port)
-      forkIO $ launchTimeEvents tvMulti
+      forkIO $ launchWebServer tvSession (Network host port)
+      forkIO $ launchTimeEvents tvSession
       --main loop
-      serverLoop tvMulti logFile
+      serverLoop tvSession logFile
 
-loadMulti :: Settings -> Bool -> IO Multi
-loadMulti set readSaveFile = do
-   fileExists <- doesFileExist $ logFilePath ^$ logs ^$ set
+loadMulti :: Settings -> Bool -> ServerHandle -> IO Session
+loadMulti set readSaveFile sh = do
+   fileExists <- doesFileExist $ _logFilePath $ set
    t <- getCurrentTime
    multi <- case fileExists && readSaveFile of
       True -> do
          putStrLn "Loading previous game"
-         loadEvents set `catch`
+         Serialize.loadMulti set sh `catch`
             (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set t))
       False -> return $ defaultMulti set t
-   return multi
+   return $ Session sh multi
 
 
 -- | a loop that will handle server commands
-serverLoop :: TVar Multi -> FilePath -> IO ()
-serverLoop tm f = do
+serverLoop :: TVar Session -> FilePath -> IO ()
+serverLoop ts f = do
    s <- getLine
    case s of
       "d" -> do
-         m <- atomically $ readTVar tm
+         (Session _ m) <- atomically $ readTVar ts
          putStrLn $ show m
-         serverLoop tm f
+         serverLoop ts f
       "s" -> do
          putStrLn "saving state..."
-         m <- atomically $ readTVar tm
+         (Session _ m) <- atomically $ readTVar ts
          fp <- getDataFileName f
-         save fp $ logEvents ^$ logs ^$ mSettings ^$ m
-         serverLoop tm f
+         save fp m
+         serverLoop ts f
       "q" -> return ()
       _ -> do
          putStrLn "command not recognized"
-         serverLoop tm f
+         serverLoop ts f
 
 serverCommandUsage :: IO ()
 serverCommandUsage = do
    putStrLn "Server commands:"
-   --putStrLn "s -> save state"
+   putStrLn "s -> save state"
    putStrLn "d -> debug"
    putStrLn "q -> quit"
 
@@ -200,33 +201,23 @@ restoreHandlers h  = liftIO . sequence $ zipWith helper h signals
 protectHandlers :: MonadCatchIO m => m a -> m a
 protectHandlers a = bracket saveHandlers restoreHandlers $ const a
 
-triggerTimeEvent :: TVar Multi -> UTCTime -> IO()
+triggerTimeEvent :: TVar Session -> UTCTime -> IO()
 triggerTimeEvent tm t = do
-    m <- atomically $ readTVar tm
-    m' <- execWithMulti t (update (TE t (MultiTimeEvent t)) Nothing) m
-    atomically $ writeTVar tm m'
+    (Session sh m) <- atomically $ readTVar tm
+    m' <- execWithMulti t (Multi.triggerTimeEvent t) m
+    atomically $ writeTVar tm (Session sh m')
 
 
--- | get all events that has not been triggered yet
-getTimeEvents :: UTCTime -> TVar Multi -> IO([UTCTime])
-getTimeEvents now tm = do
-    m <- atomically $ readTVar tm
-    let times = catMaybes $ map getTimes $ concatMap _events $ _games m
-    return $ filter (\t -> t <= now && t > (-2) `addUTCTime` now) times
-
-
-launchTimeEvents :: TVar Multi -> IO()
+launchTimeEvents :: TVar Session -> IO()
 launchTimeEvents tm = do
     now <- getCurrentTime
     --putStrLn $ "tick " ++ (show now)
-    timeEvents <- getTimeEvents now tm
+    (Session _ m) <- atomically $ readTVar tm
+    timeEvents <- getTimeEvents now m
     when (length timeEvents /= 0) $ putStrLn "found time event(s)"
-    mapM_ (triggerTimeEvent tm) timeEvents
+    mapM_ (Main.triggerTimeEvent tm) timeEvents
     --sleep 1 second roughly
     threadDelay 1000000
     launchTimeEvents tm
 
 
-getTimes :: EventHandler -> Maybe UTCTime
-getTimes (EH _ _ (Time t) _) = Just t
-getTimes _ = Nothing

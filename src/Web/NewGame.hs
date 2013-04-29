@@ -21,6 +21,7 @@ import Web.Routes.RouteT
 import Control.Concurrent.STM
 import Data.Text(Text)
 import Text.Blaze.Internal(string)
+import Multi
 default (Integer, Double, Data.Text.Text)
 
 
@@ -43,12 +44,12 @@ newGamePage pn = do
              "New game"
              False
 
-newGame :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
-newGame pn tm = do
+newGamePost :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
+newGamePost pn tm = do
    methodM POST
    r <- liftRouteT $ eitherForm environment "user" newGameForm
    link <- showURL $ Noop pn
    case r of
       Left _ -> error $ "error: newGame"
-      Right (NewGameForm name desc) -> webCommand tm pn $ MultiNewGame name desc pn
+      Right (NewGameForm name desc) -> webCommand tm pn $ newGame name desc pn
    seeOther link $ string "Redirecting..."

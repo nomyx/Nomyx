@@ -19,7 +19,7 @@ import Prelude hiding (catch)
 import Types
 import Data.Time hiding (getCurrentTime)
 import Control.Monad.State
-import Serialize
+import Multi
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Language.Nomyx hiding (getCurrentTime)
 import Control.Applicative
@@ -28,56 +28,54 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Syntax as THS
 import System.IO.Unsafe
 import Quotes
-import Data.List
 import Data.Time.Clock
 import Data.Lens
 import Safe
-import Debug.Trace.Helpers
-
+import qualified Language.Nomyx.Game as G
 
 playTests :: ServerHandle -> IO [(String, Bool)]
 playTests sh = mapM (\(title, t, cond) -> (title,) <$> test sh t cond) tests
 
-tests :: [(String, [TimedEvent], Multi -> Bool)]
-tests = [("hello World",           noTime gameHelloWorld,         condHelloWorld),
-         ("hello World 2 players", noTime gameHelloWorld2Players, condHelloWorld2Players),
-         ("Partial Function 1",    noTime gamePartialFunction1,   condPartialFunction1),
-         ("Partial Function 2",    gamePartialFunction2,          condPartialFunction2),
-         ("Partial Function 3",    noTime gamePartialFunction3,   condPartialFunction3),
-         ("Money transfer",        noTime gameMoneyTransfer,      condMoneyTransfer)]
+tests :: [(String, StateT Session IO (), Multi -> Bool)]
+tests = [("hello World",           gameHelloWorld,         condHelloWorld),
+         ("hello World 2 players", gameHelloWorld2Players, condHelloWorld2Players),
+         ("Partial Function 1",    gamePartialFunction1,   condPartialFunction1),
+         --("Partial Function 2",    gamePartialFunction2,          condPartialFunction2),
+         ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
+         ("Money transfer",        gameMoneyTransfer,      condMoneyTransfer)]
 
 dayZero :: UTCTime
 dayZero = UTCTime (ModifiedJulianDay 0) 0
 
-noTime :: [MultiEvent] -> [TimedEvent]
-noTime mes = map (TE dayZero) mes
+--noTime :: [MultiEvent] -> [TimedEvent]
+--noTime mes = map (TE dayZero) mes
 
-test :: ServerHandle -> [TimedEvent] -> (Multi -> Bool) -> IO Bool
+test :: ServerHandle -> StateT Session IO () -> (Multi -> Bool) -> IO Bool
 test sh tes cond = do
-   let m = defaultMulti (Settings (defaultLog "") sh defaultNetwork False) dayZero
-   m' <- (loadTest tes m)
+   let s = Session sh $ defaultMulti (Settings "" defaultNetwork False) dayZero
+   (Session _ m') <- (loadTest tes s)
    (evaluate $ cond m') `catch` (\(e::SomeException) -> (putStrLn $ "Exception in test: " ++ show e) >> return False)
 
 
-loadTest ::  [TimedEvent] -> Multi -> IO Multi
-loadTest tes m = do
-   m' <- execStateT (loadTimedEvents tes) m
-   evaluate m'
-   return m'
+loadTest ::  StateT Session IO () -> Session -> IO Session
+loadTest tes s = do
+   s' <- execStateT tes s
+   evaluate s'
+   return s'
 
 testException :: Multi -> SomeException -> IO Multi
 testException m e = do
    putStrLn $ "Test Exception: " ++ show e
    return m
 
-loadTestName :: Settings -> String -> IO Multi
-loadTestName set testName = do
+loadTestName :: Settings -> String -> ServerHandle -> IO Session
+loadTestName set testName sh = do
    let mt = find (\(name, _, _) -> name == testName) tests
    t <- getCurrentTime
-   let m = defaultMulti set t
+   let s = Session sh (defaultMulti set t)
    case mt of
-      Just (n, t, _) -> putStrLn ("Loading test game: " ++ n)  >> loadTest t m
-      Nothing -> putStrLn "Test name not found" >> return m
+      Just (n, t, _) -> putStrLn ("Loading test game: " ++ n)  >> loadTest t s
+      Nothing -> putStrLn "Test name not found" >> return s
 
 printRule :: Q THS.Exp -> String
 printRule r = unsafePerformIO $ do
@@ -85,65 +83,73 @@ printRule r = unsafePerformIO $ do
    return $ pprint expr
 
 
-onePlayerOneGame :: [MultiEvent]
-onePlayerOneGame =
-   [MultiNewPlayer (PlayerMulti {_mPlayerNumber = 1, _mPlayerName = "coco", _mPassword = "coco", _mMail = MailSettings {_mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}, _viewingGame = Nothing, _lastRule = Nothing}),
-    MultiMailSettings (MailSettings {_mailTo = "c", _mailNewInput = True, _mailNewRule = True, _mailNewOutput = True, _mailConfirmed = True}) 1,
-    MultiNewGame "test" (GameDesc "" "") 1,
-    MultiJoinGame "test" 1]
+onePlayerOneGame :: StateT Session IO ()
+onePlayerOneGame = focus multi $ do
+   newPlayer $ PlayerMulti {_mPlayerNumber = 1, _mPlayerName = "coco", _mPassword = "coco", _viewingGame = Nothing, _lastRule = Nothing, _mMail = MailSettings {_mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}}
+   newGame "test" (GameDesc "" "") 1
+   joinGame "test" 1
+   viewGamePlayer "test" 1
 
-twoPlayersOneGame :: [MultiEvent]
-twoPlayersOneGame = onePlayerOneGame ++
-   [MultiNewPlayer (PlayerMulti {_mPlayerNumber = 2, _mPlayerName = "bat", _mPassword = "bat", _mMail = MailSettings {_mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}, _viewingGame = Nothing, _lastRule = Nothing}),
-    MultiMailSettings (MailSettings {_mailTo = "c", _mailNewInput = True, _mailNewRule = True, _mailNewOutput = True, _mailConfirmed = True}) 2,
-    MultiJoinGame "test" 2]
+twoPlayersOneGame :: StateT Session IO ()
+twoPlayersOneGame = do
+   onePlayerOneGame
+   focus multi $ do
+      newPlayer $ PlayerMulti {_mPlayerNumber = 2, _mPlayerName = "bat", _mPassword = "bat", _mMail = MailSettings {_mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}, _viewingGame = Nothing, _lastRule = Nothing}
+      joinGame "test" 2
+      viewGamePlayer "test" 2
 
-submitRule ::  String -> [MultiEvent]
-submitRule r = onePlayerOneGame ++
-   [MultiSubmitRule (SubmitRule "" "" r) 1,
-    MultiInputChoiceResult 3 0 1]
+submitR :: String -> StateT Session IO ()
+submitR r = do
+   onePlayerOneGame
+   sh <- access sh
+   focus multi $ do
+      submitRule (SubmitRule "" "" r) 1 sh
+      inputChoiceResult 3 0 1
 
 
 
-gameHelloWorld :: [MultiEvent]
-gameHelloWorld = onePlayerOneGame ++ submitRule [cr|helloWorld|]
+gameHelloWorld :: StateT Session IO ()
+gameHelloWorld = submitR [cr|helloWorld|]
 
 condHelloWorld :: Multi -> Bool
-condHelloWorld m = (head $ _outputs $ head $ _games m) == (1, "hello, world!")
+condHelloWorld m = (head $ _outputs $ G._game $ head $ _games m) == (1, "hello, world!")
 
-gameHelloWorld2Players :: [MultiEvent]
-gameHelloWorld2Players = twoPlayersOneGame ++
-   [MultiSubmitRule (SubmitRule "" "" [cr|helloWorld|]) 1,
-   MultiInputChoiceResult 3 0 1,
-   MultiInputChoiceResult 4 0 2]
+gameHelloWorld2Players :: StateT Session IO ()
+gameHelloWorld2Players = do
+   twoPlayersOneGame
+   sh <- access sh
+   focus multi $ do
+      submitRule (SubmitRule "" "" [cr|helloWorld|]) 1 sh
+      inputChoiceResult 3 0 1
+      inputChoiceResult 4 0 2
 
 condHelloWorld2Players :: Multi -> Bool
-condHelloWorld2Players m = (head $ _outputs $ head $ _games m) == (1, "hello, world!")
+condHelloWorld2Players m = (head $ _outputs $ G._game $ head $ _games m) == (1, "hello, world!")
 
 partialFunction1 :: String
 partialFunction1 = [cr|voidRule $ readVar_ (V "toto1")|]
 
-gamePartialFunction1 :: [MultiEvent]
-gamePartialFunction1 = onePlayerOneGame ++ (submitRule partialFunction1)
+gamePartialFunction1 :: StateT Session IO ()
+gamePartialFunction1 = submitR partialFunction1
 
 -- rule has not been accepted due to exception
 condPartialFunction1 :: Multi -> Bool
-condPartialFunction1 m = (_rStatus $ head $ _rules $ head $ _games m) == Pending &&
-                         (take 5 $ snd $ head $ _outputs $ head $ _games m) == "Error"
+condPartialFunction1 m = (_rStatus $ head $ _rules $ G._game $ head $ _games m) == Pending &&
+                         (take 5 $ snd $ head $ _outputs $ G._game $ head $ _games m) == "Error"
 
 partialFunction2 :: String
 partialFunction2 = [cr|voidRule $ do
    t <- getCurrentTime
    onEventOnce_ (Time $ addUTCTime 5 t) $ const $ readVar_ (V "toto2")|]
 
-gamePartialFunction2 :: [TimedEvent]
-gamePartialFunction2 = noTime onePlayerOneGame ++ (noTime $ submitRule partialFunction2) ++
-   [TE (5 `addUTCTime` dayZero) $  (MultiTimeEvent $ 5 `addUTCTime` dayZero)]
+--gamePartialFunction2 :: StateT Session IO ()
+--gamePartialFunction2 = onePlayerOneGame ++ (submitRule partialFunction2) ++
+--   [TE (5 `addUTCTime` dayZero) $  (MultiTimeEvent $ 5 `addUTCTime` dayZero)]
 
 -- rule has been accepted but exception happened later
 condPartialFunction2 :: Multi -> Bool
-condPartialFunction2 m = (_rStatus $ headNote "cond failed" $ _rules $ headNote "cond failed" $ _games m) == Active &&
-                         (take 5 $ snd $ headNote "cond failed" $ _outputs $ headNote "cond failed" $ _games m) == "Error"
+condPartialFunction2 m = (_rStatus $ headNote "cond failed" $ _rules $ G._game $ headNote "cond failed" $ _games m) == Active &&
+                         (take 5 $ snd $ headNote "cond failed" $ _outputs $ G._game $ headNote "cond failed" $ _games m) == "Error"
 
 --This rule blocks the game: the exception (variable not existing) is triggered during a "rule proposed" event,
 --thus preventing to propose any new rule to the game.
@@ -151,27 +157,38 @@ partialFunction3 :: String
 partialFunction3 = [cr|voidRule $ do
    onEvent_ (RuleEv Proposed) $ const $ readVar_ (V "toto3")|]
 
-gamePartialFunction3 :: [MultiEvent]
-gamePartialFunction3 = onePlayerOneGame ++ (submitRule partialFunction3) ++ (submitRule [cr|nothing|])
+gamePartialFunction3 :: StateT Session IO ()
+gamePartialFunction3 = do
+   submitR partialFunction3
+   submitR [cr|nothing|]
 
 -- rule has been accepted but no more rule can be proposed
 condPartialFunction3 :: Multi -> Bool
-condPartialFunction3 m = (length $ _rules $ head $ games ^$ m) == 3
+condPartialFunction3 m = (length $ _rules $ G._game $ head $ games ^$ m) == 3
 
 --Create bank accounts, win 100 Ecu on rule accepted (so 100 Ecu is won for each player), transfer 50 Ecu
-gameMoneyTransfer :: [MultiEvent]
-gameMoneyTransfer = twoPlayersOneGame ++
-   [MultiSubmitRule (SubmitRule "" "" [cr|createBankAccount|]) 1,
-   (MultiSubmitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1),
-   (MultiSubmitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2),
-   (MultiInputChoiceResult 4 0 1),
-   (MultiInputChoiceResult 3 0 2),
-   (MultiInputChoiceResult 9 0 1),
-   (MultiInputChoiceResult 8 0 2),
-   (MultiInputChoiceResult 14 0 1),
-   (MultiInputChoiceResult 13 0 2),
-   (MultiInputChoiceResult 5 0 1),
-   (MultiInputStringResult "Select Amount to transfert to player: 2" "50" 1)]
+gameMoneyTransfer :: StateT Session IO ()
+gameMoneyTransfer = do
+   sh <- access sh
+   twoPlayersOneGame
+   focus multi $ do
+      submitRule (SubmitRule "" "" [cr|createBankAccount|]) 1 sh
+      submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 sh
+      submitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2 sh
+      inputChoiceResult 4 0 1
+      inputChoiceResult 3 0 2
+      inputChoiceResult 9 0 1
+      inputChoiceResult 8 0 2
+      inputChoiceResult 14 0 1
+      inputChoiceResult 13 0 2
+      inputChoiceResult 5 0 1
+      inputStringResult (InputString 1 "Select Amount to transfert to player: 2") "50" 1
 
 condMoneyTransfer :: Multi -> Bool
-condMoneyTransfer m = (_vName $ head $ _variables $ head $ _games m) == "Accounts"
+condMoneyTransfer m = (_vName $ head $ _variables $ G._game $ head $ _games m) == "Accounts"
+
+
+--addRuleParams'_ :: RuleName -> String -> RuleNumber -> String -> Nomex ()
+--addRuleParams'_ name code number desc = do
+--   let code =  $(return $ putParens' [| voidRule $ return () |])
+--   addRuleParams_ name (fst code) (snd code) number desc

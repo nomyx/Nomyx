@@ -11,7 +11,7 @@
 -- |
 --
 -----------------------------------------------------------------------------
-{-# LANGUAGE NamedFieldPuns, TemplateHaskell, QuasiQuotes #-}
+{-# LANGUAGE NamedFieldPuns, TemplateHaskell, QuasiQuotes, FlexibleInstances, GADTs #-}
 
 module Quotes where
 
@@ -39,7 +39,47 @@ quoteRuleFunc s = do
       Left e -> fail $ show e
 
 
--- addRuleParams'_ :: RuleName -> String -> RuleNumber -> String -> Exp ()
--- addRuleParams'_ name code number desc = addRuleParams_ name (VoidRule $ return ()) $( [|code|] ) number desc
 
 
+--cr2 :: QuasiQuoter
+--cr2 = QuasiQuoter { quoteExp  = quoteRuleFunc2,
+--                   quotePat  = undefined,
+--                   quoteType = undefined,
+--                   quoteDec  = undefined}
+--
+--quoteRuleFunc2 :: String -> Q TH.Exp
+--quoteRuleFunc2 s = do
+--   res <- runIO $ runInterpreter $ do
+--      setImports importList
+--      interpret s (as::RuleFunc)
+--   case res of
+--      Right f -> [| (s,f) |]
+--      Left e -> fail $ show e
+
+
+      --do --[| putParens s |]
+--   s_0 <- newName "s"
+--   return $ LamE [VarP s_0] (InfixE (Just (LitE (StringL "(")))
+--                                    (VarE GHC.Base.++)
+--                                    (Just (InfixE (Just (VarE s_0))
+--
+--
+--putParens :: String -> String
+--putParens s =  "(" ++ s ++ ",\"" ++ s ++ "\")"
+--
+--putParens' :: Q TH.Exp -> Q TH.Exp
+--putParens' (LitE (StringL s)) = (LitE (StringL s))
+
+--t :: (Int, String)
+--t = $( [| 1 |] )
+--RuleName -> RuleFunc -> RuleCode -> RuleNumber -> String -> Nomex ()
+
+---- $( quoteRuleFunc2 "voidRule $ return ()")
+--putParens :: String -> IO (String, RuleFunc)
+--putParens s = do
+--   res <- runIO $ runInterpreter $ do
+--      setImports importList
+--      interpret s (as::RuleFunc)
+--   case res of
+--      Right f -> return (s, f)
+--      Left  e -> fail $ show e

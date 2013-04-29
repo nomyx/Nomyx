@@ -53,6 +53,13 @@ interpretRule :: String -> ServerHandle -> IO (Either InterpreterError RuleFunc)
 interpretRule s sh = (liftIO $ runIn sh $ interpret s (as :: RuleFunc))
    `CE.catch` (\e -> return $ Left $ NotAllowed $ "Caught exception: " ++ (show (e:: IOException)))
 
+getRuleFunc :: ServerHandle -> RuleCode -> IO RuleFunc
+getRuleFunc sh rc = do
+   res <- interpretRule rc sh
+   case res of
+      Right ruleFunc -> return ruleFunc
+      Left e -> error $ show e
+
 --liftIO $ mapM_ (uncurry setResourceLimit) limits      
 cpuTimeLimitSoft = ResourceLimit 4
 cpuTimeLimitHard = ResourceLimit 5
@@ -82,4 +89,6 @@ checkModule dir sh = runIn sh $ do
    fmods <- liftIO getUploadModules
    liftIO $ putStrLn $ concat $ fmods
    loadModules (dir:fmods)
+
+
 

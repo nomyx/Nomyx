@@ -29,7 +29,7 @@ import System.Directory
 import System.FilePath
 import System.Posix.Files
 import qualified Web.Help as Help
-import Types
+import Types as T
 import Web.Game
 import Web.Common
 import Web.Login
@@ -41,15 +41,17 @@ import Data.Maybe
 import Data.List
 import Data.Text(Text, pack)
 import Data.Lens
+import qualified Language.Nomyx.Game as G
+import Multi
 default (Integer, Double, Data.Text.Text)
 
 
 viewMulti :: PlayerNumber -> Multi -> RoutedNomyxServer Html
 viewMulti pn m = do
    let pl = fromJust $ find ((==) pn . getL mPlayerNumber) (_mPlayers m)
-   gns <- viewGamesTab pn (_games m)
+   gns <- viewGamesTab pn (map G._game $ _games m)
    g <- case getPlayersGame pn m of
-            Just g -> viewGame g pn (_lastRule pl)
+            Just g -> viewGame (G._game g) pn (_lastRule pl)
             Nothing -> ok $ h3 "Not in game"
    ok $ do
       div ! A.id "gameList" $ gns
@@ -107,26 +109,29 @@ nomyxPage multi pn = do
              (string $ "Welcome to Nomyx, " ++ (getPlayersName pn multi) ++ "!")
              False
 
-nomyxPageServer :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
+nomyxPageServer :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
 nomyxPageServer pn tm = do
-   multi <- liftRouteT $ lift $ atomically $ readTVar tm
+   (T.Session _ multi) <- liftRouteT $ lift $ atomically $ readTVar tm
    nomyxPage multi pn
 
-nomyxSite :: (TVar Multi) -> Site PlayerCommand (ServerPartT IO Html)
+nomyxSite :: (TVar Session) -> Site PlayerCommand (ServerPartT IO Html)
 nomyxSite tm = setDefault Login $ mkSitePI (runRouteT $ routedNomyxCommands tm)
 
-routedNomyxCommands :: (TVar Multi) -> PlayerCommand -> RoutedNomyxServer Html
+routedNomyxCommands :: (TVar Session) -> PlayerCommand -> RoutedNomyxServer Html
+--routedNomyxCommands tm  (U_HomePage)               = homePage tm
+routedNomyxCommands _  (Login)                     = loginPage
+routedNomyxCommands _  (Login)                     = loginPage
 routedNomyxCommands _  (Login)                     = loginPage
 routedNomyxCommands _  (NewPlayer lp)              = newPlayerPage lp
 routedNomyxCommands tm (NewPlayerLogin lp)         = newPlayerLogin tm lp
 routedNomyxCommands tm (PostLogin)                 = postLogin tm
 routedNomyxCommands tm (Noop pn)                   = nomyxPageServer pn tm
-routedNomyxCommands tm (JoinGame pn game)          = webCommand tm pn (MultiJoinGame game pn) >> nomyxPageServer pn tm
-routedNomyxCommands tm (LeaveGame pn game)         = webCommand tm pn (MultiLeaveGame game pn)>> nomyxPageServer pn tm
-routedNomyxCommands tm (ViewGame pn game)          = webCommand tm pn (MultiViewGame game pn) >> nomyxPageServer pn tm
+routedNomyxCommands tm (JoinGame pn game)          = webCommand tm pn (joinGame game pn) >> nomyxPageServer pn tm
+routedNomyxCommands tm (LeaveGame pn game)         = webCommand tm pn (leaveGame game pn)>> nomyxPageServer pn tm
+routedNomyxCommands tm (ViewGame pn game)          = webCommand tm pn (viewGamePlayer game pn) >> nomyxPageServer pn tm
 routedNomyxCommands tm (NewRule pn)                = newRule pn tm
 routedNomyxCommands _  (NewGame pn)                = newGamePage pn
-routedNomyxCommands tm (SubmitNewGame pn)          = newGame pn tm
+routedNomyxCommands tm (SubmitNewGame pn)          = newGamePost pn tm
 routedNomyxCommands tm (DoInputChoice pn en)       = newInputChoice pn en tm
 routedNomyxCommands tm (DoInputString pn en)       = newInputString pn en tm
 routedNomyxCommands tm (Upload pn)                 = newUpload pn tm
@@ -176,26 +181,27 @@ execBlocking sm m mv = do
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
 uploadForm = RB.inputFile
 
-newUpload :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
+newUpload :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
 newUpload pn tm = do
     methodM POST
     r <- liftRouteT $ eitherForm environment "user" uploadForm
     link <- showURL $ Noop pn
+    (T.Session sh _) <- liftRouteT $ lift $ readTVarIO tm
     case r of
-       (Right (path,name,_)) -> webCommand tm pn $ MultiInputUpload pn path name
+       (Right (path,name,_)) -> webCommand tm pn $ inputUpload pn path name sh
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
     seeOther link $ string "Redirecting..."
 
 
-launchWebServer :: (TVar Multi) -> Network -> IO ()
+launchWebServer :: (TVar Session) -> Network -> IO ()
 launchWebServer tm net = do
    putStrLn $ "Starting web server...\nTo connect, drive your browser to \"" ++ nomyxURL net ++ "/Nomyx\""
    d <- PN.getDataDir
    d' <- PNL.getDataDir
-   simpleHTTP nullConf {HS.port = Types._port net} $ server d d' tm net
+   simpleHTTP nullConf {HS.port = T._port net} $ server d d' tm net
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: FilePath -> FilePath -> (TVar Multi) -> Network -> NomyxServer Response
+server :: FilePath -> FilePath -> (TVar Session) -> Network -> NomyxServer Response
 server d d' tm net = mconcat [
     serveDirectory EnableBrowsing [] d,
     serveDirectory EnableBrowsing [] d', do

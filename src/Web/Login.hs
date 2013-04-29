@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules#-}
+{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, RecordWildCards#-}
 
 module Web.Login where
 
@@ -26,8 +26,39 @@ import Control.Applicative
 import Text.Reform.Blaze.String hiding (form)
 import Data.Text hiding (map, zip, concatMap)
 import Data.Lens
+import Happstack.Auth (AuthProfileURL(..), AuthURL(..), getUserId)
+import Data.Maybe (fromMaybe)
+import qualified Data.Text as Text (pack)
+import Data.Acid.Advanced    (update', query')
 default (Integer, Double, Data.Text.Text)
 
+-- | function which generates the homepage
+homePage :: Acid -- ^ database handle
+         -> RoutedNomyxServer Html -- RouteT SiteURL (ServerPartT IO) Response
+homePage Acid{..} =
+    do mUserId <- getUserId acidAuth acidProfile
+       case mUserId of
+         Nothing ->
+             do loginURL <- showURL (U_AuthProfile $ AuthURL A_Login)
+                mainPage (H.div $ p $ do
+                            "You can login "
+                            H.a ! href (toValue loginURL) $ "here.")
+                         "not logged in."
+                         "not logged in."
+                         True
+         (Just uid) -> do
+             mpd <- query' acidProfileData (AskProfileData uid)
+             logoutURL  <- showURL (U_AuthProfile $ AuthURL A_Logout)
+             addAuthURL <- showURL (U_AuthProfile $ AuthURL A_AddAuth)
+             mainPage (do
+                  H.div $ do
+                    H.p $ "You are logged in as" >> toHtml (show uid)
+                    H.p $ "You can logout " >> (H.a ! href (toValue logoutURL) $ "here") >> "."
+                    H.p $ "You can add an additional auth method ">> (H.a ! href (toValue addAuthURL) $ "here") >> "."
+                    H.p $ "Your message is: " >> (toHtml $ fromMaybe (Text.pack "profile data missing.") (fmap profileMsg mpd)))
+                "logged in."
+                "logged in."
+                True
 
 loginForm :: Maybe LoginPass -> NomyxForm LoginPass
 loginForm (Just (LoginPass login _)) = loginForm' login
@@ -62,7 +93,7 @@ newPlayerPage lp = do
              True
 
 
-newPlayerLogin :: (TVar Multi) -> LoginPass -> RoutedNomyxServer Html
+newPlayerLogin :: (TVar Session) -> LoginPass -> RoutedNomyxServer Html
 newPlayerLogin tm (LoginPass login password) = do
     methodM POST
     liftRouteT $ lift $ putStrLn $ "newPlayerLogin"
@@ -73,7 +104,7 @@ newPlayerLogin tm (LoginPass login password) = do
           case mpn of
              LoginOK pn -> do
                 link <- showURL $ Noop pn
-                webCommand tm pn $ MultiMailSettings ms pn
+                webCommand tm pn $ mailSettings ms pn
                 seeOther link $ string "Redirecting..."
              WrongPassword -> do
                 link <- showURL $ Login
@@ -81,14 +112,14 @@ newPlayerLogin tm (LoginPass login password) = do
              NewLogin -> do
                 pn <- evalCommand tm $ getNewPlayerNumber
                 link <- showURL $ Noop pn
-                webCommand tm pn $ MultiNewPlayer PlayerMulti { _mPlayerNumber = pn, _mPlayerName = login, _mPassword = password, _viewingGame = Nothing, _mMail = defaultMailSettings, _lastRule = Nothing}
-                webCommand tm pn $ MultiMailSettings ms pn
+                webCommand tm pn $ newPlayer PlayerMulti { _mPlayerNumber = pn, _mPlayerName = login, _mPassword = password, _viewingGame = Nothing, _mMail = defaultMailSettings, _lastRule = Nothing}
+                webCommand tm pn $ mailSettings ms pn
                 seeOther link $ string "Redirecting..."
        (Left _) -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."
 
 
 
-postLogin :: (TVar Multi) -> RoutedNomyxServer Html
+postLogin :: (TVar Session) -> RoutedNomyxServer Html
 postLogin tm = do
     methodM POST
     r <- liftRouteT $ eitherForm environment "user" $ loginForm Nothing
@@ -96,7 +127,7 @@ postLogin tm = do
        (Right lp) -> checkLoginPassword lp tm
        (Left _) -> seeOther ("/Login?status=fail" :: String) $ string "Redirecting..."
 
-checkLoginPassword :: LoginPass -> (TVar Multi) -> RoutedNomyxServer Html
+checkLoginPassword :: LoginPass -> (TVar Session) -> RoutedNomyxServer Html
 checkLoginPassword lp@(LoginPass login password) tm = do
           liftRouteT $ lift $ putStrLn $ "login:" ++ login
           liftRouteT $ lift $ putStrLn $ "password:" ++ password
@@ -114,7 +145,7 @@ checkLoginPassword lp@(LoginPass login password) tm = do
 
 data LoginResult = LoginOK PlayerNumber | WrongPassword | NewLogin
 
-checkLoginWeb :: PlayerName -> PlayerPassword -> State Multi LoginResult
+checkLoginWeb :: PlayerName -> PlayerPassword -> StateT Multi IO LoginResult
 checkLoginWeb name pwd = do
    mpn <- findPlayer name
    case mpn of

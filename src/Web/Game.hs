@@ -8,13 +8,13 @@ import Text.Blaze.Html5 hiding (map)
 import qualified Text.Blaze.Html5.Attributes as A
 import Web.Routes.RouteT
 import Text.Blaze.Internal
-import Game
 import Control.Monad
 import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
 import Language.Nomyx.Expression
 import Language.Nomyx.Evaluation
+import Language.Nomyx.Game
 import Data.Maybe
 import Text.Reform.Happstack
 import Text.Reform
@@ -22,7 +22,7 @@ import Happstack.Server
 import Data.List
 import qualified Web.Help as Help
 import Web.Common
-import Types
+import Types as T
 import Web.Routes.Happstack()
 import qualified Text.Reform.Blaze.String as RB hiding (form)
 import Control.Applicative
@@ -34,6 +34,7 @@ import Data.Text(Text)
 import qualified Text.Reform.Blaze.Common as RBC
 import qualified Language.Haskell.HsColour.HTML as HSC
 import Language.Haskell.HsColour.Colourise hiding (string)
+import Multi as M
 default (Integer, Double, Data.Text.Text)
 
 
@@ -191,23 +192,18 @@ viewRuleForm pn sr = do
       h3 "Propose a new rule:"
       blazeForm lf (link)
 
-newRule :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
-newRule pn tm = do
+newRule :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
+newRule pn ts = do
    methodM POST
-   m <- liftRouteT $ lift $ readTVarIO tm
+   (T.Session sh m) <- liftRouteT $ lift $ readTVarIO ts
    r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing)
    link <- showURL $ Noop pn
    case r of
        Right sr -> do
-          --t <- liftRouteT $ lift $ getCurrentTime
-          --liftRouteT $ lift $ putStrLn $ "before: " ++ (show m) ++"\n" ++ (show t) ++"\n"
-
-          --t' <- liftRouteT $ lift $ getCurrentTime
-          --liftRouteT $ lift $ putStrLn $ "after: " ++ (show m) ++"\n" ++ (show t') ++"\n"
-          webCommand tm pn $ MultiSubmitRule sr pn
-          m' <- liftRouteT $ lift $ readTVarIO tm
-          let rs = _rules $ fromJust $ getPlayersGame pn m
-          let rs' = _rules $ fromJust $ getPlayersGame pn m'
+          webCommand ts pn $ submitRule sr pn sh
+          (T.Session _ m') <- liftRouteT $ lift $ readTVarIO ts  --TODO clean this
+          let rs = _rules $ _game $ fromJust $ getPlayersGame pn m
+          let rs' = _rules $ _game $ fromJust $ getPlayersGame pn m'
           when (length rs' > length rs) $ liftRouteT $ lift $ sendMailsNewRule m' sr pn
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
@@ -222,18 +218,18 @@ viewMessages :: [String] -> Html
 viewMessages = mapM_ (\s -> string s >> br)
 
 
-newInputChoice :: PlayerNumber -> EventNumber -> (TVar Multi) -> RoutedNomyxServer Html
+newInputChoice :: PlayerNumber -> EventNumber -> (TVar Session) -> RoutedNomyxServer Html
 newInputChoice pn en tm = do
-    multi <- liftRouteT $ lift $ atomically $ readTVar tm
+    (T.Session _ multi) <- liftRouteT $ lift $ atomically $ readTVar tm
     let mg = fromJust $ getPlayersGame pn multi
-    let eventHandler = fromJust $ findEvent en (_events mg)
+    let eventHandler = fromJust $ findEvent en (_events $ _game mg)
     methodM POST
     let (title, choices, def) = getChoices eventHandler
     r <- liftRouteT $ eitherForm environment "user" (inputChoiceForm title choices def)
     link <- showURL $ Noop pn
     case r of
        (Right c) -> do
-          webCommand tm pn $ MultiInputChoiceResult en c pn
+          webCommand tm pn $ M.inputChoiceResult en c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
@@ -243,14 +239,14 @@ getChoices :: EventHandler -> (String, [String], String)
 getChoices (EH _ _ (InputChoice _ title choices def) _) = (title, map show choices, show def)
 getChoices _ = error "InputChoice event expected"
 
-newInputString :: PlayerNumber -> String -> (TVar Multi) -> RoutedNomyxServer Html
+newInputString :: PlayerNumber -> String -> (TVar Session) -> RoutedNomyxServer Html
 newInputString pn title tm = do
     methodM POST
     r <- liftRouteT $ eitherForm environment "user" (inputStringForm title)
     link <- showURL $ Noop pn
     case r of
        (Right c) -> do
-          webCommand tm pn $ MultiInputStringResult title c pn
+          webCommand tm pn $ M.inputStringResult (InputString pn title) c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"

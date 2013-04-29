@@ -23,6 +23,7 @@ import Data.Maybe
 import Data.Text(Text)
 import Text.Blaze.Internal(string)
 import Data.Lens
+import Multi
 default (Integer, Double, Data.Text.Text)
 
 
@@ -48,18 +49,18 @@ settingsPage pn ms = do
              False
 
 
-settings :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
+settings :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
 settings pn tm  = do
    pm <- evalCommand tm $ findPlayer' pn
    settingsPage pn $ mMail ^$ fromJust pm
 
 
-newSettings :: PlayerNumber -> (TVar Multi) -> RoutedNomyxServer Html
+newSettings :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
 newSettings pn tm = do
    methodM POST
    r <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing
    link <- showURL $ Noop pn
    case r of
-       Right ms -> webCommand tm pn $ MultiMailSettings ms pn
+       Right ms -> webCommand tm pn $ mailSettings ms pn
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."

@@ -12,6 +12,7 @@ import Text.Reform.Happstack()
 import Control.Monad
 import Types
 import Language.Nomyx.Expression
+import Language.Nomyx.Game
 import Data.Text(Text, pack)
 import Control.Concurrent
 import Data.Maybe
@@ -52,7 +53,7 @@ sendMailsNewRule m sr pn = do
    evaluate m
    let g = fromJust $ getPlayersGame pn m
    let proposer = getPlayersName pn m
-   let pls = [ p { _mPlayerNumber = mypn} | p <- _mPlayers m, mypn <- map _playerNumber $ players ^$ g]
+   let pls = [ p { _mPlayerNumber = mypn} | p <- _mPlayers m, mypn <- map _playerNumber $ _players $ _game g]
    forM_ pls $ send proposer
    where
       send :: PlayerName -> PlayerMulti -> IO()
@@ -63,8 +64,6 @@ sendMailsNewRule m sr pn = do
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
 mapMaybeM f = liftM catMaybes . mapM f
 
-getOutputs :: Multi -> [Output]
-getOutputs m = concatMap _outputs $ _games m
 
 newRulebody :: Rule -> String
 newRulebody (Rule {_rNumber, _rProposedBy}) = "Rule number " ++ (show _rNumber) ++ " has been proposed by player " ++ (show _rProposedBy)

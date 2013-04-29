@@ -41,6 +41,10 @@ BUGS
 - empty login/password and game name
 - players seems to be added twice
 - store hide/show status of divs
+- should be able to propose a rule in a game without viewing it
+- submit rule only if joined game!
+- re-read log file
+- suppress time from Multi
 
 Forum:
 - start another VM to run Nomyx alone
