@@ -39,10 +39,10 @@ newGamePage :: PlayerNumber -> RoutedNomyxServer Html
 newGamePage pn = do
    newGameLink <- showURL (SubmitNewGame pn)
    mf <- lift $ viewForm "user" $ newGameForm
-   mainPage (blazeForm mf newGameLink)
-             "New game"
-             "New game"
-             False
+   mainPage "New game"
+            "New game"
+            (blazeForm mf newGameLink)
+            False
 
 newGamePost :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
 newGamePost pn tm = do

@@ -28,6 +28,7 @@ Improves:
 - hide when no information
 - generate better messages for partial functions
 - cut rules too long
+- add help info about the meaning of view and join
 
 Futur Nomic:
 - ability to analyse rules, proof system

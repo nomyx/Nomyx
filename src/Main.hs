@@ -43,6 +43,11 @@ import Data.Version (showVersion)
 import Control.Category
 import Multi
 import Language.Haskell.Interpreter.Server hiding (start)
+import Data.Acid (openLocalStateFrom)
+import System.FilePath ((</>))
+import Happstack.Auth.Core.Auth (initialAuthState)
+import Data.Acid.Local (createCheckpointAndClose)
+import Happstack.Auth.Core.Profile (initialProfileState)
 
 defaultLogFile :: FilePath
 defaultLogFile = "Nomyx.save"
@@ -85,17 +90,18 @@ start flags = do
          Nothing -> getHostName >>= return
       logFilePath <- getDataFileName logFile
       let settings sendMail = Settings logFilePath (Network host port) sendMail
-      session <- case (findLoadTest flags) of
+      multi <- case (findLoadTest flags) of
          Just testName -> loadTestName (settings False) testName sh
          Nothing -> Main.loadMulti (settings True) (not $ NoReadSaveFile `elem` flags) sh
-      tvSession <- atomically $ newTVar session
-      --start the web server
-      forkIO $ launchWebServer tvSession (Network host port)
-      forkIO $ launchTimeEvents tvSession
       --main loop
-      serverLoop tvSession logFile
+      withAcid Nothing $ \acid -> do
+         tvSession <- atomically $ newTVar (Session sh multi acid)
+         --start the web server
+         forkIO $ launchWebServer tvSession (Network host port)
+         forkIO $ launchTimeEvents tvSession
+         serverLoop tvSession logFile
 
-loadMulti :: Settings -> Bool -> ServerHandle -> IO Session
+loadMulti :: Settings -> Bool -> ServerHandle -> IO Multi
 loadMulti set readSaveFile sh = do
    fileExists <- doesFileExist $ _logFilePath $ set
    t <- getCurrentTime
@@ -105,7 +111,7 @@ loadMulti set readSaveFile sh = do
          Serialize.loadMulti set sh `catch`
             (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set t))
       False -> return $ defaultMulti set t
-   return $ Session sh multi
+   return multi
 
 
 -- | a loop that will handle server commands
@@ -114,12 +120,12 @@ serverLoop ts f = do
    s <- getLine
    case s of
       "d" -> do
-         (Session _ m) <- atomically $ readTVar ts
+         (Session _ m _) <- atomically $ readTVar ts
          putStrLn $ show m
          serverLoop ts f
       "s" -> do
          putStrLn "saving state..."
-         (Session _ m) <- atomically $ readTVar ts
+         (Session _ m _) <- atomically $ readTVar ts
          fp <- getDataFileName f
          save fp m
          serverLoop ts f
@@ -203,16 +209,16 @@ protectHandlers a = bracket saveHandlers restoreHandlers $ const a
 
 triggerTimeEvent :: TVar Session -> UTCTime -> IO()
 triggerTimeEvent tm t = do
-    (Session sh m) <- atomically $ readTVar tm
+    (Session sh m a) <- atomically $ readTVar tm
     m' <- execWithMulti t (Multi.triggerTimeEvent t) m
-    atomically $ writeTVar tm (Session sh m')
+    atomically $ writeTVar tm (Session sh m' a)
 
 
 launchTimeEvents :: TVar Session -> IO()
 launchTimeEvents tm = do
     now <- getCurrentTime
     --putStrLn $ "tick " ++ (show now)
-    (Session _ m) <- atomically $ readTVar tm
+    (Session _ m _) <- atomically $ readTVar tm
     timeEvents <- getTimeEvents now m
     when (length timeEvents /= 0) $ putStrLn "found time event(s)"
     mapM_ (Main.triggerTimeEvent tm) timeEvents
@@ -220,4 +226,12 @@ launchTimeEvents tm = do
     threadDelay 1000000
     launchTimeEvents tm
 
-
+withAcid :: Maybe FilePath -- ^ state directory
+         -> (Acid -> IO a) -- ^ action
+         -> IO a
+withAcid mBasePath f =
+    let basePath = fromMaybe "_state" mBasePath in
+    bracket (openLocalStateFrom (basePath </> "auth")        initialAuthState)        (createCheckpointAndClose) $ \auth ->
+    bracket (openLocalStateFrom (basePath </> "profile")     initialProfileState)     (createCheckpointAndClose) $ \profile ->
+    bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState) (createCheckpointAndClose) $ \profileData ->
+        f (Acid auth profile profileData)

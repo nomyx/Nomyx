@@ -22,8 +22,9 @@ import qualified Data.Text.Lazy as B
 import qualified Language.Haskell.HsColour.HTML as HSC
 import Language.Haskell.HsColour.Colourise hiding (string)
 import Text.Blaze.Internal
-import Data.Lens
 import Control.Category
+import qualified Data.Acid.Advanced as A (query')
+import Control.Applicative ((<$>))
 default (Integer, Double, Data.Text.Text)
 
 
@@ -48,17 +49,18 @@ newRuleBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ do
 newRuleObject :: PlayerName -> String
 newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 
-sendMailsNewRule :: Multi -> SubmitRule -> PlayerNumber -> IO()
-sendMailsNewRule m sr pn = do
-   evaluate m
-   let g = fromJust $ getPlayersGame pn m
-   let proposer = getPlayersName pn m
-   let pls = [ p { _mPlayerNumber = mypn} | p <- _mPlayers m, mypn <- map _playerNumber $ _players $ _game g]
-   forM_ pls $ send proposer
+sendMailsNewRule :: Session -> SubmitRule -> PlayerNumber -> IO()
+sendMailsNewRule s sr pn = do
+   evaluate s
+   gn <- fromJust <$> getPlayersGame pn s
+   proposer <- getPlayersName pn s
+   pfd <- A.query' (acidProfileData $ _acid s) AskProfilesData
+   let pls = [ p { _pPlayerNumber = mypn} | p <- pfd, mypn <- map _playerNumber $ _players $ _game gn]
+   forM_ pls $ send proposer (_net $ _mSettings $ _multi s)
    where
-      send :: PlayerName -> PlayerMulti -> IO()
-      send prop pm = when (mailNewRule ^$ mMail ^$ pm)
-          $ sendMail (mailTo ^$ mMail ^$ pm) (newRuleObject prop) (renderHtml $ newRuleBody (mPlayerName ^$ pm) sr prop (net ^$ mSettings ^$ m))
+      send :: PlayerName -> Network -> ProfileData -> IO()
+      send prop net pfd = when (_mailNewRule $ _pPlayerSettings pfd)
+          $ sendMail (_mailTo $ _pPlayerSettings $ pfd) (newRuleObject prop) (renderHtml $ newRuleBody (_pPlayerName $ _pPlayerSettings $ pfd) sr prop net)
 
    
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]

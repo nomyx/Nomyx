@@ -195,16 +195,19 @@ viewRuleForm pn sr = do
 newRule :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
 newRule pn ts = do
    methodM POST
-   (T.Session sh m) <- liftRouteT $ lift $ readTVarIO ts
+   s@(T.Session sh _ _) <- liftRouteT $ lift $ readTVarIO ts
    r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing)
    link <- showURL $ Noop pn
    case r of
        Right sr -> do
           webCommand ts pn $ submitRule sr pn sh
-          (T.Session _ m') <- liftRouteT $ lift $ readTVarIO ts  --TODO clean this
-          let rs = _rules $ _game $ fromJust $ getPlayersGame pn m
-          let rs' = _rules $ _game $ fromJust $ getPlayersGame pn m'
-          when (length rs' > length rs) $ liftRouteT $ lift $ sendMailsNewRule m' sr pn
+          liftRouteT $ lift $ do
+             s' <- readTVarIO ts  --TODO clean this
+             gn <- getPlayersGame pn s
+             gn' <- getPlayersGame pn s'
+             let rs = _rules $ _game $ fromJust gn
+             let rs' = _rules $ _game $ fromJust gn'
+             when (length rs' > length rs) $ sendMailsNewRule s' sr pn
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
 
@@ -220,9 +223,9 @@ viewMessages = mapM_ (\s -> string s >> br)
 
 newInputChoice :: PlayerNumber -> EventNumber -> (TVar Session) -> RoutedNomyxServer Html
 newInputChoice pn en tm = do
-    (T.Session _ multi) <- liftRouteT $ lift $ atomically $ readTVar tm
-    let mg = fromJust $ getPlayersGame pn multi
-    let eventHandler = fromJust $ findEvent en (_events $ _game mg)
+    s <- liftRouteT $ lift $ atomically $ readTVar tm
+    mgn <- liftRouteT $ lift $ getPlayersGame pn s
+    let eventHandler = fromJust $ findEvent en (_events $ _game $ fromJust mgn)
     methodM POST
     let (title, choices, def) = getChoices eventHandler
     r <- liftRouteT $ eitherForm environment "user" (inputChoiceForm title choices def)

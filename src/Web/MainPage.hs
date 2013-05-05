@@ -1,7 +1,8 @@
 
 {-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleContexts, FlexibleInstances, TemplateHaskell,
    EmptyDataDecls, TypeFamilies, MultiParamTypeClasses, DeriveDataTypeable, PackageImports, GADTs,
-   ScopedTypeVariables, NamedFieldPuns, Rank2Types, DoAndIfThenElse, StandaloneDeriving, OverloadedStrings, ExtendedDefaultRules#-}
+   ScopedTypeVariables, NamedFieldPuns, Rank2Types, DoAndIfThenElse, StandaloneDeriving, OverloadedStrings,
+   ExtendedDefaultRules, RecordWildCards#-}
 
 module Web.MainPage (launchWebServer) where
 
@@ -32,26 +33,27 @@ import qualified Web.Help as Help
 import Types as T
 import Web.Game
 import Web.Common
-import Web.Login
 import Web.Settings
 import Web.NewGame
+import Web.Login
 import qualified Text.Reform.Blaze.String as RB
 import Utils
 import Data.Maybe
-import Data.List
 import Data.Text(Text, pack)
-import Data.Lens
 import qualified Language.Nomyx.Game as G
 import Multi
+import Happstack.Auth
+import qualified Data.Acid.Advanced as A (query')
 default (Integer, Double, Data.Text.Text)
 
 
-viewMulti :: PlayerNumber -> Multi -> RoutedNomyxServer Html
-viewMulti pn m = do
-   let pl = fromJust $ find ((==) pn . getL mPlayerNumber) (_mPlayers m)
-   gns <- viewGamesTab pn (map G._game $ _games m)
-   g <- case getPlayersGame pn m of
-            Just g -> viewGame (G._game g) pn (_lastRule pl)
+viewMulti :: PlayerNumber -> Session -> RoutedNomyxServer Html
+viewMulti pn s = do
+   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
+   gns <- viewGamesTab pn (map G._game $ _games $ _multi s)
+   mgn <- liftRouteT $ lift $ getPlayersGame pn s
+   g <- case mgn of
+            Just g -> viewGame (G._game g) pn (_pLastRule $ fromJust pfd)
             Nothing -> ok $ h3 "Not in game"
    ok $ do
       div ! A.id "gameList" $ gns
@@ -62,7 +64,8 @@ viewGamesTab pn gs = do
    gns <- mapM (viewGameName pn) gs
    newGameLink <- showURL (NewGame pn)
    uploadLink <- showURL (Upload pn)
-   settingsLink <- showURL (PlayerSettings pn)
+   settingsLink <- showURL (PSettings pn)
+   logoutURL  <- showURL (U_AuthProfile $ AuthURL A_Logout)
    up  <- lift $ viewForm "user" uploadForm
    dd <- lift $ lift $ PN.getDataDir
    mods <- lift $ lift $ getDirectoryContents $ dd </> modDir
@@ -85,6 +88,7 @@ viewGamesTab pn gs = do
       br >> "Settings:" >> br
       H.a "Create a new game" ! (href $ toValue newGameLink) >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
+      H.a "Logout " ! href (toValue logoutURL) >> br
 
 
 viewGameName :: PlayerNumber -> Game -> RoutedNomyxServer Html
@@ -101,44 +105,44 @@ viewGameName pn g = do
          td $ H.a "Leave" ! (href $ toValue leave)
 
 
-nomyxPage :: Multi -> PlayerNumber -> RoutedNomyxServer Html
-nomyxPage multi pn = do
-   m <- viewMulti pn multi
-   mainPage (H.div ! A.id "multi" $ m)
-             "Welcome to Nomyx!"
-             (string $ "Welcome to Nomyx, " ++ (getPlayersName pn multi) ++ "!")
-             False
+nomyxPage :: Session -> PlayerNumber -> RoutedNomyxServer Response
+nomyxPage s pn = do
+   m <- viewMulti pn s
+   name <- liftRouteT $ lift $ getPlayersName pn s
+   mainPage' "Welcome to Nomyx!"
+            (string $ "Welcome to Nomyx, " ++ name ++ "!")
+            (H.div ! A.id "multi" $ m)
+            False
 
-nomyxPageServer :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
-nomyxPageServer pn tm = do
-   (T.Session _ multi) <- liftRouteT $ lift $ atomically $ readTVar tm
-   nomyxPage multi pn
+nomyxPageServer :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Response
+nomyxPageServer pn ts = do
+   s <- liftRouteT $ lift $ atomically $ readTVar ts
+   nomyxPage s pn
 
-nomyxSite :: (TVar Session) -> Site PlayerCommand (ServerPartT IO Html)
-nomyxSite tm = setDefault Login $ mkSitePI (runRouteT $ routedNomyxCommands tm)
+nomyxSite :: (TVar Session) -> Site PlayerCommand (ServerPartT IO Response)
+nomyxSite tm = setDefault HomePage $ mkSitePI (runRouteT $ routedNomyxCommands tm)
 
-routedNomyxCommands :: (TVar Session) -> PlayerCommand -> RoutedNomyxServer Html
---routedNomyxCommands tm  (U_HomePage)               = homePage tm
-routedNomyxCommands _  (Login)                     = loginPage
-routedNomyxCommands _  (Login)                     = loginPage
-routedNomyxCommands _  (Login)                     = loginPage
-routedNomyxCommands _  (NewPlayer lp)              = newPlayerPage lp
-routedNomyxCommands tm (NewPlayerLogin lp)         = newPlayerLogin tm lp
-routedNomyxCommands tm (PostLogin)                 = postLogin tm
-routedNomyxCommands tm (Noop pn)                   = nomyxPageServer pn tm
-routedNomyxCommands tm (JoinGame pn game)          = webCommand tm pn (joinGame game pn) >> nomyxPageServer pn tm
-routedNomyxCommands tm (LeaveGame pn game)         = webCommand tm pn (leaveGame game pn)>> nomyxPageServer pn tm
-routedNomyxCommands tm (ViewGame pn game)          = webCommand tm pn (viewGamePlayer game pn) >> nomyxPageServer pn tm
-routedNomyxCommands tm (NewRule pn)                = newRule pn tm
-routedNomyxCommands _  (NewGame pn)                = newGamePage pn
-routedNomyxCommands tm (SubmitNewGame pn)          = newGamePost pn tm
-routedNomyxCommands tm (DoInputChoice pn en)       = newInputChoice pn en tm
-routedNomyxCommands tm (DoInputString pn en)       = newInputString pn en tm
-routedNomyxCommands tm (Upload pn)                 = newUpload pn tm
-routedNomyxCommands tm (PlayerSettings pn)         = settings pn tm
-routedNomyxCommands tm (SubmitPlayerSettings pn)   = newSettings pn tm
-
-
+routedNomyxCommands :: (TVar Session) -> PlayerCommand -> RoutedNomyxServer Response
+routedNomyxCommands ts (U_ProfileData profileDataURL) = do
+   (T.Session _ _ Acid{..}) <- liftRouteT $ lift $ atomically $ readTVar ts
+   handleProfileData acidAuth acidProfile acidProfileData profileDataURL ts
+routedNomyxCommands ts  (U_AuthProfile authProfileURL) = do
+   (T.Session _ _ Acid{..}) <- liftRouteT $ lift $ atomically $ readTVar ts
+   postPickedURL <- showURL (U_ProfileData CreateNewProfileData)
+   nestURL U_AuthProfile $ handleAuthProfile acidAuth acidProfile appTemplate Nothing Nothing postPickedURL authProfileURL
+routedNomyxCommands ts (HomePage)                = homePage ts
+routedNomyxCommands ts (Noop pn)                 = nomyxPageServer pn ts
+routedNomyxCommands ts (JoinGame pn game)        = webCommand ts pn (joinGame game pn)       >> nomyxPageServer pn ts
+routedNomyxCommands ts (LeaveGame pn game)       = webCommand ts pn (leaveGame game pn)      >> nomyxPageServer pn ts
+routedNomyxCommands ts (ViewGame pn game)        = webCommand ts pn (viewGamePlayer game pn) >> nomyxPageServer pn ts
+routedNomyxCommands ts (NewRule pn)              = newRule pn ts            >>= return . toResponse
+routedNomyxCommands _  (NewGame pn)              = newGamePage pn           >>= return . toResponse
+routedNomyxCommands ts (SubmitNewGame pn)        = newGamePost pn ts        >>= return . toResponse
+routedNomyxCommands ts (DoInputChoice pn en)     = newInputChoice pn en ts  >>= return . toResponse
+routedNomyxCommands ts (DoInputString pn en)     = newInputString pn en ts  >>= return . toResponse
+routedNomyxCommands ts (Upload pn)               = newUpload pn ts          >>= return . toResponse
+routedNomyxCommands ts (PSettings pn)            = settings pn ts           >>= return . toResponse
+routedNomyxCommands ts (SubmitPlayerSettings pn) = newSettings pn ts        >>= return . toResponse
 
 {-
 nomyxPageComm' :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
@@ -186,7 +190,7 @@ newUpload pn tm = do
     methodM POST
     r <- liftRouteT $ eitherForm environment "user" uploadForm
     link <- showURL $ Noop pn
-    (T.Session sh _) <- liftRouteT $ lift $ readTVarIO tm
+    (T.Session sh _ _) <- liftRouteT $ lift $ readTVarIO tm
     case r of
        (Right (path,name,_)) -> webCommand tm pn $ inputUpload pn path name sh
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
@@ -201,7 +205,7 @@ launchWebServer tm net = do
    simpleHTTP nullConf {HS.port = T._port net} $ server d d' tm net
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: FilePath -> FilePath -> (TVar Session) -> Network -> NomyxServer Response
+server :: FilePath -> FilePath -> (TVar Session) -> Network -> ServerPartT IO Response
 server d d' tm net = mconcat [
     serveDirectory EnableBrowsing [] d,
     serveDirectory EnableBrowsing [] d', do

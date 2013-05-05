@@ -22,10 +22,9 @@ import Control.Monad.State
 import Types
 import Language.Nomyx
 import Language.Nomyx.Game
-import Control.Applicative
 import Data.Lens
 import Control.Category hiding ((.))
-
+import qualified Data.Acid.Advanced as A (query')
    
 -- | this function will return just a if it can cast it to an a.
 maybeRead :: Read a => String -> Maybe a
@@ -46,20 +45,19 @@ isYes a = toLowerS a `elem` yes
 say :: String -> StateT a IO ()
 say = lift . putStrLn
 
-findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
-findPlayer name = find ((==) name . getL mPlayerName) <$> gets _mPlayers
-
-findPlayer' :: PlayerNumber -> StateT Multi IO (Maybe PlayerMulti)
-findPlayer' pn = find ((==) pn . getL mPlayerNumber) <$> gets _mPlayers
+--findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
+--findPlayer name = find ((==) name . getL mPlayerName) <$> gets _mPlayers
+--
+--findPlayer' :: PlayerNumber -> StateT Multi IO (Maybe PlayerMulti)
+--findPlayer' pn = find ((==) pn . getL mPlayerNumber) <$> gets _mPlayers
 
 nomyxURL :: Network -> String
 nomyxURL (Network host port) = "http://" ++ host ++ ":" ++ (show port)
 
-getPlayersName :: PlayerNumber -> Multi -> PlayerName
-getPlayersName pn multi = do
-   case find (\(PlayerMulti n _ _ _ _ _) -> n==pn) (mPlayers ^$ multi) of
-      Nothing -> error "getPlayersName: No player by that number"
-      Just pm -> mPlayerName ^$ pm
+getPlayersName :: PlayerNumber -> Session -> IO PlayerName
+getPlayersName pn s = do
+   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
+   return $ _pPlayerName $ _pPlayerSettings $ fromJust pfd
 
 getPlayersName' :: Game -> PlayerNumber -> PlayerName
 getPlayersName' g pn = do
@@ -68,19 +66,19 @@ getPlayersName' g pn = do
       Just pm -> _playerName pm
 
 -- | returns the game the player is in
-getPlayersGame :: PlayerNumber -> Multi -> Maybe LoggedGame
-getPlayersGame pn multi = do
-        pi <- find ((==pn) . getL mPlayerNumber) (mPlayers ^$ multi)
-        gn <- _viewingGame pi
-        find ((== gn) . getL (game >>> gameName)) (_games multi)
+getPlayersGame :: PlayerNumber -> Session -> IO (Maybe LoggedGame)
+getPlayersGame pn s = do
+   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
+   let mgn = _pViewingGame $ fromJust pfd
+   return $ do
+      gn <- mgn
+      find ((== gn) . getL (game >>> gameName)) (_games $ _multi s)
 
 getPlayersNameMay :: Game -> PlayerNumber -> Maybe PlayerName
 getPlayersNameMay g pn = do
    case find ((==pn) . getL playerNumber) (_players g) of
       Nothing -> Nothing
       Just pm -> Just $ _playerName pm
-
-
 
 
 -- | finds the corresponding game in the multistate and replaces it.
@@ -93,8 +91,6 @@ modifyGame lg = do
          let newgs = replace oldg lg gs
          games ~= newgs
          return ()
-
-
 
 execWithMulti :: UTCTime -> StateT Multi IO () -> Multi -> IO Multi
 execWithMulti t ms m = do
