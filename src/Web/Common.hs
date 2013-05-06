@@ -27,7 +27,6 @@ import Text.Blaze.Internal
 import qualified Text.Reform.Generalized as G
 import Data.Text(Text, pack)
 import Web.Routes.Happstack()
-import Data.Generics         (Data, Typeable)
 import Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
 
 

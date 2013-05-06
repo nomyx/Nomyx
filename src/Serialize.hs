@@ -12,7 +12,6 @@ import Control.Category
 import Data.Lens
 import Language.Haskell.Interpreter.Server
 import Interpret
-import Control.Applicative ((<$>))
 
 save :: FilePath -> Multi -> IO()
 save fp m = writeFile fp (show m)
@@ -34,7 +33,6 @@ loadMulti set sh = do
    gs' <- mapM (updateLoggedGame $ getRuleFunc sh) $ _games m
    let m' = games `setL` gs' $ m
    return m'
-
 
 updateLoggedGame :: (RuleCode -> IO RuleFunc) -> LoggedGame -> IO LoggedGame
 updateLoggedGame f (LoggedGame g log) = getLoggedGame g f log
