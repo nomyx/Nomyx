@@ -13,14 +13,12 @@ import Control.Monad.State
 import Control.Concurrent.STM
 import Happstack.Server
 import Types as T
+import Multi as M
 import Web.Common
 import Web.Routes.Happstack()
 import Data.Text hiding (map, zip, concatMap)
-import Happstack.Auth
-       (AuthState, AuthProfileURL(..), AuthURL(..))
-import Data.Acid (AcidState)
+import Happstack.Auth (AuthProfileURL(..), AuthURL(..))
 import Happstack.Auth.Core.Profile
-import Data.Acid.Advanced (query', update')
 default (Integer, Double, Data.Text.Text)
 
 -- | function which generates the homepage
@@ -37,28 +35,16 @@ homePage ts = do
                              "Welcome to Nomyx! You can login "
                              H.a ! href (toValue loginURL) $ "here.")
                           True
-         (Just (UserId uid)) -> do
-            link <- showURL $ Noop $ fromInteger uid
+         (Just _) -> do
+            link <- showURL MainPage
             seeOther link (toResponse $ string "to game page")
 
-handleProfileData :: AcidState AuthState
-                  -> AcidState ProfileState
-                  -> AcidState ProfileDataState
-                  -> ProfileDataURL
-                  -> (TVar Session)
-                  -> RoutedNomyxServer Response
-handleProfileData authStateH profileStateH profileDataStateH url ts =
-    case url of
-      CreateNewProfileData ->
-          do mUserId <- getUserId authStateH profileStateH
-             case mUserId of
-               Nothing -> internalServerError $ toResponse $ string "not logged in."
-               (Just (UserId userID)) -> do
-                  s <- liftRouteT $ lift $ atomically $ readTVar ts
-                  update' (acidProfileData $ _acid s) (SetProfileData (ProfileData (fromInteger userID) defaultPlayerSettings Nothing Nothing))
-                  link <- showURL $ PSettings $ fromInteger userID
-                  seeOther link (toResponse $ string "to settings page")
-                  --toResponse <$> settings (fromInteger userID) ts
-      (ViewProfileData uid) ->
-          do mProfileData <- query' profileDataStateH (AskProfileData (fromInteger $ unUserId uid))
-             ok $ toResponse $ show mProfileData
+-- | add a new player
+createNewPlayer :: (TVar Session) -> RoutedNomyxServer Response
+createNewPlayer ts = do
+   pn <- getPlayerNumber ts
+   webCommand ts $ M.newPlayer pn defaultPlayerSettings Nothing Nothing
+   link <- showURL $ PSettings
+   seeOther link (toResponse $ string "to settings page")
+
+

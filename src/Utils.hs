@@ -45,12 +45,6 @@ isYes a = toLowerS a `elem` yes
 say :: String -> StateT a IO ()
 say = lift . putStrLn
 
---findPlayer :: PlayerName -> StateT Multi IO (Maybe PlayerMulti)
---findPlayer name = find ((==) name . getL mPlayerName) <$> gets _mPlayers
---
---findPlayer' :: PlayerNumber -> StateT Multi IO (Maybe PlayerMulti)
---findPlayer' pn = find ((==) pn . getL mPlayerNumber) <$> gets _mPlayers
-
 nomyxURL :: Network -> String
 nomyxURL (Network host port) = "http://" ++ host ++ ":" ++ (show port)
 
@@ -72,7 +66,7 @@ getPlayersGame pn s = do
    let mgn = _pViewingGame $ fromJust pfd
    return $ do
       gn <- mgn
-      find ((== gn) . getL (game >>> gameName)) (_games $ _multi s)
+      return $ fromMaybe (error "No game by that name") $ find ((== gn) . getL (game >>> gameName)) (_games $ _multi s)
 
 getPlayersNameMay :: Game -> PlayerNumber -> Maybe PlayerName
 getPlayersNameMay g pn = do

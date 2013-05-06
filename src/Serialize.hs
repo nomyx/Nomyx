@@ -12,9 +12,10 @@ import Control.Category
 import Data.Lens
 import Language.Haskell.Interpreter.Server
 import Interpret
+import Control.Applicative ((<$>))
 
 save :: FilePath -> Multi -> IO()
-save fp m = writeFile fp (show m) -- $ concatMap (\a -> show a ++ "\n") ges
+save fp m = writeFile fp (show m)
 
 save' :: StateT Multi IO ()
 save' = do
@@ -34,11 +35,6 @@ loadMulti set sh = do
    let m' = games `setL` gs' $ m
    return m'
 
+
 updateLoggedGame :: (RuleCode -> IO RuleFunc) -> LoggedGame -> IO LoggedGame
-updateLoggedGame f (LoggedGame g log) = getLoggedGame log g f
-
---updateLoggedGames :: (RuleCode -> IO RuleFunc) -> [LoggedGame] -> IO [LoggedGame]
---updateLoggedGames f = mapM $ updateLoggedGame f
-
-
-
+updateLoggedGame f (LoggedGame g log) = getLoggedGame g f log

@@ -40,7 +40,7 @@ default (Integer, Double, Data.Text.Text)
 
 viewGame :: Game -> PlayerNumber -> (Maybe SubmitRule) -> RoutedNomyxServer Html
 viewGame g pn sr = do
-   rf <- viewRuleForm pn sr
+   rf <- viewRuleForm sr
    vi <- viewInputs pn $ _events g
    ok $ table $ do
       td ! A.id "gameCol" $ do
@@ -148,11 +148,11 @@ viewInputs pn ehs = do
 
 viewInput :: PlayerNumber -> EventHandler -> RoutedNomyxServer (Maybe Html)
 viewInput me (EH eventNumber _ (InputChoice pn title choices def) _) | me == pn = do
-    link <- showURL (DoInputChoice pn eventNumber)
+    link <- showURL (DoInputChoice eventNumber)
     lf  <- lift $ viewForm "user" $ inputChoiceForm title (map show choices) (show def)
     return $ Just $ tr $ td $ blazeForm lf (link)
 viewInput me (EH _ _ (InputString pn title) _) | me == pn = do
-    link <- showURL (DoInputString pn title)
+    link <- showURL (DoInputString title)
     lf  <- lift $ viewForm "user" $ inputStringForm title
     return $ Just $ tr $ td $ blazeForm lf (link)
 viewInput _ _ = return Nothing
@@ -184,23 +184,24 @@ newRuleForm' (SubmitRule name desc code) = pure SubmitRule  <*> RB.label "Name: 
                                    `RBC.setAttr` A.class_ "code" `RBC.setAttr` A.placeholder "Enter here your rule" `RBC.setAttr` (A.title (toValue Help.code))
 
 
-viewRuleForm :: PlayerNumber -> (Maybe SubmitRule) -> RoutedNomyxServer Html
-viewRuleForm pn sr = do
-   link <- showURL (NewRule pn)
+viewRuleForm :: (Maybe SubmitRule) -> RoutedNomyxServer Html
+viewRuleForm sr = do
+   link <- showURL NewRule
    lf  <- lift $ viewForm "user" $ newRuleForm sr
    ok $ do
       h3 "Propose a new rule:"
       blazeForm lf (link)
 
-newRule :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
-newRule pn ts = do
+newRule :: (TVar Session) -> RoutedNomyxServer Html
+newRule ts = do
    methodM POST
    s@(T.Session sh _ _) <- liftRouteT $ lift $ readTVarIO ts
    r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing)
-   link <- showURL $ Noop pn
+   link <- showURL MainPage
+   pn <- getPlayerNumber ts
    case r of
        Right sr -> do
-          webCommand ts pn $ submitRule sr pn sh
+          webCommand ts $ submitRule sr pn sh
           liftRouteT $ lift $ do
              s' <- readTVarIO ts  --TODO clean this
              gn <- getPlayersGame pn s
@@ -221,18 +222,19 @@ viewMessages :: [String] -> Html
 viewMessages = mapM_ (\s -> string s >> br)
 
 
-newInputChoice :: PlayerNumber -> EventNumber -> (TVar Session) -> RoutedNomyxServer Html
-newInputChoice pn en tm = do
-    s <- liftRouteT $ lift $ atomically $ readTVar tm
+newInputChoice :: EventNumber -> (TVar Session) -> RoutedNomyxServer Html
+newInputChoice en ts = do
+    pn <- getPlayerNumber ts
+    s <- liftRouteT $ lift $ atomically $ readTVar ts
     mgn <- liftRouteT $ lift $ getPlayersGame pn s
     let eventHandler = fromJust $ findEvent en (_events $ _game $ fromJust mgn)
     methodM POST
     let (title, choices, def) = getChoices eventHandler
     r <- liftRouteT $ eitherForm environment "user" (inputChoiceForm title choices def)
-    link <- showURL $ Noop pn
+    link <- showURL MainPage
     case r of
        (Right c) -> do
-          webCommand tm pn $ M.inputChoiceResult en c pn
+          webCommand ts $ M.inputChoiceResult en c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
@@ -242,14 +244,15 @@ getChoices :: EventHandler -> (String, [String], String)
 getChoices (EH _ _ (InputChoice _ title choices def) _) = (title, map show choices, show def)
 getChoices _ = error "InputChoice event expected"
 
-newInputString :: PlayerNumber -> String -> (TVar Session) -> RoutedNomyxServer Html
-newInputString pn title tm = do
+newInputString :: String -> (TVar Session) -> RoutedNomyxServer Html
+newInputString title ts = do
     methodM POST
+    pn <- getPlayerNumber ts
     r <- liftRouteT $ eitherForm environment "user" (inputStringForm title)
-    link <- showURL $ Noop pn
+    link <- showURL MainPage
     case r of
        (Right c) -> do
-          webCommand tm pn $ M.inputStringResult (InputString pn title) c pn
+          webCommand ts $ M.inputStringResult (InputString pn title) c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
@@ -271,3 +274,24 @@ showHideTitle id visible empty title rest = do
       td ! A.style "text-align:right;" $ h5 (if visible then "[Hide]" else "[Show]") ! A.id (fromString $ printf "%sShow" id) ! A.width "20%"
    div ! A.id (fromString $ printf "%sBody" id) ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
       if (empty) then (toHtml $ "No " ++ id) else rest
+
+joinGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
+joinGame ts gn = do
+   pn <- getPlayerNumber ts
+   webCommand ts (M.joinGame gn pn)
+   link <- showURL MainPage
+   seeOther link $ toResponse "Redirecting..."
+
+leaveGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
+leaveGame ts gn = do
+   pn <- getPlayerNumber ts
+   webCommand ts (M.leaveGame gn pn)
+   link <- showURL MainPage
+   seeOther link $ toResponse "Redirecting..."
+
+viewGamePlayer :: (TVar Session) -> GameName -> RoutedNomyxServer Response
+viewGamePlayer ts gn = do
+   pn <- getPlayerNumber ts
+   webCommand ts (M.viewGamePlayer gn pn)
+   link <- showURL MainPage
+   seeOther link $ toResponse "Redirecting..."

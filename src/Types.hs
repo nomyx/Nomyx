@@ -144,6 +144,6 @@ instance FormError String where
     type ErrorInputType String = [Input]
     commonFormError _ = "common error"
 
-$( makeLenses [''Multi, ''Settings, ''Network, ''PlayerSettings, ''Session] )
+$( makeLenses [''Multi, ''Settings, ''Network, ''PlayerSettings, ''Session, ''ProfileData] )
 
 

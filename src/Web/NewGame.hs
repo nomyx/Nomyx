@@ -35,21 +35,22 @@ newGameDesc :: NomyxForm GameDesc
 newGameDesc = pure GameDesc <*> label "Enter game description:" ++> br ++> (textarea 40 3 "") `RBC.setAttr` placeholder "Enter game description" `RBC.setAttr` class_ "gameDesc" <++ br <++ br
                              <*> label "Enter a link to an agora (e.g. a forum, a mailing list...) where the players can discuss their rules: " ++> br ++> (inputText "") `RBC.setAttr` placeholder "Agora URL (including http://...)" `RBC.setAttr` class_ "agora" <++ br <++ br
 
-newGamePage :: PlayerNumber -> RoutedNomyxServer Html
-newGamePage pn = do
-   newGameLink <- showURL (SubmitNewGame pn)
+newGamePage :: RoutedNomyxServer Html
+newGamePage = do
+   newGameLink <- showURL SubmitNewGame
    mf <- lift $ viewForm "user" $ newGameForm
    mainPage "New game"
             "New game"
             (blazeForm mf newGameLink)
             False
 
-newGamePost :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
-newGamePost pn tm = do
+newGamePost :: (TVar Session) -> RoutedNomyxServer Html
+newGamePost ts = do
    methodM POST
    r <- liftRouteT $ eitherForm environment "user" newGameForm
-   link <- showURL $ Noop pn
+   link <- showURL MainPage
+   pn <- getPlayerNumber ts
    case r of
       Left _ -> error $ "error: newGame"
-      Right (NewGameForm name desc) -> webCommand tm pn $ newGame name desc pn
+      Right (NewGameForm name desc) -> webCommand ts $ newGame name desc pn
    seeOther link $ string "Redirecting..."

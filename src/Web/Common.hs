@@ -28,21 +28,12 @@ import qualified Text.Reform.Generalized as G
 import Data.Text(Text, pack)
 import Web.Routes.Happstack()
 import Data.Generics         (Data, Typeable)
-import Happstack.Auth
-       (UserId, AuthProfileURL)
+import Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
+
 
 
 --import Web.Routes.TH         (derivePathInfo)
 default (Integer, Double, Data.Text.Text)
-
-
-data ProfileDataURL
-    = CreateNewProfileData
-    | ViewProfileData UserId
-      deriving (Eq, Ord, Read, Show, Data, Typeable)
-
-$(derivePathInfo ''ProfileDataURL)
-
 
 data LoginName = LoginName { login :: PlayerName}
                              deriving (Show, Eq)
@@ -58,20 +49,19 @@ data Server = Server [PlayerClient] deriving (Eq, Show)
 data PlayerCommand =
                      HomePage
                    | U_AuthProfile AuthProfileURL
-                   | U_ProfileData ProfileDataURL
-
-                   | Noop            PlayerNumber
-                   | ViewGame        PlayerNumber GameName
-                   | JoinGame        PlayerNumber GameName
-                   | LeaveGame       PlayerNumber GameName
-                   | DoInputChoice   PlayerNumber EventNumber
-                   | DoInputString   PlayerNumber String
-                   | NewRule         PlayerNumber
-                   | NewGame         PlayerNumber
-                   | SubmitNewGame   PlayerNumber
-                   | Upload          PlayerNumber
-                   | PSettings       PlayerNumber
-                   | SubmitPlayerSettings  PlayerNumber
+                   | NewPlayer
+                   | MainPage
+                   | ViewGame        GameName
+                   | JoinGame        GameName
+                   | LeaveGame       GameName
+                   | DoInputChoice   EventNumber
+                   | DoInputString   String
+                   | NewRule
+                   | NewGame
+                   | SubmitNewGame
+                   | Upload
+                   | PSettings
+                   | SubmitPlayerSettings
                    deriving (Show)
 
 
@@ -96,12 +86,11 @@ evalCommand ts sm = liftRouteT $ lift $ do
    s <- atomically $ readTVar ts
    evalStateT sm s
 
-
-webCommand :: (TVar Session) -> PlayerNumber -> StateT Session IO () -> RoutedNomyxServer ()
-webCommand tm _ sm = liftRouteT $ lift $ do
-   s <- atomically $ readTVar tm
-   s' <- execStateT sm s
-   atomically $ writeTVar tm s'
+webCommand :: (TVar Session) -> StateT Session IO () -> RoutedNomyxServer ()
+webCommand ts sm = liftRouteT $ lift $ do
+      s <- atomically $ readTVar ts
+      s' <- execStateT sm s
+      atomically $ writeTVar ts s'
 
 
 blazeResponse :: Html -> Response
@@ -165,5 +154,13 @@ appTemplate ::
     -> m Response
 appTemplate title headers body = do
    return $ toResponse $ appTemplate' title headers body True
+
+getPlayerNumber :: (TVar Session) -> RoutedNomyxServer PlayerNumber
+getPlayerNumber ts = do
+   (T.Session _ _ (Acid acidAuth acidProfile _)) <- liftRouteT $ lift $ readTVarIO ts
+   uid <- getUserId acidAuth acidProfile
+   case uid of
+      Nothing -> error "not logged in."
+      (Just (UserId userID)) -> return $ fromInteger userID
 
 

@@ -15,7 +15,6 @@ import Happstack.Server
 import Text.Reform.Happstack
 import Web.Common
 import Control.Monad.State
-import Language.Nomyx.Expression
 import Web.Routes.RouteT
 import Control.Concurrent.STM
 import Data.Maybe
@@ -40,27 +39,29 @@ settingsForm' name mailTo mailNewRule = pure Types.PlayerSettings
    <*> pure True --label " send mail on new output: " ++> inputCheckbox True <++ label " "
    <*> pure True
 
-settingsPage :: PlayerNumber -> PlayerSettings -> RoutedNomyxServer Html
-settingsPage pn ps = do
-   settingsLink <- showURL (SubmitPlayerSettings pn)
+settingsPage :: PlayerSettings -> RoutedNomyxServer Html
+settingsPage ps = do
+   settingsLink <- showURL SubmitPlayerSettings
    mf <- lift $ viewForm "user" $ settingsForm (Just ps)
    mainPage  "Player settings"
              "Player settings"
              (blazeForm mf settingsLink)
              False
 
-settings :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
-settings pn ts  = do
+settings :: (TVar Session) -> RoutedNomyxServer Html
+settings ts  = do
    s <- liftRouteT $ lift $ atomically $ readTVar ts
+   pn <- getPlayerNumber ts
    pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
-   settingsPage pn $ _pPlayerSettings $ fromJust pfd
+   settingsPage $ _pPlayerSettings $ fromJust pfd
 
-newSettings :: PlayerNumber -> (TVar Session) -> RoutedNomyxServer Html
-newSettings pn tm = do
+newSettings :: (TVar Session) -> RoutedNomyxServer Html
+newSettings ts = do
    methodM POST
+   pn <- getPlayerNumber ts
    p <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing
-   link <- showURL $ Noop pn
+   link <- showURL MainPage
    case p of
-       Right ps -> webCommand tm pn $ playerSettings ps pn
+       Right ps -> webCommand ts $ playerSettings ps pn
        (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."

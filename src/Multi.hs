@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts, GeneralizedNewtypeDeriving, ScopedTypeVariables,
-    MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators,
+    MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators, TemplateHaskell, QuasiQuotes,
     TypeSynonymInstances, FlexibleInstances, GADTs, NamedFieldPuns, DoAndIfThenElse, RecordWildCards #-}
 
 -- | This module manages multi-player games and commands.
@@ -14,10 +14,8 @@ module Multi where
 import Prelude hiding (catch)
 import Data.List
 import Control.Monad.State
---import Game
 import Utils
 import Interpret
--- import Language.Nomyx
 import Data.Time
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Data.Maybe
@@ -30,6 +28,7 @@ import Language.Nomyx
 import Language.Nomyx.Game as G
 import Control.Category hiding ((.))
 import qualified Data.Acid.Advanced as A (update', query')
+import Quotes (cr)
 
 
 -- | add a new player
@@ -41,15 +40,18 @@ newPlayer uid ms gn sr = do
 
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> StateT Session IO ()
-newGame name desc pn = focus multi $ do
-   gs <- access games
-   case null $ filter ((== name) . getL (game >>> gameName)) gs of
-      True -> do
-         tracePN pn $ "Creating a new game of name: " ++ name
-         t <- access mCurrentTime
-         -- create a game with zero players
-         void $ games %= ((initialLoggedGame name desc t) : )
-      False -> tracePN pn "this name is already used"
+newGame name desc pn = do
+   sh <- access sh
+   focus multi $ do
+      gs <- access games
+      case null $ filter ((== name) . getL (game >>> gameName)) gs of
+         True -> do
+            tracePN pn $ "Creating a new game of name: " ++ name
+            t <- access mCurrentTime
+            -- create a game with zero players
+            lg <- lift $ initialLoggedGame name desc t sh
+            void $ games %= (lg : )
+         False -> tracePN pn "this name is already used"
 
 -- | view a game.
 viewGamePlayer :: GameName -> PlayerNumber -> StateT Session IO ()
@@ -57,26 +59,18 @@ viewGamePlayer game pn = do
    mg <- focus multi $ getGameByName game
    case mg of
       Nothing -> tracePN pn "No game by that name"
-      Just _ -> do
-         s <- get
-         pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
-         A.update' (acidProfileData $ _acid s) (SetProfileData (fromJust pfd){_pViewingGame = Just game})
-         return ()
+      Just _ -> modifyProfile pn (pViewingGame ^= Just game)
 
 -- | unview a game.
 unviewGamePlayer :: PlayerNumber -> StateT Session IO ()
-unviewGamePlayer pn = do
-   s <- get
-   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
-   A.update' (acidProfileData $ _acid s) (SetProfileData (fromJust pfd){_pViewingGame = Nothing})
-   return ()
+unviewGamePlayer pn = modifyProfile pn (pViewingGame ^= Nothing)
 
 -- | join a game.
 joinGame :: GameName -> PlayerNumber -> StateT Session IO ()
 joinGame game pn = do
-      s <- get
-      name <- lift $ getPlayersName pn s
-      focus multi $ inGameDo game $ G.update $ JoinGame pn name
+   s <- get
+   name <- lift $ getPlayersName pn s
+   focus multi $ inGameDo game $ G.update $ JoinGame pn name
 
 -- | leave a game.
 leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
@@ -92,19 +86,12 @@ submitRule sr@(SubmitRule _ _ code) pn sh = do
       Right _ -> do
          tracePN pn $ "proposed rule compiled OK "
          inPlayersGameDo_ pn $ G.update' (Just $ getRuleFunc sh) (ProposeRuleEv pn sr)
-         updateLastRule Nothing pn
+         modifyProfile pn (pLastRule ^= Nothing)
       Left e -> do
          inPlayersGameDo_ pn $ update $ OutputPlayer pn ("Compiler error: " ++ show e ++ "\n")
          tracePN pn ("Compiler error: " ++ show e ++ "\n")
-         updateLastRule (Just sr) pn
+         modifyProfile pn (pLastRule ^= Just sr) -- keep in memory the last rule proposed by the player to display it in case of error
 
--- | keep in memory the last rule proposed by the player to display it in case of error
-updateLastRule :: Maybe SubmitRule -> PlayerNumber -> StateT Session IO ()
-updateLastRule msr pn = do
-   s <- get
-   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
-   A.update' (acidProfileData $ _acid s) (SetProfileData (fromJust pfd){_pLastRule = msr})
-   return ()
 
 -- | result of choice with radio buttons
 inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> StateT Session IO ()
@@ -120,7 +107,6 @@ inputStringResult (InputString _ ti) input pn = inPlayersGameDo_ pn $ update $ I
 -- | upload a rule file
 inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Session IO ()
 inputUpload pn dir mod sh = do
-   --sh <- access (mSettings >>> sh)
    m <- liftIO $ loadModule dir mod sh
    tracePN pn $ " uploaded " ++ (show mod)
    case m of
@@ -135,15 +121,7 @@ inputUpload pn dir mod sh = do
 
 -- | update player settings
 playerSettings :: PlayerSettings -> PlayerNumber -> StateT Session IO ()
-playerSettings playerSettings pn = do
-   s <- get
-   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
-   case pfd of
-      Nothing -> tracePN pn "settings not modified!"
-      Just pf -> do
-         tracePN pn $ "player settings " ++ (show playerSettings)
-         A.update' (acidProfileData $ _acid s) (SetProfileData pf{_pPlayerSettings=playerSettings})
-         return ()
+playerSettings playerSettings pn = modifyProfile pn (pPlayerSettings ^= playerSettings)
 
 
 -- | Utility functions
@@ -211,33 +189,28 @@ getTimeEvents now m = do
     return $ filter (\t -> t <= now && t > (-2) `addUTCTime` now) times
 
 -- | the initial rule set for a game.
-rVoteUnanimity = Rule  {
-    _rNumber       = 1,
-    _rName         = "Unanimity Vote",
-    _rDescription  = "A proposed rule will be activated if all players vote for it",
-    _rProposedBy   = 0,
-    _rRuleCode     = "onRuleProposed $ voteWith unanimity",
-    _rRuleFunc     = onRuleProposed $ voteWith unanimity $ assessOnEveryVotes,
-    _rStatus       = Active,
-    _rAssessedBy   = Nothing}
+rVoteUnanimity = SubmitRule "Unanimity Vote"
+                            "A proposed rule will be activated if all players vote for it"
+                            [cr|onRuleProposed $ voteWith unanimity $ assessOnEveryVotes|]
 
-rVictory5Rules = Rule  {
-    _rNumber       = 2,
-    _rName         = "Victory 5 accepted rules",
-    _rDescription  = "Victory is achieved if you have 5 active rules",
-    _rProposedBy   = 0,
-    _rRuleCode     = "victoryXRules 5",
-    _rRuleFunc     = victoryXRules 5,
-    _rStatus       = Active,
-    _rAssessedBy   = Nothing}
+rVictory5Rules = SubmitRule "Victory 5 accepted rules"
+                            "Victory is achieved if you have 5 active rules"
+                            [cr|victoryXRules 5|]
 
-initialGame :: GameName -> GameDesc -> UTCTime -> Game
-initialGame name desc date = flip execState (emptyGame name desc date) $ do
-    evAddRule rVoteUnanimity
-    evActivateRule (_rNumber rVoteUnanimity) 0
-    evAddRule rVictory5Rules
-    evActivateRule (_rNumber rVictory5Rules) 0
+modifyProfile :: PlayerNumber -> (ProfileData -> ProfileData) -> StateT Session IO ()
+modifyProfile pn mod = do
+   s <- get
+   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
+   A.update' (acidProfileData $ _acid s) (SetProfileData (mod $ fromJust pfd))
+   return ()
 
-initialLoggedGame :: GameName -> GameDesc -> UTCTime -> LoggedGame
-initialLoggedGame name desc date = (LoggedGame (initialGame name desc date) [])
 
+initialGame :: ServerHandle -> StateT LoggedGame IO ()
+initialGame sh = do
+   update' (Just $ getRuleFunc sh) $ SystemAddRule rVoteUnanimity
+   update' (Just $ getRuleFunc sh) $ SystemAddRule rVictory5Rules
+
+initialLoggedGame :: GameName -> GameDesc -> UTCTime -> ServerHandle -> IO LoggedGame
+initialLoggedGame name desc date sh = do
+   let lg = LoggedGame (emptyGame name desc date) []
+   execStateT (initialGame sh) lg
