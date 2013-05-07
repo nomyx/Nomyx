@@ -119,10 +119,7 @@ nomyxSite :: (TVar Session) -> Site PlayerCommand (ServerPartT IO Response)
 nomyxSite tm = setDefault HomePage $ mkSitePI (runRouteT $ routedNomyxCommands tm)
 
 routedNomyxCommands :: (TVar Session) -> PlayerCommand -> RoutedNomyxServer Response
-routedNomyxCommands ts  (U_AuthProfile authProfileURL) = do
-   (T.Session _ _ Acid{..}) <- liftRouteT $ lift $ atomically $ readTVar ts
-   postPickedURL <- showURL NewPlayer
-   nestURL U_AuthProfile $ handleAuthProfile acidAuth acidProfile appTemplate Nothing Nothing postPickedURL authProfileURL
+routedNomyxCommands ts (U_AuthProfile auth)  = authenticate ts auth
 routedNomyxCommands ts NewPlayer             = createNewPlayer ts
 routedNomyxCommands ts HomePage              = homePage ts
 routedNomyxCommands ts MainPage              = nomyxPage ts

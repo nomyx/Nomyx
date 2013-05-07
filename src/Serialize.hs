@@ -14,7 +14,9 @@ import Language.Haskell.Interpreter.Server
 import Interpret
 
 save :: FilePath -> Multi -> IO()
-save fp m = writeFile fp (show m)
+save fp m = do
+   putStrLn "saving"
+   writeFile fp (show m)
 
 save' :: StateT Multi IO ()
 save' = do

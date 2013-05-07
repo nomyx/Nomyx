@@ -17,7 +17,7 @@ import Multi as M
 import Web.Common
 import Web.Routes.Happstack()
 import Data.Text hiding (map, zip, concatMap)
-import Happstack.Auth (AuthProfileURL(..), AuthURL(..))
+import Happstack.Auth (AuthProfileURL(..), AuthURL(..), handleAuthProfile)
 import Happstack.Auth.Core.Profile
 default (Integer, Double, Data.Text.Text)
 
@@ -29,8 +29,8 @@ homePage ts = do
       case mUserId of
          Nothing ->
             do loginURL <- showURL (U_AuthProfile $ AuthURL A_Login)
-               mainPage'  "Login to Nomyx"
-                          "Login to Nomyx"
+               mainPage'  "Nomyx"
+                          "Not logged in"
                           (H.div $ p $ do
                              "Welcome to Nomyx! You can login "
                              H.a ! href (toValue loginURL) $ "here.")
@@ -47,4 +47,9 @@ createNewPlayer ts = do
    link <- showURL $ PSettings
    seeOther link (toResponse $ string "to settings page")
 
+authenticate :: (TVar Session) -> AuthProfileURL -> RoutedNomyxServer Response
+authenticate ts authProfileURL = do
+   (T.Session _ _ Acid{..}) <- liftRouteT $ lift $ atomically $ readTVar ts
+   postPickedURL <- showURL NewPlayer
+   nestURL U_AuthProfile $ handleAuthProfile acidAuth acidProfile appTemplate Nothing Nothing postPickedURL authProfileURL
 

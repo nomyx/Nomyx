@@ -66,7 +66,7 @@ getPlayersGame pn s = do
    let mgn = _pViewingGame $ fromJust pfd
    return $ do
       gn <- mgn
-      return $ fromMaybe (error "No game by that name") $ find ((== gn) . getL (game >>> gameName)) (_games $ _multi s)
+      find ((== gn) . getL (game >>> gameName)) (_games $ _multi s)
 
 getPlayersNameMay :: Game -> PlayerNumber -> Maybe PlayerName
 getPlayersNameMay g pn = do

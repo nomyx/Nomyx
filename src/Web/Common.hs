@@ -28,6 +28,9 @@ import qualified Text.Reform.Generalized as G
 import Data.Text(Text, pack)
 import Web.Routes.Happstack()
 import Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
+import Control.Category ((>>>))
+import Serialize
+import Control.Exception (evaluate)
 
 
 
@@ -87,9 +90,10 @@ evalCommand ts sm = liftRouteT $ lift $ do
 
 webCommand :: (TVar Session) -> StateT Session IO () -> RoutedNomyxServer ()
 webCommand ts sm = liftRouteT $ lift $ do
-      s <- atomically $ readTVar ts
-      s' <- execStateT sm s
-      atomically $ writeTVar ts s'
+   s <- atomically $ readTVar ts
+   s' <- execStateT sm s
+   atomically $ writeTVar ts s'
+   save (_multi >>> _mSettings >>>_logFilePath $ s) (_multi s')
 
 
 blazeResponse :: Html -> Response
