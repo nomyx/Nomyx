@@ -43,13 +43,12 @@ import Data.Text(Text, pack)
 import qualified Language.Nomyx.Game as G
 import qualified Multi as M
 import Happstack.Auth
-import qualified Data.Acid.Advanced as A (query')
 default (Integer, Double, Data.Text.Text)
 
 
 viewMulti :: PlayerNumber -> Session -> RoutedNomyxServer Html
 viewMulti pn s = do
-   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
+   pfd <- getProfile pn s
    gns <- viewGamesTab (map G._game $ _games $ _multi s)
    mgn <- liftRouteT $ lift $ getPlayersGame pn s
    g <- case mgn of

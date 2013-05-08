@@ -16,7 +16,7 @@ import Data.List
 import Control.Monad.State
 import Utils
 import Interpret
-import Data.Time
+import Data.Time as T
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Data.Maybe
 import Types
@@ -35,7 +35,7 @@ import Quotes (cr)
 newPlayer :: PlayerNumber -> PlayerSettings -> Maybe GameName -> Maybe SubmitRule -> StateT Session IO ()
 newPlayer uid ms gn sr = do
    s <- get
-   A.update' (acidProfileData $ _acid s) (NewProfileData uid ms gn sr)
+   A.update' (acidProfileData $ _profiles s) (NewProfileData uid ms gn sr)
    return ()
 
 -- | starts a new game
@@ -47,7 +47,7 @@ newGame name desc pn = do
       case null $ filter ((== name) . getL (game >>> gameName)) gs of
          True -> do
             tracePN pn $ "Creating a new game of name: " ++ name
-            t <- access mCurrentTime
+            t <- lift $ T.getCurrentTime
             -- create a game with zero players
             lg <- lift $ initialLoggedGame name desc t sh
             void $ games %= (lg : )
@@ -129,7 +129,7 @@ playerSettings playerSettings pn = modifyProfile pn (pPlayerSettings ^= playerSe
 getNewPlayerNumber :: StateT Session IO PlayerNumber
 getNewPlayerNumber = do
    s <- get
-   pfd <- A.query' (acidProfileData $ _acid s) AskProfileDataNumber
+   pfd <- A.query' (acidProfileData $ _profiles s) AskProfileDataNumber
    return $ pfd + 1
 
 
@@ -140,7 +140,7 @@ getGameByName gn =  (find ((==gn) . getL (game >>> gameName))) <$> (access games
 inPlayersGameDo :: PlayerNumber -> StateT LoggedGame IO a -> StateT Session IO (Maybe a)
 inPlayersGameDo pn action = do
    s <- get
-   t <- access (multi >>> mCurrentTime) --TODO remove?
+   t <- lift $ T.getCurrentTime
    mg <- lift $ getPlayersGame pn s
    case mg of
       Nothing -> tracePN pn "You must be in a game" >> return Nothing
@@ -158,11 +158,11 @@ inGameDo gn action = do
    case find ((==gn) . getL (game >>> gameName)) gs of
       Nothing -> traceM "No game by that name"
       Just (g::LoggedGame) -> do
-         t <- access mCurrentTime
+         t <- lift $ T.getCurrentTime
          myg <- lift $ execWithGame' t action g
          modifyGame myg
 
---TODO push this down to Game?
+
 triggerTimeEvent :: UTCTime -> StateT Multi IO ()
 triggerTimeEvent t = do
    gs <- access games
@@ -196,13 +196,6 @@ rVoteUnanimity = SubmitRule "Unanimity Vote"
 rVictory5Rules = SubmitRule "Victory 5 accepted rules"
                             "Victory is achieved if you have 5 active rules"
                             [cr|victoryXRules 5|]
-
-modifyProfile :: PlayerNumber -> (ProfileData -> ProfileData) -> StateT Session IO ()
-modifyProfile pn mod = do
-   s <- get
-   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
-   A.update' (acidProfileData $ _acid s) (SetProfileData (mod $ fromJust pfd))
-   return ()
 
 
 initialGame :: ServerHandle -> StateT LoggedGame IO ()

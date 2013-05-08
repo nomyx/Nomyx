@@ -47,8 +47,7 @@ data Settings = Settings { _logFilePath :: FilePath,
 
 --- | A structure to hold the active games and players
 data Multi = Multi { _games   :: [LoggedGame],
-                     _mSettings :: Settings,
-                     _mCurrentTime :: UTCTime}
+                     _mSettings :: Settings}
                      deriving (Eq, Read, Show, Typeable)
 
 
@@ -71,7 +70,7 @@ $(deriveSafeCopy 1 'base ''ProfileDataState)
 
 
 -- | 'Acid' holds all the 'AcidState' handles for this site.
-data Acid = Acid
+data Profiles = Profiles
     { acidAuth        :: AcidState AuthState
     , acidProfile     :: AcidState ProfileState
     , acidProfileData :: AcidState ProfileDataState
@@ -128,14 +127,10 @@ initialProfileDataState = ProfileDataState { profilesData = IxSet.empty }
 
 data Session = Session { _sh :: ServerHandle,
                          _multi :: Multi,
-                         _acid :: Acid}
+                         _profiles  :: Profiles}
 
-defaultMulti :: Settings -> UTCTime -> Multi
-defaultMulti set t = Multi [] set t
-
-
-
-type NomyxForm a = Form (ServerPartT IO) [Input] String Html () a
+defaultMulti :: Settings -> Multi
+defaultMulti set = Multi [] set
 
 defaultPlayerSettings :: PlayerSettings
 defaultPlayerSettings = PlayerSettings "" "" False False False False

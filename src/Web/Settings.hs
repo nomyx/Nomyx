@@ -21,7 +21,7 @@ import Data.Maybe
 import Data.Text(Text)
 import Text.Blaze.Internal(string)
 import Multi
-import qualified Data.Acid.Advanced as A (query')
+import Utils
 default (Integer, Double, Data.Text.Text)
 
 
@@ -52,7 +52,7 @@ settings :: (TVar Session) -> RoutedNomyxServer Html
 settings ts  = do
    s <- liftRouteT $ lift $ atomically $ readTVar ts
    pn <- getPlayerNumber ts
-   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
+   pfd <- getProfile pn s
    settingsPage $ _pPlayerSettings $ fromJust pfd
 
 newSettings :: (TVar Session) -> RoutedNomyxServer Html

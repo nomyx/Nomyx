@@ -105,13 +105,12 @@ start flags = do
 loadMulti :: Settings -> Bool -> ServerHandle -> IO Multi
 loadMulti set readSaveFile sh = do
    fileExists <- doesFileExist $ _logFilePath $ set
-   t <- getCurrentTime
    multi <- case fileExists && readSaveFile of
       True -> do
          putStrLn "Loading previous game"
          Serialize.loadMulti set sh `catch`
-            (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set t))
-      False -> return $ defaultMulti set t
+            (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set))
+      False -> return $ defaultMulti set
    return multi
 
 
@@ -228,11 +227,11 @@ launchTimeEvents tm = do
     launchTimeEvents tm
 
 withAcid :: Maybe FilePath -- ^ state directory
-         -> (Acid -> IO a) -- ^ action
+         -> (Profiles -> IO a) -- ^ action
          -> IO a
 withAcid mBasePath f =
     let basePath = fromMaybe "_state" mBasePath in
     bracket (openLocalStateFrom (basePath </> "auth")        initialAuthState)        (createCheckpointAndClose) $ \auth ->
     bracket (openLocalStateFrom (basePath </> "profile")     initialProfileState)     (createCheckpointAndClose) $ \profile ->
     bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState) (createCheckpointAndClose) $ \profileData ->
-        f (Acid auth profile profileData)
+        f (Profiles auth profile profileData)

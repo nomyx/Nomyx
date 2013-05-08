@@ -24,7 +24,7 @@ import Language.Nomyx
 import Language.Nomyx.Game
 import Data.Lens
 import Control.Category hiding ((.))
-import qualified Data.Acid.Advanced as A (query')
+import qualified Data.Acid.Advanced as A (query', update')
    
 -- | this function will return just a if it can cast it to an a.
 maybeRead :: Read a => String -> Maybe a
@@ -50,7 +50,7 @@ nomyxURL (Network host port) = "http://" ++ host ++ ":" ++ (show port)
 
 getPlayersName :: PlayerNumber -> Session -> IO PlayerName
 getPlayersName pn s = do
-   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
+   pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
    return $ _pPlayerName $ _pPlayerSettings $ fromJust pfd
 
 getPlayersName' :: Game -> PlayerNumber -> PlayerName
@@ -62,7 +62,7 @@ getPlayersName' g pn = do
 -- | returns the game the player is in
 getPlayersGame :: PlayerNumber -> Session -> IO (Maybe LoggedGame)
 getPlayersGame pn s = do
-   pfd <- A.query' (acidProfileData $ _acid s) (AskProfileData pn)
+   pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
    let mgn = _pViewingGame $ fromJust pfd
    return $ do
       gn <- mgn
@@ -92,7 +92,15 @@ execWithMulti t ms m = do
    let m' = games `modL` (map setTime) $ m
    execStateT ms m'
 
+modifyProfile :: PlayerNumber -> (ProfileData -> ProfileData) -> StateT Session IO ()
+modifyProfile pn mod = do
+   s <- get
+   pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
+   A.update' (acidProfileData $ _profiles s) (SetProfileData (mod $ fromJust pfd))
+   return ()
 
+getProfile :: MonadIO m => PlayerNumber -> Session -> m (Maybe ProfileData)
+getProfile pn s = A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
 
 
 

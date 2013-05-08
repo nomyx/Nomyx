@@ -13,6 +13,7 @@
 -----------------------------------------------------------------------------
 {-# LANGUAGE TupleSections, ScopedTypeVariables, TemplateHaskell, GADTs, QuasiQuotes #-}
 
+-- | Test module
 module Test where
 
 import Prelude hiding (catch)
@@ -28,19 +29,24 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Syntax as THS
 import System.IO.Unsafe
 import Quotes
-import Data.Time.Clock
 import Data.Lens
 import Safe
+import Data.Acid.Memory
+import Happstack.Auth.Core.Auth (initialAuthState)
+import Happstack.Auth.Core.Profile (initialProfileState)
 import qualified Language.Nomyx.Game as G
 
 playTests :: ServerHandle -> IO [(String, Bool)]
 playTests sh = mapM (\(title, t, cond) -> (title,) <$> test sh t cond) tests
 
+-- | test list.
+-- each test can be loaded individually in Nomyx with the command line:
+-- Nomyx -l <"test name">
 tests :: [(String, StateT Session IO (), Multi -> Bool)]
 tests = [("hello World",           gameHelloWorld,         condHelloWorld),
          ("hello World 2 players", gameHelloWorld2Players, condHelloWorld2Players),
          ("Partial Function 1",    gamePartialFunction1,   condPartialFunction1),
-         --("Partial Function 2",    gamePartialFunction2,          condPartialFunction2),
+         ("Partial Function 2",    gamePartialFunction2,   condPartialFunction2),
          ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
          ("Money transfer",        gameMoneyTransfer,      condMoneyTransfer)]
 
@@ -52,7 +58,8 @@ dayZero = UTCTime (ModifiedJulianDay 0) 0
 
 test :: ServerHandle -> StateT Session IO () -> (Multi -> Bool) -> IO Bool
 test sh tes cond = do
-   let s = Session sh (defaultMulti (Settings "" defaultNetwork False) dayZero) undefined
+   tp <- testProfiles
+   let s = Session sh (defaultMulti (Settings "" defaultNetwork False)) tp
    m' <- loadTest tes s
    (evaluate $ cond m') `catch` (\(e::SomeException) -> (putStrLn $ "Exception in test: " ++ show e) >> return False)
 
@@ -71,13 +78,20 @@ testException m e = do
 loadTestName :: Settings -> String -> ServerHandle -> IO Multi
 loadTestName set testName sh = do
    let mt = find (\(name, _, _) -> name == testName) tests
-   t <- getCurrentTime
-   let s = Session sh (defaultMulti set t) undefined
+   tp <- testProfiles
+   let s = Session sh (defaultMulti set) tp
    case mt of
       Just (n, t, _) -> putStrLn ("Loading test game: " ++ n)  >> loadTest t s
       Nothing -> do
          putStrLn "Test name not found"
          return $ _multi s
+
+testProfiles :: IO Profiles
+testProfiles = do
+   ias <- openMemoryState initialAuthState
+   ips <- openMemoryState initialProfileState
+   ipds <- openMemoryState initialProfileDataState
+   return $ Profiles ias ips ipds
 
 printRule :: Q THS.Exp -> String
 printRule r = unsafePerformIO $ do
@@ -141,9 +155,12 @@ partialFunction2 = [cr|voidRule $ do
    t <- getCurrentTime
    onEventOnce_ (Time $ addUTCTime 5 t) $ const $ readVar_ (V "toto2")|]
 
---gamePartialFunction2 :: StateT Session IO ()
---gamePartialFunction2 = onePlayerOneGame ++ (submitRule partialFunction2) ++
---   [TE (5 `addUTCTime` dayZero) $  (MultiTimeEvent $ 5 `addUTCTime` dayZero)]
+gamePartialFunction2 :: StateT Session IO ()
+gamePartialFunction2 = do
+   onePlayerOneGame
+   submitR partialFunction2
+   focus multi $ triggerTimeEvent (5 `addUTCTime` dayZero)
+   --[TE (5 `addUTCTime` dayZero) $  (MultiTimeEvent $ 5 `addUTCTime` dayZero)]
 
 -- rule has been accepted but exception happened later
 condPartialFunction2 :: Multi -> Bool
@@ -186,7 +203,3 @@ condMoneyTransfer :: Multi -> Bool
 condMoneyTransfer m = (_vName $ head $ _variables $ G._game $ head $ _games m) == "Accounts"
 
 
---addRuleParams'_ :: RuleName -> String -> RuleNumber -> String -> Nomex ()
---addRuleParams'_ name code number desc = do
---   let code =  $(return $ putParens' [| voidRule $ return () |])
---   addRuleParams_ name (fst code) (snd code) number desc

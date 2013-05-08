@@ -54,7 +54,7 @@ sendMailsNewRule s sr pn = do
    evaluate s
    gn <- fromJust <$> getPlayersGame pn s
    proposer <- getPlayersName pn s
-   pfd <- A.query' (acidProfileData $ _acid s) AskProfilesData
+   pfd <- A.query' (acidProfileData $ _profiles s) AskProfilesData
    let pls = [ p { _pPlayerNumber = mypn} | p <- pfd, mypn <- map _playerNumber $ _players $ _game gn]
    forM_ pls $ send proposer (_net $ _mSettings $ _multi s)
    where

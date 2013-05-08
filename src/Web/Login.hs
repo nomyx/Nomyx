@@ -24,7 +24,7 @@ default (Integer, Double, Data.Text.Text)
 -- | function which generates the homepage
 homePage :: (TVar Session) -> RoutedNomyxServer Response
 homePage ts = do
-   (T.Session _ _ (Acid acidAuth acidProfile _)) <- liftRouteT $ lift $ readTVarIO ts
+   (T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftRouteT $ lift $ readTVarIO ts
    do mUserId <- getUserId acidAuth acidProfile
       case mUserId of
          Nothing ->
@@ -49,7 +49,7 @@ createNewPlayer ts = do
 
 authenticate :: (TVar Session) -> AuthProfileURL -> RoutedNomyxServer Response
 authenticate ts authProfileURL = do
-   (T.Session _ _ Acid{..}) <- liftRouteT $ lift $ atomically $ readTVar ts
+   (T.Session _ _ Profiles{..}) <- liftRouteT $ lift $ atomically $ readTVar ts
    postPickedURL <- showURL NewPlayer
    nestURL U_AuthProfile $ handleAuthProfile acidAuth acidProfile appTemplate Nothing Nothing postPickedURL authProfileURL
 

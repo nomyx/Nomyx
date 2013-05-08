@@ -33,8 +33,8 @@ import Serialize
 import Control.Exception (evaluate)
 
 
+type NomyxForm a = Form (ServerPartT IO) [Input] String Html () a
 
---import Web.Routes.TH         (derivePathInfo)
 default (Integer, Double, Data.Text.Text)
 
 data LoginName = LoginName { login :: PlayerName}
@@ -160,7 +160,7 @@ appTemplate title headers body = do
 
 getPlayerNumber :: (TVar Session) -> RoutedNomyxServer PlayerNumber
 getPlayerNumber ts = do
-   (T.Session _ _ (Acid acidAuth acidProfile _)) <- liftRouteT $ lift $ readTVarIO ts
+   (T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftRouteT $ lift $ readTVarIO ts
    uid <- getUserId acidAuth acidProfile
    case uid of
       Nothing -> error "not logged in."
