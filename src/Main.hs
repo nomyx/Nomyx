@@ -94,7 +94,8 @@ start flags = do
          Just testName -> loadTestName (settings False) testName sh
          Nothing -> Main.loadMulti (settings True) (not $ NoReadSaveFile `elem` flags) sh
       --main loop
-      withAcid Nothing $ \acid -> do
+      profilePath <- getDataDir
+      withAcid (Just $ profilePath </> "profiles") $ \acid -> do
          tvSession <- atomically $ newTVar (Session sh multi acid)
          --start the web server
          forkIO $ launchWebServer tvSession (Network host port)
