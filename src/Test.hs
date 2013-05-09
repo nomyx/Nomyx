@@ -18,7 +18,6 @@ module Test where
 
 import Prelude hiding (catch)
 import Types
-import Data.Time hiding (getCurrentTime)
 import Control.Monad.State
 import Multi
 import Language.Haskell.Interpreter.Server (ServerHandle)
@@ -26,7 +25,7 @@ import Language.Nomyx hiding (getCurrentTime)
 import Control.Applicative
 import Control.Exception
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax as THS
+import Language.Haskell.TH.Syntax as THS hiding (lift)
 import System.IO.Unsafe
 import Quotes
 import Data.Lens
@@ -35,6 +34,9 @@ import Data.Acid.Memory
 import Happstack.Auth.Core.Auth (initialAuthState)
 import Happstack.Auth.Core.Profile (initialProfileState)
 import qualified Language.Nomyx.Game as G
+import Debug.Trace (trace)
+import Control.Arrow ((>>>))
+import Data.Time hiding (getCurrentTime)
 
 playTests :: ServerHandle -> IO [(String, Bool)]
 playTests sh = mapM (\(title, t, cond) -> (title,) <$> test sh t cond) tests
@@ -88,8 +90,8 @@ loadTestName set testName sh = do
 
 testProfiles :: IO Profiles
 testProfiles = do
-   ias <- openMemoryState initialAuthState
-   ips <- openMemoryState initialProfileState
+   ias  <- openMemoryState initialAuthState
+   ips  <- openMemoryState initialProfileState
    ipds <- openMemoryState initialProfileDataState
    return $ Profiles ias ips ipds
 
@@ -119,8 +121,6 @@ submitR r = do
    sh <- access sh
    submitRule (SubmitRule "" "" r) 1 sh
    inputChoiceResult 3 0 1
-
-
 
 gameHelloWorld :: StateT Session IO ()
 gameHelloWorld = submitR [cr|helloWorld|]
@@ -159,13 +159,14 @@ gamePartialFunction2 :: StateT Session IO ()
 gamePartialFunction2 = do
    onePlayerOneGame
    submitR partialFunction2
-   focus multi $ triggerTimeEvent (5 `addUTCTime` dayZero)
-   --[TE (5 `addUTCTime` dayZero) $  (MultiTimeEvent $ 5 `addUTCTime` dayZero)]
+   gs <- (access $ multi >>> games)
+   let now = _currentTime $ G._game (gs !! 1)
+   focus multi $ triggerTimeEvent (5 `addUTCTime` now)
 
 -- rule has been accepted but exception happened later
 condPartialFunction2 :: Multi -> Bool
-condPartialFunction2 m = (_rStatus $ headNote "cond failed" $ _rules $ G._game $ headNote "cond failed" $ _games m) == Active &&
-                         (take 5 $ snd $ headNote "cond failed" $ _outputs $ G._game $ headNote "cond failed" $ _games m) == "Error"
+condPartialFunction2 m = (trace "s=" (_rStatus $ headNote "cond1 failed" $ _rules $ G._game $ headNote "cond2 failed" $ _games m)) == Active &&
+                         (trace "o=" (take 5 $ snd $ headNote "cond3 failed" $ _outputs $ G._game $ headNote "cond4 failed" $ _games m)) == "Error"
 
 --This rule blocks the game: the exception (variable not existing) is triggered during a "rule proposed" event,
 --thus preventing to propose any new rule to the game.

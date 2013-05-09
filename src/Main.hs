@@ -212,6 +212,7 @@ triggerTimeEvent tm t = do
     (Session sh m a) <- atomically $ readTVar tm
     m' <- execWithMulti t (Multi.triggerTimeEvent t) m
     atomically $ writeTVar tm (Session sh m' a)
+    save (_mSettings >>>_logFilePath $ m') m'
 
 
 launchTimeEvents :: TVar Session -> IO()

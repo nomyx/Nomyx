@@ -93,7 +93,7 @@ webCommand ts sm = liftRouteT $ lift $ do
    s <- atomically $ readTVar ts
    s' <- execStateT sm s
    atomically $ writeTVar ts s'
-   save (_multi >>> _mSettings >>>_logFilePath $ s) (_multi s')
+   save (_multi >>> _mSettings >>>_logFilePath $ s) (_multi s') --TODO not really nice to put that here
 
 
 blazeResponse :: Html -> Response
