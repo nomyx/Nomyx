@@ -52,8 +52,8 @@ viewMulti pn s = do
    gns <- viewGamesTab (map G._game $ _games $ _multi s)
    mgn <- liftRouteT $ lift $ getPlayersGame pn s
    g <- case mgn of
-            Just g -> viewGame (G._game g) pn (_pLastRule $ fromJust pfd)
-            Nothing -> ok $ h3 "Not in game"
+      Just g -> viewGame (G._game g) pn (_pLastRule $ fromJust pfd)
+      Nothing -> ok $ h3 "Not viewing any game"
    ok $ do
       div ! A.id "gameList" $ gns
       div ! A.id "game" $ g

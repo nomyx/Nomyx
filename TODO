@@ -5,9 +5,8 @@ Features to add:
 
 - interpreter (like tryhaskell.org) on the web page to debug rules
 - make a command line client
-- make a session system with cookie
 - make code instructions in the active rules table clickable to access haddock documentation
-- option to read step by step the save file for analysis
+- option to read step by step the save file for analysis?
 
 Improves:
 
@@ -17,18 +16,17 @@ Improves:
 - add a name to events to be able to delete categories of them
 - add "back to main page" links
 - recognize array vars to display them properly on HCI
-- do the export file
 - use TH in addRuleParams
 - manage creation of game safely
-- warn when password false
 - possibility to modify game details
 - suppress "delRule"
-- remove references to "multi" to improve flow
 - add a proper log system (with levels)
 - hide when no information
 - generate better messages for partial functions
 - cut rules too long
 - add help info about the meaning of view and join
+- add instruction to manage players: name, kick etc.
+- purify some IO
 
 Futur Nomic:
 - ability to analyse rules, proof system
@@ -38,14 +36,13 @@ BUGS
 - sendmail is blocking the game
 - delete invalid events (in case of exception): events may be triggered twice if not deleted
 - reading save file does not take absolute path
-- add option to don't send mails
-- empty login/password and game name
-- players seems to be added twice
+- add global option to not send mails
+- empty game name
 - store hide/show status of divs
 - should be able to propose a rule in a game without viewing it
-- submit rule only if joined game!
-- re-read log file
-- suppress time from Multi
+
+
+
 
 Forum:
 - start another VM to run Nomyx alone

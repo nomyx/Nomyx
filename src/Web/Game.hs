@@ -1,5 +1,5 @@
 
-{-# LANGUAGE GADTs, OverloadedStrings, ExtendedDefaultRules#-}
+{-# LANGUAGE GADTs, OverloadedStrings, ExtendedDefaultRules, DoAndIfThenElse#-}
 
 module Web.Game where
 
@@ -40,7 +40,8 @@ default (Integer, Double, Data.Text.Text)
 
 viewGame :: Game -> PlayerNumber -> (Maybe SubmitRule) -> RoutedNomyxServer Html
 viewGame g pn sr = do
-   rf <- viewRuleForm sr
+   let inGame = isJust $ getPlayers g pn
+   rf <- viewRuleForm sr inGame
    vi <- viewInputs pn $ _events g
    ok $ table $ do
       td ! A.id "gameCol" $ do
@@ -72,7 +73,7 @@ viewPlayer pi = tr $ do
 
 viewVictory :: Game -> Html
 viewVictory g = do
-    let vs = mapMaybe (getPlayersNameMay g) (_victory g)
+    let vs = _playerName <$> mapMaybe (getPlayers g) (_victory g)
     case vs of
         []   -> br
         a:[] -> h3 $ string $ "Player " ++ (show a) ++ " won the game!"
@@ -184,13 +185,14 @@ newRuleForm' (SubmitRule name desc code) = pure SubmitRule  <*> RB.label "Name: 
                                    `RBC.setAttr` A.class_ "code" `RBC.setAttr` A.placeholder "Enter here your rule" `RBC.setAttr` (A.title (toValue Help.code))
 
 
-viewRuleForm :: (Maybe SubmitRule) -> RoutedNomyxServer Html
-viewRuleForm sr = do
+viewRuleForm :: (Maybe SubmitRule) -> Bool -> RoutedNomyxServer Html
+viewRuleForm sr inGame = do
    link <- showURL NewRule
    lf  <- lift $ viewForm "user" $ newRuleForm sr
    ok $ do
       h3 "Propose a new rule:"
-      blazeForm lf (link)
+      if inGame then blazeForm lf (link) ! A.disabled ""
+      else lf ! A.disabled ""
 
 newRule :: (TVar Session) -> RoutedNomyxServer Html
 newRule ts = do
@@ -268,8 +270,6 @@ inputStringForm title = RB.label (title ++ " ") ++> RB.inputText ""
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do
    div ! A.onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id id) $ table ! A.width "100%" $ tr $ do
-   --div ! A.onclick (toStringFronFay (ToggleVisibility id)) $ table ! A.width "100%" $ tr $ do
-   -- toStringFromFay Toggle.... -> dispatch(ToggleVisibility id)
       td $ title ! A.width "80%"
       td ! A.style "text-align:right;" $ h5 (if visible then "[Hide]" else "[Show]") ! A.id (fromString $ printf "%sShow" id) ! A.width "20%"
    div ! A.id (fromString $ printf "%sBody" id) ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $

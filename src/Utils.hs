@@ -66,14 +66,10 @@ getPlayersGame pn s = do
    let mgn = _pViewingGame $ fromJust pfd
    return $ do
       gn <- mgn
-      find ((== gn) . getL (game >>> gameName)) (_games $ _multi s)
+      find ((== gn) . getL (game >>> gameName)) (_games $ _multi s) --checks if any game by that name exists
 
-getPlayersNameMay :: Game -> PlayerNumber -> Maybe PlayerName
-getPlayersNameMay g pn = do
-   case find ((==pn) . getL playerNumber) (_players g) of
-      Nothing -> Nothing
-      Just pm -> Just $ _playerName pm
-
+getPlayers :: Game -> PlayerNumber -> Maybe PlayerInfo
+getPlayers g pn = find ((==pn) . getL playerNumber) (_players g)
 
 -- | finds the corresponding game in the multistate and replaces it.
 modifyGame :: LoggedGame -> StateT Multi IO ()
