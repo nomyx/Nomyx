@@ -5,7 +5,6 @@
 module Types where
 import Language.Nomyx
 import Data.Typeable
-import Text.Blaze.Html5 hiding (map, label, base)
 import Text.Reform
 import Happstack.Server
 import Text.Reform.Happstack()
@@ -25,6 +24,7 @@ import Control.Monad.State.Class (MonadState(..))
 
 type PlayerPassword = String
 type Port = Int
+
 data Network = Network {_host :: HostName, _port :: Port}
                deriving (Eq, Show, Read, Typeable)
 defaultNetwork = Network "" 0
@@ -76,6 +76,9 @@ data Profiles = Profiles
     , acidProfileData :: AcidState ProfileDataState
     }
 
+data Session = Session { _sh :: ServerHandle,
+                         _multi :: Multi,
+                         _profiles  :: Profiles}
 
 -- | set 'ProfileData' for UserId
 setProfileData :: ProfileData -> Update ProfileDataState ProfileData
@@ -101,13 +104,13 @@ newProfileData uid ps gn sr =
                        return profileData
          (Just profileData) -> return profileData
 
--- |
+-- | get number of
 askProfileDataNumber :: Query ProfileDataState Int
 askProfileDataNumber =
     do pds <- ask
        return $ IxSet.size $ profilesData pds
 
--- | get all 'ProfileData'
+-- | get all profiles
 askProfilesData :: Query ProfileDataState [ProfileData]
 askProfilesData =
     do pds <- ask
@@ -125,9 +128,6 @@ $(makeAcidic ''ProfileDataState
 initialProfileDataState :: ProfileDataState
 initialProfileDataState = ProfileDataState { profilesData = IxSet.empty }
 
-data Session = Session { _sh :: ServerHandle,
-                         _multi :: Multi,
-                         _profiles  :: Profiles}
 
 defaultMulti :: Settings -> Multi
 defaultMulti set = Multi [] set

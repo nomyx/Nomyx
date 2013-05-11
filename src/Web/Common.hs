@@ -30,7 +30,6 @@ import Web.Routes.Happstack()
 import Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
 import Control.Category ((>>>))
 import Serialize
-import Control.Exception (evaluate)
 
 
 type NomyxForm a = Form (ServerPartT IO) [Input] String Html () a

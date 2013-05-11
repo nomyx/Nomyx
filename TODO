@@ -27,6 +27,7 @@ Improves:
 - add help info about the meaning of view and join
 - add instruction to manage players: name, kick etc.
 - purify some IO
+- create an admin role
 
 Futur Nomic:
 - ability to analyse rules, proof system
@@ -40,7 +41,7 @@ BUGS
 - empty game name
 - store hide/show status of divs
 - should be able to propose a rule in a game without viewing it
-
+- an exception (for ex. in RuleProposed) can block the game
 
 
 
