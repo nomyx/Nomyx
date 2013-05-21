@@ -19,6 +19,7 @@ import Web.Routes.Happstack()
 import Data.Text hiding (map, zip, concatMap)
 import Happstack.Auth (AuthProfileURL(..), AuthURL(..), handleAuthProfile)
 import Happstack.Auth.Core.Profile
+import Facebook (Credentials(..))
 default (Integer, Double, Data.Text.Text)
 
 -- | function which generates the homepage
@@ -51,5 +52,9 @@ authenticate :: (TVar Session) -> AuthProfileURL -> RoutedNomyxServer Response
 authenticate ts authProfileURL = do
    (T.Session _ _ Profiles{..}) <- liftRouteT $ lift $ atomically $ readTVar ts
    postPickedURL <- showURL NewPlayer
-   nestURL U_AuthProfile $ handleAuthProfile acidAuth acidProfile appTemplate Nothing Nothing postPickedURL authProfileURL
+   nestURL U_AuthProfile $ handleAuthProfile acidAuth acidProfile appTemplate (Just facebookAuth) Nothing postPickedURL authProfileURL
 
+facebookAuth =
+    Credentials {appName = "Nomyx",
+                 appId = "161007670738608",
+                 appSecret = "c0509c1c753f89d1d1fc181984042824"}
