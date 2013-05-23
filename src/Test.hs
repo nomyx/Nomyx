@@ -34,7 +34,6 @@ import Data.Acid.Memory
 import Happstack.Auth.Core.Auth (initialAuthState)
 import Happstack.Auth.Core.Profile (initialProfileState)
 import qualified Language.Nomyx.Game as G
-import Debug.Trace (trace)
 import Control.Arrow ((>>>))
 import Data.Time hiding (getCurrentTime)
 
@@ -147,7 +146,7 @@ gamePartialFunction1 = submitR partialFunction1
 
 -- rule has not been accepted due to exception
 condPartialFunction1 :: Multi -> Bool
-condPartialFunction1 m = (_rStatus $ head $ _rules $ G._game $ head $ _games m) == Pending &&
+condPartialFunction1 m = (_rStatus $ head $ _rules $ G._game $ head $ _games m) == Active &&
                          (take 5 $ snd $ head $ _outputs $ G._game $ head $ _games m) == "Error"
 
 partialFunction2 :: String
@@ -160,28 +159,27 @@ gamePartialFunction2 = do
    onePlayerOneGame
    submitR partialFunction2
    gs <- (access $ multi >>> games)
-   let now = _currentTime $ G._game (gs !! 1)
+   let now = _currentTime $ G._game (head gs)
    focus multi $ triggerTimeEvent (5 `addUTCTime` now)
 
 -- rule has been accepted but exception happened later
 condPartialFunction2 :: Multi -> Bool
-condPartialFunction2 m = (trace "s=" (_rStatus $ headNote "cond1 failed" $ _rules $ G._game $ headNote "cond2 failed" $ _games m)) == Active &&
-                         (trace "o=" (take 5 $ snd $ headNote "cond3 failed" $ _outputs $ G._game $ headNote "cond4 failed" $ _games m)) == "Error"
+condPartialFunction2 m = (_rStatus $ headNote "cond1 failed" $ _rules $ G._game $ headNote "cond2 failed" $ _games m) == Active &&
+                         (take 5 $ snd $ headNote "cond3 failed" $ _outputs $ G._game $ headNote "cond4 failed" $ _games m) == "Error"
 
 --This rule blocks the game: the exception (variable not existing) is triggered during a "rule proposed" event,
 --thus preventing to propose any new rule to the game.
 partialFunction3 :: String
-partialFunction3 = [cr|voidRule $ do
-   onEvent_ (RuleEv Proposed) $ const $ readVar_ (V "toto3")|]
+partialFunction3 = [cr|voidRule $ onEvent_ (RuleEv Proposed) $ const $ readVar_ (V "toto3")|]
 
 gamePartialFunction3 :: StateT Session IO ()
 gamePartialFunction3 = do
    submitR partialFunction3
    submitR [cr|nothing|]
 
--- rule has been accepted but no more rule can be proposed
+-- rule has been accepted and also next one
 condPartialFunction3 :: Multi -> Bool
-condPartialFunction3 m = (length $ _rules $ G._game $ head $ games ^$ m) == 3
+condPartialFunction3 m = (length $ _rules $ G._game $ head $ games ^$ m) == 4
 
 --Create bank accounts, win 100 Ecu on rule accepted (so 100 Ecu is won for each player), transfer 50 Ecu
 gameMoneyTransfer :: StateT Session IO ()

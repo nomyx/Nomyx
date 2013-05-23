@@ -3,7 +3,7 @@
 
 module Serialize where
 
-import Prelude hiding (log, catch, (.))
+import Prelude hiding (log, (.))
 import Language.Nomyx hiding (getCurrentTime)
 import Language.Nomyx.Game
 import Control.Monad.State

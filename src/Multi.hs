@@ -166,7 +166,7 @@ inGameDo gn action = do
 triggerTimeEvent :: UTCTime -> StateT Multi IO ()
 triggerTimeEvent t = do
    gs <- access games
-   gs' <- lift $ mapM (\g -> trig t g `catch` timeExceptionHandler t g) gs
+   gs' <- lift $ mapM (\g -> trig t g) gs
    void $ games ~= gs'
 
 
@@ -174,13 +174,6 @@ trig :: UTCTime -> LoggedGame -> IO LoggedGame
 trig t g =  do
    g' <- execWithGame' t (update $ TimeEvent t) g
    evaluate g'
-
-
-timeExceptionHandler :: UTCTime -> LoggedGame -> ErrorCall -> IO LoggedGame
-timeExceptionHandler t g e = do
-   putStrLn $ "Error in triggerTimeEvent: " ++ (show e)
-   execWithGame' t (G.outputAll $ "Error while triggering a time event: " ++ (show e) ++
-                   "\nThe event have been canceled. Please remove/fix the faulty rule.") g
 
 -- | get all events that has not been triggered yet
 getTimeEvents :: UTCTime -> Multi -> IO([UTCTime])
