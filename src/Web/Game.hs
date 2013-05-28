@@ -203,7 +203,7 @@ newRule ts = do
    pn <- getPlayerNumber ts
    case r of
        Right sr -> do
-          webCommand' ts $ submitRule sr pn sh
+          webCommand ts $ submitRule sr pn sh
           liftIO $ do
              s' <- readTVarIO ts  --TODO clean this
              gn <- getPlayersGame pn s

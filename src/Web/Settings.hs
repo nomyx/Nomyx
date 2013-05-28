@@ -32,7 +32,7 @@ settingsForm Nothing = settingsForm' "" "" True
 
 settingsForm':: String -> String -> Bool -> NomyxForm PlayerSettings
 settingsForm' name mailTo mailNewRule = pure Types.PlayerSettings
-   <*> label "Player Name: " ++> (inputText name) <++ br
+   <*> errorList ++> label "Player Name: " ++> (inputText name) `transformEither` (fieldRequired PlayerNameRequired) <++ br
    <*> label "Please enter your mail: " ++> inputText mailTo <++ br
    <*> pure True --label " send mail on new input needed from you: " ++> inputCheckbox True <++ label " " <++ br
    <*> inputCheckbox mailNewRule <++ label " I want to be notified by email when a player proposes a new rule in my game (recommended)" <++ br
@@ -62,6 +62,7 @@ newSettings ts = do
    p <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing
    link <- showURL MainPage
    case p of
-       Right ps -> webCommand ts $ playerSettings ps pn
-       (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
-   seeOther link $ string "Redirecting..."
+      Right ps -> do
+         webCommand ts $ playerSettings ps pn
+         seeOther link $ string "Redirecting..."
+      (Left errorForm) -> mainPage  "Player settings" "Player settings" errorForm False

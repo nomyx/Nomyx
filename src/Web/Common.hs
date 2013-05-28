@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell, OverloadedStrings, GADTs, ScopedTypeVariables, DeriveDataTypeable,
-             RecordWildCards, TypeFamilies#-}
+             RecordWildCards, TypeFamilies, TypeSynonymInstances#-}
 
 module Web.Common where
 
@@ -31,8 +31,12 @@ import Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
 import Control.Category ((>>>))
 import Serialize
 
+data NomyxError = PlayerNameRequired
+                | GameNameRequired
+                | NomyxCFE (CommonFormError [Input])
+                  deriving Show
 
-type NomyxForm a = Form (ServerPartT IO) [Input] String Html () a
+type NomyxForm a = Form (ServerPartT IO) [Input] NomyxError Html () a
 
 default (Integer, Double, Data.Text.Text)
 
@@ -165,4 +169,16 @@ getPlayerNumber ts = do
       Nothing -> error "not logged in."
       (Just (UserId userID)) -> return $ fromInteger userID
 
+fieldRequired :: NomyxError -> String -> Either NomyxError String
+fieldRequired a []  = Left a
+fieldRequired _ str = Right str
+
+instance FormError NomyxError where
+    type ErrorInputType NomyxError = [Input]
+    commonFormError = NomyxCFE
+
+instance ToMarkup NomyxError where
+    toMarkup PlayerNameRequired = "Player Name is required"
+    toMarkup GameNameRequired = "Game Name is required"
+    toMarkup (NomyxCFE e)    = toHtml $ e
 

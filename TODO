@@ -1,15 +1,22 @@
 
 TODO list
 
-Features to add:
+Bugs:
+- check when error on parameters (for victory for example)
+- sendmail is blocking the game
+- delete invalid events (in case of exception): events may be triggered twice if not deleted
+- reading save file does not take absolute path
+- add global option to not send mails
+- empty game name
+- store hide/show status of divs
+- should be able to propose a rule in a game without viewing it
+- an exception (for ex. in RuleProposed) can block the game
+- forbid creating a player with same name
+- where clauses are not accepted by the interpreter
 
-- interpreter (like tryhaskell.org) on the web page to debug rules
-- make a command line client
+Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
 - option to read step by step the save file for analysis?
-
-Improves:
-
 - refresh web page when new event (currently, player needs to hit F5)
 - input sanitization and error reporting
 - secure interpreter with mueval: time limits, no unsafe instructions, memory limits...
@@ -29,19 +36,9 @@ Improves:
 
 Futur Nomic:
 - ability to analyse rules, proof system
-
-BUGS
-- check when error on parameters (for victory for example)
-- sendmail is blocking the game
-- delete invalid events (in case of exception): events may be triggered twice if not deleted
-- reading save file does not take absolute path
-- add global option to not send mails
-- empty game name
-- store hide/show status of divs
-- should be able to propose a rule in a game without viewing it
-- an exception (for ex. in RuleProposed) can block the game
-- forbid creating a player with same name
-
+- first pass of compilation to check reference (avoid calls to non-existant variables for ex.)
+- interpreter (like tryhaskell.org) on the web page to debug rules
+- make a command line client
 
 Forum:
 - start another VM to run Nomyx alone
