@@ -40,7 +40,7 @@ BUGS
 - store hide/show status of divs
 - should be able to propose a rule in a game without viewing it
 - an exception (for ex. in RuleProposed) can block the game
-
+- forbid creating a player with same name
 
 
 Forum:

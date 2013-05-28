@@ -197,21 +197,21 @@ viewRuleForm sr inGame = do
 newRule :: (TVar Session) -> RoutedNomyxServer Html
 newRule ts = do
    methodM POST
-   s@(T.Session sh _ _) <- liftRouteT $ lift $ readTVarIO ts
+   s@(T.Session sh _ _) <- liftIO $ readTVarIO ts
    r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing)
    link <- showURL MainPage
    pn <- getPlayerNumber ts
    case r of
        Right sr -> do
-          webCommand ts $ submitRule sr pn sh
-          liftRouteT $ lift $ do
+          webCommand' ts $ submitRule sr pn sh
+          liftIO $ do
              s' <- readTVarIO ts  --TODO clean this
              gn <- getPlayersGame pn s
              gn' <- getPlayersGame pn s'
              let rs = _rules $ _game $ fromJust gn
              let rs' = _rules $ _game $ fromJust gn'
              when (length rs' > length rs) $ sendMailsNewRule s' sr pn
-       (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
+       (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
 
 
@@ -227,8 +227,8 @@ viewMessages = mapM_ (\s -> string s >> br)
 newInputChoice :: EventNumber -> (TVar Session) -> RoutedNomyxServer Html
 newInputChoice en ts = do
     pn <- getPlayerNumber ts
-    s <- liftRouteT $ lift $ atomically $ readTVar ts
-    mgn <- liftRouteT $ lift $ getPlayersGame pn s
+    s <- liftIO $ atomically $ readTVar ts
+    mgn <- liftIO $ getPlayersGame pn s
     let eventHandler = fromJust $ findEvent en (_events $ _game $ fromJust mgn)
     methodM POST
     let (title, choices, def) = getChoices eventHandler
@@ -239,7 +239,7 @@ newInputChoice en ts = do
           webCommand ts $ M.inputChoiceResult en c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
-          liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
+          liftIO $ putStrLn $ "cannot retrieve form data"
           seeOther link $ string "Redirecting..."
 
 getChoices :: EventHandler -> (String, [String], String)
@@ -257,7 +257,7 @@ newInputString title ts = do
           webCommand ts $ M.inputStringResult (InputString pn title) c pn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
-          liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
+          liftIO $ putStrLn $ "cannot retrieve form data"
           seeOther link $ string "Redirecting..."
 
 

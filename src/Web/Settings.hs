@@ -50,7 +50,7 @@ settingsPage ps = do
 
 settings :: (TVar Session) -> RoutedNomyxServer Html
 settings ts  = do
-   s <- liftRouteT $ lift $ atomically $ readTVar ts
+   s <- liftIO $ atomically $ readTVar ts
    pn <- getPlayerNumber ts
    pfd <- getProfile pn s
    settingsPage $ _pPlayerSettings $ fromJust pfd
@@ -63,5 +63,5 @@ newSettings ts = do
    link <- showURL MainPage
    case p of
        Right ps -> webCommand ts $ playerSettings ps pn
-       (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
+       (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
