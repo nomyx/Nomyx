@@ -202,3 +202,4 @@ condMoneyTransfer :: Multi -> Bool
 condMoneyTransfer m = (_vName $ head $ _variables $ G._game $ head $ _games m) == "Accounts"
 
 
+--voidRule $ let a = a + 1 in outputAll (show a)

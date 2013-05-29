@@ -43,6 +43,17 @@ import Data.Text(Text, pack)
 import qualified Language.Nomyx.Game as G
 import qualified Multi as M
 import Happstack.Auth
+import Serialize (save)
+import Control.Concurrent
+       (putMVar, tryPutMVar, killThread, threadDelay, MVar, ThreadId,
+        takeMVar, forkIO, newEmptyMVar)
+import qualified Control.Exception as CE (catchJust)
+import System.IO.Error (isUserError)
+import Data.Time (getCurrentTime)
+import System.IO (stdout, hSetBuffering)
+import GHC.IO.Handle.Types (BufferMode(..))
+import Control.Exception (evaluate)
+
 default (Integer, Double, Data.Text.Text)
 
 
@@ -50,7 +61,7 @@ viewMulti :: PlayerNumber -> Session -> RoutedNomyxServer Html
 viewMulti pn s = do
    pfd <- getProfile pn s
    gns <- viewGamesTab (map G._game $ _games $ _multi s)
-   mgn <- liftRouteT $ lift $ getPlayersGame pn s
+   mgn <- liftIO $ getPlayersGame pn s
    g <- case mgn of
       Just g -> viewGame (G._game g) pn (_pLastRule $ fromJust pfd)
       Nothing -> ok $ h3 "Not viewing any game"
@@ -106,9 +117,9 @@ viewGameName g = do
 nomyxPage :: (TVar Session) -> RoutedNomyxServer Response
 nomyxPage ts = do
    pn <- getPlayerNumber ts
-   s <- liftRouteT $ lift $ atomically $ readTVar ts
+   s <- liftIO $ atomically $ readTVar ts
    m <- viewMulti pn s
-   name <- liftRouteT $ lift $ getPlayersName pn s
+   name <- liftIO $ getPlayersName pn s
    mainPage' "Welcome to Nomyx!"
             (string $ "Welcome to Nomyx, " ++ name ++ "!")
             (H.div ! A.id "multi" $ m)
@@ -134,42 +145,8 @@ routedNomyxCommands ts Upload                = newUpload ts          >>= return 
 routedNomyxCommands ts PSettings             = settings ts           >>= return . toResponse
 routedNomyxCommands ts SubmitPlayerSettings  = newSettings ts        >>= return . toResponse
 
-{-
-nomyxPageComm' :: PlayerNumber -> (TVar Multi) -> StateT Multi IO () -> RoutedNomyxServer Html
-nomyxPageComm' pn tm comm = do
-    liftRouteT $ lift $ protectedExecCommand tm comm
-    nomyxPageServer pn tm
 
-protectedExecCommand :: (TVar Multi) -> StateT Multi IO a -> IO ()
-protectedExecCommand tm sm = do
-    --liftIO $ mapM_ (uncurry setResourceLimit) limits
-    mv <- newEmptyMVar
-    before <- atomically $ readTVar tm
-    id <- forkIO $ CE.catchJust  (\e -> if isUserError e then Just () else Nothing) (execBlocking sm before mv) (\e-> putStrLn $ show e)
-    forkIO $ watchDog' 10 id mv
-    getCurrentTime >>= (\a -> putStrLn $ "before takevar " ++ show a)
-    res <- takeMVar mv
-    case res of
-       Nothing -> (atomically $ writeTVar tm before) >> getCurrentTime >>= (\a -> putStrLn $ "writing before" ++ show a)
-       Just (_, after) -> (atomically $ writeTVar tm after) >> getCurrentTime >>= (\a -> putStrLn $ "writing after " ++ show a)
 
-watchDog' :: Int -> ThreadId -> MVar (Maybe x) -> IO ()
-watchDog' t tid mv = do
-   threadDelay $ t * 1000000
-   killThread tid
-   getCurrentTime >>= (\a -> putStrLn $ "process timeout " ++ show a)
-   tryPutMVar mv Nothing
-   return ()
-
-execBlocking :: StateT Multi IO a -> Multi -> MVar (Maybe (a, Multi)) -> IO ()
-execBlocking sm m mv = do
-   hSetBuffering stdout NoBuffering
-   getCurrentTime >>= (\a -> putStrLn $ "before runstate " ++ show a)
-   res@(_, m') <- runStateT sm m --runStateT (inPlayersGameDo 1 $ liftT $ evalExp (do let (a::Int) = a in outputAll $ show a) 1) m --
-   getCurrentTime >>= (\a -> putStrLn $ "after runstate " ++ show a)
-   res' <- evaluate res
-   putMVar mv (Just res')
--}
 
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
@@ -181,10 +158,10 @@ newUpload ts = do
     pn <- getPlayerNumber ts
     r <- liftRouteT $ eitherForm environment "user" uploadForm
     link <- showURL MainPage
-    (T.Session sh _ _) <- liftRouteT $ lift $ readTVarIO ts
+    (T.Session sh _ _) <- liftIO $ readTVarIO ts
     case r of
        (Right (path,name,_)) -> webCommand ts $ M.inputUpload pn path name sh
-       (Left _) -> liftRouteT $ lift $ putStrLn $ "cannot retrieve form data"
+       (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
     seeOther link $ string "Redirecting..."
 
 

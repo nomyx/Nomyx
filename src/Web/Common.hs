@@ -30,6 +30,15 @@ import Web.Routes.Happstack()
 import Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
 import Control.Category ((>>>))
 import Serialize
+import Control.Concurrent
+       (putMVar, tryPutMVar, killThread, threadDelay, MVar, ThreadId,
+        takeMVar, forkIO, newEmptyMVar)
+import qualified Control.Exception as CE (catchJust)
+import System.IO.Error (isUserError)
+import Data.Time (getCurrentTime)
+import System.IO (stdout, hSetBuffering)
+import GHC.IO.Handle.Types (BufferMode(..))
+import Control.Exception (evaluate)
 
 
 type NomyxForm a = Form (ServerPartT IO) [Input] String Html () a
@@ -83,16 +92,54 @@ modDir :: FilePath
 modDir = "modules"
 
 evalCommand :: (TVar Session) -> StateT Session IO a -> RoutedNomyxServer a
-evalCommand ts sm = liftRouteT $ lift $ do
+evalCommand ts sm = liftIO $ do
    s <- atomically $ readTVar ts
    evalStateT sm s
 
 webCommand :: (TVar Session) -> StateT Session IO () -> RoutedNomyxServer ()
-webCommand ts sm = liftRouteT $ lift $ do
+webCommand ts sm = liftIO $ do
    s <- atomically $ readTVar ts
    s' <- execStateT sm s
    atomically $ writeTVar ts s'
-   save (_multi >>> _mSettings >>>_logFilePath $ s) (_multi s') --TODO not really nice to put that here
+   save (_logFilePath $ _mSettings $ _multi $ s') (_multi s') --TODO not really nice to put that here
+
+
+webCommand' :: (TVar Session) -> StateT Session IO () -> RoutedNomyxServer ()
+webCommand' ts sm = liftIO $ do
+   s <- atomically $ readTVar ts
+   s' <- execStateT sm s
+   atomically $ writeTVar ts s'
+   save (_logFilePath $ _mSettings $ _multi $ s') (_multi s') --TODO not really nice to put that here
+
+
+protectedExecCommand :: (TVar Session) -> StateT Session IO a -> IO ()
+protectedExecCommand ts ss = do
+    mv <- newEmptyMVar
+    before <- atomically $ readTVar ts
+    id <- forkIO $ CE.catchJust  (\e -> if isUserError e then Just () else Nothing) (execBlocking ss before mv) (\e-> putStrLn $ show e)
+    forkIO $ watchDog' 10 id mv
+    getCurrentTime >>= (\a -> putStrLn $ "before takevar " ++ show a)
+    res <- takeMVar mv
+    case res of
+       Nothing -> (atomically $ writeTVar ts before) >> getCurrentTime >>= (\a -> putStrLn $ "writing before" ++ show a)
+       Just (_, after) -> (atomically $ writeTVar ts after) >> getCurrentTime >>= (\a -> putStrLn $ "writing after " ++ show a)
+
+watchDog' :: Int -> ThreadId -> MVar (Maybe x) -> IO ()
+watchDog' t tid mv = do
+   threadDelay $ t * 1000000
+   killThread tid
+   getCurrentTime >>= (\a -> putStrLn $ "process timeout " ++ show a)
+   tryPutMVar mv Nothing
+   return ()
+
+execBlocking :: StateT Session IO a -> Session -> MVar (Maybe (a, Session)) -> IO ()
+execBlocking ss s mv = do
+   hSetBuffering stdout NoBuffering
+   getCurrentTime >>= (\a -> putStrLn $ "before runstate " ++ show a)
+   res <- runStateT ss s --runStateT (inPlayersGameDo 1 $ liftT $ evalExp (do let (a::Int) = a in outputAll $ show a) 1) m --
+   getCurrentTime >>= (\a -> putStrLn $ "after runstate " ++ show a)
+   res' <- evaluate res
+   putMVar mv (Just res')
 
 
 blazeResponse :: Html -> Response
@@ -159,7 +206,7 @@ appTemplate title headers body = do
 
 getPlayerNumber :: (TVar Session) -> RoutedNomyxServer PlayerNumber
 getPlayerNumber ts = do
-   (T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftRouteT $ lift $ readTVarIO ts
+   (T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftIO $ readTVarIO ts
    uid <- getUserId acidAuth acidProfile
    case uid of
       Nothing -> error "not logged in."
