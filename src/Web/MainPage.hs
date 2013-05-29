@@ -99,9 +99,15 @@ viewGameName g = do
    ok $ do
       tr $ do
          td ! A.id "gameName" $ string $ (gn ++ "   ")
-         td $ H.a "View"  ! (href $ toValue view)
-         td $ H.a "Join"  ! (href $ toValue join)
+         td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
+         td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.join)
          td $ H.a "Leave" ! (href $ toValue leave)
+         div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
+            div $ do
+               h2 "Joining the game. Please register in the Agora and introduce yourself to the other players! \n \
+                   If you do not which to play, you can just view the game."
+               H.a "Join"  ! (href $ toValue join) ! A.class_ "join" ! (A.title $ toValue Help.join)
+               H.a "View"  ! (href $ toValue view) ! A.class_ "view" ! (A.title $ toValue Help.view)
 
 nomyxPage :: (TVar Session) -> RoutedNomyxServer Response
 nomyxPage ts = do

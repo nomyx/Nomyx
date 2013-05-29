@@ -203,3 +203,58 @@ input[type="file"]{
 
 .close:hover { background: #00d9ff; }
 
+.modalWindow {
+        position: fixed;
+        font-family: arial;
+        font-size:80%;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background: rgba(0,0,0,0.2);
+        z-index: 99999;
+        opacity:0;
+        -webkit-transition: opacity 400ms ease-in;
+        -moz-transition: opacity 400ms ease-in;
+        transition: opacity 400ms ease-in;
+        pointer-events: none;
+}
+
+.view, .join {
+        background: #606061;
+        color: #FFFFFF;
+        line-height: 25px;
+        text-align: center;
+        text-decoration: none;
+        font-weight: bold;
+        -webkit-border-radius: 2px;
+        -moz-border-radius: 2px;
+        border-radius: 2px;
+        -moz-box-shadow: 1px 1px 3px #000;
+        -webkit-box-shadow: 1px 1px 3px #000;
+        box-shadow: 1px 1px 3px #000;
+        width:80px;
+        float:right;
+        margin-left:20px;
+
+}
+    
+.modalWindow:target {
+    opacity:1;
+    pointer-events: auto;
+}
+.modalWindow > div {
+
+        width: 500px;
+        position: relative;
+        margin: 10% auto;
+        -webkit-border-radius: 5px;
+        -moz-border-radius: 5px;
+        border-radius: 5px;
+        background: #fff;
+        padding-left:20px; 
+        padding-right:10px;
+        padding-top:5px;
+        padding-bottom:1px;
+    }
+
