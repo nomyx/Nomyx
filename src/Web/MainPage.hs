@@ -22,7 +22,7 @@ import Paths_Nomyx_Language as PNL
 import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
-import Language.Nomyx.Expression
+import Language.Nomyx
 import Text.Reform.Happstack
 import Text.Reform
 import Happstack.Server as HS

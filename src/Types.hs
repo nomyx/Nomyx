@@ -5,8 +5,6 @@
 module Types where
 import Language.Nomyx
 import Data.Typeable
-import Text.Reform
-import Happstack.Server
 import Text.Reform.Happstack()
 import Network.BSD
 import Data.Lens.Template

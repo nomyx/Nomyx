@@ -11,7 +11,7 @@ import Prelude hiding (div, (.))
 import Text.Reform.Happstack()
 import Control.Monad
 import Types
-import Language.Nomyx.Expression
+import Language.Nomyx
 import Language.Nomyx.Game
 import Data.Text(Text, pack)
 import Control.Concurrent
