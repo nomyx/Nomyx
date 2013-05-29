@@ -49,7 +49,7 @@ default (Integer, Double, Data.Text.Text)
 viewMulti :: PlayerNumber -> Session -> RoutedNomyxServer Html
 viewMulti pn s = do
    pfd <- getProfile pn s
-   gns <- viewGamesTab (map G._game $ _games $ _multi s)
+   gns <- viewGamesTab (map G._game $ _games $ _multi s) (pn == 1)
    mgn <- liftRouteT $ lift $ getPlayersGame pn s
    g <- case mgn of
       Just g -> viewGame (G._game g) pn (_pLastRule $ fromJust pfd)
@@ -58,8 +58,8 @@ viewMulti pn s = do
       div ! A.id "gameList" $ gns
       div ! A.id "game" $ g
 
-viewGamesTab :: [Game] -> RoutedNomyxServer Html
-viewGamesTab gs = do
+viewGamesTab :: [Game] -> Bool -> RoutedNomyxServer Html
+viewGamesTab gs admin = do
    gns <- mapM viewGameName gs
    newGameLink <- showURL NewGame
    uploadLink <- showURL Upload
@@ -85,7 +85,7 @@ viewGamesTab gs = do
       br >> "Upload new rules file:" >> br
       blazeForm up (uploadLink) ! (A.title $ toValue Help.upload)
       br >> "Settings:" >> br
-      H.a "Create a new game" ! (href $ toValue newGameLink) >> br
+      when admin $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
       H.a "Logout " ! href (toValue logoutURL) >> br
 
