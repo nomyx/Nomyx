@@ -12,14 +12,12 @@ import Control.Monad
 import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
-import Language.Nomyx.Expression
-import Language.Nomyx.Evaluation
+import Language.Nomyx
 import Language.Nomyx.Game
 import Data.Maybe
 import Text.Reform.Happstack
 import Text.Reform
 import Happstack.Server
-import Data.List
 import qualified Web.Help as Help
 import Web.Common
 import Types as T
@@ -40,7 +38,7 @@ default (Integer, Double, Data.Text.Text)
 
 viewGame :: Game -> PlayerNumber -> (Maybe SubmitRule) -> RoutedNomyxServer Html
 viewGame g pn sr = do
-   let inGame = isJust $ getPlayers g pn
+   let inGame = isJust $ Utils.getPlayers g pn
    rf <- viewRuleForm sr inGame
    vi <- viewInputs pn $ _events g
    ok $ table $ do
@@ -73,7 +71,7 @@ viewPlayer pi = tr $ do
 
 viewVictory :: Game -> Html
 viewVictory g = do
-    let vs = _playerName <$> mapMaybe (getPlayers g) (_victory g)
+    let vs = _playerName <$> mapMaybe (Utils.getPlayers g) (_victory g)
     case vs of
         []   -> br
         a:[] -> h3 $ string $ "Player " ++ (show a) ++ " won the game!"
@@ -203,7 +201,7 @@ newRule ts = do
    pn <- getPlayerNumber ts
    case r of
        Right sr -> do
-          webCommand' ts $ submitRule sr pn sh
+          webCommand ts $ submitRule sr pn sh
           liftIO $ do
              s' <- readTVarIO ts  --TODO clean this
              gn <- getPlayersGame pn s

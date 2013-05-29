@@ -21,3 +21,5 @@ inputs = "Rules can trigger an input to gather data from the player, for example
 events = "Rules can register on events, in order to be triggered when the event happens, for example with the instruction \"onEvent\"."
 variables = "Rules can create variables to store data. For example, a rule creating a bank account with instruction \"newVar\" will make a new variable appear here."
 outputs = "Rules can display text on players screen, with instruction \"output\"."
+view = "Only view a game. You will not be able to propose new rules."
+join = "Be part of the game. You will be able to propose new rules, vote etc. Please register in the game's agora (see the link on game page) to follow the game."

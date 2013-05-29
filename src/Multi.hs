@@ -65,12 +65,13 @@ viewGamePlayer game pn = do
 unviewGamePlayer :: PlayerNumber -> StateT Session IO ()
 unviewGamePlayer pn = modifyProfile pn (pViewingGame ^= Nothing)
 
--- | join a game.
+-- | join a game (also view it for conveniency)
 joinGame :: GameName -> PlayerNumber -> StateT Session IO ()
 joinGame game pn = do
    s <- get
    name <- lift $ getPlayersName pn s
    focus multi $ inGameDo game $ G.update $ JoinGame pn name
+   viewGamePlayer game pn
 
 -- | leave a game.
 leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()

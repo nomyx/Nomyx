@@ -22,7 +22,7 @@ import Paths_Nomyx_Language as PNL
 import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
-import Language.Nomyx.Expression
+import Language.Nomyx
 import Text.Reform.Happstack
 import Text.Reform
 import Happstack.Server as HS
@@ -60,8 +60,8 @@ default (Integer, Double, Data.Text.Text)
 viewMulti :: PlayerNumber -> Session -> RoutedNomyxServer Html
 viewMulti pn s = do
    pfd <- getProfile pn s
-   gns <- viewGamesTab (map G._game $ _games $ _multi s)
-   mgn <- liftIO $ getPlayersGame pn s
+   gns <- viewGamesTab (map G._game $ _games $ _multi s) (pn == 1)
+   mgn <- liftRouteT $ lift $ getPlayersGame pn s
    g <- case mgn of
       Just g -> viewGame (G._game g) pn (_pLastRule $ fromJust pfd)
       Nothing -> ok $ h3 "Not viewing any game"
@@ -69,8 +69,8 @@ viewMulti pn s = do
       div ! A.id "gameList" $ gns
       div ! A.id "game" $ g
 
-viewGamesTab :: [Game] -> RoutedNomyxServer Html
-viewGamesTab gs = do
+viewGamesTab :: [Game] -> Bool -> RoutedNomyxServer Html
+viewGamesTab gs admin = do
    gns <- mapM viewGameName gs
    newGameLink <- showURL NewGame
    uploadLink <- showURL Upload
@@ -96,7 +96,7 @@ viewGamesTab gs = do
       br >> "Upload new rules file:" >> br
       blazeForm up (uploadLink) ! (A.title $ toValue Help.upload)
       br >> "Settings:" >> br
-      H.a "Create a new game" ! (href $ toValue newGameLink) >> br
+      when admin $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
       H.a "Logout " ! href (toValue logoutURL) >> br
 
@@ -110,9 +110,15 @@ viewGameName g = do
    ok $ do
       tr $ do
          td ! A.id "gameName" $ string $ (gn ++ "   ")
-         td $ H.a "View"  ! (href $ toValue view)
-         td $ H.a "Join"  ! (href $ toValue join)
+         td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
+         td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.join)
          td $ H.a "Leave" ! (href $ toValue leave)
+         div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
+            div $ do
+               h2 "Joining the game. Please register in the Agora and introduce yourself to the other players! \n \
+                   If you do not which to play, you can just view the game."
+               H.a "Join"  ! (href $ toValue join) ! A.class_ "join" ! (A.title $ toValue Help.join)
+               H.a "View"  ! (href $ toValue view) ! A.class_ "view" ! (A.title $ toValue Help.view)
 
 nomyxPage :: (TVar Session) -> RoutedNomyxServer Response
 nomyxPage ts = do

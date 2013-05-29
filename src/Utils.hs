@@ -68,6 +68,10 @@ getPlayersGame pn s = do
       gn <- mgn
       find ((== gn) . getL (game >>> gameName)) (_games $ _multi s) --checks if any game by that name exists
 
+getAllProfiles :: Session -> IO [ProfileData]
+getAllProfiles s = A.query' (acidProfileData $ _profiles s) AskProfilesData
+
+
 getPlayers :: Game -> PlayerNumber -> Maybe PlayerInfo
 getPlayers g pn = find ((==pn) . getL playerNumber) (_players g)
 

@@ -16,7 +16,7 @@ import Happstack.Server
 import Text.Reform.Happstack
 import Web.Common
 import Control.Monad.State
-import Language.Nomyx.Expression
+import Language.Nomyx
 import Web.Routes.RouteT
 import Control.Concurrent.STM
 import Data.Text(Text)
@@ -28,12 +28,15 @@ default (Integer, Double, Data.Text.Text)
 data NewGameForm = NewGameForm GameName GameDesc
 
 newGameForm :: NomyxForm NewGameForm
-newGameForm = pure NewGameForm <*> (br ++> label "Enter new game name: " ++> (inputText "") `RBC.setAttr` placeholder "Game name"  <++ br <++ br)
+newGameForm = pure NewGameForm <*> (br ++> errorList ++> label "Enter new game name: " ++> (inputText "") `transformEither` (fieldRequired GameNameRequired) `RBC.setAttr` placeholder "Game name"  <++ br <++ br)
                                  <*> newGameDesc
 
 newGameDesc :: NomyxForm GameDesc
 newGameDesc = pure GameDesc <*> label "Enter game description:" ++> br ++> (textarea 40 3 "") `RBC.setAttr` placeholder "Enter game description" `RBC.setAttr` class_ "gameDesc" <++ br <++ br
                              <*> label "Enter a link to an agora (e.g. a forum, a mailing list...) where the players can discuss their rules: " ++> br ++> (inputText "") `RBC.setAttr` placeholder "Agora URL (including http://...)" `RBC.setAttr` class_ "agora" <++ br <++ br
+
+gameNameRequired :: String -> Either NomyxError String
+gameNameRequired = fieldRequired GameNameRequired
 
 newGamePage :: RoutedNomyxServer Html
 newGamePage = do
@@ -49,8 +52,10 @@ newGamePost ts = do
    methodM POST
    r <- liftRouteT $ eitherForm environment "user" newGameForm
    link <- showURL MainPage
+   newGameLink <- showURL SubmitNewGame
    pn <- getPlayerNumber ts
    case r of
-      Left _ -> error $ "error: newGame"
-      Right (NewGameForm name desc) -> webCommand ts $ newGame name desc pn
-   seeOther link $ string "Redirecting..."
+      Left errorForm -> mainPage  "New game" "New game" (blazeForm errorForm newGameLink) False
+      Right (NewGameForm name desc) -> do
+         webCommand ts $ newGame name desc pn
+         seeOther link $ string "Redirecting..."

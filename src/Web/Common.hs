@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell, OverloadedStrings, GADTs, ScopedTypeVariables, DeriveDataTypeable,
-             RecordWildCards, TypeFamilies#-}
+             RecordWildCards, TypeFamilies, TypeSynonymInstances#-}
 
 module Web.Common where
 
@@ -14,7 +14,7 @@ import Web.Routes.RouteT
 import Web.Routes.TH (derivePathInfo)
 import Control.Monad.State
 import Control.Concurrent.STM
-import Language.Nomyx.Expression
+import Language.Nomyx
 import Happstack.Server
 import Types as T
 import qualified Data.ByteString.Char8 as C
@@ -35,13 +35,18 @@ import Control.Concurrent
         takeMVar, forkIO, newEmptyMVar)
 import qualified Control.Exception as CE (catchJust)
 import System.IO.Error (isUserError)
-import Data.Time (getCurrentTime)
+import Data.Time as T (getCurrentTime)
 import System.IO (stdout, hSetBuffering)
 import GHC.IO.Handle.Types (BufferMode(..))
 import Control.Exception (evaluate)
 
+data NomyxError = PlayerNameRequired
+                | GameNameRequired
+                | UniquePlayerName
+                | NomyxCFE (CommonFormError [Input])
+                  deriving Show
 
-type NomyxForm a = Form (ServerPartT IO) [Input] String Html () a
+type NomyxForm a = Form (ServerPartT IO) [Input] NomyxError Html () a
 
 default (Integer, Double, Data.Text.Text)
 
@@ -118,26 +123,26 @@ protectedExecCommand ts ss = do
     before <- atomically $ readTVar ts
     id <- forkIO $ CE.catchJust  (\e -> if isUserError e then Just () else Nothing) (execBlocking ss before mv) (\e-> putStrLn $ show e)
     forkIO $ watchDog' 10 id mv
-    getCurrentTime >>= (\a -> putStrLn $ "before takevar " ++ show a)
+    T.getCurrentTime >>= (\a -> putStrLn $ "before takevar " ++ show a)
     res <- takeMVar mv
     case res of
-       Nothing -> (atomically $ writeTVar ts before) >> getCurrentTime >>= (\a -> putStrLn $ "writing before" ++ show a)
-       Just (_, after) -> (atomically $ writeTVar ts after) >> getCurrentTime >>= (\a -> putStrLn $ "writing after " ++ show a)
+       Nothing -> (atomically $ writeTVar ts before) >> T.getCurrentTime >>= (\a -> putStrLn $ "writing before" ++ show a)
+       Just (_, after) -> (atomically $ writeTVar ts after) >> T.getCurrentTime >>= (\a -> putStrLn $ "writing after " ++ show a)
 
 watchDog' :: Int -> ThreadId -> MVar (Maybe x) -> IO ()
 watchDog' t tid mv = do
    threadDelay $ t * 1000000
    killThread tid
-   getCurrentTime >>= (\a -> putStrLn $ "process timeout " ++ show a)
+   T.getCurrentTime >>= (\a -> putStrLn $ "process timeout " ++ show a)
    tryPutMVar mv Nothing
    return ()
 
 execBlocking :: StateT Session IO a -> Session -> MVar (Maybe (a, Session)) -> IO ()
 execBlocking ss s mv = do
    hSetBuffering stdout NoBuffering
-   getCurrentTime >>= (\a -> putStrLn $ "before runstate " ++ show a)
+   T.getCurrentTime >>= (\a -> putStrLn $ "before runstate " ++ show a)
    res <- runStateT ss s --runStateT (inPlayersGameDo 1 $ liftT $ evalExp (do let (a::Int) = a in outputAll $ show a) 1) m --
-   getCurrentTime >>= (\a -> putStrLn $ "after runstate " ++ show a)
+   T.getCurrentTime >>= (\a -> putStrLn $ "after runstate " ++ show a)
    res' <- evaluate res
    putMVar mv (Just res')
 
@@ -212,4 +217,17 @@ getPlayerNumber ts = do
       Nothing -> error "not logged in."
       (Just (UserId userID)) -> return $ fromInteger userID
 
+fieldRequired :: NomyxError -> String -> Either NomyxError String
+fieldRequired a []  = Left a
+fieldRequired _ str = Right str
+
+instance FormError NomyxError where
+    type ErrorInputType NomyxError = [Input]
+    commonFormError = NomyxCFE
+
+instance ToMarkup NomyxError where
+    toMarkup PlayerNameRequired = "Player Name is required"
+    toMarkup GameNameRequired = "Game Name is required"
+    toMarkup UniquePlayerName = "Name already taken"
+    toMarkup (NomyxCFE e)    = toHtml $ e
 

@@ -5,8 +5,6 @@
 module Types where
 import Language.Nomyx
 import Data.Typeable
-import Text.Reform
-import Happstack.Server
 import Text.Reform.Happstack()
 import Network.BSD
 import Data.Lens.Template
@@ -134,10 +132,6 @@ defaultMulti set = Multi [] set
 
 defaultPlayerSettings :: PlayerSettings
 defaultPlayerSettings = PlayerSettings "" "" False False False False
-
-instance FormError String where
-    type ErrorInputType String = [Input]
-    commonFormError _ = "common error"
 
 $( makeLenses [''Multi, ''Settings, ''Network, ''PlayerSettings, ''Session, ''ProfileData] )
 
