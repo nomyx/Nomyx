@@ -96,9 +96,7 @@ submitRule sr@(SubmitRule _ _ code) pn sh = do
 
 -- | result of choice with radio buttons
 inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> StateT Session IO ()
-inputChoiceResult eventNumber choiceIndex pn = do
-   tracePN pn $ "input choice result: Event " ++ (show eventNumber) ++ ", choice " ++  (show choiceIndex)
-   inPlayersGameDo_ pn $ update $ InputChoiceResult pn eventNumber choiceIndex
+inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo_ pn $ update $ InputChoiceResult pn eventNumber choiceIndex
 
 -- TODO maybe homogeneise both inputs event
 -- | result of choice with text field
@@ -185,7 +183,7 @@ getTimeEvents now m = do
 -- | the initial rule set for a game.
 rVoteUnanimity = SubmitRule "Unanimity Vote"
                             "A proposed rule will be activated if all players vote for it"
-                            [cr|onRuleProposed $ voteWith unanimity $ assessOnEveryVotes|]
+                            [cr|onRuleProposed $ voteWith_ unanimity $ assessOnEveryVotes |]
 
 rVictory5Rules = SubmitRule "Victory 5 accepted rules"
                             "Victory is achieved if you have 5 active rules"

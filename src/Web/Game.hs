@@ -130,14 +130,16 @@ viewEvents ehs = do
             td ! A.class_ "td" $ text "Event Number"
             td ! A.class_ "td" $ text "By Rule"
             td ! A.class_ "td" $ text "Event"
+            td ! A.class_ "td" $ text "Status"
          mapM_ viewEvent $ sort ehs
 
 
 viewEvent :: EventHandler -> Html
-viewEvent (EH eventNumber ruleNumber event _) = tr $ do
+viewEvent (EH eventNumber ruleNumber event _ status) = tr $ do
    td ! A.class_ "td" $ string . show $ eventNumber
    td ! A.class_ "td" $ string . show $ ruleNumber
    td ! A.class_ "td" $ string . show $ event
+   td ! A.class_ "td" $ string . show $ status
 
 viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomyxServer Html
 viewInputs pn ehs = do
@@ -146,11 +148,11 @@ viewInputs pn ehs = do
    ok $ showHideTitle "Inputs" True (length is == 0) (h3 "Inputs") $ table $ mconcat is
 
 viewInput :: PlayerNumber -> EventHandler -> RoutedNomyxServer (Maybe Html)
-viewInput me (EH eventNumber _ (InputChoice pn title choices def) _) | me == pn = do
+viewInput me (EH eventNumber _ (InputChoice pn title choices def) _ EvActive) | me == pn = do
     link <- showURL (DoInputChoice eventNumber)
     lf  <- lift $ viewForm "user" $ inputChoiceForm title (map show choices) (show def)
     return $ Just $ tr $ td $ blazeForm lf (link)
-viewInput me (EH _ _ (InputString pn title) _) | me == pn = do
+viewInput me (EH _ _ (InputString pn title) _ EvActive) | me == pn = do
     link <- showURL (DoInputString title)
     lf  <- lift $ viewForm "user" $ inputStringForm title
     return $ Just $ tr $ td $ blazeForm lf (link)
@@ -241,7 +243,7 @@ newInputChoice en ts = do
           seeOther link $ string "Redirecting..."
 
 getChoices :: EventHandler -> (String, [String], String)
-getChoices (EH _ _ (InputChoice _ title choices def) _) = (title, map show choices, show def)
+getChoices (EH _ _ (InputChoice _ title choices def) _ _) = (title, map show choices, show def)
 getChoices _ = error "InputChoice event expected"
 
 newInputString :: String -> (TVar Session) -> RoutedNomyxServer Html
@@ -260,7 +262,7 @@ newInputString title ts = do
 
 
 inputChoiceForm :: String -> [String] -> String -> NomyxForm Int
-inputChoiceForm title choices def = RB.label (title ++ " ") ++> inputRadio' (zip [0..] choices) ((==) $ fromJust $ elemIndex def choices)
+inputChoiceForm title choices def = RB.label (title ++ " ") ++> inputRadio' (zip [0..] choices) ((==) $ fromJust $ elemIndex def choices) <++ RB.label " "
 
 inputStringForm :: String -> NomyxForm String
 inputStringForm title = RB.label (title ++ " ") ++> RB.inputText ""
