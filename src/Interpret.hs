@@ -43,7 +43,7 @@ initializeInterpreter = do
    loadModules fmods
    setTopLevelModules $ map (dropExtension . takeFileName) fmods
    dataDir <- liftIO getDataDir
-   set [searchPath := [dataDir], languageExtensions := [GADTs, ScopedTypeVariables]] --, languageExtensions := [], installedModulesInScope := False
+   set [searchPath := [dataDir], languageExtensions := [GADTs, ScopedTypeVariables]] --, installedModulesInScope := False
    --TODO: get all exported modules of Nomyx library from cabal
    setImports importList
    return ()

@@ -43,16 +43,6 @@ import Data.Text(Text, pack)
 import qualified Language.Nomyx.Game as G
 import qualified Multi as M
 import Happstack.Auth
-import Serialize (save)
-import Control.Concurrent
-       (putMVar, tryPutMVar, killThread, threadDelay, MVar, ThreadId,
-        takeMVar, forkIO, newEmptyMVar)
-import qualified Control.Exception as CE (catchJust)
-import System.IO.Error (isUserError)
-import Data.Time (getCurrentTime)
-import System.IO (stdout, hSetBuffering)
-import GHC.IO.Handle.Types (BufferMode(..))
-import Control.Exception (evaluate)
 
 default (Integer, Double, Data.Text.Text)
 

@@ -130,16 +130,16 @@ viewEvents ehs = do
             td ! A.class_ "td" $ text "Event Number"
             td ! A.class_ "td" $ text "By Rule"
             td ! A.class_ "td" $ text "Event"
-            td ! A.class_ "td" $ text "Status"
+            --td ! A.class_ "td" $ text "Status"
          mapM_ viewEvent $ sort ehs
 
 
 viewEvent :: EventHandler -> Html
-viewEvent (EH eventNumber ruleNumber event _ status) = tr $ do
+viewEvent (EH eventNumber ruleNumber event _ _) = tr $ do
    td ! A.class_ "td" $ string . show $ eventNumber
    td ! A.class_ "td" $ string . show $ ruleNumber
    td ! A.class_ "td" $ string . show $ event
-   td ! A.class_ "td" $ string . show $ status
+   --td ! A.class_ "td" $ string . show $ status
 
 viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomyxServer Html
 viewInputs pn ehs = do

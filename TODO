@@ -33,6 +33,7 @@ Improvements:
 Futur Nomic:
 - ability to analyse rules, proof system
 - first pass of compilation to check reference (avoid calls to non-existant variables for ex.)
+- more stateless language
 - interpreter (like tryhaskell.org) on the web page to debug rules
 - make a command line client
 

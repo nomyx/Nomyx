@@ -28,7 +28,6 @@ import qualified Text.Reform.Generalized as G
 import Data.Text(Text, pack)
 import Web.Routes.Happstack()
 import Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
-import Control.Category ((>>>))
 import Serialize
 import Control.Concurrent
        (putMVar, tryPutMVar, killThread, threadDelay, MVar, ThreadId,

@@ -121,7 +121,7 @@ serverLoop ts f = do
    case s of
       "d" -> do
          (Session _ m _) <- atomically $ readTVar ts
-         putStrLn $ show m
+         putStrLn $ displayMulti m
          serverLoop ts f
       "s" -> do
          putStrLn "saving state..."
