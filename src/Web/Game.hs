@@ -33,6 +33,7 @@ import qualified Text.Reform.Blaze.Common as RBC
 import qualified Language.Haskell.HsColour.HTML as HSC
 import Language.Haskell.HsColour.Colourise hiding (string)
 import Multi as M
+import Debug.Trace (trace)
 default (Integer, Double, Data.Text.Text)
 
 
@@ -210,7 +211,7 @@ newRule ts = do
              gn' <- getPlayersGame pn s'
              let rs = _rules $ _game $ fromJust gn
              let rs' = _rules $ _game $ fromJust gn'
-             when (length rs' > length rs) $ sendMailsNewRule s' sr pn
+             when (length rs' > length rs) $ trace "new rule mail " $ sendMailsNewRule s' sr pn
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
 

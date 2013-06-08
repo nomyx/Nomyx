@@ -23,7 +23,6 @@ import Text.Blaze.Internal(string)
 import Multi
 import Utils
 import Language.Nomyx
-import Debug.Trace (trace)
 default (Integer, Double, Data.Text.Text)
 
 
@@ -42,9 +41,9 @@ settingsForm' name mailTo mailNewRule names = pure Types.PlayerSettings
    <*> pure True
 
 uniqueName :: [String] -> String -> Either NomyxError String
-uniqueName names name = case trace (name ++ (show names) ++ (show (name `elem` names))) $ (name `elem` names) of
-   True -> trace "left" $ Left UniquePlayerName
-   False ->trace "right" $  Right name
+uniqueName names name = case name `elem` names of
+   True  -> Left UniquePlayerName
+   False -> Right name
 
 
 settingsPage :: PlayerSettings-> [PlayerName]  -> RoutedNomyxServer Html

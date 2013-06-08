@@ -38,8 +38,8 @@ executable Nomyx
     buildable: True
     extensions: CPP
     hs-source-dirs: src
-    other-modules: Multi Test Serialize Quotes Mail Types Utils
-                   Interpret Web.Game Web.Settings Web.MainPage Web.NewGame Web.Login
-                   Web.Help Web.Common
-    ghc-options: -W
+    other-modules: Types Mail Test Multi Serialize Utils Interpret
+                   Quotes Web.Common Web.Help Web.NewGame Web.Game Web.Login
+                   Web.Settings Web.MainPage
+    ghc-options: -W -threaded
  

@@ -33,7 +33,7 @@ sendMail to object body = do
    putStrLn $ "sending a mail to " ++ to
    forkIO $ simpleMail (Address Nothing (pack to)) (Address (Just "Nomyx Game") "Nomyx.Game@gmail.com") (pack object) "" (B.pack body) [] >>= renderSendMail
    putStrLn $ "done"
-   return ()
+
 
 newRuleBody :: PlayerName -> SubmitRule -> PlayerName -> Network -> Html
 newRuleBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ do
