@@ -1,5 +1,5 @@
 name: Nomyx
-version: 0.2.0
+version: 0.2.1
 cabal-version: >=1.6
 build-type: Simple
 license: BSD3
@@ -18,7 +18,7 @@ extra-source-files: AUTHORS README TODO
  
 executable Nomyx
     build-depends: Cabal -any, DebugTraceHelpers -any, MissingH -any,
-                   MonadCatchIO-mtl -any, Nomyx-Language ==0.2.0, QuickCheck -any,
+                   MonadCatchIO-mtl -any, Nomyx-Language ==0.2.1, QuickCheck -any,
                    acid-state -any, base <5, binary -any, blaze-html ==0.5.*,
                    blaze-markup -any, bytestring -any, containers -any,
                    data-accessor-transformers -any, data-lens -any, data-lens-fd -any,
