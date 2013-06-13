@@ -189,11 +189,14 @@ rVictory5Rules = SubmitRule "Victory 5 accepted rules"
                             "Victory is achieved if you have 5 active rules"
                             [cr|victoryXRules 5|]
 
+rVoteMajority = SubmitRule "Majority Vote"
+                            "A proposed rule will be activated if a majority of players is reached, with a minimum of 2 players, and within oone day"
+                            [cr|onRuleProposed $ voteWith_ (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeDelay oneMinute |]
+
 
 initialGame :: ServerHandle -> StateT LoggedGame IO ()
-initialGame sh = do
-   update' (Just $ getRuleFunc sh) $ SystemAddRule rVoteUnanimity
-   update' (Just $ getRuleFunc sh) $ SystemAddRule rVictory5Rules
+initialGame sh = mapM_ addR [rVoteUnanimity, rVictory5Rules]
+   where addR = update' (Just $ getRuleFunc sh) . SystemAddRule
 
 initialLoggedGame :: GameName -> GameDesc -> UTCTime -> ServerHandle -> IO LoggedGame
 initialLoggedGame name desc date sh = do

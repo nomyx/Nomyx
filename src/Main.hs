@@ -48,6 +48,7 @@ import System.FilePath ((</>))
 import Happstack.Auth.Core.Auth (initialAuthState)
 import Data.Acid.Local (createCheckpointAndClose)
 import Happstack.Auth.Core.Profile (initialProfileState)
+import System.Unix.Directory
 
 defaultLogFile :: FilePath
 defaultLogFile = "Nomyx.save"
@@ -69,7 +70,6 @@ main = do
 start :: [Flag] -> IO ()
 start flags = do
    serverCommandUsage
-
    --start the haskell interpreter
    sh <- protectHandlers startInterpreter
    if Test `elem` flags then do
@@ -90,22 +90,26 @@ start flags = do
          Nothing -> getHostName >>= return
       logFilePath <- getDataFileName logFile
       let settings sendMail = Settings logFilePath (Network host port) sendMail
+      dataDir <- getDataDir
+      let profilesDir = dataDir </> "profiles"
+      when (NoReadSaveFile `elem` flags) $ do
+         removeRecursiveSafely profilesDir
+         removeFile (_logFilePath $ settings True)
       multi <- case (findLoadTest flags) of
          Just testName -> loadTestName (settings False) testName sh
-         Nothing -> Main.loadMulti (settings True) (not $ NoReadSaveFile `elem` flags) sh
+         Nothing -> Main.loadMulti (settings True) sh
       --main loop
-      profilePath <- getDataDir
-      withAcid (Just $ profilePath </> "profiles") $ \acid -> do
+      withAcid (Just profilesDir) $ \acid -> do
          tvSession <- atomically $ newTVar (Session sh multi acid)
          --start the web server
          forkIO $ launchWebServer tvSession (Network host port)
          forkIO $ launchTimeEvents tvSession
          serverLoop tvSession logFile
 
-loadMulti :: Settings -> Bool -> ServerHandle -> IO Multi
-loadMulti set readSaveFile sh = do
+loadMulti :: Settings -> ServerHandle -> IO Multi
+loadMulti set sh = do
    fileExists <- doesFileExist $ _logFilePath $ set
-   multi <- case fileExists && readSaveFile of
+   multi <- case fileExists of
       True -> do
          putStrLn "Loading previous game"
          Serialize.loadMulti set sh `catch`

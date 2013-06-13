@@ -105,7 +105,7 @@ viewGameName g = do
          td $ H.a "Leave" ! (href $ toValue leave)
          div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
             div $ do
-               h2 "Joining the game. Please register in the Agora and introduce yourself to the other players! \n \
+               h2 "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n \
                    If you do not wich to play, you can just view the game."
                H.a "Join"  ! (href $ toValue join) ! A.class_ "join" ! (A.title $ toValue Help.join)
                H.a "View"  ! (href $ toValue view) ! A.class_ "view" ! (A.title $ toValue Help.view)
