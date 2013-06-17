@@ -27,6 +27,10 @@ Improvements:
 - purify some IO
 - create an admin role
 - add examples with a game master, a castle..
+- add "delete game" for admin (+ del/add player, rule, event, variable?)
+- fix facebook
+- don't show deleted events (what with variables?)
+- de-mangle error messages
 
 Futur Nomic:
 - ability to analyse rules, proof system

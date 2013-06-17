@@ -124,8 +124,10 @@ serverLoop ts f = do
    s <- getLine
    case s of
       "d" -> do
-         (Session _ m _) <- atomically $ readTVar ts
-         putStrLn $ displayMulti m
+         s <- atomically $ readTVar ts
+         putStrLn $ displayMulti $ _multi s
+         pfs <- getAllProfiles s
+         putStrLn $ show pfs
          serverLoop ts f
       "s" -> do
          putStrLn "saving state..."
