@@ -131,16 +131,16 @@ viewEvents ehs = do
             td ! A.class_ "td" $ text "Event Number"
             td ! A.class_ "td" $ text "By Rule"
             td ! A.class_ "td" $ text "Event"
-            --td ! A.class_ "td" $ text "Status"
          mapM_ viewEvent $ sort ehs
 
 
 viewEvent :: EventHandler -> Html
-viewEvent (EH eventNumber ruleNumber event _ _) = tr $ do
-   td ! A.class_ "td" $ string . show $ eventNumber
-   td ! A.class_ "td" $ string . show $ ruleNumber
-   td ! A.class_ "td" $ string . show $ event
-   --td ! A.class_ "td" $ string . show $ status
+viewEvent (EH eventNumber ruleNumber event _ status) = if status == EvActive then disp else disp ! A.style "background:gray;" where
+   disp = tr $ do
+      td ! A.class_ "td" $ string . show $ eventNumber
+      td ! A.class_ "td" $ string . show $ ruleNumber
+      td ! A.class_ "td" $ string . show $ event
+
 
 viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomyxServer Html
 viewInputs pn ehs = do
@@ -192,7 +192,7 @@ viewRuleForm sr inGame = do
    lf  <- lift $ viewForm "user" $ newRuleForm sr
    ok $ do
       h3 "Propose a new rule:"
-      if inGame then blazeForm lf (link) ! A.disabled ""
+      if inGame then blazeForm lf (link)
       else lf ! A.disabled ""
 
 newRule :: (TVar Session) -> RoutedNomyxServer Html
@@ -272,7 +272,7 @@ showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do
    div ! A.onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id id) $ table ! A.width "100%" $ tr $ do
       td $ title ! A.width "80%"
-      td ! A.style "text-align:right;" $ h5 (if visible then "[Hide]" else "[Show]") ! A.id (fromString $ printf "%sShow" id) ! A.width "20%"
+      td ! A.style "text-align:right;" $ h5 (if visible then "[Click to hide]" else "[Click to show]") ! A.id (fromString $ printf "%sShow" id) ! A.width "20%"
    div ! A.id (fromString $ printf "%sBody" id) ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
       if (empty) then (toHtml $ "No " ++ id) else rest
 
