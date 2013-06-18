@@ -51,16 +51,16 @@ newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 
 sendMailsNewRule :: Session -> SubmitRule -> PlayerNumber -> IO()
 sendMailsNewRule s sr pn = do
-   evaluate s
    gn <- fromJust <$> getPlayersGame pn s
+   let sendMailsTo = delete pn (map _playerNumber (_players $ _game gn))
    proposer <- getPlayersName pn s
-   pfd <- A.query' (acidProfileData $ _profiles s) AskProfilesData
-   let pls = [ p { _pPlayerNumber = mypn} | p <- pfd, mypn <- map _playerNumber $ _players $ _game gn]
-   forM_ pls $ send proposer (_net $ _mSettings $ _multi s)
-   where
-      send :: PlayerName -> Network -> ProfileData -> IO()
-      send prop net pfd = when (_mailNewRule $ _pPlayerSettings pfd)
-          $ sendMail (_mailTo $ _pPlayerSettings $ pfd) (newRuleObject prop) (renderHtml $ newRuleBody (_pPlayerName $ _pPlayerSettings $ pfd) sr prop net)
+   profiles <- mapM (getProfile s) sendMailsTo
+   mapM_ (send proposer (_net $ _mSettings $ _multi s) sr) (_pPlayerSettings <$> catMaybes profiles)
+
+
+send :: PlayerName -> Network -> SubmitRule -> PlayerSettings -> IO()
+send prop net sr set = when (_mailNewRule set)
+   $ sendMail (_mailTo set) (newRuleObject prop) (renderHtml $ newRuleBody (_pPlayerName set) sr prop net)
 
    
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]

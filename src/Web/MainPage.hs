@@ -49,7 +49,7 @@ default (Integer, Double, Data.Text.Text)
 
 viewMulti :: PlayerNumber -> Session -> RoutedNomyxServer Html
 viewMulti pn s = do
-   pfd <- getProfile pn s
+   pfd <- getProfile s pn
    gns <- viewGamesTab (map G._game $ _games $ _multi s) (pn == 1)
    mgn <- liftRouteT $ lift $ getPlayersGame pn s
    g <- case mgn of

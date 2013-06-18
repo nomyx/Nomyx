@@ -59,7 +59,7 @@ settings :: (TVar Session) -> RoutedNomyxServer Html
 settings ts  = do
    s <- liftIO $ atomically $ readTVar ts
    pn <- getPlayerNumber ts
-   pfd <- getProfile pn s
+   pfd <- getProfile s pn
    pfs <- liftIO $ getAllProfiles s
    let pfs' = filter (\a -> (_pPlayerNumber a /= pn)) pfs
    settingsPage (_pPlayerSettings $ fromJust pfd) ((_pPlayerName . _pPlayerSettings) <$> pfs')

@@ -99,8 +99,8 @@ modifyProfile pn mod = do
    A.update' (acidProfileData $ _profiles s) (SetProfileData (mod $ fromJust pfd))
    return ()
 
-getProfile :: MonadIO m => PlayerNumber -> Session -> m (Maybe ProfileData)
-getProfile pn s = A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
+getProfile :: MonadIO m => Session -> PlayerNumber -> m (Maybe ProfileData)
+getProfile s pn = A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
 
 
 
