@@ -17,13 +17,11 @@ import Data.Text(Text, pack)
 import Control.Concurrent
 import Data.Maybe
 import Utils
-import Control.Exception
 import qualified Data.Text.Lazy as B
 import qualified Language.Haskell.HsColour.HTML as HSC
 import Language.Haskell.HsColour.Colourise hiding (string)
 import Text.Blaze.Internal
 import Control.Category
-import qualified Data.Acid.Advanced as A (query')
 import Control.Applicative ((<$>))
 default (Integer, Double, Data.Text.Text)
 

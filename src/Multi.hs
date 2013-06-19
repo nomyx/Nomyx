@@ -183,7 +183,7 @@ getTimeEvents now m = do
 -- | the initial rule set for a game.
 rVoteUnanimity = SubmitRule "Unanimity Vote"
                             "A proposed rule will be activated if all players vote for it"
-                            [cr|onRuleProposed $ voteWith_ unanimity $ assessOnEveryVotes |]
+                            [cr|onRuleProposed $ voteWith_ unanimity $ assessOnEveryVote |]
 
 rVictory5Rules = SubmitRule "Victory 5 accepted rules"
                             "Victory is achieved if you have 5 active rules"
@@ -191,7 +191,7 @@ rVictory5Rules = SubmitRule "Victory 5 accepted rules"
 
 rVoteMajority = SubmitRule "Majority Vote"
                             "A proposed rule will be activated if a majority of players is reached, with a minimum of 2 players, and within oone day"
-                            [cr|onRuleProposed $ voteWith_ (majority `withQuorum` 2) $ assessOnEveryVotes >> assessOnTimeDelay oneMinute |]
+                            [cr|onRuleProposed $ voteWith_ (majority `withQuorum` 2) $ assessOnEveryVote >> assessOnTimeDelay oneMinute |]
 
 
 initialGame :: ServerHandle -> StateT LoggedGame IO ()
