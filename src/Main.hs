@@ -15,7 +15,7 @@
     
 module Main (main) where
 
-import Prelude hiding (catch, (.))
+import Prelude hiding ((.))
 import System.Console.GetOpt 
 import System.Environment 
 import Web.MainPage

@@ -16,7 +16,7 @@
 -- | Test module
 module Test where
 
-import Prelude hiding (catch)
+import Prelude
 import Types
 import Control.Monad.State
 import Multi
@@ -139,7 +139,7 @@ condHelloWorld2Players :: Multi -> Bool
 condHelloWorld2Players m = (head $ _outputs $ G._game $ head $ _games m) == (1, "hello, world!")
 
 partialFunction1 :: String
-partialFunction1 = [cr|voidRule $ readVar_ (V "toto1")|]
+partialFunction1 = [cr|voidRule $ readVar_ (V "toto1" :: V String)|]
 
 gamePartialFunction1 :: StateT Session IO ()
 gamePartialFunction1 = submitR partialFunction1

@@ -4,7 +4,7 @@
 module Web.Common where
 
 
-import Prelude hiding (div, catch)
+import Prelude hiding (div)
 import Text.Blaze.Html5 hiding (map, output, base)
 import Text.Blaze.Html5.Attributes hiding (dir, id)
 import qualified Text.Blaze.Html5 as H

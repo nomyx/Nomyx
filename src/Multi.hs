@@ -11,7 +11,7 @@ module Multi where
 --    getPlayersName) where
 
 
-import Prelude hiding (catch)
+import Prelude
 import Data.List
 import Control.Monad.State
 import Utils
