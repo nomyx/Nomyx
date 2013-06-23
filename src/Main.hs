@@ -36,7 +36,7 @@ import Paths_Nomyx as PN
 import System.Directory
 import Data.Time.Clock
 import Language.Nomyx hiding (getCurrentTime)
-import Control.Exception hiding (bracket)
+import Control.Exception as E hiding (bracket)
 import Test
 import Utils
 import Data.Version (showVersion)
@@ -112,7 +112,7 @@ loadMulti set sh = do
    multi <- case fileExists of
       True -> do
          putStrLn "Loading previous game"
-         Serialize.loadMulti set sh `catch`
+         Serialize.loadMulti set sh `E.catch`
             (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set))
       False -> return $ defaultMulti set
    return multi

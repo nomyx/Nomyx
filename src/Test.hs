@@ -23,7 +23,7 @@ import Multi
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Language.Nomyx hiding (getCurrentTime)
 import Control.Applicative
-import Control.Exception
+import Control.Exception as E
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax as THS hiding (lift)
 import System.IO.Unsafe
@@ -62,7 +62,7 @@ test sh tes cond = do
    tp <- testProfiles
    let s = Session sh (defaultMulti (Settings "" defaultNetwork False)) tp
    m' <- loadTest tes s
-   (evaluate $ cond m') `catch` (\(e::SomeException) -> (putStrLn $ "Exception in test: " ++ show e) >> return False)
+   (evaluate $ cond m') `E.catch` (\(e::SomeException) -> (putStrLn $ "Exception in test: " ++ show e) >> return False)
 
 
 loadTest ::  StateT Session IO () -> Session -> IO Multi
