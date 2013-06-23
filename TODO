@@ -29,7 +29,6 @@ Improvements:
 - add examples with a game master, a castle..
 - add "delete game" for admin (+ del/add player, rule, event, variable?)
 - fix facebook
-- grey out deleted events (what with variables?)
 - de-mangle error messages, put line number
 - add an input: button
 - vote: include new players, delete leaving players 

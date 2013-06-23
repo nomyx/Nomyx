@@ -72,8 +72,8 @@ getAllProfiles :: Session -> IO [ProfileData]
 getAllProfiles s = A.query' (acidProfileData $ _profiles s) AskProfilesData
 
 
-getPlayers :: Game -> PlayerNumber -> Maybe PlayerInfo
-getPlayers g pn = find ((==pn) . getL playerNumber) (_players g)
+getPlayer :: Game -> PlayerNumber -> Maybe PlayerInfo
+getPlayer g pn = find ((==pn) . getL playerNumber) (_players g)
 
 -- | finds the corresponding game in the multistate and replaces it.
 modifyGame :: LoggedGame -> StateT Multi IO ()

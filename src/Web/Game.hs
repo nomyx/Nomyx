@@ -39,7 +39,7 @@ default (Integer, Double, Data.Text.Text)
 
 viewGame :: Game -> PlayerNumber -> (Maybe SubmitRule) -> RoutedNomyxServer Html
 viewGame g pn sr = do
-   let inGame = isJust $ Utils.getPlayers g pn
+   let inGame = isJust $ Utils.getPlayer g pn
    rf <- viewRuleForm sr inGame
    vi <- viewInputs pn $ _events g
    ok $ table $ do
@@ -72,7 +72,7 @@ viewPlayer pi = tr $ do
 
 viewVictory :: Game -> Html
 viewVictory g = do
-    let vs = _playerName <$> mapMaybe (Utils.getPlayers g) (_victory g)
+    let vs = _playerName <$> mapMaybe (Utils.getPlayer g) (_victory g)
     case vs of
         []   -> br
         a:[] -> h3 $ string $ "Player " ++ (show a) ++ " won the game!"
@@ -81,28 +81,29 @@ viewVictory g = do
 viewAllRules :: Game -> Html
 viewAllRules g = do
    h3 "Rules"
-   viewRules "Active rules"     (activeRules g) True ! (A.title $ toValue Help.actives) >> br
-   viewRules "Pending rules"    (pendingRules g) True ! (A.title $ toValue Help.pendings) >> br
-   viewRules "Suppressed rules" (rejectedRules g) False >> br
+   viewRules (activeRules g)   "Active rules"     True g ! (A.title $ toValue Help.actives) >> br
+   viewRules (pendingRules g)  "Pending rules"    True g ! (A.title $ toValue Help.pendings) >> br
+   viewRules (rejectedRules g) "Suppressed rules" False g >> br
 
-viewRules :: String -> [Rule] -> Bool -> Html
-viewRules title nrs visible = do
+viewRules :: [Rule] -> String -> Bool -> Game -> Html
+viewRules nrs title visible g = do
    showHideTitle title visible (length nrs == 0) (h4 ! A.style "text-align:center;" $ toHtml title ) $ table ! A.class_ "table" $ do
       thead $ do
-         td ! A.class_ "td" $ text "Number"
+         td ! A.class_ "td" $ text "#"
          td ! A.class_ "td" $ text "Name"
          td ! A.class_ "td" $ text "Description"
          td ! A.class_ "td" $ text "Proposed by"
          td ! A.class_ "td" $ text "Code of the rule"
          td ! A.class_ "td" $ text "Assessed by"
-      forM_ nrs viewRule
+      forM_ nrs (viewRule g)
 
-viewRule :: Rule -> Html
-viewRule nr = tr $ do
+viewRule :: Game -> Rule -> Html
+viewRule g nr = tr $ do
+   let pl = fromMaybe (show $ _rProposedBy nr) (_playerName <$> (Utils.getPlayer g $ _rProposedBy nr))
    td ! A.class_ "td" $ string . show $ _rNumber nr
    td ! A.class_ "td" $ string $ _rName nr
    td ! A.class_ "td" $ string $ _rDescription nr
-   td ! A.class_ "td" $ string $ if _rProposedBy nr == 0 then "System" else "Player " ++ (show $ _rProposedBy nr)
+   td ! A.class_ "td" $ string $ if _rProposedBy nr == 0 then "System" else pl
    td ! A.class_ "td" $ viewRuleFunc $ nr
    td ! A.class_ "td" $ string $ case _rAssessedBy nr of
       Nothing -> "Not assessed"
