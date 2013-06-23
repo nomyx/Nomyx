@@ -10,6 +10,13 @@ Bugs:
 - where clauses are not accepted by the interpreter
 - suppress player from game when logout (?)
 - better manage event deletion: an event can be deleted twice using its number
+- concurency access to Nomyx.save: can several happstack thread result in a file locked message?
+- a variable (bank account) disapeared for no reasons in Demo 3: wiped out wrongly when a rule was deleted/autodeleted?
+- "Assessed by" field is wrong for suppressed rules 
+- mails plain text field is empty (only HTML)
+- what if you activate again a rule already active? idem for deleted etc.
+- why import prelude in the uploaded file?
+- import StateT, <$> for rules
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -29,9 +36,14 @@ Improvements:
 - add examples with a game master, a castle..
 - add "delete game" for admin (+ del/add player, rule, event, variable?)
 - fix facebook
+- grey out deleted events (what with variables?)
 - de-mangle error messages, put line number
 - add an input: button
 - vote: include new players, delete leaving players 
+- 2 collumns layout
+- ability to import/export the game
+- make better output: the ouput can be updated. Separate the error log.
+- allow to re-load a game using the save file
 
 Futur Nomic:
 - ability to analyse rules, proof system
