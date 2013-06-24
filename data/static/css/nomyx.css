@@ -29,17 +29,8 @@ h3{
    right:20px;
    padding-left:10px;
    padding-right:10px;
+   padding-top:10px;
    overflow: auto;
-}
-
-#gameCol {
-   position:absolute;
-   top:20px;
-   left:20px;
-   width:200px;
-   background-color:#F4F4F4;
-   border:1px solid silver;
-   padding:10px;
 }
 
 #gameElem {
@@ -80,7 +71,7 @@ thead {
    padding:10px;
 }
 
-#events, #inputs, #variables, #rules, #newRule, #Outputs  {
+#inputs, #details, #rules, #newRule, #Outputs, #gameDesc  {
    float:left;
    background-color:#F4F4F4;
    border:1px solid silver;

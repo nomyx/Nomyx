@@ -30,8 +30,8 @@ executable Nomyx
                    monad-loops -any, mtl ==2.*, mueval -any, network -any,
                    process -any, reform -any, reform-blaze -any,
                    reform-happstack -any, regular -any, safe -any, safecopy -any,
-                   stm -any, syb -any, template-haskell -any, text -any, time -any,
-                   unix -any, utf8-string -any, web-routes ==0.27.*,
+                   split -any, stm -any, syb -any, template-haskell -any, text -any,
+                   time -any, unix -any, utf8-string -any, web-routes ==0.27.*,
                    web-routes-happstack ==0.23.*, web-routes-regular ==0.19.*,
                    web-routes-th -any
     main-is: Main.hs

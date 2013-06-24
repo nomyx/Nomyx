@@ -77,7 +77,6 @@ joinGame game pn = do
 leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
 leaveGame game pn = focus multi $ inGameDo game $ G.update $ LeaveGame pn
 
-
 -- | insert a rule in pending rules.
 submitRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Session IO ()
 submitRule sr@(SubmitRule _ _ code) pn sh = do
@@ -89,7 +88,7 @@ submitRule sr@(SubmitRule _ _ code) pn sh = do
          inPlayersGameDo_ pn $ G.update' (Just $ getRuleFunc sh) (ProposeRuleEv pn sr)
          modifyProfile pn (pLastRule ^= Nothing)
       Left e -> do
-         inPlayersGameDo_ pn $ update $ OutputPlayer pn ("Compiler error: " ++ show e ++ "\n")
+         inPlayersGameDo_ pn $ update $ Log (Just pn) ("Compiler error: " ++ show e ++ "\n")
          tracePN pn ("Compiler error: " ++ show e ++ "\n")
          modifyProfile pn (pLastRule ^= Just sr) -- keep in memory the last rule proposed by the player to display it in case of error
 
@@ -110,11 +109,11 @@ inputUpload pn dir mod sh = do
    tracePN pn $ " uploaded " ++ (show mod)
    case m of
       Right _ -> do
-         inPlayersGameDo_ pn $ update $ OutputPlayer pn ("File loaded: " ++ show dir ++ " Module " ++ show mod ++"\n")
+         inPlayersGameDo_ pn $ update $ Log (Just pn) ("File loaded: " ++ show dir ++ " Module " ++ show mod ++"\n")
          tracePN pn "upload success"
          return ()
       Left e -> do
-         inPlayersGameDo_ pn $ update $ OutputPlayer pn ("Compiler error: " ++ show e ++ "\n")
+         inPlayersGameDo_ pn $ update $ Log (Just pn) ("Compiler error: " ++ show e ++ "\n")
          tracePN pn "upload failed"
          return ()
 

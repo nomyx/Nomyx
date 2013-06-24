@@ -4,6 +4,7 @@
 module Web.Game where
 
 import Prelude hiding (div)
+import qualified Prelude as P
 import Text.Blaze.Html5 hiding (map)
 import qualified Text.Blaze.Html5.Attributes as A
 import Web.Routes.RouteT
@@ -34,6 +35,7 @@ import qualified Language.Haskell.HsColour.HTML as HSC
 import Language.Haskell.HsColour.Colourise hiding (string)
 import Multi as M
 import Debug.Trace (trace)
+import Data.List.Split
 default (Integer, Double, Data.Text.Text)
 
 
@@ -43,30 +45,30 @@ viewGame g pn sr = do
    rf <- viewRuleForm sr inGame
    vi <- viewInputs pn $ _events g
    ok $ table $ do
-      td ! A.id "gameCol" $ do
-         table $ do
-            tr $ td $ h3 $ string $ "Viewing game: " ++ _gameName g
-            tr $ td $ "Description:" >> br >> string (_desc $ _gameDesc g) >> br
-            tr $ td $ (a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g))) >> br >> br
-            tr $ td $ viewPlayers $ _players g
-            tr $ td $ viewVictory g
-      td ! A.id "gameElem" $ do
-         table $ do
-         tr $ td $ div ! A.id "rules" $ viewAllRules g
-         tr $ td $ div ! A.id "inputs"    ! A.title (toValue Help.inputs)    $ vi
-         tr $ td $ div ! A.id "events"    ! A.title (toValue Help.events)    $ viewEvents $ _events g
-         tr $ td $ div ! A.id "variables" ! A.title (toValue Help.variables) $ viewVars   $ _variables g
-         tr $ td $ div ! A.id "newRule" $ rf
-         tr $ td $ div ! A.id "outputs"   ! A.title (toValue Help.outputs)   $ viewOutput (_outputs g) pn
+      tr $ td $ div ! A.id "gameDesc" $ viewGameDesc g
+      tr $ td $ div ! A.id "rules" $ viewAllRules g
+      tr $ td $ div ! A.id "inputs"  ! A.title (toValue Help.inputs)  $ vi
+      tr $ td $ div ! A.id "outputs" ! A.title (toValue Help.outputs) $ viewOutput (_outputs g) pn
+      tr $ td $ div ! A.id "newRule" $ rf
+      tr $ td $ div ! A.id "details" ! A.title (toValue Help.events)  $ viewDetails pn g
+
+viewGameDesc :: Game -> Html
+viewGameDesc g = do
+   p $ h3 $ string $ "Viewing game: " ++ _gameName g
+   p $ h4 $ "Description:" >> br >> string (_desc $ _gameDesc g)
+   p $ h4 $ a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g))
+   p $ h4 $ "Players in game:"
+   viewPlayers $ _players g
+   p $ viewVictory g
 
 viewPlayers :: [PlayerInfo] -> Html
 viewPlayers pis = do
-   h5 "Players in game:"
-   table $ mapM_ viewPlayer (sort pis)
+   let plChunks = transpose $ chunksOf (1 + (length pis) `P.div` 3) (sort pis)
+   table $ mapM_ (\row -> tr $ mapM_ (\e -> td $ viewPlayer e) row) plChunks
 
 
 viewPlayer :: PlayerInfo -> Html
-viewPlayer pi = tr $ do
+viewPlayer pi = table $ tr $ do
     td $ string $ show $ _playerNumber pi
     td $ string $ _playerName pi
 
@@ -125,9 +127,17 @@ viewRuleFunc nr = do
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
 
+viewDetails :: PlayerNumber -> Game -> Html
+viewDetails pn g = showHideTitle "Details" True False (h3 "Details") $ do
+   p $ h4 "Logs:"
+   viewLog    (_log g) pn
+   p $ h4 "Events:"
+   viewEvents (_events g)
+   p $ h4 "Vars:"
+   viewVars   (_variables g)
+
 viewEvents :: [EventHandler] -> Html
-viewEvents ehs = do
-   showHideTitle "Events" False (length ehs == 0) (h3 "Events") $ table ! A.class_ "table" $ do
+viewEvents ehs = table ! A.class_ "table" $ do
          thead $ do
             td ! A.class_ "td" $ text "Event Number"
             td ! A.class_ "td" $ text "By Rule"
@@ -156,13 +166,12 @@ viewInput me (EH eventNumber _ (InputChoice pn title choices def) _ EvActive) | 
     return $ Just $ tr $ td $ blazeForm lf (link)
 viewInput me (EH _ _ (InputString pn title) _ EvActive) | me == pn = do
     link <- showURL (DoInputString title)
-    lf  <- lift $ viewForm "user" $ inputStringForm title
+    lf  <- lift $ viewForm "user" $ inputTextForm title
     return $ Just $ tr $ td $ blazeForm lf (link)
 viewInput _ _ = return Nothing
 
 viewVars :: [Var] -> Html
-viewVars vs = do
-   showHideTitle "Variables" False (length vs == 0) (h3 "Variables") $ table ! A.class_ "table" $ do
+viewVars vs = table ! A.class_ "table" $ do
       thead $ do
          td ! A.class_ "td" $ text "Rule number"
          td ! A.class_ "td" $ text "Name"
@@ -225,6 +234,10 @@ viewOutput os pn = do
 viewMessages :: [String] -> Html
 viewMessages = mapM_ (\s -> string s >> br)
 
+viewLog :: [Log] -> PlayerNumber -> Html
+viewLog log pn = do
+   let mylog = map snd $ filter (\o -> (fst o == Just pn) || (fst o == Nothing)) log
+   mapM_ (\s -> p $ string s >> br) mylog
 
 newInputChoice :: EventNumber -> (TVar Session) -> RoutedNomyxServer Html
 newInputChoice en ts = do
@@ -252,7 +265,7 @@ newInputString :: String -> (TVar Session) -> RoutedNomyxServer Html
 newInputString title ts = do
     methodM POST
     pn <- getPlayerNumber ts
-    r <- liftRouteT $ eitherForm environment "user" (inputStringForm title)
+    r <- liftRouteT $ eitherForm environment "user" (inputTextForm title)
     link <- showURL MainPage
     case r of
        (Right c) -> do
@@ -266,8 +279,11 @@ newInputString title ts = do
 inputChoiceForm :: String -> [String] -> String -> NomyxForm Int
 inputChoiceForm title choices def = RB.label (title ++ " ") ++> inputRadio' (zip [0..] choices) ((==) $ fromJust $ elemIndex def choices) <++ RB.label " "
 
-inputStringForm :: String -> NomyxForm String
-inputStringForm title = RB.label (title ++ " ") ++> RB.inputText ""
+inputTextForm :: String -> NomyxForm String
+inputTextForm title = RB.label (title ++ " ") ++> RB.inputText ""
+
+inputMaybeForm :: String -> NomyxForm ()
+inputMaybeForm title = RB.label (title ++ " ") ++> RB.inputButton ""
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do

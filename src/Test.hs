@@ -147,7 +147,7 @@ gamePartialFunction1 = submitR partialFunction1
 -- rule has not been accepted due to exception
 condPartialFunction1 :: Multi -> Bool
 condPartialFunction1 m = (_rStatus $ head $ _rules $ G._game $ head $ _games m) == Active &&
-                         (take 5 $ snd $ head $ _outputs $ G._game $ head $ _games m) == "Error"
+                         (take 5 $ snd $ head $ _log $ G._game $ head $ _games m) == "Error"
 
 partialFunction2 :: String
 partialFunction2 = [cr|voidRule $ do
@@ -165,10 +165,8 @@ gamePartialFunction2 = do
 -- rule has been accepted but exception happened later
 condPartialFunction2 :: Multi -> Bool
 condPartialFunction2 m = (_rStatus $ headNote "cond1 failed" $ _rules $ G._game $ headNote "cond2 failed" $ _games m) == Active &&
-                         (take 5 $ snd $ headNote "cond3 failed" $ _outputs $ G._game $ headNote "cond4 failed" $ _games m) == "Error"
+                         (take 5 $ snd $ headNote "cond3 failed" $ _log $ G._game $ headNote "cond4 failed" $ _games m) == "Error"
 
---This rule blocks the game: the exception (variable not existing) is triggered during a "rule proposed" event,
---thus preventing to propose any new rule to the game.
 partialFunction3 :: String
 partialFunction3 = [cr|voidRule $ onEvent_ (RuleEv Proposed) $ const $ readVar_ (V "toto3")|]
 
