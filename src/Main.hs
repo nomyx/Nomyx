@@ -11,7 +11,7 @@
 -- |
 --
 -----------------------------------------------------------------------------
-{-# LANGUAGE GADTs, DoAndIfThenElse #-}
+{-# LANGUAGE GADTs, DoAndIfThenElse, ScopedTypeVariables #-}
     
 module Main (main) where
 
@@ -93,8 +93,8 @@ start flags = do
       dataDir <- getDataDir
       let profilesDir = dataDir </> "profiles"
       when (NoReadSaveFile `elem` flags) $ do
-         removeRecursiveSafely profilesDir
-         removeFile (_logFilePath $ settings True)
+         (removeRecursiveSafely profilesDir)         `catch` (\(_::SomeException)-> return ())
+         (removeFile (_logFilePath $ settings True)) `catch` (\(_::SomeException)-> return ())
       multi <- case (findLoadTest flags) of
          Just testName -> loadTestName (settings False) testName sh
          Nothing -> Main.loadMulti (settings True) sh
