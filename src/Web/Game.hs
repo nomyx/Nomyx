@@ -131,10 +131,10 @@ viewDetails :: PlayerNumber -> Game -> Html
 viewDetails pn g = showHideTitle "Details" True False (h3 "Details") $ do
    p $ h4 "Logs:"
    viewLog    (_log g) pn
-   p $ h4 "Events:"
-   viewEvents (_events g)
    p $ h4 "Vars:"
    viewVars   (_variables g)
+   p $ h4 "Events:"
+   viewEvents (_events g)
 
 viewEvents :: [EventHandler] -> Html
 viewEvents ehs = table ! A.class_ "table" $ do
