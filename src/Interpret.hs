@@ -90,5 +90,10 @@ checkModule dir sh = runIn sh $ do
    liftIO $ putStrLn $ concat $ fmods
    loadModules (dir:fmods)
 
+showInterpreterError :: InterpreterError -> String
+showInterpreterError (UnknownError s)  = "Unknown Error\n" ++ s
+showInterpreterError (WontCompile ers) = "Won't Compile\n" ++ concatMap (\(GhcError errMsg) -> errMsg ++ "\n") ers
+showInterpreterError (NotAllowed s)    = "Not Allowed\n" ++ s
+showInterpreterError (GhcException s)  = "Ghc Exception\n" ++ s
 
 

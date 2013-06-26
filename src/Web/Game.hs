@@ -237,7 +237,7 @@ viewMessages = mapM_ (\s -> string s >> br)
 viewLog :: [Log] -> PlayerNumber -> Html
 viewLog log pn = do
    let mylog = map snd $ filter (\o -> (fst o == Just pn) || (fst o == Nothing)) log
-   mapM_ (\s -> p $ string s >> br) mylog
+   pre $ mapM_ (\s -> p $ string s >> br) mylog
 
 newInputChoice :: EventNumber -> (TVar Session) -> RoutedNomyxServer Html
 newInputChoice en ts = do

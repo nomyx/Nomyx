@@ -88,7 +88,7 @@ submitRule sr@(SubmitRule _ _ code) pn sh = do
          inPlayersGameDo_ pn $ G.update' (Just $ getRuleFunc sh) (ProposeRuleEv pn sr)
          modifyProfile pn (pLastRule ^= Nothing)
       Left e -> do
-         inPlayersGameDo_ pn $ update $ Log (Just pn) ("Compiler error: " ++ show e ++ "\n")
+         inPlayersGameDo_ pn $ update $ Log (Just pn) ("Error in submitted rule: " ++ showInterpreterError e)
          tracePN pn ("Compiler error: " ++ show e ++ "\n")
          modifyProfile pn (pLastRule ^= Just sr) -- keep in memory the last rule proposed by the player to display it in case of error
 
@@ -113,7 +113,7 @@ inputUpload pn dir mod sh = do
          tracePN pn "upload success"
          return ()
       Left e -> do
-         inPlayersGameDo_ pn $ update $ Log (Just pn) ("Compiler error: " ++ show e ++ "\n")
+         inPlayersGameDo_ pn $ update $ Log (Just pn) ("Error in file: " ++ show e ++ "\n")
          tracePN pn "upload failed"
          return ()
 

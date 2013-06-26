@@ -18,6 +18,7 @@ Bugs:
 - why import prelude in the uploaded file?
 - import StateT, <$> for rules
 - set group rights when uploading file
+- show code window should have a scroll bar
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -43,6 +44,8 @@ Improvements:
 - ability to import/export the game
 - make better output: the ouput can be updated. 
 - allow to re-load a game using the save file
+- display compile error has form error
+
 
 Futur Nomic:
 - ability to analyse rules, proof system
