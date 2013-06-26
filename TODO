@@ -17,6 +17,7 @@ Bugs:
 - what if you activate again a rule already active? idem for deleted etc.
 - why import prelude in the uploaded file?
 - import StateT, <$> for rules
+- set group rights when uploading file
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
