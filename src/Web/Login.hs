@@ -20,6 +20,7 @@ import Data.Text hiding (map, zip, concatMap)
 import Happstack.Auth (AuthProfileURL(..), AuthURL(..), handleAuthProfile)
 import Happstack.Auth.Core.Profile
 import Facebook (Credentials(..))
+import Utils (getProfile)
 default (Integer, Double, Data.Text.Text)
 
 -- | function which generates the homepage
@@ -40,18 +41,26 @@ homePage ts = do
             link <- showURL MainPage
             seeOther link (toResponse $ string "to game page")
 
--- | add a new player
-createNewPlayer :: (TVar Session) -> RoutedNomyxServer Response
-createNewPlayer ts = do
+-- | add a new player if not existing
+postAuthenticate :: (TVar Session) -> RoutedNomyxServer Response
+postAuthenticate ts = do
    pn <- getPlayerNumber ts
-   webCommand ts $ M.newPlayer pn defaultPlayerSettings Nothing Nothing
-   link <- showURL $ PSettings
-   seeOther link (toResponse $ string "to settings page")
+   s <- liftIO $ atomically $ readTVar ts
+   pf <- getProfile s pn
+   case pf of
+      Just _ -> do
+         link <- showURL $ MainPage
+         seeOther link (toResponse $ string "to main page")
+      Nothing -> do
+         webCommand ts $ M.newPlayer pn defaultPlayerSettings Nothing Nothing
+         link <- showURL $ PSettings
+         seeOther link (toResponse $ string "to settings page")
+
 
 authenticate :: (TVar Session) -> AuthProfileURL -> RoutedNomyxServer Response
 authenticate ts authProfileURL = do
    (T.Session _ _ Profiles{..}) <- liftIO $ atomically $ readTVar ts
-   postPickedURL <- showURL NewPlayer
+   postPickedURL <- showURL PostAuth
    nestURL U_AuthProfile $ handleAuthProfile acidAuth acidProfile appTemplate (Just facebookAuth) Nothing postPickedURL authProfileURL
 
 facebookAuth =

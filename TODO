@@ -2,23 +2,19 @@
 TODO list
 
 Bugs:
-- check when error on parameters (for victory for example)
 - reading save file does not take absolute path
 - add global option to not send mails
 - store hide/show status of divs
 - forbid creating a player with same name
 - where clauses are not accepted by the interpreter
-- suppress player from game when logout (?)
-- better manage event deletion: an event can be deleted twice using its number
 - concurency access to Nomyx.save: can several happstack thread result in a file locked message?
-- a variable (bank account) disapeared for no reasons in Demo 3: wiped out wrongly when a rule was deleted/autodeleted?
-- "Assessed by" field is wrong for suppressed rules 
 - mails plain text field is empty (only HTML)
 - what if you activate again a rule already active? idem for deleted etc.
 - why import prelude in the uploaded file?
 - import StateT, <$> for rules
 - set group rights when uploading file
 - show code window should have a scroll bar
+- ArrayVar function should be total
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -38,13 +34,13 @@ Improvements:
 - add examples with a game master, a castle..
 - add "delete game" for admin (+ del/add player, rule, event, variable?)
 - fix facebook
-- de-mangle error messages, put line number
+- error messages: put line number
 - add an input: button
 - vote: include new players, delete leaving players 
 - ability to import/export the game
 - make better output: the ouput can be updated. 
 - allow to re-load a game using the save file
-- display compile error has form error
+- display compile error as form error
 
 
 Futur Nomic:

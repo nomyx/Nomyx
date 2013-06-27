@@ -63,7 +63,7 @@ data Server = Server [PlayerClient] deriving (Eq, Show)
 data PlayerCommand =
                      HomePage
                    | U_AuthProfile AuthProfileURL
-                   | NewPlayer
+                   | PostAuth
                    | MainPage
                    | ViewGame        GameName
                    | JoinGame        GameName
@@ -208,6 +208,7 @@ appTemplate ::
 appTemplate title headers body = do
    return $ toResponse $ appTemplate' title headers body True
 
+-- | return the player number (user ID) based on the session cookie.
 getPlayerNumber :: (TVar Session) -> RoutedNomyxServer PlayerNumber
 getPlayerNumber ts = do
    (T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftIO $ readTVarIO ts

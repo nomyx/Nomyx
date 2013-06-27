@@ -127,7 +127,7 @@ nomyxSite tm = setDefault HomePage $ mkSitePI (runRouteT $ routedNomyxCommands t
 
 routedNomyxCommands :: (TVar Session) -> PlayerCommand -> RoutedNomyxServer Response
 routedNomyxCommands ts (U_AuthProfile auth)  = authenticate ts auth
-routedNomyxCommands ts NewPlayer             = createNewPlayer ts
+routedNomyxCommands ts PostAuth              = postAuthenticate ts
 routedNomyxCommands ts HomePage              = homePage ts
 routedNomyxCommands ts MainPage              = nomyxPage ts
 routedNomyxCommands ts (JoinGame game)       = joinGame ts game
