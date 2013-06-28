@@ -38,17 +38,15 @@ import Debug.Trace (trace)
 import Data.List.Split
 default (Integer, Double, Data.Text.Text)
 
-
-viewGame :: Game -> PlayerNumber -> (Maybe SubmitRule) -> RoutedNomyxServer Html
-viewGame g pn sr = do
+viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> RoutedNomyxServer Html
+viewGame g pn mlr = do
    let inGame = isJust $ Utils.getPlayer g pn
-   rf <- viewRuleForm sr inGame
-   vi <- viewInputs pn $ _events g
+   rf <- viewRuleForm mlr inGame
+   vios <- viewIOs pn (_events g) (_outputs g)
    ok $ table $ do
       tr $ td $ div ! A.id "gameDesc" $ viewGameDesc g
       tr $ td $ div ! A.id "rules" $ viewAllRules g
-      tr $ td $ div ! A.id "inputs"  ! A.title (toValue Help.inputs)  $ vi
-      tr $ td $ div ! A.id "outputs" ! A.title (toValue Help.outputs) $ viewOutput (_outputs g) pn
+      tr $ td $ div ! A.id "ios" $ vios
       tr $ td $ div ! A.id "newRule" $ rf
       tr $ td $ div ! A.id "details" ! A.title (toValue Help.events)  $ viewDetails pn g
 
@@ -89,7 +87,7 @@ viewAllRules g = do
 
 viewRules :: [Rule] -> String -> Bool -> Game -> Html
 viewRules nrs title visible g = do
-   showHideTitle title visible (length nrs == 0) (h4 ! A.style "text-align:center;" $ toHtml title ) $ table ! A.class_ "table" $ do
+   showHideTitle title visible (length nrs == 0) (h4 $ toHtml (title ++ ":") ) $ table ! A.class_ "table" $ do
       thead $ do
          td ! A.class_ "td" $ text "#"
          td ! A.class_ "td" $ text "Name"
@@ -128,13 +126,13 @@ concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
 
 viewDetails :: PlayerNumber -> Game -> Html
-viewDetails pn g = showHideTitle "Details" True False (h3 "Details") $ do
-   p $ h4 "Logs:"
-   viewLog    (_log g) pn
+viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
    p $ h4 "Vars:"
    viewVars   (_variables g)
    p $ h4 "Events:"
    viewEvents (_events g)
+   p $ h4 "Log:"
+   viewLog    (_log g) pn
 
 viewEvents :: [EventHandler] -> Html
 viewEvents ehs = table ! A.class_ "table" $ do
@@ -152,12 +150,21 @@ viewEvent (EH eventNumber ruleNumber event _ status) = if status == EvActive the
       td ! A.class_ "td" $ string . show $ ruleNumber
       td ! A.class_ "td" $ string . show $ event
 
+viewIOs :: PlayerNumber -> [EventHandler] -> [Output] -> RoutedNomyxServer Html
+viewIOs pn ehs os = do
+   vis <- viewInputs pn ehs
+   let vos = viewOutput os pn
+   ok $ do
+      h3 "Rules Inputs/Ouputs"
+      showHideTitle "Inputs" True (length ehs == 0) (h4 "Inputs:") $ vis  ! A.title (toValue Help.inputs)
+      showHideTitle "Ouputs" True (length os == 0)  (h4 "Outputs:") $ vos ! A.title (toValue Help.outputs)
+
 
 viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomyxServer Html
 viewInputs pn ehs = do
    mis <- mapM (viewInput pn) $ sort ehs
    let is = catMaybes mis
-   ok $ showHideTitle "Inputs" True (length is == 0) (h3 "Inputs") $ table $ mconcat is
+   ok $ table $ mconcat is
 
 viewInput :: PlayerNumber -> EventHandler -> RoutedNomyxServer (Maybe Html)
 viewInput me (EH eventNumber _ (InputChoice pn title choices def) _ EvActive) | me == pn = do
@@ -186,23 +193,28 @@ viewVar (Var vRuleNumber vName vData) = tr $ do
 
 
 newRuleForm :: (Maybe SubmitRule) -> NomyxForm SubmitRule
-newRuleForm (Just sr) = newRuleForm' sr
+newRuleForm (Just lr) = newRuleForm' lr
 newRuleForm Nothing = newRuleForm' (SubmitRule "" "" "")
 
 newRuleForm' :: SubmitRule -> NomyxForm SubmitRule
-newRuleForm' (SubmitRule name desc code) = pure SubmitRule  <*> RB.label "Name: " ++> (RB.inputText name)
-                               <*> RB.label "      Short description: " ++> RB.inputText desc
-                               <*> RB.label "      Code: " ++> RB.textarea 80 15 code
-                                   `RBC.setAttr` A.class_ "code" `RBC.setAttr` A.placeholder "Enter here your rule" `RBC.setAttr` (A.title (toValue Help.code))
+newRuleForm' (SubmitRule name desc code) =
+   pure SubmitRule  <*> RB.label "Name: " ++> (RB.inputText name)
+                    <*> RB.label "      Short description: " ++> RB.inputText desc
+                    <*> RB.label "      Code: " ++> RB.textarea 80 15 code
+                           `RBC.setAttr` A.class_ "code" `RBC.setAttr` A.placeholder "Enter here your rule" `RBC.setAttr` (A.title (toValue Help.code))
 
-
-viewRuleForm :: (Maybe SubmitRule) -> Bool -> RoutedNomyxServer Html
-viewRuleForm sr inGame = do
+viewRuleForm :: Maybe LastRule -> Bool -> RoutedNomyxServer Html
+viewRuleForm msr inGame = do
    link <- showURL NewRule
-   lf  <- lift $ viewForm "user" $ newRuleForm sr
+   lf  <- lift $ viewForm "user" (newRuleForm (fst <$> msr))
    ok $ do
       h3 "Propose a new rule:"
-      if inGame then blazeForm lf (link)
+      if inGame then do
+         blazeForm lf (link)
+         let error = snd <$> msr
+         when (isJust error) $ do
+            h5 $ "Error in submitted rule: "
+            pre $ string $ fromJust error
       else lf ! A.disabled ""
 
 newRule :: (TVar Session) -> RoutedNomyxServer Html
@@ -229,7 +241,7 @@ newRule ts = do
 viewOutput :: [Output] -> PlayerNumber -> Html
 viewOutput os pn = do
    let myos = map snd $ filter (\o -> fst o == pn) os
-   showHideTitle "Output" True (length myos == 0) (h3 "Output") $ mapM_ viewMessages [myos]
+   mapM_ viewMessages [myos]
 
 viewMessages :: [String] -> Html
 viewMessages = mapM_ (\s -> string s >> br)

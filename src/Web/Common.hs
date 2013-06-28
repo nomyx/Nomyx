@@ -39,6 +39,7 @@ import System.IO (stdout, hSetBuffering)
 import GHC.IO.Handle.Types (BufferMode(..))
 import Control.Exception (evaluate)
 
+
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
                 | UniquePlayerName

@@ -71,7 +71,7 @@ thead {
    padding:10px;
 }
 
-#inputs, #details, #rules, #newRule, #Outputs, #gameDesc  {
+#ios, #details, #rules, #newRule, #gameDesc  {
    float:left;
    background-color:#F4F4F4;
    border:1px solid silver;

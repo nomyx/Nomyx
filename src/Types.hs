@@ -22,6 +22,8 @@ import Control.Monad.State.Class (MonadState(..))
 
 type PlayerPassword = String
 type Port = Int
+type CompileError = String
+type LastRule = (SubmitRule, CompileError)
 
 data Network = Network {_host :: HostName, _port :: Port}
                deriving (Eq, Show, Read, Typeable)
@@ -54,7 +56,7 @@ data ProfileData =
     ProfileData { _pPlayerNumber   :: PlayerNumber, -- ^ same as UserId
                   _pPlayerSettings :: PlayerSettings,
                   _pViewingGame    :: Maybe GameName,
-                  _pLastRule       :: Maybe SubmitRule}
+                  _pLastRule       :: Maybe LastRule}
     deriving (Eq, Ord, Read, Show, Typeable, Data)
 $(deriveSafeCopy 1 'base ''ProfileData)
 $(deriveSafeCopy 1 'base ''SubmitRule)
@@ -97,7 +99,7 @@ newProfileData :: PlayerNumber -> PlayerSettings -> Maybe GameName -> Maybe Subm
 newProfileData uid ps gn sr =
     do pds@(ProfileDataState {..}) <- get
        case IxSet.getOne (profilesData @= uid) of
-         Nothing -> do let profileData = ProfileData uid ps gn sr
+         Nothing -> do let profileData = ProfileData uid ps Nothing Nothing
                        put $ pds { profilesData = IxSet.updateIx uid profileData profilesData }
                        return profileData
          (Just profileData) -> return profileData

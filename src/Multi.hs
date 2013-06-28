@@ -32,11 +32,10 @@ import Quotes (cr)
 
 
 -- | add a new player
-newPlayer :: PlayerNumber -> PlayerSettings -> Maybe GameName -> Maybe SubmitRule -> StateT Session IO ()
-newPlayer uid ms gn sr = do
+newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
+newPlayer uid ms = do
    s <- get
-   A.update' (acidProfileData $ _profiles s) (NewProfileData uid ms gn sr)
-   return ()
+   void $ A.update' (acidProfileData $ _profiles s) (NewProfileData uid ms Nothing Nothing)
 
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> StateT Session IO ()
@@ -81,16 +80,17 @@ leaveGame game pn = focus multi $ inGameDo game $ G.update $ LeaveGame pn
 submitRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Session IO ()
 submitRule sr@(SubmitRule _ _ code) pn sh = do
    tracePN pn $ "proposed " ++ (show sr)
-   mrr <- lift $ interpretRule code sh
+   mrr <- liftIO $ interpretRule code sh
    case mrr of
       Right _ -> do
          tracePN pn $ "proposed rule compiled OK "
          inPlayersGameDo_ pn $ G.update' (Just $ getRuleFunc sh) (ProposeRuleEv pn sr)
          modifyProfile pn (pLastRule ^= Nothing)
       Left e -> do
-         inPlayersGameDo_ pn $ update $ Log (Just pn) ("Error in submitted rule: " ++ showInterpreterError e)
-         tracePN pn ("Compiler error: " ++ show e ++ "\n")
-         modifyProfile pn (pLastRule ^= Just sr) -- keep in memory the last rule proposed by the player to display it in case of error
+         let errorMsg = showInterpreterError e
+         inPlayersGameDo_ pn $ update $ Log (Just pn) ("Error in submitted rule: " ++ errorMsg)
+         tracePN pn ("Error in submitted rule: " ++ errorMsg)
+         modifyProfile pn (pLastRule ^= Just (sr, errorMsg)) -- keep in memory the last rule proposed by the player to display it in case of error
 
 
 -- | result of choice with radio buttons

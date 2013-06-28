@@ -69,10 +69,11 @@ newSettings ts = do
    methodM POST
    pn <- getPlayerNumber ts
    p <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing []
-   link <- showURL MainPage
-   settingsLink <- showURL SubmitPlayerSettings
    case p of
       Right ps -> do
          webCommand ts $ playerSettings ps pn
+         link <- showURL MainPage
          seeOther link $ string "Redirecting..."
-      (Left errorForm) -> mainPage  "Player settings" "Player settings" (blazeForm errorForm settingsLink) False
+      (Left errorForm) -> do
+         settingsLink <- showURL SubmitPlayerSettings
+         mainPage  "Player settings" "Player settings" (blazeForm errorForm settingsLink) False
