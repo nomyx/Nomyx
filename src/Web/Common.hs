@@ -61,8 +61,7 @@ data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
 data Server = Server [PlayerClient] deriving (Eq, Show)
 
 
-data PlayerCommand =
-                     HomePage
+data PlayerCommand = HomePage
                    | U_AuthProfile AuthProfileURL
                    | PostAuth
                    | MainPage
@@ -76,6 +75,7 @@ data PlayerCommand =
                    | SubmitNewGame
                    | Upload
                    | PSettings
+                   | Advanced
                    | SubmitPlayerSettings
                    deriving (Show)
 

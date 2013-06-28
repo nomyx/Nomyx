@@ -65,6 +65,7 @@ viewGamesTab gs admin = do
    newGameLink <- showURL NewGame
    uploadLink <- showURL Upload
    settingsLink <- showURL PSettings
+   advLink <- showURL Advanced
    logoutURL  <- showURL (U_AuthProfile $ AuthURL A_Logout)
    up  <- lift $ viewForm "user" uploadForm
    dd <- lift $ lift $ PN.getDataDir
@@ -89,6 +90,7 @@ viewGamesTab gs admin = do
       br >> "Settings:" >> br
       when admin $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
+      H.a "Advanced" ! (href $ toValue advLink) >> br
       H.a "Logout " ! href (toValue logoutURL) >> br
 
 
@@ -140,10 +142,8 @@ routedNomyxCommands ts (DoInputChoice en)    = newInputChoice en ts  >>= return 
 routedNomyxCommands ts (DoInputString en)    = newInputString en ts  >>= return . toResponse
 routedNomyxCommands ts Upload                = newUpload ts          >>= return . toResponse
 routedNomyxCommands ts PSettings             = settings ts           >>= return . toResponse
+routedNomyxCommands _  Advanced              = advanced              >>= return . toResponse
 routedNomyxCommands ts SubmitPlayerSettings  = newSettings ts        >>= return . toResponse
-
-
-
 
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
@@ -172,9 +172,9 @@ launchWebServer tm net = do
 --serving Nomyx web page as well as data from this package and the language library package
 server :: FilePath -> FilePath -> (TVar Session) -> Network -> ServerPartT IO Response
 server d d' tm net = mconcat [
-    serveDirectory EnableBrowsing [] d,
-    serveDirectory EnableBrowsing [] d', do
-       decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
+    serveDirectory DisableBrowsing [] d,
+    serveDirectory DisableBrowsing [] d',
+    do decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
        html <- implSite (pack (nomyxURL net)) "/Nomyx" (nomyxSite tm)
        return $ toResponse html]
 

@@ -9,6 +9,8 @@ import Prelude hiding (div)
 import Text.Reform
 import Text.Reform.Blaze.String hiding (form)
 import Text.Reform.Happstack()
+import Text.Blaze.Html5.Attributes hiding (dir, label)
+import qualified Text.Blaze.Html5 as H
 import Control.Applicative
 import Types
 import Happstack.Server
@@ -77,3 +79,9 @@ newSettings ts = do
       (Left errorForm) -> do
          settingsLink <- showURL SubmitPlayerSettings
          mainPage  "Player settings" "Player settings" (blazeForm errorForm settingsLink) False
+
+advanced :: RoutedNomyxServer Html
+advanced = mainPage  "Advanced"
+             "Advanced"
+             (H.a "get save file"    ! (href $ "/Nomyx.save") >> H.br)
+             False
