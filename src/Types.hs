@@ -95,8 +95,8 @@ askProfileData uid =
        return $ getOne $ profilesData @= uid
 
 -- | create the profile data, but only if it is missing
-newProfileData :: PlayerNumber -> PlayerSettings -> Maybe GameName -> Maybe SubmitRule -> Update ProfileDataState ProfileData
-newProfileData uid ps gn sr =
+newProfileData :: PlayerNumber -> PlayerSettings -> Update ProfileDataState ProfileData
+newProfileData uid ps =
     do pds@(ProfileDataState {..}) <- get
        case IxSet.getOne (profilesData @= uid) of
          Nothing -> do let profileData = ProfileData uid ps Nothing Nothing

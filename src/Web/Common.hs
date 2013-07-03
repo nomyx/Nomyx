@@ -15,7 +15,7 @@ import Web.Routes.TH (derivePathInfo)
 import Control.Monad.State
 import Control.Concurrent.STM
 import Language.Nomyx
-import Happstack.Server
+import Happstack.Server as HS
 import Types as T
 import qualified Data.ByteString.Char8 as C
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
@@ -43,10 +43,10 @@ import Control.Exception (evaluate)
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
                 | UniquePlayerName
-                | NomyxCFE (CommonFormError [Input])
+                | NomyxCFE (CommonFormError [HS.Input])
                   deriving Show
 
-type NomyxForm a = Form (ServerPartT IO) [Input] NomyxError Html () a
+type NomyxForm a = Form (ServerPartT IO) [HS.Input] NomyxError Html () a
 
 default (Integer, Double, Data.Text.Text)
 
@@ -65,11 +65,10 @@ data PlayerCommand = HomePage
                    | U_AuthProfile AuthProfileURL
                    | PostAuth
                    | MainPage
-                   | ViewGame        GameName
-                   | JoinGame        GameName
-                   | LeaveGame       GameName
-                   | DoInputChoice   EventNumber
-                   | DoInputString   String
+                   | ViewGame  GameName
+                   | JoinGame  GameName
+                   | LeaveGame GameName
+                   | DoInput   EventNumber
                    | NewRule
                    | NewGame
                    | SubmitNewGame
@@ -223,7 +222,7 @@ fieldRequired a []  = Left a
 fieldRequired _ str = Right str
 
 instance FormError NomyxError where
-    type ErrorInputType NomyxError = [Input]
+    type ErrorInputType NomyxError = [HS.Input]
     commonFormError = NomyxCFE
 
 instance ToMarkup NomyxError where

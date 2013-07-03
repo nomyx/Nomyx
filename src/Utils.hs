@@ -24,6 +24,7 @@ import Language.Nomyx
 import Language.Nomyx.Game
 import Data.Lens
 import Control.Category hiding ((.))
+import Safe
 import qualified Data.Acid.Advanced as A (query', update')
    
 -- | this function will return just a if it can cast it to an a.
@@ -51,7 +52,7 @@ nomyxURL (Network host port) = "http://" ++ host ++ ":" ++ (show port)
 getPlayersName :: PlayerNumber -> Session -> IO PlayerName
 getPlayersName pn s = do
    pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
-   return $ _pPlayerName $ _pPlayerSettings $ fromJust pfd
+   return $ _pPlayerName $ _pPlayerSettings $ fromJustNote "getPlayersName" pfd
 
 getPlayersName' :: Game -> PlayerNumber -> PlayerName
 getPlayersName' g pn = do
@@ -63,7 +64,7 @@ getPlayersName' g pn = do
 getPlayersGame :: PlayerNumber -> Session -> IO (Maybe LoggedGame)
 getPlayersGame pn s = do
    pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
-   let mgn = _pViewingGame $ fromJust pfd
+   let mgn = _pViewingGame $ fromJustNote "getPlayersGame" pfd
    return $ do
       gn <- mgn
       find ((== gn) . getL (game >>> gameName)) (_games $ _multi s) --checks if any game by that name exists
@@ -96,7 +97,7 @@ modifyProfile :: PlayerNumber -> (ProfileData -> ProfileData) -> StateT Session 
 modifyProfile pn mod = do
    s <- get
    pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
-   A.update' (acidProfileData $ _profiles s) (SetProfileData (mod $ fromJust pfd))
+   A.update' (acidProfileData $ _profiles s) (SetProfileData (mod $ fromJustNote "modifyProfile" pfd))
    return ()
 
 getProfile :: MonadIO m => Session -> PlayerNumber -> m (Maybe ProfileData)

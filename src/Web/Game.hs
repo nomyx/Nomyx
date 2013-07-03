@@ -5,10 +5,10 @@ module Web.Game where
 
 import Prelude hiding (div)
 import qualified Prelude as P
-import Text.Blaze.Html5 hiding (map)
+import Text.Blaze.Html5 hiding (map, head)
 import qualified Text.Blaze.Html5.Attributes as A
 import Web.Routes.RouteT
-import Text.Blaze.Internal
+import Text.Blaze.Internal hiding (Text)
 import Control.Monad
 import Control.Monad.State
 import Data.Monoid
@@ -18,7 +18,7 @@ import Language.Nomyx.Game
 import Data.Maybe
 import Text.Reform.Happstack
 import Text.Reform
-import Happstack.Server
+import Happstack.Server hiding (Input)
 import qualified Web.Help as Help
 import Web.Common
 import Types as T
@@ -36,6 +36,7 @@ import Language.Haskell.HsColour.Colourise hiding (string)
 import Multi as M
 import Debug.Trace (trace)
 import Data.List.Split
+import Data.Typeable
 default (Integer, Double, Data.Text.Text)
 
 viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> RoutedNomyxServer Html
@@ -62,11 +63,11 @@ viewGameDesc g = do
 viewPlayers :: [PlayerInfo] -> Html
 viewPlayers pis = do
    let plChunks = transpose $ chunksOf (1 + (length pis) `P.div` 3) (sort pis)
-   table $ mapM_ (\row -> tr $ mapM_ (\e -> td $ viewPlayer e) row) plChunks
+   table $ mapM_ (\row -> tr $ mapM_ viewPlayer row) plChunks
 
 
 viewPlayer :: PlayerInfo -> Html
-viewPlayer pi = table $ tr $ do
+viewPlayer pi = do
     td $ string $ show $ _playerNumber pi
     td $ string $ _playerName pi
 
@@ -156,8 +157,8 @@ viewIOs pn ehs os = do
    let vos = viewOutput os pn
    ok $ do
       h3 "Rules Inputs/Ouputs"
-      showHideTitle "Inputs" True (length ehs == 0) (h4 "Inputs:") $ vis  ! A.title (toValue Help.inputs)
-      showHideTitle "Ouputs" True (length os == 0)  (h4 "Outputs:") $ vos ! A.title (toValue Help.outputs)
+      showHideTitle "Inputs" True False (h4 "Inputs:")  $ vis ! A.title (toValue Help.inputs)
+      showHideTitle "Ouputs" True False (h4 "Outputs:") $ vos ! A.title (toValue Help.outputs)
 
 
 viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomyxServer Html
@@ -167,14 +168,12 @@ viewInputs pn ehs = do
    ok $ table $ mconcat is
 
 viewInput :: PlayerNumber -> EventHandler -> RoutedNomyxServer (Maybe Html)
-viewInput me (EH eventNumber _ (InputChoice pn title choices def) _ EvActive) | me == pn = do
-    link <- showURL (DoInputChoice eventNumber)
-    lf  <- lift $ viewForm "user" $ inputChoiceForm title (map show choices) (show def)
-    return $ Just $ tr $ td $ blazeForm lf (link)
-viewInput me (EH _ _ (InputString pn title) _ EvActive) | me == pn = do
-    link <- showURL (DoInputString title)
-    lf  <- lift $ viewForm "user" $ inputTextForm title
-    return $ Just $ tr $ td $ blazeForm lf (link)
+viewInput me (EH eventNumber _ (InputEv (Input pn title iForm)) _ EvActive) | me == pn = do
+    link <- showURL (DoInput eventNumber)
+    lf  <- lift $ viewForm "user" $ inputForm iForm
+    return $ Just $ tr $ td $ do
+       string title
+       blazeForm lf (link) ! A.id "InputForm"
 viewInput _ _ = return Nothing
 
 viewVars :: [Var] -> Html
@@ -251,51 +250,33 @@ viewLog log pn = do
    let mylog = map snd $ filter (\o -> (fst o == Just pn) || (fst o == Nothing)) log
    pre $ mapM_ (\s -> p $ string s >> br) mylog
 
-newInputChoice :: EventNumber -> (TVar Session) -> RoutedNomyxServer Html
-newInputChoice en ts = do
+newInput :: EventNumber -> (TVar Session) -> RoutedNomyxServer Html
+newInput en ts = do
     pn <- getPlayerNumber ts
     s <- liftIO $ atomically $ readTVar ts
     mgn <- liftIO $ getPlayersGame pn s
     let eventHandler = fromJust $ findEvent en (_events $ _game $ fromJust mgn)
     methodM POST
-    let (title, choices, def) = getChoices eventHandler
-    r <- liftRouteT $ eitherForm environment "user" (inputChoiceForm title choices def)
+    r <- liftRouteT $ eitherForm environment "user" (getNomyxForm eventHandler)
     link <- showURL MainPage
     case r of
        (Right c) -> do
-          webCommand ts $ M.inputChoiceResult en c pn
+          webCommand ts $ M.inputResult pn en c
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftIO $ putStrLn $ "cannot retrieve form data"
           seeOther link $ string "Redirecting..."
 
-getChoices :: EventHandler -> (String, [String], String)
-getChoices (EH _ _ (InputChoice _ title choices def) _ _) = (title, map show choices, show def)
-getChoices _ = error "InputChoice event expected"
+getNomyxForm :: EventHandler -> NomyxForm InputResultSerialized
+getNomyxForm (EH _ _ (InputEv (Input _ _ iForm)) _ _) = inputForm iForm
+getNomyxForm _ = error "Not an Input Event"
 
-newInputString :: String -> (TVar Session) -> RoutedNomyxServer Html
-newInputString title ts = do
-    methodM POST
-    pn <- getPlayerNumber ts
-    r <- liftRouteT $ eitherForm environment "user" (inputTextForm title)
-    link <- showURL MainPage
-    case r of
-       (Right c) -> do
-          webCommand ts $ M.inputStringResult (InputString pn title) c pn
-          seeOther link $ string "Redirecting..."
-       (Left _) -> do
-          liftIO $ putStrLn $ "cannot retrieve form data"
-          seeOther link $ string "Redirecting..."
-
-
-inputChoiceForm :: String -> [String] -> String -> NomyxForm Int
-inputChoiceForm title choices def = RB.label (title ++ " ") ++> inputRadio' (zip [0..] choices) ((==) $ fromJust $ elemIndex def choices) <++ RB.label " "
-
-inputTextForm :: String -> NomyxForm String
-inputTextForm title = RB.label (title ++ " ") ++> RB.inputText ""
-
-inputMaybeForm :: String -> NomyxForm ()
-inputMaybeForm title = RB.label (title ++ " ") ++> RB.inputButton ""
+inputForm :: (Typeable a) => InputForm a -> NomyxForm InputResultSerialized
+inputForm (Radio choices)    = RadioDataSer    <$> inputRadio' (zip [0..] (snd <$> choices)) ((==) 0) <++ RB.label " "
+inputForm Text               = TextDataSer     <$> RB.inputText "" <++ RB.label " "
+inputForm TextArea           = TextAreaDataSer <$> RB.textarea 50 5  "" <++ RB.label " "
+inputForm Button             = ButtonDataSer   <$> RB.inputButton "" <++ RB.label " "
+inputForm (Checkbox choices) = CheckboxDataSer <$> RB.inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ RB.label " "
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do

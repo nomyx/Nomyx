@@ -35,12 +35,10 @@ Improvements:
 - add "delete game" for admin (+ del/add player, rule, event, variable?)
 - fix facebook
 - error messages: put line number
-- add an input: button
 - vote: include new players, delete leaving players 
 - ability to import/export the game
 - make better output: the ouput can be updated. 
-- allow to re-load a game using the save file
-- display compile error as form error
+
 
 
 Futur Nomic:

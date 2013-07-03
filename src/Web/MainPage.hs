@@ -135,15 +135,14 @@ routedNomyxCommands ts MainPage              = nomyxPage ts
 routedNomyxCommands ts (JoinGame game)       = joinGame ts game
 routedNomyxCommands ts (LeaveGame game)      = leaveGame ts game
 routedNomyxCommands ts (ViewGame game)       = viewGamePlayer ts game
-routedNomyxCommands ts NewRule               = newRule ts            >>= return . toResponse
-routedNomyxCommands _  NewGame               = newGamePage           >>= return . toResponse
-routedNomyxCommands ts SubmitNewGame         = newGamePost ts        >>= return . toResponse
-routedNomyxCommands ts (DoInputChoice en)    = newInputChoice en ts  >>= return . toResponse
-routedNomyxCommands ts (DoInputString en)    = newInputString en ts  >>= return . toResponse
-routedNomyxCommands ts Upload                = newUpload ts          >>= return . toResponse
-routedNomyxCommands ts PSettings             = settings ts           >>= return . toResponse
-routedNomyxCommands _  Advanced              = advanced              >>= return . toResponse
-routedNomyxCommands ts SubmitPlayerSettings  = newSettings ts        >>= return . toResponse
+routedNomyxCommands ts NewRule               = newRule ts     >>= return . toResponse
+routedNomyxCommands _  NewGame               = newGamePage    >>= return . toResponse
+routedNomyxCommands ts SubmitNewGame         = newGamePost ts >>= return . toResponse
+routedNomyxCommands ts (DoInput en)          = newInput en ts >>= return . toResponse
+routedNomyxCommands ts Upload                = newUpload ts   >>= return . toResponse
+routedNomyxCommands ts PSettings             = settings ts    >>= return . toResponse
+routedNomyxCommands _  Advanced              = advanced       >>= return . toResponse
+routedNomyxCommands ts SubmitPlayerSettings  = newSettings ts >>= return . toResponse
 
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)

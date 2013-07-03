@@ -7,7 +7,7 @@ import Text.Blaze.Html5 hiding (map, label, br)
 
 import Prelude hiding (div)
 import Text.Reform
-import Text.Reform.Blaze.String hiding (form)
+import Text.Reform.Blaze.String as RB hiding (form)
 import Text.Reform.Happstack()
 import Text.Blaze.Html5.Attributes hiding (dir, label)
 import qualified Text.Blaze.Html5 as H
@@ -38,7 +38,7 @@ settingsForm' name mailTo mailNewRule names = pure Types.PlayerSettings
    <*> errorList ++> label "Player Name: " ++> (inputText name) `transformEither` (uniqueName names) `transformEither` (fieldRequired PlayerNameRequired) <++ br
    <*> label "Please enter your mail: " ++> inputText mailTo <++ br
    <*> pure True --label " send mail on new input needed from you: " ++> inputCheckbox True <++ label " " <++ br
-   <*> inputCheckbox mailNewRule <++ label " I want to be notified by email when a player proposes a new rule in my game (recommended)" <++ br
+   <*> RB.inputCheckbox mailNewRule <++ label " I want to be notified by email when a player proposes a new rule in my game (recommended)" <++ br
    <*> pure True --label " send mail on new output: " ++> inputCheckbox True <++ label " "
    <*> pure True
 

@@ -119,7 +119,7 @@ submitR r = do
    onePlayerOneGame
    sh <- access sh
    submitRule (SubmitRule "" "" r) 1 sh
-   inputChoiceResult 3 0 1
+   inputResult 1 3 (RadioDataSer 0)
 
 gameHelloWorld :: StateT Session IO ()
 gameHelloWorld = submitR [cr|helloWorld|]
@@ -132,8 +132,8 @@ gameHelloWorld2Players = do
    twoPlayersOneGame
    sh <- access sh
    submitRule (SubmitRule "" "" [cr|helloWorld|]) 1 sh
-   inputChoiceResult 3 0 1
-   inputChoiceResult 4 0 2
+   inputResult 1 3 (RadioDataSer 0)
+   inputResult 2 4 (RadioDataSer 0)
 
 condHelloWorld2Players :: Multi -> Bool
 condHelloWorld2Players m = (head $ _outputs $ G._game $ head $ _games m) == (1, "hello, world!")
@@ -187,14 +187,14 @@ gameMoneyTransfer = do
    submitRule (SubmitRule "" "" [cr|createBankAccount|]) 1 sh
    submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 sh
    submitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2 sh
-   inputChoiceResult 4 0 1
-   inputChoiceResult 3 0 2
-   inputChoiceResult 9 0 1
-   inputChoiceResult 8 0 2
-   inputChoiceResult 14 0 1
-   inputChoiceResult 13 0 2
-   inputChoiceResult 5 0 1
-   inputStringResult (InputString 1 "Select Amount to transfert to player: 2") "50" 1
+   inputResult 1 4 (RadioDataSer 0)
+   inputResult 2 3 (RadioDataSer 0)
+   inputResult 1 9 (RadioDataSer 0)
+   inputResult 2 8 (RadioDataSer 0)
+   inputResult 1 14 (RadioDataSer 0)
+   inputResult 2 13 (RadioDataSer 0)
+   inputResult 1 5 (RadioDataSer 0)
+   inputResult 1 0 (TextDataSer "50") --TODO find event number
 
 condMoneyTransfer :: Multi -> Bool
 condMoneyTransfer m = (_vName $ head $ _variables $ G._game $ head $ _games m) == "Accounts"

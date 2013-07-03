@@ -35,7 +35,7 @@ import Quotes (cr)
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
 newPlayer uid ms = do
    s <- get
-   void $ A.update' (acidProfileData $ _profiles s) (NewProfileData uid ms Nothing Nothing)
+   void $ A.update' (acidProfileData $ _profiles s) (NewProfileData uid ms)
 
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> StateT Session IO ()
@@ -92,15 +92,8 @@ submitRule sr@(SubmitRule _ _ code) pn sh = do
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
          modifyProfile pn (pLastRule ^= Just (sr, errorMsg)) -- keep in memory the last rule proposed by the player to display it in case of error
 
-
--- | result of choice with radio buttons
-inputChoiceResult :: EventNumber -> Int -> PlayerNumber -> StateT Session IO ()
-inputChoiceResult eventNumber choiceIndex pn = inPlayersGameDo_ pn $ update $ InputChoiceResult pn eventNumber choiceIndex
-
--- TODO maybe homogeneise both inputs event
--- | result of choice with text field
-inputStringResult :: Event InputString -> String -> PlayerNumber -> StateT Session IO ()
-inputStringResult (InputString _ ti) input pn = inPlayersGameDo_ pn $ update $ InputStringResult pn ti input
+inputResult :: PlayerNumber -> EventNumber -> InputResultSerialized -> StateT Session IO ()
+inputResult pn en ir = inPlayersGameDo_ pn $ update $ InputResult pn en ir
 
 -- | upload a rule file
 inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Session IO ()
