@@ -7,7 +7,7 @@ import Text.Blaze.Html5 hiding (map, label, br, textarea)
 import Prelude hiding (div)
 import Text.Reform
 import Text.Blaze.Html5.Attributes hiding (label)
-import Text.Reform.Blaze.String hiding (form)
+import Text.Reform.Blaze.String as RB hiding (form)
 import qualified Text.Reform.Blaze.Common as RBC
 import Text.Reform.Happstack()
 import Control.Applicative
@@ -28,12 +28,12 @@ default (Integer, Double, Data.Text.Text)
 data NewGameForm = NewGameForm GameName GameDesc
 
 newGameForm :: NomyxForm NewGameForm
-newGameForm = pure NewGameForm <*> (br ++> errorList ++> label "Enter new game name: " ++> (inputText "") `transformEither` (fieldRequired GameNameRequired) `RBC.setAttr` placeholder "Game name"  <++ br <++ br)
-                                 <*> newGameDesc
+newGameForm = pure NewGameForm <*> (br ++> errorList ++> label "Enter new game name: " ++> (RB.inputText "") `transformEither` (fieldRequired GameNameRequired) `RBC.setAttr` placeholder "Game name"  <++ br <++ br)
+                               <*> newGameDesc
 
 newGameDesc :: NomyxForm GameDesc
 newGameDesc = pure GameDesc <*> label "Enter game description:" ++> br ++> (textarea 40 3 "") `RBC.setAttr` placeholder "Enter game description" `RBC.setAttr` class_ "gameDesc" <++ br <++ br
-                             <*> label "Enter a link to an agora (e.g. a forum, a mailing list...) where the players can discuss their rules: " ++> br ++> (inputText "") `RBC.setAttr` placeholder "Agora URL (including http://...)" `RBC.setAttr` class_ "agora" <++ br <++ br
+                            <*> label "Enter a link to an agora (e.g. a forum, a mailing list...) where the players can discuss their rules: " ++> br ++> (RB.inputText "") `RBC.setAttr` placeholder "Agora URL (including http://...)" `RBC.setAttr` class_ "agora" <++ br <++ br
 
 gameNameRequired :: String -> Either NomyxError String
 gameNameRequired = fieldRequired GameNameRequired

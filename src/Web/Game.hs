@@ -243,7 +243,7 @@ viewOutput os pn = do
    mapM_ viewMessages [myos]
 
 viewMessages :: [String] -> Html
-viewMessages = mapM_ (\s -> string s >> br)
+viewMessages = mapM_ (\s -> pre $ string s >> br)
 
 viewLog :: [Log] -> PlayerNumber -> Html
 viewLog log pn = do
@@ -267,16 +267,16 @@ newInput en ts = do
           liftIO $ putStrLn $ "cannot retrieve form data"
           seeOther link $ string "Redirecting..."
 
-getNomyxForm :: EventHandler -> NomyxForm InputResultSerialized
+getNomyxForm :: EventHandler -> NomyxForm UInputData
 getNomyxForm (EH _ _ (InputEv (Input _ _ iForm)) _ _) = inputForm iForm
 getNomyxForm _ = error "Not an Input Event"
 
-inputForm :: (Typeable a) => InputForm a -> NomyxForm InputResultSerialized
-inputForm (Radio choices)    = RadioDataSer    <$> inputRadio' (zip [0..] (snd <$> choices)) ((==) 0) <++ RB.label " "
-inputForm Text               = TextDataSer     <$> RB.inputText "" <++ RB.label " "
-inputForm TextArea           = TextAreaDataSer <$> RB.textarea 50 5  "" <++ RB.label " "
-inputForm Button             = ButtonDataSer   <$> RB.inputButton "" <++ RB.label " "
-inputForm (Checkbox choices) = CheckboxDataSer <$> RB.inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ RB.label " "
+inputForm :: (Typeable a) => InputForm a -> NomyxForm UInputData
+inputForm (Radio choices)    = URadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) ((==) 0) <++ RB.label " "
+inputForm Text               = UTextData     <$> RB.inputText "" <++ RB.label " "
+inputForm TextArea           = UTextAreaData <$> RB.textarea 50 5  "" <++ RB.label " "
+inputForm Button             = pure UButtonData
+inputForm (Checkbox choices) = UCheckboxData <$> RB.inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ RB.label " "
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do

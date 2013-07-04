@@ -35,8 +35,8 @@ settingsForm Nothing ns = settingsForm' "" "" True ns
 
 settingsForm':: String -> String -> Bool -> [PlayerName] -> NomyxForm PlayerSettings
 settingsForm' name mailTo mailNewRule names = pure Types.PlayerSettings
-   <*> errorList ++> label "Player Name: " ++> (inputText name) `transformEither` (uniqueName names) `transformEither` (fieldRequired PlayerNameRequired) <++ br
-   <*> label "Please enter your mail: " ++> inputText mailTo <++ br
+   <*> errorList ++> label "Player Name: " ++> (RB.inputText name) `transformEither` (uniqueName names) `transformEither` (fieldRequired PlayerNameRequired) <++ br
+   <*> label "Please enter your mail: " ++> RB.inputText mailTo <++ br
    <*> pure True --label " send mail on new input needed from you: " ++> inputCheckbox True <++ label " " <++ br
    <*> RB.inputCheckbox mailNewRule <++ label " I want to be notified by email when a player proposes a new rule in my game (recommended)" <++ br
    <*> pure True --label " send mail on new output: " ++> inputCheckbox True <++ label " "

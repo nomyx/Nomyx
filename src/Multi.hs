@@ -92,7 +92,7 @@ submitRule sr@(SubmitRule _ _ code) pn sh = do
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
          modifyProfile pn (pLastRule ^= Just (sr, errorMsg)) -- keep in memory the last rule proposed by the player to display it in case of error
 
-inputResult :: PlayerNumber -> EventNumber -> InputResultSerialized -> StateT Session IO ()
+inputResult :: PlayerNumber -> EventNumber -> UInputData -> StateT Session IO ()
 inputResult pn en ir = inPlayersGameDo_ pn $ update $ InputResult pn en ir
 
 -- | upload a rule file
