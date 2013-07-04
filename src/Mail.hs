@@ -26,15 +26,20 @@ import Control.Applicative ((<$>))
 default (Integer, Double, Data.Text.Text)
 
 
-sendMail :: String -> String -> String -> IO()
-sendMail to object body = do
+sendMail :: String -> String -> String -> String-> IO()
+sendMail to object htmlBody textBody = do
    putStrLn $ "sending a mail to " ++ to
-   forkIO $ simpleMail (Address Nothing (pack to)) (Address (Just "Nomyx Game") "Nomyx.Game@gmail.com") (pack object) "" (B.pack body) [] >>= renderSendMail
+   forkIO $ simpleMail (Address Nothing (pack to))
+                       (Address (Just "Nomyx Game") "Nomyx.Game@gmail.com")
+                       (pack object)
+                       (B.pack htmlBody)
+                       (B.pack textBody)
+                       [] >>= renderSendMail
    putStrLn $ "done"
 
 
-newRuleBody :: PlayerName -> SubmitRule -> PlayerName -> Network -> Html
-newRuleBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ do
+newRuleHtmlBody :: PlayerName -> SubmitRule -> PlayerName -> Network -> Html
+newRuleHtmlBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ do
    (toHtml $ "Dear " ++ playerName ++ ",") >> H.br
    (toHtml $ "a new rule has been proposed by player " ++ prop ++ ".") >> H.br
    (toHtml $ "Name: " ++ name) >> H.br
@@ -43,6 +48,18 @@ newRuleBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ do
    (toHtml $ "Please login into Nomyx for actions on this rule:") >> H.br
    (toHtml $ nomyxURL net ++ "/Nomyx") >> H.br >> H.br
    (toHtml $ "You received this mail because you subscribed to Nomyx. To stop receiving mails, login to Nomyx with the above address, go to Settings and uncheck the corresponding box.") >> H.br
+
+newRuleTextBody :: PlayerName -> SubmitRule -> PlayerName -> Network -> String
+newRuleTextBody playerName (SubmitRule name desc code) prop net =
+   "Dear " ++ playerName ++ ",\n" ++
+   "a new rule has been proposed by player " ++ prop ++ ".\n" ++
+   "Name: " ++ name ++ "\n" ++
+   "Description: " ++ desc ++ "\n" ++
+   "Code: \n" ++ code ++ "\n\n" ++
+   "Please login into Nomyx for actions on this rule:\n" ++
+   nomyxURL net ++ "/Nomyx\n\n" ++
+   "You received this mail because you subscribed to Nomyx. To stop receiving mails, login to Nomyx with the above address, go to Settings and uncheck the corresponding box.\n"
+
 
 newRuleObject :: PlayerName -> String
 newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
@@ -58,15 +75,12 @@ sendMailsNewRule s sr pn = do
 
 send :: PlayerName -> Network -> SubmitRule -> PlayerSettings -> IO()
 send prop net sr set = when (_mailNewRule set)
-   $ sendMail (_mailTo set) (newRuleObject prop) (renderHtml $ newRuleBody (_pPlayerName set) sr prop net)
-
-   
+   $ sendMail (_mailTo set)
+              (newRuleObject prop)
+              (newRuleTextBody (_pPlayerName set) sr prop net)
+              (renderHtml $ newRuleHtmlBody (_pPlayerName set) sr prop net)
+              
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
 mapMaybeM f = liftM catMaybes . mapM f
-
-
-newRulebody :: Rule -> String
-newRulebody (Rule {_rNumber, _rProposedBy}) = "Rule number " ++ (show _rNumber) ++ " has been proposed by player " ++ (show _rProposedBy)
-
 
 

@@ -8,7 +8,6 @@ Bugs:
 - forbid creating a player with same name
 - where clauses are not accepted by the interpreter
 - concurency access to Nomyx.save: can several happstack thread result in a file locked message?
-- mails plain text field is empty (only HTML)
 - what if you activate again a rule already active? idem for deleted etc.
 - why import prelude in the uploaded file?
 - import StateT, <$> for rules
