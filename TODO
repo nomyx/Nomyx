@@ -13,7 +13,6 @@ Bugs:
 - import StateT, <$> for rules
 - set group rights when uploading file
 - show code window should have a scroll bar
-- ArrayVar function should be total
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -33,11 +32,9 @@ Improvements:
 - add examples with a game master, a castle..
 - add "delete game" for admin (+ del/add player, rule, event, variable?)
 - fix facebook
-- error messages: put line number
+- error messages: put line number + time
 - vote: include new players, delete leaving players 
-- ability to import/export the game
-- make better output: the ouput can be updated. 
-
+- log-in as another person
 
 
 Futur Nomic:

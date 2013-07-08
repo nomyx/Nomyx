@@ -125,7 +125,7 @@ gameHelloWorld :: StateT Session IO ()
 gameHelloWorld = submitR [cr|helloWorld|]
 
 condHelloWorld :: Multi -> Bool
-condHelloWorld m = (head $ _outputs $ G._game $ head $ _games m) == (1, "hello, world!")
+condHelloWorld m = isOutput "hello, world!" m
 
 gameHelloWorld2Players :: StateT Session IO ()
 gameHelloWorld2Players = do
@@ -136,7 +136,7 @@ gameHelloWorld2Players = do
    inputResult 2 4 (URadioData 0)
 
 condHelloWorld2Players :: Multi -> Bool
-condHelloWorld2Players m = (head $ _outputs $ G._game $ head $ _games m) == (1, "hello, world!")
+condHelloWorld2Players m = isOutput "hello, world!" m
 
 partialFunction1 :: String
 partialFunction1 = [cr|voidRule $ readVar_ (V "toto1" :: V String)|]
@@ -201,3 +201,6 @@ condMoneyTransfer m = (_vName $ head $ _variables $ G._game $ head $ _games m) =
 
 
 --voidRule $ let a = a + 1 in outputAll (show a)
+
+isOutput :: String -> Multi -> Bool
+isOutput s g = any (\g -> any (\(Output _ _ mys SActive) -> mys == s) (_outputs $ G._game g)) (_games g)

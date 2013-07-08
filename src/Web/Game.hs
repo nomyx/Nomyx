@@ -145,7 +145,7 @@ viewEvents ehs = table ! A.class_ "table" $ do
 
 
 viewEvent :: EventHandler -> Html
-viewEvent (EH eventNumber ruleNumber event _ status) = if status == EvActive then disp else disp ! A.style "background:gray;" where
+viewEvent (EH eventNumber ruleNumber event _ status) = if status == SActive then disp else disp ! A.style "background:gray;" where
    disp = tr $ do
       td ! A.class_ "td" $ string . show $ eventNumber
       td ! A.class_ "td" $ string . show $ ruleNumber
@@ -168,7 +168,7 @@ viewInputs pn ehs = do
    ok $ table $ mconcat is
 
 viewInput :: PlayerNumber -> EventHandler -> RoutedNomyxServer (Maybe Html)
-viewInput me (EH eventNumber _ (InputEv (Input pn title iForm)) _ EvActive) | me == pn = do
+viewInput me (EH eventNumber _ (InputEv (Input pn title iForm)) _ SActive) | me == pn = do
     link <- showURL (DoInput eventNumber)
     lf  <- lift $ viewForm "user" $ inputForm iForm
     return $ Just $ tr $ td $ do
@@ -239,7 +239,7 @@ newRule ts = do
 
 viewOutput :: [Output] -> PlayerNumber -> Html
 viewOutput os pn = do
-   let myos = map snd $ filter (\o -> fst o == pn) os
+   let myos = map _output $ filter (\(Output _ mypn _ _) -> mypn == pn) os
    mapM_ viewMessages [myos]
 
 viewMessages :: [String] -> Html
