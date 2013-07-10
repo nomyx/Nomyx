@@ -2,7 +2,6 @@
 TODO list
 
 Bugs:
-- reading save file does not take absolute path
 - add global option to not send mails
 - store hide/show status of divs
 - forbid creating a player with same name
@@ -21,10 +20,8 @@ Improvements:
 - secure interpreter with mueval: time limits, no unsafe instructions, memory limits...
 - add a name to events to be able to delete categories of them
 - add "back to main page" links
-- recognize array vars to display them properly on HCI
 - use TH in addRuleParams
 - possibility to modify game details
-- add a proper log system (with levels)
 - hide when no information
 - cut rules too long
 - purify some IO

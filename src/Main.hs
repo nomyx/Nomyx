@@ -44,11 +44,12 @@ import Control.Category
 import Multi
 import Language.Haskell.Interpreter.Server hiding (start)
 import Data.Acid (openLocalStateFrom)
-import System.FilePath ((</>))
+import System.FilePath
 import Happstack.Auth.Core.Auth (initialAuthState)
 import Data.Acid.Local (createCheckpointAndClose)
 import Happstack.Auth.Core.Profile (initialProfileState)
 import System.Unix.Directory
+
 
 defaultLogFile :: FilePath
 defaultLogFile = "Nomyx.save"
@@ -79,16 +80,15 @@ start flags = do
       putStrLn $ "All Tests Pass: " ++ (show $ allTests && (all snd ts))
    else do
       --creating game structures
-      logFile <- case (findSaveFile flags) of
-         Just f -> return f
-         Nothing -> return defaultLogFile
+      logFilePath <- case (findSaveFile flags) of
+         Just f -> canonicalizePath f
+         Nothing -> getDataFileName defaultLogFile
       port <- case (findPort flags) of
          Just p -> return $ read p
          Nothing -> return $ 8000
       host <- case (findHost flags) of
          Just h -> return h
          Nothing -> getHostName >>= return
-      logFilePath <- getDataFileName logFile
       let settings sendMail = Settings logFilePath (Network host port) sendMail
       dataDir <- getDataDir
       let profilesDir = dataDir </> "profiles"
@@ -104,7 +104,7 @@ start flags = do
          --start the web server
          forkIO $ launchWebServer tvSession (Network host port)
          forkIO $ launchTimeEvents tvSession
-         serverLoop tvSession logFile
+         serverLoop tvSession
 
 loadMulti :: Settings -> ServerHandle -> IO Multi
 loadMulti set sh = do
@@ -119,8 +119,8 @@ loadMulti set sh = do
 
 
 -- | a loop that will handle server commands
-serverLoop :: TVar Session -> FilePath -> IO ()
-serverLoop ts f = do
+serverLoop :: TVar Session -> IO ()
+serverLoop ts = do
    s <- getLine
    case s of
       "d" -> do
@@ -128,24 +128,16 @@ serverLoop ts f = do
          putStrLn $ displayMulti $ _multi s
          pfs <- getAllProfiles s
          putStrLn $ show pfs
-         serverLoop ts f
-      "s" -> do
-         putStrLn "saving state..."
-         (Session _ m _) <- atomically $ readTVar ts
-         fp <- getDataFileName f
-         save fp m
-         serverLoop ts f
-      "q" -> return ()
+         serverLoop ts
       _ -> do
          putStrLn "command not recognized"
-         serverLoop ts f
+         serverLoop ts
 
 serverCommandUsage :: IO ()
 serverCommandUsage = do
    putStrLn "Server commands:"
-   putStrLn "s -> save state"
-   putStrLn "d -> debug"
-   putStrLn "q -> quit"
+   putStrLn "d      -> debug"
+   putStrLn "Ctrl-C -> quit"
 
 -- | Launch mode 
 data Flag 
