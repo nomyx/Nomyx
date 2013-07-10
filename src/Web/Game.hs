@@ -239,8 +239,10 @@ newRule ts = do
 
 viewOutput :: [Output] -> PlayerNumber -> Html
 viewOutput os pn = do
-   let myos = map _output $ filter (\(Output _ mypn _ _) -> mypn == pn) os
-   mapM_ viewMessages [myos]
+   let myos = map _output $ filter (isPn pn) (reverse os)
+   mapM_ viewMessages [myos] where
+      isPn pn (Output _ mypn _ SActive) = mypn == pn
+      isPn _ _ = False
 
 viewMessages :: [String] -> Html
 viewMessages = mapM_ (\s -> pre $ string s >> br)
