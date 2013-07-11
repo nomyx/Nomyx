@@ -11,7 +11,6 @@ Bugs:
 - why import prelude in the uploaded file?
 - import StateT, <$> for rules
 - set group rights when uploading file
-- show code window should have a scroll bar
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation

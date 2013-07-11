@@ -121,7 +121,7 @@ viewRuleFunc nr = do
          div $ do
             p $ "Code of the rule:"
             a ! A.href "#close" ! A.title "Close" ! A.class_ "close" $ "X"
-            code
+            div ! A.id "modalCode"$ code
 
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
