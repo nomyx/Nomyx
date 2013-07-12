@@ -56,7 +56,6 @@ initializeInterpreter = do
    setTopLevelModules $ map (dropExtension . takeFileName) fmods
    dataDir <- liftIO getDataDir
    set [searchPath := [dataDir], languageExtensions := [GADTs, ScopedTypeVariables]] --, installedModulesInScope := False
-   --TODO: get all exported modules of Nomyx library from cabal
    setImports importList
    return ()
 
@@ -83,12 +82,14 @@ limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHa
 
 -- | check an uploaded file and reload
 loadModule :: FilePath -> FilePath -> ServerHandle -> IO (Either InterpreterError ())
-loadModule dir name sh = do
+loadModule tempModName name sh = do
     dataDir <- getDataDir
-    c <- checkModule dir sh
+    c <- checkModule tempModName sh
     case c of
         Right _ -> do
-            copyFile dir (dataDir </> modDir </> name)
+            let dest = (dataDir </> modDir </> name)
+            copyFile tempModName dest
+            setFileMode dest (ownerModes + groupModes)
             runIn sh $ initializeInterpreter
             return $ Right ()
         Left e -> do

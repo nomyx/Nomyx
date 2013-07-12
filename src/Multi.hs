@@ -97,12 +97,12 @@ inputResult pn en ir = inPlayersGameDo_ pn $ update $ InputResult pn en ir
 
 -- | upload a rule file
 inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Session IO ()
-inputUpload pn dir mod sh = do
-   m <- liftIO $ loadModule dir mod sh
+inputUpload pn temp mod sh = do
+   m <- liftIO $ loadModule temp mod sh
    tracePN pn $ " uploaded " ++ (show mod)
    case m of
       Right _ -> do
-         inPlayersGameDo_ pn $ update $ GLog (Just pn) ("File loaded: " ++ show dir ++ ", as " ++ show mod ++"\n")
+         inPlayersGameDo_ pn $ update $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
          tracePN pn "upload success"
          return ()
       Left e -> do

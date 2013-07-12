@@ -51,8 +51,10 @@ import Happstack.Auth.Core.Profile (initialProfileState)
 import System.Unix.Directory
 
 
-defaultLogFile :: FilePath
+defaultLogFile, profilesDir, modulesDir :: FilePath
 defaultLogFile = "Nomyx.save"
+profilesDir = "profiles"
+modulesDir = "modules"
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -91,10 +93,10 @@ start flags = do
          Nothing -> getHostName >>= return
       let settings sendMail = Settings logFilePath (Network host port) sendMail
       dataDir <- getDataDir
-      let profilesDir = dataDir </> "profiles"
       when (NoReadSaveFile `elem` flags) $ do
-         (removeRecursiveSafely profilesDir)         `catch` (\(_::SomeException)-> return ())
-         (removeFile (_logFilePath $ settings True)) `catch` (\(_::SomeException)-> return ())
+         (removeRecursiveSafely $ dataDir </> profilesDir)        `catch` (\(e::SomeException)-> putStrLn $ show e)
+         (removeRecursiveSafely $ dataDir </> modulesDir </> "*") `catch` (\(e::SomeException)-> putStrLn $ show e)
+         (removeFile (_logFilePath $ settings True))              `catch` (\(e::SomeException)-> putStrLn $ show e)
       multi <- case (findLoadTest flags) of
          Just testName -> loadTestName (settings False) testName sh
          Nothing -> Main.loadMulti (settings True) sh

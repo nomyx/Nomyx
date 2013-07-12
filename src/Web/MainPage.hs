@@ -156,7 +156,7 @@ newUpload ts = do
     link <- showURL MainPage
     (T.Session sh _ _) <- liftIO $ readTVarIO ts
     case r of
-       (Right (path,name,_)) -> webCommand ts $ M.inputUpload pn path name sh
+       (Right (temp,name,_)) -> webCommand ts $ M.inputUpload pn temp name sh
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
     seeOther link $ string "Redirecting..."
 

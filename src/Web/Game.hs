@@ -252,7 +252,7 @@ viewOutput s = pre $ string s >> br
 viewLogs :: [Log] -> PlayerNumber -> Html
 viewLogs log pn = do
    let ls = filter (\o -> (_lPlayerNumber o == Just pn) || (_lPlayerNumber o == Nothing)) log
-   table $ mapM_ viewLog ls
+   table $ mapM_ viewLog (reverse ls)
 
 viewLog :: Log -> Html
 viewLog (Log _ t s) = do
