@@ -6,7 +6,6 @@ Bugs:
 - store hide/show status of divs
 - forbid creating a player with same name
 - where clauses are not accepted by the interpreter
-- what if you activate again a rule already active? idem for deleted etc.
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
