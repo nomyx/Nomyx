@@ -88,7 +88,7 @@ submitRule sr@(SubmitRule _ _ code) pn sh = do
          modifyProfile pn (pLastRule ^= Nothing)
       Left e -> do
          let errorMsg = showInterpreterError e
-         inPlayersGameDo_ pn $ update $ Log (Just pn) ("Error in submitted rule: " ++ errorMsg)
+         inPlayersGameDo_ pn $ update $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
          modifyProfile pn (pLastRule ^= Just (sr, errorMsg)) -- keep in memory the last rule proposed by the player to display it in case of error
 
@@ -102,11 +102,11 @@ inputUpload pn dir mod sh = do
    tracePN pn $ " uploaded " ++ (show mod)
    case m of
       Right _ -> do
-         inPlayersGameDo_ pn $ update $ Log (Just pn) ("File loaded: " ++ show dir ++ " Module " ++ show mod ++"\n")
+         inPlayersGameDo_ pn $ update $ GLog (Just pn) ("File loaded: " ++ show dir ++ ", as " ++ show mod ++"\n")
          tracePN pn "upload success"
          return ()
       Left e -> do
-         inPlayersGameDo_ pn $ update $ Log (Just pn) ("Error in file: " ++ show e ++ "\n")
+         inPlayersGameDo_ pn $ update $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
          tracePN pn "upload failed"
          return ()
 

@@ -37,6 +37,8 @@ import Multi as M
 import Debug.Trace (trace)
 import Data.List.Split
 import Data.Typeable
+import Data.Time
+import System.Locale
 default (Integer, Double, Data.Text.Text)
 
 viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> RoutedNomyxServer Html
@@ -133,7 +135,7 @@ viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
    p $ h4 "Events:"
    viewEvents (_events g)
    p $ h4 "Log:"
-   viewLog    (_log g) pn
+   viewLogs    (_logs g) pn
 
 viewEvents :: [EventHandler] -> Html
 viewEvents ehs = table ! A.class_ "table" $ do
@@ -154,7 +156,7 @@ viewEvent (EH eventNumber ruleNumber event _ status) = if status == SActive then
 viewIOs :: PlayerNumber -> [EventHandler] -> [Output] -> RoutedNomyxServer Html
 viewIOs pn ehs os = do
    vis <- viewInputs pn ehs
-   let vos = viewOutput os pn
+   let vos = viewOutputs os pn
    ok $ do
       h3 "Rules Inputs/Ouputs"
       showHideTitle "Inputs" True False (h4 "Inputs:")  $ vis ! A.title (toValue Help.inputs)
@@ -237,20 +239,26 @@ newRule ts = do
    seeOther link $ string "Redirecting..."
 
 
-viewOutput :: [Output] -> PlayerNumber -> Html
-viewOutput os pn = do
+viewOutputs :: [Output] -> PlayerNumber -> Html
+viewOutputs os pn = do
    let myos = map _output $ filter (isPn pn) (reverse os)
-   mapM_ viewMessages [myos] where
+   mapM_ viewOutput myos where
       isPn pn (Output _ mypn _ SActive) = mypn == pn
       isPn _ _ = False
 
-viewMessages :: [String] -> Html
-viewMessages = mapM_ (\s -> pre $ string s >> br)
+viewOutput :: String -> Html
+viewOutput s = pre $ string s >> br
 
-viewLog :: [Log] -> PlayerNumber -> Html
-viewLog log pn = do
-   let mylog = map snd $ filter (\o -> (fst o == Just pn) || (fst o == Nothing)) log
-   pre $ mapM_ (\s -> p $ string s >> br) mylog
+viewLogs :: [Log] -> PlayerNumber -> Html
+viewLogs log pn = do
+   let ls = filter (\o -> (_lPlayerNumber o == Just pn) || (_lPlayerNumber o == Nothing)) log
+   table $ mapM_ viewLog ls
+
+viewLog :: Log -> Html
+viewLog (Log _ t s) = do
+   tr $ do
+      td $ string $ formatTime defaultTimeLocale "%Y/%m/%d_%H:%M" t
+      td $ p $ string s
 
 newInput :: EventNumber -> (TVar Session) -> RoutedNomyxServer Html
 newInput en ts = do

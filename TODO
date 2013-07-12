@@ -26,10 +26,9 @@ Improvements:
 - add examples with a game master, a castle..
 - add "delete game" for admin (+ del/add player, rule, event, variable?)
 - fix facebook
-- error messages: put line number + time
 - vote: include new players, delete leaving players 
 - log-in as another person
-
+- better error message when uploading a file
 
 Futur Nomic:
 - ability to analyse rules, proof system
