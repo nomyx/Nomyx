@@ -31,7 +31,7 @@ defaultNetwork = Network "" 0
 
 data PlayerSettings =
    PlayerSettings { _pPlayerName   :: PlayerName,
-                    _mailTo :: String,
+                    _mail :: String,
                     _mailNewInput :: Bool,
                     _mailNewRule :: Bool,
                     _mailNewOutput :: Bool,

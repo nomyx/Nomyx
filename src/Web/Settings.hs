@@ -27,31 +27,29 @@ import Utils
 import Language.Nomyx
 default (Integer, Double, Data.Text.Text)
 
+settingsForm :: (Maybe PlayerSettings) -> [PlayerName] -> [String] -> NomyxForm PlayerSettings
+settingsForm (Just prof) ns emails = settingsForm' (_pPlayerName prof) (_mail prof) (_mailNewRule prof) ns emails
+settingsForm Nothing ns emails = settingsForm' "" "" True ns emails
 
-
-settingsForm :: (Maybe PlayerSettings) -> [PlayerName]-> NomyxForm PlayerSettings
-settingsForm (Just prof) ns = settingsForm' (_pPlayerName prof) (_mailTo prof) (_mailNewRule prof) ns
-settingsForm Nothing ns = settingsForm' "" "" True ns
-
-settingsForm':: String -> String -> Bool -> [PlayerName] -> NomyxForm PlayerSettings
-settingsForm' name mailTo mailNewRule names = pure Types.PlayerSettings
-   <*> errorList ++> label "Player Name: " ++> (RB.inputText name) `transformEither` (uniqueName names) `transformEither` (fieldRequired PlayerNameRequired) <++ br
-   <*> label "Please enter your mail: " ++> RB.inputText mailTo <++ br
+settingsForm':: String -> String -> Bool -> [PlayerName] -> [String] -> NomyxForm PlayerSettings
+settingsForm' name mailTo mailNewRule names emails = pure Types.PlayerSettings
+   <*> errorList ++> label "Player Name: " ++> (RB.inputText name) `transformEither` (unique names) `transformEither` (fieldRequired PlayerNameRequired) <++ br
+   <*> label "Please enter your mail: " ++> (RB.inputText mailTo) `transformEither` (unique emails) <++ br
    <*> pure True --label " send mail on new input needed from you: " ++> inputCheckbox True <++ label " " <++ br
    <*> RB.inputCheckbox mailNewRule <++ label " I want to be notified by email when a player proposes a new rule in my game (recommended)" <++ br
    <*> pure True --label " send mail on new output: " ++> inputCheckbox True <++ label " "
    <*> pure True
 
-uniqueName :: [String] -> String -> Either NomyxError String
-uniqueName names name = case name `elem` names of
-   True  -> Left UniquePlayerName
+unique :: [String] -> String -> Either NomyxError String
+unique names name = case name `elem` names of
+   True  -> Left UniqueName
    False -> Right name
 
 
-settingsPage :: PlayerSettings-> [PlayerName]  -> RoutedNomyxServer Html
-settingsPage ps ns = do
+settingsPage :: PlayerSettings-> [PlayerName] -> [String] -> RoutedNomyxServer Html
+settingsPage ps ns emails = do
    settingsLink <- showURL SubmitPlayerSettings
-   mf <- lift $ viewForm "user" $ settingsForm (Just ps) ns
+   mf <- lift $ viewForm "user" $ settingsForm (Just ps) ns emails
    mainPage  "Player settings"
              "Player settings"
              (blazeForm mf settingsLink)
@@ -62,15 +60,18 @@ settings ts  = do
    s <- liftIO $ atomically $ readTVar ts
    pn <- getPlayerNumber ts
    pfd <- getProfile s pn
-   pfs <- liftIO $ getAllProfiles s
-   let pfs' = filter (\a -> (_pPlayerNumber a /= pn)) pfs
-   settingsPage (_pPlayerSettings $ fromJust pfd) ((_pPlayerName . _pPlayerSettings) <$> pfs')
+   settingsPage (_pPlayerSettings $ fromJust pfd) [] []
 
 newSettings :: (TVar Session) -> RoutedNomyxServer Html
 newSettings ts = do
    methodM POST
    pn <- getPlayerNumber ts
-   p <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing []
+   s <- liftIO $ atomically $ readTVar ts
+   pfs <- liftIO $ getAllProfiles s
+   let filteredPfs = filter (\a -> (_pPlayerNumber a /= pn)) pfs
+   let names = (_pPlayerName . _pPlayerSettings) <$> filteredPfs
+   let emails = (_mail . _pPlayerSettings) <$> filteredPfs
+   p <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing names emails
    case p of
       Right ps -> do
          webCommand ts $ playerSettings ps pn

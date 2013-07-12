@@ -102,7 +102,7 @@ printRule r = unsafePerformIO $ do
 
 onePlayerOneGame :: StateT Session IO ()
 onePlayerOneGame = do
-   newPlayer 1 (PlayerSettings {_pPlayerName = "Player 1", _mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False})
+   newPlayer 1 (PlayerSettings {_pPlayerName = "Player 1", _mail = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False})
    newGame "test" (GameDesc "" "") 1
    joinGame "test" 1
    viewGamePlayer "test" 1
@@ -110,7 +110,7 @@ onePlayerOneGame = do
 twoPlayersOneGame :: StateT Session IO ()
 twoPlayersOneGame = do
    onePlayerOneGame
-   newPlayer 2 (PlayerSettings {_pPlayerName = "Player 2", _mailTo = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False})
+   newPlayer 2 (PlayerSettings {_pPlayerName = "Player 2", _mail = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False})
    joinGame "test" 2
    viewGamePlayer "test" 2
 

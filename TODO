@@ -4,8 +4,7 @@ TODO list
 Bugs:
 - add global option to not send mails
 - store hide/show status of divs
-- forbid creating a player with same name
-- where clauses are not accepted by the interpreter
+- error message when duplicate email
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -25,7 +24,7 @@ Improvements:
 - fix facebook
 - vote: include new players, delete leaving players 
 - log-in as another person
-- better error message when uploading a file
+- contextual error message when uploading a file
 
 Futur Nomic:
 - ability to analyse rules, proof system

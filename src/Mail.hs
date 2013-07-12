@@ -75,7 +75,7 @@ sendMailsNewRule s sr pn = do
 
 send :: PlayerName -> Network -> SubmitRule -> PlayerSettings -> IO()
 send prop net sr set = when (_mailNewRule set)
-   $ sendMail (_mailTo set)
+   $ sendMail (_mail set)
               (newRuleObject prop)
               (newRuleTextBody (_pPlayerName set) sr prop net)
               (renderHtml $ newRuleHtmlBody (_pPlayerName set) sr prop net)

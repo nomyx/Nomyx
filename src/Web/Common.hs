@@ -42,7 +42,7 @@ import Control.Exception (evaluate)
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
-                | UniquePlayerName
+                | UniqueName
                 | NomyxCFE (CommonFormError [HS.Input])
                   deriving Show
 
@@ -228,6 +228,6 @@ instance FormError NomyxError where
 instance ToMarkup NomyxError where
     toMarkup PlayerNameRequired = "Player Name is required"
     toMarkup GameNameRequired = "Game Name is required"
-    toMarkup UniquePlayerName = "Name already taken"
+    toMarkup UniqueName = "Already taken"
     toMarkup (NomyxCFE e)    = toHtml $ e
 
