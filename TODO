@@ -4,7 +4,6 @@ TODO list
 Bugs:
 - add global option to not send mails
 - store hide/show status of divs
-- error message when duplicate email
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation

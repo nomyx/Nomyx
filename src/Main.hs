@@ -101,7 +101,7 @@ start flags = do
          Just testName -> loadTestName (settings False) testName sh
          Nothing -> Main.loadMulti (settings True) sh
       --main loop
-      withAcid (Just profilesDir) $ \acid -> do
+      withAcid (Just $ dataDir </> profilesDir) $ \acid -> do
          tvSession <- atomically $ newTVar (Session sh multi acid)
          --start the web server
          forkIO $ launchWebServer tvSession (Network host port)
@@ -113,7 +113,7 @@ loadMulti set sh = do
    fileExists <- doesFileExist $ _logFilePath $ set
    multi <- case fileExists of
       True -> do
-         putStrLn "Loading previous game"
+         putStrLn $ "Loading game: " ++ (_logFilePath $ set)
          Serialize.loadMulti set sh `E.catch`
             (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set))
       False -> return $ defaultMulti set
@@ -130,10 +130,8 @@ serverLoop ts = do
          putStrLn $ displayMulti $ _multi s
          pfs <- getAllProfiles s
          putStrLn $ show pfs
-         serverLoop ts
-      _ -> do
-         putStrLn "command not recognized"
-         serverLoop ts
+      _ -> putStrLn "command not recognized"
+   serverLoop ts
 
 serverCommandUsage :: IO ()
 serverCommandUsage = do
