@@ -38,11 +38,12 @@ import Data.Time as T (getCurrentTime)
 import System.IO (stdout, hSetBuffering)
 import GHC.IO.Handle.Types (BufferMode(..))
 import Control.Exception (evaluate)
-
+import Utils
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
                 | UniqueName
+                | UniqueEmail
                 | NomyxCFE (CommonFormError [HS.Input])
                   deriving Show
 
@@ -74,8 +75,10 @@ data PlayerCommand = HomePage
                    | SubmitNewGame
                    | Upload
                    | PSettings
+                   | AdminSettings
                    | Advanced
                    | SubmitPlayerSettings
+                   | SubmitAdminSettings
                    deriving (Show)
 
 
@@ -211,11 +214,20 @@ appTemplate title headers body = do
 -- | return the player number (user ID) based on the session cookie.
 getPlayerNumber :: (TVar Session) -> RoutedNomyxServer PlayerNumber
 getPlayerNumber ts = do
-   (T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftIO $ readTVarIO ts
+   s@(T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftIO $ readTVarIO ts
    uid <- getUserId acidAuth acidProfile
    case uid of
       Nothing -> error "not logged in."
       (Just (UserId userID)) -> return $ fromInteger userID
+
+-- return the pn to play as (by default self)
+getPlayAs :: (TVar Session) -> RoutedNomyxServer PlayerNumber
+getPlayAs ts = do
+   pn <- getPlayerNumber ts
+   pf <- getProfile' ts pn
+   case pf >>= _playAs . _pPlayAs . _pAdmin of
+      Just playAs -> return playAs
+      Nothing     -> return pn
 
 fieldRequired :: NomyxError -> String -> Either NomyxError String
 fieldRequired a []  = Left a
@@ -228,6 +240,7 @@ instance FormError NomyxError where
 instance ToMarkup NomyxError where
     toMarkup PlayerNameRequired = "Player Name is required"
     toMarkup GameNameRequired = "Game Name is required"
-    toMarkup UniqueName = "Already taken"
+    toMarkup UniqueName = "Name already taken"
+    toMarkup UniqueEmail = "Email already taken"
     toMarkup (NomyxCFE e)    = toHtml $ e
 

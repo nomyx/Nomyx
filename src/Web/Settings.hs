@@ -33,23 +33,31 @@ settingsForm Nothing ns emails = settingsForm' "" "" True ns emails
 
 settingsForm':: String -> String -> Bool -> [PlayerName] -> [String] -> NomyxForm PlayerSettings
 settingsForm' name mailTo mailNewRule names emails = pure Types.PlayerSettings
-   <*> errorList ++> label "Player Name: " ++> (RB.inputText name) `transformEither` (unique names) `transformEither` (fieldRequired PlayerNameRequired) <++ br
-   <*> label "Please enter your mail: " ++> (RB.inputText mailTo) `transformEither` (unique emails) <++ br
-   <*> pure True --label " send mail on new input needed from you: " ++> inputCheckbox True <++ label " " <++ br
+   <*> errorList ++> label "Player Name: " ++> (RB.inputText name) `transformEither` (uniqueName names) `transformEither` (fieldRequired PlayerNameRequired) <++ br
+   <*> errorList ++> label "Please enter your mail: " ++> (RB.inputText mailTo) `transformEither` (uniqueEmail emails) <++ br
+   <*> pure True
    <*> RB.inputCheckbox mailNewRule <++ label " I want to be notified by email when a player proposes a new rule in my game (recommended)" <++ br
-   <*> pure True --label " send mail on new output: " ++> inputCheckbox True <++ label " "
+   <*> pure True
    <*> pure True
 
-unique :: [String] -> String -> Either NomyxError String
-unique names name = case name `elem` names of
+readPlayAs :: NomyxForm Bool -> NomyxForm String -> NomyxForm (Maybe PlayerNumber)
+readPlayAs = liftA2 f where
+   f b s = if b then (Just $ read s) else Nothing
+
+uniqueName :: [String] -> String -> Either NomyxError String
+uniqueName names name = case name `elem` names of
    True  -> Left UniqueName
    False -> Right name
 
+uniqueEmail :: [String] -> String -> Either NomyxError String
+uniqueEmail names name = case name `elem` names of
+   True  -> Left UniqueEmail
+   False -> Right name
 
-settingsPage :: PlayerSettings-> [PlayerName] -> [String] -> RoutedNomyxServer Html
-settingsPage ps ns emails = do
+settingsPage :: PlayerSettings -> [PlayerName] -> [String] -> RoutedNomyxServer Html
+settingsPage ps names emails = do
    settingsLink <- showURL SubmitPlayerSettings
-   mf <- lift $ viewForm "user" $ settingsForm (Just ps) ns emails
+   mf <- lift $ viewForm "user" $ settingsForm (Just ps) names emails
    mainPage  "Player settings"
              "Player settings"
              (blazeForm mf settingsLink)
@@ -57,20 +65,18 @@ settingsPage ps ns emails = do
 
 settings :: (TVar Session) -> RoutedNomyxServer Html
 settings ts  = do
-   s <- liftIO $ atomically $ readTVar ts
    pn <- getPlayerNumber ts
-   pfd <- getProfile s pn
-   settingsPage (_pPlayerSettings $ fromJust pfd) [] []
+   pfd <- getProfile' ts pn
+   names <- liftIO $ forbiddenNames ts pn
+   emails <- liftIO $ forbiddenEmails ts pn
+   settingsPage (_pPlayerSettings $ fromJust pfd) names emails
 
 newSettings :: (TVar Session) -> RoutedNomyxServer Html
 newSettings ts = do
    methodM POST
    pn <- getPlayerNumber ts
-   s <- liftIO $ atomically $ readTVar ts
-   pfs <- liftIO $ getAllProfiles s
-   let filteredPfs = filter (\a -> (_pPlayerNumber a /= pn)) pfs
-   let names = (_pPlayerName . _pPlayerSettings) <$> filteredPfs
-   let emails = (_mail . _pPlayerSettings) <$> filteredPfs
+   names <- liftIO $ forbiddenNames ts pn
+   emails <- liftIO $ forbiddenEmails ts pn
    p <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing names emails
    case p of
       Right ps -> do
@@ -81,8 +87,53 @@ newSettings ts = do
          settingsLink <- showURL SubmitPlayerSettings
          mainPage  "Player settings" "Player settings" (blazeForm errorForm settingsLink) False
 
+forbiddenNames :: (TVar Session) -> PlayerNumber -> IO [PlayerName]
+forbiddenNames ts pn = liftIO $ do
+   session <- atomically $ readTVar ts
+   pfs <- getAllProfiles session
+   let filteredPfs = filter ((/= pn) . _pPlayerNumber) pfs
+   return $ (_pPlayerName . _pPlayerSettings) <$> filteredPfs
+
+forbiddenEmails :: (TVar Session) -> PlayerNumber -> IO [PlayerName]
+forbiddenEmails ts pn = liftIO $ do
+   session <- atomically $ readTVar ts
+   pfs <- getAllProfiles session
+   let filteredPfs = filter ((/= pn) . _pPlayerNumber) pfs
+   return $ filter (not . null) $ (_mail . _pPlayerSettings) <$> filteredPfs
+
+
 advanced :: RoutedNomyxServer Html
 advanced = mainPage  "Advanced"
              "Advanced"
              (H.a "get save file"    ! (href $ "/Nomyx.save") >> H.br)
              False
+
+adminForm :: [PlayerNumber] -> NomyxForm Admin
+adminForm pns = pure (Admin . PlayAs)
+   <*> readPlayAs (label "Play as: " ++> RB.inputCheckbox False) (RB.inputText "")
+
+adminPage :: (TVar Session) -> RoutedNomyxServer Html
+adminPage ts = do
+   pn <- getPlayerNumber ts
+   pfd <- getProfile' ts pn
+   settingsLink <- showURL SubmitAdminSettings
+   mf <- lift $ viewForm "user" $ adminForm []
+   mainPage  "Admin settings"
+             "Admin settings"
+             (blazeForm mf settingsLink)
+             False
+
+
+newAdminSettings :: (TVar Session) -> RoutedNomyxServer Html
+newAdminSettings ts = do
+   methodM POST
+   p <- liftRouteT $ eitherForm environment "user" $ adminForm []
+   pn <- getPlayerNumber ts
+   case p of
+      Right ps -> do
+         webCommand ts $ adminSettings ps pn
+         link <- showURL MainPage
+         seeOther link $ string "Redirecting..."
+      (Left errorForm) -> do
+         settingsLink <- showURL SubmitAdminSettings
+         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False

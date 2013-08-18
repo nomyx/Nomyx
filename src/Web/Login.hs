@@ -20,7 +20,7 @@ import Data.Text hiding (map, zip, concatMap)
 import Happstack.Auth (AuthProfileURL(..), AuthURL(..), handleAuthProfile)
 import Happstack.Auth.Core.Profile
 import Facebook (Credentials(..))
-import Utils (getProfile)
+import Utils
 default (Integer, Double, Data.Text.Text)
 
 -- | function which generates the homepage
@@ -45,8 +45,7 @@ homePage ts = do
 postAuthenticate :: (TVar Session) -> RoutedNomyxServer Response
 postAuthenticate ts = do
    pn <- getPlayerNumber ts
-   s <- liftIO $ atomically $ readTVar ts
-   pf <- getProfile s pn
+   pf <- getProfile' ts pn
    case pf of
       Just _ -> do
          link <- showURL $ MainPage

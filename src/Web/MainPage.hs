@@ -119,8 +119,13 @@ nomyxPage ts = do
    s <- liftIO $ atomically $ readTVar ts
    m <- viewMulti pn s
    name <- liftIO $ getPlayersName pn s
+   playAs <- getPlayAs ts
+   playAsName <- liftIO $ getPlayersName playAs s
+   let body = do
+       string $ "Welcome to Nomyx, " ++ name ++ "! "
+       when (playAs /= pn) $ (b ! A.style "color:red;" $ string ("Playing as: " ++ playAsName ++ " (Player #" ++ (show playAs) ++ ")") )
    mainPage' "Welcome to Nomyx!"
-            (string $ "Welcome to Nomyx, " ++ name ++ "!")
+            body
             (H.div ! A.id "multi" $ m)
             False
 
@@ -141,8 +146,10 @@ routedNomyxCommands ts SubmitNewGame         = newGamePost ts >>= return . toRes
 routedNomyxCommands ts (DoInput en)          = newInput en ts >>= return . toResponse
 routedNomyxCommands ts Upload                = newUpload ts   >>= return . toResponse
 routedNomyxCommands ts PSettings             = settings ts    >>= return . toResponse
+routedNomyxCommands ts AdminSettings         = adminPage ts   >>= return . toResponse
 routedNomyxCommands _  Advanced              = advanced       >>= return . toResponse
 routedNomyxCommands ts SubmitPlayerSettings  = newSettings ts >>= return . toResponse
+routedNomyxCommands ts SubmitAdminSettings   = newAdminSettings ts >>= return . toResponse
 
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)

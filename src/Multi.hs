@@ -4,12 +4,6 @@
 
 -- | This module manages multi-player games and commands.
 module Multi where
---Multi, PlayerPassword, GetMulti(..), FindPlayer(..), PlayerMulti(..), GetNewPlayerNumber(..), NewPlayerU(..),
---    listGame, newGame, joinGame, leaveGame, subscribeGame, unsubscribeGame, showSubscribtion, showSubGame, newPlayer,
---    submitRule, myCatch, submitRuleI, showConstitution, showAllRules, listPlayers, amendConstitution, showPendingActions,
---    showMyPendingActions, doActionsI, doAction', showCompletedActions, quit, getPendingActions, doAction, games, getPlayersGame,
---    getPlayersName) where
-
 
 import Prelude
 import Data.List
@@ -113,6 +107,9 @@ inputUpload pn temp mod sh = do
 -- | update player settings
 playerSettings :: PlayerSettings -> PlayerNumber -> StateT Session IO ()
 playerSettings playerSettings pn = modifyProfile pn (pPlayerSettings ^= playerSettings)
+
+adminSettings :: Admin -> PlayerNumber -> StateT Session IO ()
+adminSettings adm pn = modifyProfile pn (pAdmin ^= adm)
 
 
 -- | Utility functions

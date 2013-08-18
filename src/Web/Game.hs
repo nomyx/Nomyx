@@ -47,31 +47,34 @@ viewGame g pn mlr = do
    rf <- viewRuleForm mlr inGame
    vios <- viewIOs pn (_events g) (_outputs g)
    ok $ table $ do
-      tr $ td $ div ! A.id "gameDesc" $ viewGameDesc g
+      tr $ td $ div ! A.id "gameDesc" $ viewGameDesc g pn
       tr $ td $ div ! A.id "rules" $ viewAllRules g
       tr $ td $ div ! A.id "ios" $ vios
       tr $ td $ div ! A.id "newRule" $ rf
       tr $ td $ div ! A.id "details" ! A.title (toValue Help.events)  $ viewDetails pn g
 
-viewGameDesc :: Game -> Html
-viewGameDesc g = do
+viewGameDesc :: Game -> PlayerNumber -> Html
+viewGameDesc g pn = do
    p $ h3 $ string $ "Viewing game: " ++ _gameName g
    p $ h4 $ "Description:" >> br >> string (_desc $ _gameDesc g)
    p $ h4 $ a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g))
    p $ h4 $ "Players in game:"
-   viewPlayers $ _players g
+   viewPlayers (_players g) pn
    p $ viewVictory g
 
-viewPlayers :: [PlayerInfo] -> Html
-viewPlayers pis = do
+viewPlayers :: [PlayerInfo] -> PlayerNumber -> Html
+viewPlayers pis pn = do
    let plChunks = transpose $ chunksOf (1 + (length pis) `P.div` 3) (sort pis)
-   table $ mapM_ (\row -> tr $ mapM_ viewPlayer row) plChunks
+   table $ mapM_ (\row -> tr $ mapM_ (viewPlayer pn) row) plChunks
 
 
-viewPlayer :: PlayerInfo -> Html
-viewPlayer pi = do
-    td $ string $ show $ _playerNumber pi
-    td $ string $ _playerName pi
+viewPlayer :: PlayerNumber -> PlayerInfo -> Html
+viewPlayer mypn (PlayerInfo pn name) = do
+    let inf = string ((show pn) ++ "\t" ++ name)
+    if mypn == pn
+       then td ! A.style "color: red;" $ inf
+       else td inf
+
 
 viewVictory :: Game -> Html
 viewVictory g = do
