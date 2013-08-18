@@ -75,28 +75,29 @@ start flags = do
    serverCommandUsage
    --start the haskell interpreter
    sh <- protectHandlers startInterpreter
+   logFilePath <- case (findSaveFile flags) of
+      Just f -> canonicalizePath f
+      Nothing -> getDataFileName defaultLogFile
+   port <- case (findPort flags) of
+      Just p -> return $ read p
+      Nothing -> return $ 8000
+   host <- case (findHost flags) of
+      Just h -> return h
+      Nothing -> getHostName >>= return
+   let settings sendMail = Settings logFilePath (Network host port) sendMail
+   dataDir <- getDataDir
    if Test `elem` flags then do
       putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
       ts <- playTests sh
       putStrLn $ "\nNomyx Game Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts)
       putStrLn $ "All Tests Pass: " ++ (show $ allTests && (all snd ts))
+   else if (DeleteSaveFile `elem` flags) then do
+      putStrLn "Deleting save files"
+      (removeRecursiveSafely $ dataDir </> profilesDir)        `catch` (\(e::SomeException)-> putStrLn $ show e)
+      (removeRecursiveSafely $ dataDir </> modulesDir </> "*") `catch` (\(e::SomeException)-> putStrLn $ show e)
+      (removeFile (_logFilePath $ settings True))              `catch` (\(e::SomeException)-> putStrLn $ show e)
    else do
       --creating game structures
-      logFilePath <- case (findSaveFile flags) of
-         Just f -> canonicalizePath f
-         Nothing -> getDataFileName defaultLogFile
-      port <- case (findPort flags) of
-         Just p -> return $ read p
-         Nothing -> return $ 8000
-      host <- case (findHost flags) of
-         Just h -> return h
-         Nothing -> getHostName >>= return
-      let settings sendMail = Settings logFilePath (Network host port) sendMail
-      dataDir <- getDataDir
-      when (NoReadSaveFile `elem` flags) $ do
-         (removeRecursiveSafely $ dataDir </> profilesDir)        `catch` (\(e::SomeException)-> putStrLn $ show e)
-         (removeRecursiveSafely $ dataDir </> modulesDir </> "*") `catch` (\(e::SomeException)-> putStrLn $ show e)
-         (removeFile (_logFilePath $ settings True))              `catch` (\(e::SomeException)-> putStrLn $ show e)
       multi <- case (findLoadTest flags) of
          Just testName -> loadTestName (settings False) testName sh
          Nothing -> Main.loadMulti (settings True) sh
@@ -140,8 +141,15 @@ serverCommandUsage = do
    putStrLn "Ctrl-C -> quit"
 
 -- | Launch mode 
-data Flag 
-     = Verbose | Version | Test | HostName String | Port String | LogFile FilePath | Daemon | LoadTest String | NoReadSaveFile
+data Flag = Verbose
+          | Version
+          | Test
+          | HostName String
+          | Port String
+          | LogFile FilePath
+          | Daemon
+          | LoadTest String
+          | DeleteSaveFile
        deriving (Show, Eq)
 
 -- | launch options description
@@ -153,7 +161,7 @@ options =
      , Option ['h']     ["host"]     (ReqArg HostName "Hostname") "specify host name"
      , Option ['p']     ["port"]     (ReqArg Port "Port")         "specify port"
      , Option ['r']     ["read"]     (ReqArg LogFile "SaveFile")  "specify save file (default is Nomyx.save)"
-     , Option ['n']     ["noread"]   (NoArg NoReadSaveFile)       "don't read save file, just overwrite"
+     , Option ['n']     ["delete"]   (NoArg DeleteSaveFile)       "delete all save files"
      , Option ['d']     ["daemon"]   (NoArg Daemon)               "run in daemon mode"
      , Option ['l']     ["loadtest"] (ReqArg LoadTest "TestName") "specify name of test to load"
      ]
