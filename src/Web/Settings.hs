@@ -9,7 +9,7 @@ import Prelude hiding (div)
 import Text.Reform
 import Text.Reform.Blaze.String as RB hiding (form)
 import Text.Reform.Happstack()
-import Text.Blaze.Html5.Attributes hiding (dir, label)
+import Text.Blaze.Html5.Attributes as A hiding (dir, label)
 import qualified Text.Blaze.Html5 as H
 import Control.Applicative
 import Types
@@ -22,9 +22,13 @@ import Control.Concurrent.STM
 import Data.Maybe
 import Data.Text(Text)
 import Text.Blaze.Internal(string)
-import Multi
+import Multi as M
 import Utils
+import Web.Help as Help
 import Language.Nomyx
+import qualified Language.Haskell.HsColour.HTML as HSC
+import Language.Haskell.HsColour.Colourise hiding (string)
+import Text.Blaze.Internal hiding (Text)
 default (Integer, Double, Data.Text.Text)
 
 settingsForm :: (Maybe PlayerSettings) -> [PlayerName] -> [String] -> NomyxForm PlayerSettings
@@ -102,11 +106,37 @@ forbiddenEmails ts pn = liftIO $ do
    return $ filter (not . null) $ (_mail . _pPlayerSettings) <$> filteredPfs
 
 
-advanced :: RoutedNomyxServer Html
-advanced = mainPage  "Advanced"
+advanced :: (TVar Session) -> RoutedNomyxServer Html
+advanced ts = do
+   pn <- getPlayerNumber ts
+   pfd <- getProfile' ts pn
+   page <- advancedPage (_pLastUpload $ fromJust pfd)
+   mainPage  "Advanced"
              "Advanced"
-             (H.a "get save file"    ! (href $ "/Nomyx.save") >> H.br)
+             page
              False
+
+
+advancedPage :: LastUpload -> RoutedNomyxServer Html
+advancedPage mlu = do
+   uploadLink <- showURL Upload
+   up  <- lift $ viewForm "user" uploadForm  --TODO add the file name (missing Reform feature)
+   ok $ do
+      p $ do
+         pre $ string Help.getSaveFile
+         H.a "get save file" ! (href $ "/Nomyx.save")
+      H.br
+      p $ do
+         pre $ string Help.upload
+         preEscapedString $ HSC.hscolour defaultColourPrefs False $ Help.uploadExample
+         "Upload new rules file:" >> H.br
+         blazeForm up (uploadLink)
+         case mlu of
+            UploadFailure (_, error) -> do
+               h5 $ "Error in submitted file: "
+               pre $ string $ error
+            UploadSuccess -> h5 $ "File uploaded successfully!"
+            NoUpload -> p ""
 
 adminForm :: [PlayerNumber] -> NomyxForm Admin
 adminForm pns = pure (Admin . PlayAs)
@@ -137,3 +167,18 @@ newAdminSettings ts = do
       (Left errorForm) -> do
          settingsLink <- showURL SubmitAdminSettings
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False
+
+uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
+uploadForm = RB.inputFile
+
+newUpload :: (TVar Session) -> RoutedNomyxServer Html
+newUpload ts = do
+    methodM POST
+    pn <- getPlayerNumber ts
+    r <- liftRouteT $ eitherForm environment "user" uploadForm
+    link <- showURL Advanced
+    (Types.Session sh _ _) <- liftIO $ readTVarIO ts
+    case r of
+       (Right (temp,name,_)) -> webCommand ts $ M.inputUpload pn temp name sh
+       (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
+    seeOther link $ string "Redirecting..."

@@ -23,8 +23,6 @@ import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
 import Language.Nomyx
-import Text.Reform.Happstack
-import Text.Reform
 import Happstack.Server as HS
 import System.Directory
 import System.FilePath
@@ -36,12 +34,10 @@ import Web.Common
 import Web.Settings
 import Web.NewGame
 import Web.Login
-import qualified Text.Reform.Blaze.String as RB
 import Utils
 import Data.Maybe
 import Data.Text(Text, pack)
 import qualified Language.Nomyx.Game as G
-import qualified Multi as M
 import Happstack.Auth
 
 default (Integer, Double, Data.Text.Text)
@@ -63,11 +59,9 @@ viewGamesTab :: [Game] -> Bool -> RoutedNomyxServer Html
 viewGamesTab gs admin = do
    gns <- mapM viewGameName gs
    newGameLink <- showURL NewGame
-   uploadLink <- showURL Upload
    settingsLink <- showURL PSettings
    advLink <- showURL Advanced
    logoutURL  <- showURL (U_AuthProfile $ AuthURL A_Logout)
-   up  <- lift $ viewForm "user" uploadForm
    dd <- lift $ lift $ PN.getDataDir
    mods <- lift $ lift $ getDirectoryContents $ dd </> modDir
    fmods <- lift $ lift $ filterM (getFileStatus . (\f -> joinPath [dd, modDir, f]) >=> return . isRegularFile) $ mods
@@ -85,13 +79,11 @@ viewGamesTab gs admin = do
       H.a "Rules types"       ! (href $ "/src/Language/Nomyx/Expression.hs") >> br
       H.a "Voting system"     ! (href $ "/src/Language/Nomyx/Vote.hs") >> br
       mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) fmods
-      br >> "Upload new rules file:" >> br
-      blazeForm up (uploadLink) ! (A.title $ toValue Help.upload)
       br >> "Settings:" >> br
       when admin $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
-      H.a "Advanced" ! (href $ toValue advLink) >> br
-      H.a "Logout " ! href (toValue logoutURL) >> br
+      H.a "Advanced"        ! (href $ toValue advLink) >> br
+      H.a "Logout "         ! (href $ toValue logoutURL) >> br
 
 
 viewGameName :: Game -> RoutedNomyxServer Html
@@ -147,26 +139,9 @@ routedNomyxCommands ts (DoInput en)          = newInput en ts >>= return . toRes
 routedNomyxCommands ts Upload                = newUpload ts   >>= return . toResponse
 routedNomyxCommands ts PSettings             = settings ts    >>= return . toResponse
 routedNomyxCommands ts AdminSettings         = adminPage ts   >>= return . toResponse
-routedNomyxCommands _  Advanced              = advanced       >>= return . toResponse
+routedNomyxCommands ts Advanced              = advanced ts    >>= return . toResponse
 routedNomyxCommands ts SubmitPlayerSettings  = newSettings ts >>= return . toResponse
 routedNomyxCommands ts SubmitAdminSettings   = newAdminSettings ts >>= return . toResponse
-
-
-uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
-uploadForm = RB.inputFile
-
-newUpload :: (TVar Session) -> RoutedNomyxServer Html
-newUpload ts = do
-    methodM POST
-    pn <- getPlayerNumber ts
-    r <- liftRouteT $ eitherForm environment "user" uploadForm
-    link <- showURL MainPage
-    (T.Session sh _ _) <- liftIO $ readTVarIO ts
-    case r of
-       (Right (temp,name,_)) -> webCommand ts $ M.inputUpload pn temp name sh
-       (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
-    seeOther link $ string "Redirecting..."
-
 
 launchWebServer :: (TVar Session) -> Network -> IO ()
 launchWebServer tm net = do

@@ -25,6 +25,11 @@ type PlayerPassword = String
 type Port = Int
 type CompileError = String
 type LastRule = (SubmitRule, CompileError)
+data LastUpload = NoUpload
+                | UploadSuccess
+                | UploadFailure (FilePath, CompileError)
+                deriving (Eq, Ord, Read, Show, Typeable, Data)
+$(deriveSafeCopy 1 'base ''LastUpload)
 
 data Network = Network {_host :: HostName, _port :: Port}
                deriving (Eq, Show, Read, Typeable)
@@ -66,6 +71,7 @@ data ProfileData =
                   _pPlayerSettings :: PlayerSettings,
                   _pViewingGame    :: Maybe GameName,
                   _pLastRule       :: Maybe LastRule,
+                  _pLastUpload     :: LastUpload,
                   _pAdmin          :: Admin}
     deriving (Eq, Ord, Read, Show, Typeable, Data)
 $(deriveSafeCopy 1 'base ''ProfileData)
@@ -111,7 +117,7 @@ newProfileData :: PlayerNumber -> PlayerSettings -> Update ProfileDataState Prof
 newProfileData uid ps =
     do pds@(ProfileDataState {..}) <- get
        case IxSet.getOne (profilesData @= uid) of
-         Nothing -> do let profileData = ProfileData uid ps Nothing Nothing defaultAdmin
+         Nothing -> do let profileData = ProfileData uid ps Nothing Nothing NoUpload defaultAdmin
                        put $ pds { profilesData = IxSet.updateIx uid profileData profilesData }
                        return profileData
          (Just profileData) -> return profileData

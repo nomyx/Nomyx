@@ -158,16 +158,16 @@ viewEvent (EH eventNumber ruleNumber event _ status) = if status == SActive then
 
 viewIOs :: PlayerNumber -> [Rule] -> [EventHandler] -> [Output] -> RoutedNomyxServer Html
 viewIOs pn rs ehs os = do
-   vios <- mapM (\r -> viewIORule pn (_rNumber r) ehs os) (sort rs)
+   vios <- mapM (viewIORule pn ehs os) (sort rs)
    ok $ do
       h3 "Inputs/Ouputs"
       mconcat vios
 
-viewIORule :: PlayerNumber -> RuleNumber -> [EventHandler] -> [Output] -> RoutedNomyxServer Html
-viewIORule pn rn ehs os = do
-   vior <- viewIORuleM pn rn ehs os
+viewIORule :: PlayerNumber -> [EventHandler] -> [Output] -> Rule -> RoutedNomyxServer Html
+viewIORule pn ehs os r = do
+   vior <- viewIORuleM pn (_rNumber r) ehs os
    ok $ when (isJust vior) $ do
-      h3 $ string $ "Inputs/Ouputs for Rule #" ++ (show rn)
+      h4 $ string $ "IO for Rule \"" ++ (_rName r) ++ "\" (#" ++ (show $ _rNumber r) ++ ")"
       fromJust vior
 
 
@@ -177,8 +177,8 @@ viewIORuleM pn rn ehs os = do
    let vor = viewOutputsRule pn rn os
    if (isJust vir || isJust vor) then do
       return $ Just $ do
-         fromJust vir
-         fromJust vor
+         when (isJust vir) $ fromJust vir
+         when (isJust vor) $ fromJust vor
    else
       return Nothing
 

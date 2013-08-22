@@ -98,11 +98,12 @@ inputUpload pn temp mod sh = do
       Right _ -> do
          inPlayersGameDo_ pn $ update $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
          tracePN pn "upload success"
-         return ()
+         modifyProfile pn (pLastUpload ^= UploadSuccess)
       Left e -> do
+         let errorMsg = showInterpreterError e
          inPlayersGameDo_ pn $ update $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
          tracePN pn "upload failed"
-         return ()
+         modifyProfile pn (pLastUpload ^= UploadFailure (temp, errorMsg))
 
 -- | update player settings
 playerSettings :: PlayerSettings -> PlayerNumber -> StateT Session IO ()
