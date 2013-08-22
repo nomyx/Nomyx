@@ -203,4 +203,4 @@ condMoneyTransfer m = (_vName $ head $ _variables $ G._game $ head $ _games m) =
 --voidRule $ let a = a + 1 in outputAll (show a)
 
 isOutput :: String -> Multi -> Bool
-isOutput s g = any (\g -> any (\(Output _ _ mys SActive) -> mys == s) (_outputs $ G._game g)) (_games g)
+isOutput s g = any (\g -> any (\(Output _ _ _ mys SActive) -> mys == s) (_outputs $ G._game g)) (_games g)

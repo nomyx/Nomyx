@@ -45,7 +45,7 @@ viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> RoutedNomyxServer Html
 viewGame g pn mlr = do
    let inGame = isJust $ Utils.getPlayer g pn
    rf <- viewRuleForm mlr inGame
-   vios <- viewIOs pn (_events g) (_outputs g)
+   vios <- viewIOs pn (_rules g) (_events g) (_outputs g)
    ok $ table $ do
       tr $ td $ div ! A.id "gameDesc" $ viewGameDesc g pn
       tr $ td $ div ! A.id "rules" $ viewAllRules g
@@ -156,21 +156,51 @@ viewEvent (EH eventNumber ruleNumber event _ status) = if status == SActive then
       td ! A.class_ "td" $ string . show $ ruleNumber
       td ! A.class_ "td" $ string . show $ event
 
-viewIOs :: PlayerNumber -> [EventHandler] -> [Output] -> RoutedNomyxServer Html
-viewIOs pn ehs os = do
-   vis <- viewInputs pn ehs
-   let vos = viewOutputs os pn
+viewIOs :: PlayerNumber -> [Rule] -> [EventHandler] -> [Output] -> RoutedNomyxServer Html
+viewIOs pn rs ehs os = do
+   vios <- mapM (\r -> viewIORule pn (_rNumber r) ehs os) (sort rs)
    ok $ do
-      h3 "Rules Inputs/Ouputs"
-      showHideTitle "Inputs" True False (h4 "Inputs:")  $ vis ! A.title (toValue Help.inputs)
-      showHideTitle "Ouputs" True False (h4 "Outputs:") $ vos ! A.title (toValue Help.outputs)
+      h3 "Inputs/Ouputs"
+      mconcat vios
+
+viewIORule :: PlayerNumber -> RuleNumber -> [EventHandler] -> [Output] -> RoutedNomyxServer Html
+viewIORule pn rn ehs os = do
+   vior <- viewIORuleM pn rn ehs os
+   ok $ when (isJust vior) $ do
+      h3 $ string $ "Inputs/Ouputs for Rule #" ++ (show rn)
+      fromJust vior
 
 
-viewInputs :: PlayerNumber -> [EventHandler] -> RoutedNomyxServer Html
-viewInputs pn ehs = do
-   mis <- mapM (viewInput pn) $ sort ehs
+viewIORuleM :: PlayerNumber -> RuleNumber -> [EventHandler] -> [Output] -> RoutedNomyxServer (Maybe Html)
+viewIORuleM pn rn ehs os = do
+   vir <- viewInputsRule pn rn ehs
+   let vor = viewOutputsRule pn rn os
+   if (isJust vir || isJust vor) then do
+      return $ Just $ do
+         fromJust vir
+         fromJust vor
+   else
+      return Nothing
+
+viewInputsRule :: PlayerNumber -> RuleNumber -> [EventHandler] -> RoutedNomyxServer (Maybe Html)
+viewInputsRule pn rn ehs = do
+   let filtered = filter (\e -> _ruleNumber e == rn) ehs
+   mis <- mapM (viewInput pn) $ sort filtered
    let is = catMaybes mis
-   ok $ table $ mconcat is
+   case is of
+      [] -> return Nothing
+      i -> return $ Just $ table $ mconcat i
+
+viewOutputsRule :: PlayerNumber -> RuleNumber -> [Output] -> (Maybe Html)
+viewOutputsRule pn rn os = do
+   let filtered = filter (\o -> _oRuleNumber o == rn) os
+   let myos = map _output $ filter (isPn pn) (reverse filtered)
+   case myos of
+      [] -> Nothing
+      os -> Just $ mapM_ viewOutput os
+
+isPn pn (Output _ _ mypn _ SActive) = mypn == pn
+isPn _ _ = False
 
 viewInput :: PlayerNumber -> EventHandler -> RoutedNomyxServer (Maybe Html)
 viewInput me (EH eventNumber _ (InputEv (Input pn title iForm)) _ SActive) | me == pn = do
@@ -180,6 +210,9 @@ viewInput me (EH eventNumber _ (InputEv (Input pn title iForm)) _ SActive) | me 
        string title
        blazeForm lf (link) ! A.id "InputForm"
 viewInput _ _ = return Nothing
+
+viewOutput :: String -> Html
+viewOutput s = pre $ string s >> br
 
 viewVars :: [Var] -> Html
 viewVars vs = table ! A.class_ "table" $ do
@@ -242,15 +275,6 @@ newRule ts = do
    seeOther link $ string "Redirecting..."
 
 
-viewOutputs :: [Output] -> PlayerNumber -> Html
-viewOutputs os pn = do
-   let myos = map _output $ filter (isPn pn) (reverse os)
-   mapM_ viewOutput myos where
-      isPn pn (Output _ mypn _ SActive) = mypn == pn
-      isPn _ _ = False
-
-viewOutput :: String -> Html
-viewOutput s = pre $ string s >> br
 
 viewLogs :: [Log] -> PlayerNumber -> Html
 viewLogs log pn = do
