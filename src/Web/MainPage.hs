@@ -138,10 +138,10 @@ routedNomyxCommands ts SubmitNewGame         = newGamePost ts >>= return . toRes
 routedNomyxCommands ts (DoInput en)          = newInput en ts >>= return . toResponse
 routedNomyxCommands ts Upload                = newUpload ts   >>= return . toResponse
 routedNomyxCommands ts PSettings             = settings ts    >>= return . toResponse
-routedNomyxCommands ts AdminSettings         = adminPage ts   >>= return . toResponse
-routedNomyxCommands ts Advanced              = advanced ts    >>= return . toResponse
 routedNomyxCommands ts SubmitPlayerSettings  = newSettings ts >>= return . toResponse
-routedNomyxCommands ts SubmitAdminSettings   = newAdminSettings ts >>= return . toResponse
+routedNomyxCommands ts Advanced              = advanced ts    >>= return . toResponse
+routedNomyxCommands ts SubmitPlayAs          = newPlayAsSettings ts >>= return . toResponse
+routedNomyxCommands ts SubmitAdminPass       = newAdminPass ts >>= return . toResponse
 
 launchWebServer :: (TVar Session) -> Network -> IO ()
 launchWebServer tm net = do

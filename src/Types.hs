@@ -34,7 +34,7 @@ $(deriveSafeCopy 1 'base ''LastUpload)
 data Network = Network {_host :: HostName, _port :: Port}
                deriving (Eq, Show, Read, Typeable)
 defaultNetwork = Network "" 0
-newtype PlayAs = PlayAs { _playAs :: Maybe Int}
+newtype PlayAs = PlayAs { _playAs :: Maybe PlayerNumber}
                deriving (Eq, Show, Read, Ord, Typeable, Data, SafeCopy)
 
 data PlayerSettings =
@@ -50,7 +50,8 @@ $(deriveSafeCopy 1 'base ''PlayerSettings)
 
 data Settings = Settings { _logFilePath :: FilePath,
                            _net :: Network,
-                           _sendMails :: Bool}
+                           _sendMails :: Bool,
+                           _adminPassword :: String}
                            deriving (Eq, Show, Read, Typeable)
 
 --- | A structure to hold the active games and players
@@ -58,12 +59,13 @@ data Multi = Multi { _games   :: [LoggedGame],
                      _mSettings :: Settings}
                      deriving (Eq, Read, Show, Typeable)
 
-data Admin = Admin { _pPlayAs       ::  PlayAs}
+data Admin = Admin { _isAdmin :: Bool,
+                     _pPlayAs :: PlayAs}
                      deriving (Eq, Show, Read, Ord, Typeable, Data)
 $(deriveSafeCopy 1 'base ''Admin)
 
 defaultAdmin :: Admin
-defaultAdmin = Admin (PlayAs Nothing)
+defaultAdmin = Admin False (PlayAs Nothing)
 
 -- | 'ProfileData' contains application specific
 data ProfileData =

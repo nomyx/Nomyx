@@ -109,9 +109,16 @@ inputUpload pn temp mod sh = do
 playerSettings :: PlayerSettings -> PlayerNumber -> StateT Session IO ()
 playerSettings playerSettings pn = modifyProfile pn (pPlayerSettings ^= playerSettings)
 
-adminSettings :: Admin -> PlayerNumber -> StateT Session IO ()
-adminSettings adm pn = modifyProfile pn (pAdmin ^= adm)
+playAsSetting :: (Maybe PlayerNumber) -> PlayerNumber -> StateT Session IO ()
+playAsSetting mpn pn = modifyProfile pn ((pAdmin >>> pPlayAs) ^= PlayAs mpn)
 
+adminPass :: String -> PlayerNumber -> StateT Session IO ()
+adminPass pass pn = do
+   s <- get
+   if (pass == (_adminPassword $ _mSettings $ _multi s)) then do
+      tracePN pn "getting admin rights"
+      modifyProfile pn ((pAdmin >>> isAdmin) ^= True)
+   else tracePN pn "submitted wrong admin password"
 
 -- | Utility functions
 

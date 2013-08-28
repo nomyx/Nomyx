@@ -84,7 +84,7 @@ start flags = do
    host <- case (findHost flags) of
       Just h -> return h
       Nothing -> getHostName >>= return
-   let settings sendMail = Settings logFilePath (Network host port) sendMail
+   let settings sendMail = Settings logFilePath (Network host port) sendMail "NXPSD"
    dataDir <- getDataDir
    if Test `elem` flags then do
       putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)

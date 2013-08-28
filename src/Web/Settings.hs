@@ -110,22 +110,27 @@ advanced :: (TVar Session) -> RoutedNomyxServer Html
 advanced ts = do
    pn <- getPlayerNumber ts
    pfd <- getProfile' ts pn
-   page <- advancedPage (_pLastUpload $ fromJust pfd)
+   page <- advancedPage (_pLastUpload $ fromJust pfd) (_pAdmin $ fromJust pfd)
    mainPage  "Advanced"
              "Advanced"
              page
              False
 
 
-advancedPage :: LastUpload -> RoutedNomyxServer Html
-advancedPage mlu = do
+advancedPage :: LastUpload -> Admin -> RoutedNomyxServer Html
+advancedPage mlu (Admin admin (PlayAs mpn)) = do
    uploadLink <- showURL Upload
+   adminPassLink <- showURL SubmitAdminPass
+   playAsLink <- showURL SubmitPlayAs
    up  <- lift $ viewForm "user" uploadForm  --TODO add the file name (missing Reform feature)
+   ap <- lift $ viewForm "user" $ adminPassForm
+   mf <- lift $ viewForm "user" $ playAsForm []
    ok $ do
       p $ do
          pre $ string Help.getSaveFile
          H.a "get save file" ! (href $ "/Nomyx.save")
       H.br
+      hr
       p $ do
          pre $ string Help.upload
          preEscapedString $ HSC.hscolour defaultColourPrefs False $ Help.uploadExample
@@ -137,35 +142,39 @@ advancedPage mlu = do
                pre $ string $ error
             UploadSuccess -> h5 $ "File uploaded successfully!"
             NoUpload -> p ""
-
-adminForm :: [PlayerNumber] -> NomyxForm Admin
-adminForm pns = pure (Admin . PlayAs)
-   <*> readPlayAs (label "Play as: " ++> RB.inputCheckbox False) (RB.inputText "")
-
-adminPage :: (TVar Session) -> RoutedNomyxServer Html
-adminPage ts = do
-   pn <- getPlayerNumber ts
-   pfd <- getProfile' ts pn
-   settingsLink <- showURL SubmitAdminSettings
-   mf <- lift $ viewForm "user" $ adminForm []
-   mainPage  "Admin settings"
-             "Admin settings"
-             (blazeForm mf settingsLink)
-             False
+      hr
+      p $ do
+         h5 "Enter admin password to get admin rights:"
+         blazeForm ap (adminPassLink)
+         when admin $ h5 "You are admin"
+      when admin $ do
+         hr
+         p $ do
+            h5 "Enter the number of the player you want to play for:"
+            blazeForm mf playAsLink
+            when (isJust mpn) $ h5 $ string $ "Playing as player " ++ (show $ fromJust mpn)
 
 
-newAdminSettings :: (TVar Session) -> RoutedNomyxServer Html
-newAdminSettings ts = do
+adminPassForm :: NomyxForm String
+adminPassForm = RB.inputText ""
+
+
+playAsForm :: [PlayerNumber] -> NomyxForm (Maybe PlayerNumber)
+playAsForm pns = readPlayAs (label "Play as: " ++> RB.inputCheckbox False) (RB.inputText "")
+
+
+newPlayAsSettings :: (TVar Session) -> RoutedNomyxServer Html
+newPlayAsSettings ts = do
    methodM POST
-   p <- liftRouteT $ eitherForm environment "user" $ adminForm []
+   p <- liftRouteT $ eitherForm environment "user" $ playAsForm []
    pn <- getPlayerNumber ts
    case p of
       Right ps -> do
-         webCommand ts $ adminSettings ps pn
-         link <- showURL MainPage
+         webCommand ts $ playAsSetting ps pn
+         link <- showURL Advanced
          seeOther link $ string "Redirecting..."
       (Left errorForm) -> do
-         settingsLink <- showURL SubmitAdminSettings
+         settingsLink <- showURL SubmitPlayAs
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
@@ -182,3 +191,17 @@ newUpload ts = do
        (Right (temp,name,_)) -> webCommand ts $ M.inputUpload pn temp name sh
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
     seeOther link $ string "Redirecting..."
+
+newAdminPass :: (TVar Session) -> RoutedNomyxServer Html
+newAdminPass ts = do
+   methodM POST
+   p <- liftRouteT $ eitherForm environment "user" $ adminPassForm
+   pn <- getPlayerNumber ts
+   case p of
+      Right ps -> do
+         webCommand ts $ adminPass ps pn
+         link <- showURL Advanced
+         seeOther link $ string "Redirecting..."
+      (Left errorForm) -> do
+         settingsLink <- showURL SubmitAdminPass
+         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False

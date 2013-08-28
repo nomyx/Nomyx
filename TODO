@@ -16,14 +16,11 @@ Improvements:
 - possibility to modify game details
 - hide when no information
 - cut rules too long
-- purify some IO
-- create an admin role
 - add examples with a game master, a castle..
 - add "delete game" for admin (+ del/add player, rule, event, variable?)
 - fix facebook
 - vote: include new players, delete leaving players 
-- log-in as another person
-- contextual error message when uploading a file
+- add help icons
 
 Futur Nomic:
 - ability to analyse rules, proof system
