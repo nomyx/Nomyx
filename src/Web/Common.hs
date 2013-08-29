@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell, OverloadedStrings, GADTs, ScopedTypeVariables, DeriveDataTypeable,
-             RecordWildCards, TypeFamilies, TypeSynonymInstances#-}
+             RecordWildCards, TypeFamilies, TypeSynonymInstances, DoAndIfThenElse#-}
 
 module Web.Common where
 
@@ -39,6 +39,8 @@ import System.IO (stdout, hSetBuffering)
 import GHC.IO.Handle.Types (BufferMode(..))
 import Control.Exception (evaluate)
 import Utils
+import Data.Maybe
+import qualified Data.Text as DT
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
@@ -176,19 +178,23 @@ inputRadio' choices isDefault =
 
 mainPage' :: String -> Html -> Html -> Bool -> RoutedNomyxServer Response
 mainPage' title header body footer = do
-   html <- mainPage title header body footer
+   html <- mainPage title header body footer False
    return $ toResponse html
 
-mainPage :: String -> Html -> Html -> Bool -> RoutedNomyxServer Html
-mainPage title header body footer = ok $ appTemplate' title header body footer
+mainPage :: String -> Html -> Html -> Bool -> Bool -> RoutedNomyxServer Html
+mainPage title header body footer backLink = do
+   link <- showURL MainPage
+   if backLink then ok $ appTemplate' title header body footer (Just $ DT.unpack link)
+   else ok $ appTemplate' title header body footer Nothing
 
 appTemplate' ::
        String -- ^ title
     -> Html   -- ^ extra tags to include in \<head\>
     -> Html   -- ^ contents to put inside \<body\>
     -> Bool   -- ^ include footer
+    -> Maybe String -- ^ link to main page
     -> Html
-appTemplate' title headers body footer = do
+appTemplate' title headers body footer link = do
    H.head $ do
       H.title (string title)
       H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"
@@ -197,19 +203,20 @@ appTemplate' title headers body footer = do
       H.script ! A.type_ "text/JavaScript" ! A.src "/static/nomyx.js" $ ""
    H.body $ do
       H.div ! A.id "container" $ do
-         H.div ! A.id "header" $ headers
+         H.div ! A.id "header" $ table ! width "100%" $ tr $ do
+            td $ headers
+            when (isJust link) $ td ! A.style "text-align:right;" $ H.a "Back to main page" ! (href $ toValue $ fromJust link)
          body
          when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012-2013"
 
 appTemplate ::
-    ( Monad m
-    )
+    ( Monad m)
     => String -- ^ title
     -> Html  -- ^ extra tags to include in \<head\>
     -> Html    -- ^ contents to put inside \<body\>
     -> m Response
 appTemplate title headers body = do
-   return $ toResponse $ appTemplate' title headers body True
+   return $ toResponse $ appTemplate' title headers body True Nothing
 
 -- | return the player number (user ID) based on the session cookie.
 getPlayerNumber :: (TVar Session) -> RoutedNomyxServer PlayerNumber

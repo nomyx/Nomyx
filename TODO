@@ -11,7 +11,6 @@ Improvements:
 - refresh web page when new event (currently, player needs to hit F5)
 - secure interpreter with mueval: time limits, no unsafe instructions, memory limits...
 - add a name to events to be able to delete categories of them
-- add "back to main page" links
 - use TH in addRuleParams
 - possibility to modify game details
 - hide when no information

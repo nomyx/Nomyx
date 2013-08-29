@@ -46,6 +46,7 @@ newGamePage = do
             "New game"
             (blazeForm mf newGameLink)
             False
+            True
 
 newGamePost :: (TVar Session) -> RoutedNomyxServer Html
 newGamePost ts = do
@@ -55,7 +56,7 @@ newGamePost ts = do
    newGameLink <- showURL SubmitNewGame
    pn <- getPlayerNumber ts
    case r of
-      Left errorForm -> mainPage  "New game" "New game" (blazeForm errorForm newGameLink) False
+      Left errorForm -> mainPage  "New game" "New game" (blazeForm errorForm newGameLink) False True
       Right (NewGameForm name desc) -> do
          webCommand ts $ newGame name desc pn
          seeOther link $ string "Redirecting..."

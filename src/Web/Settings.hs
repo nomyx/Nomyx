@@ -66,6 +66,7 @@ settingsPage ps names emails = do
              "Player settings"
              (blazeForm mf settingsLink)
              False
+             True
 
 settings :: (TVar Session) -> RoutedNomyxServer Html
 settings ts  = do
@@ -89,7 +90,7 @@ newSettings ts = do
          seeOther link $ string "Redirecting..."
       (Left errorForm) -> do
          settingsLink <- showURL SubmitPlayerSettings
-         mainPage  "Player settings" "Player settings" (blazeForm errorForm settingsLink) False
+         mainPage  "Player settings" "Player settings" (blazeForm errorForm settingsLink) False True
 
 forbiddenNames :: (TVar Session) -> PlayerNumber -> IO [PlayerName]
 forbiddenNames ts pn = liftIO $ do
@@ -111,10 +112,7 @@ advanced ts = do
    pn <- getPlayerNumber ts
    pfd <- getProfile' ts pn
    page <- advancedPage (_pLastUpload $ fromJust pfd) (_pAdmin $ fromJust pfd)
-   mainPage  "Advanced"
-             "Advanced"
-             page
-             False
+   mainPage "Advanced" "Advanced" page False True
 
 
 advancedPage :: LastUpload -> Admin -> RoutedNomyxServer Html
@@ -175,7 +173,7 @@ newPlayAsSettings ts = do
          seeOther link $ string "Redirecting..."
       (Left errorForm) -> do
          settingsLink <- showURL SubmitPlayAs
-         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False
+         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
 uploadForm = RB.inputFile
@@ -204,4 +202,4 @@ newAdminPass ts = do
          seeOther link $ string "Redirecting..."
       (Left errorForm) -> do
          settingsLink <- showURL SubmitAdminPass
-         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False
+         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
