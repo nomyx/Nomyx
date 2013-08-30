@@ -28,13 +28,14 @@ uploadExample = "module SimpleModule where\n" ++
                 "helperFunction :: String\n" ++
                 "helperFunction = \"Hello\"\n"
 
-code = "This is where you type in your new rule. Its type must be \"RuleFunc\". As a first rule, you can try to type \"nothing\", which is a rule that does nothing. Other examples can be found in the file Examples.hs accessible on the left tab."
-actives = "Those rules are active and control the game. Usually, initial rules define how to propose and activate new rules (for example, a democratic vote) and how to win. Of course, this can be changed!"
-pendings = "Rules are pending after being proposed by a player. Only another, active rule can activate those rules with instruction \"activateRule\"."
-inputs = "Rules can trigger an input to gather data from the player, for example with the instruction \"onInputRadio\"."
-events = "Rules can register on events, in order to be triggered when the event happens, for example with the instruction \"onEvent\"."
-variables = "Rules can create variables to store data. For example, a rule creating a bank account with instruction \"newVar\" will make a new variable appear here."
-outputs = "Rules can display text on players screen, with instruction \"output\"."
+rules = "The rules are displayed here. The active rules are controlling the game. " ++
+        "When a player proposes a rule, it is set to pending. Only another, already active rule can activate a pending rule (with the instruction \"activateRule\")."
+inputsOutputs = "The inputs and outputs triggered by the rules are displayed here.\n For example, a rules can trigger an input to gather data from the player, with the instruction \"onInputRadio\".\n" ++
+                "Rules can also display text message here, with the instruction \"output\"."
+code = "You can type in your new rule in the box below. The text entered must have the type \"RuleFunc\" when compiled.\nAs a first rule, you can try to type \"nothing\", which is a rule that does nothing. Other examples can be found in the file Examples.hs accessible on the left tab."
+events = "Rules can register on events, in order to be triggered when the event happens, for example with the instruction \"onEvent\".\n"
+variables = "Variables: Rules can create variables to store data. For example, a rule creating a bank account with instruction \"newVar\" will make a new variable appear here."
+
 view = "Only view a game. You will not be able to propose new rules."
 join = "Be part of the game. You will be able to propose new rules, vote etc. Please register in the game's agora (see the link on game page) to follow the game."
 

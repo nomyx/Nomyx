@@ -34,24 +34,23 @@ import qualified Text.Reform.Blaze.Common as RBC
 import qualified Language.Haskell.HsColour.HTML as HSC
 import Language.Haskell.HsColour.Colourise hiding (string)
 import Multi as M
-import Debug.Trace (trace)
 import Data.List.Split
 import Data.Typeable
 import Data.Time
 import System.Locale
 default (Integer, Double, Data.Text.Text)
 
-viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> RoutedNomyxServer Html
-viewGame g pn mlr = do
+viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> Bool -> RoutedNomyxServer Html
+viewGame g pn mlr isAdmin = do
    let inGame = isJust $ Utils.getPlayer g pn
-   rf <- viewRuleForm mlr inGame
+   rf <- viewRuleForm mlr inGame isAdmin
    vios <- viewIOs pn (_rules g) (_events g) (_outputs g)
    ok $ table $ do
       tr $ td $ div ! A.id "gameDesc" $ viewGameDesc g pn
       tr $ td $ div ! A.id "rules" $ viewAllRules g
       tr $ td $ div ! A.id "ios" $ vios
       tr $ td $ div ! A.id "newRule" $ rf
-      tr $ td $ div ! A.id "details" ! A.title (toValue Help.events)  $ viewDetails pn g
+      tr $ td $ div ! A.id "details" $ viewDetails pn g
 
 viewGameDesc :: Game -> PlayerNumber -> Html
 viewGameDesc g pn = do
@@ -86,9 +85,9 @@ viewVictory g = do
 
 viewAllRules :: Game -> Html
 viewAllRules g = do
-   h3 "Rules"
-   viewRules (activeRules g)   "Active rules"     True g ! (A.title $ toValue Help.actives) >> br
-   viewRules (pendingRules g)  "Pending rules"    True g ! (A.title $ toValue Help.pendings) >> br
+   titleWithHelpIcon (h3 "Rules") Help.rules
+   viewRules (activeRules g)   "Active rules"     True g >> br
+   viewRules (pendingRules g)  "Pending rules"    True g >> br
    viewRules (rejectedRules g) "Suppressed rules" False g >> br
 
 viewRules :: [Rule] -> String -> Bool -> Game -> Html
@@ -133,12 +132,13 @@ concatMapM f xs   =  liftM concat (mapM f xs)
 
 viewDetails :: PlayerNumber -> Game -> Html
 viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
-   p $ h4 "Vars:"
+   p $ titleWithHelpIcon (h4 "Variables:") Help.variables
    viewVars   (_variables g)
-   p $ h4 "Events:"
+   p $ titleWithHelpIcon (h4 "Events:") Help.events
    viewEvents (_events g)
    p $ h4 "Log:"
    viewLogs    (_logs g) pn
+
 
 viewEvents :: [EventHandler] -> Html
 viewEvents ehs = table ! A.class_ "table" $ do
@@ -160,7 +160,7 @@ viewIOs :: PlayerNumber -> [Rule] -> [EventHandler] -> [Output] -> RoutedNomyxSe
 viewIOs pn rs ehs os = do
    vios <- mapM (viewIORule pn ehs os) (sort rs)
    ok $ do
-      h3 "Inputs/Ouputs"
+      titleWithHelpIcon (h3 "Inputs/Ouputs") Help.inputsOutputs
       mconcat vios
 
 viewIORule :: PlayerNumber -> [EventHandler] -> [Output] -> Rule -> RoutedNomyxServer Html
@@ -229,23 +229,24 @@ viewVar (Var vRuleNumber vName vData) = tr $ do
    td ! A.class_ "td" $ string . show $ vData
 
 
-newRuleForm :: (Maybe SubmitRule) -> NomyxForm SubmitRule
-newRuleForm (Just lr) = newRuleForm' lr
-newRuleForm Nothing = newRuleForm' (SubmitRule "" "" "")
+newRuleForm :: (Maybe SubmitRule) -> Bool -> NomyxForm (SubmitRule, Maybe String)
+newRuleForm (Just lr) isAdmin = newRuleForm' lr isAdmin
+newRuleForm Nothing isAdmin = newRuleForm' (SubmitRule "" "" "") isAdmin
 
-newRuleForm' :: SubmitRule -> NomyxForm SubmitRule
-newRuleForm' (SubmitRule name desc code) =
-   pure SubmitRule  <*> RB.label "Name: " ++> (RB.inputText name)
-                    <*> RB.label "      Short description: " ++> RB.inputText desc
-                    <*> RB.label "      Code: " ++> RB.textarea 80 15 code
-                           `RBC.setAttr` A.class_ "code" `RBC.setAttr` A.placeholder "Enter here your rule" `RBC.setAttr` (A.title (toValue Help.code))
+newRuleForm' :: SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String)
+newRuleForm' (SubmitRule name desc code) isAdmin =
+   (,) <$> (SubmitRule <$> RB.label "Name: " ++> (RB.inputText name)
+                       <*> RB.label "      Short description: " ++> RB.inputText desc
+                       <*> RB.label "      Code: " ++> RB.textarea 80 15 code `RBC.setAttr` A.class_ "code" `RBC.setAttr` A.placeholder "Enter here your rule")
+       <*> if isAdmin then RB.inputSubmit "Admin submit" else pure Nothing
 
-viewRuleForm :: Maybe LastRule -> Bool -> RoutedNomyxServer Html
-viewRuleForm msr inGame = do
+
+viewRuleForm :: Maybe LastRule -> Bool -> Bool -> RoutedNomyxServer Html
+viewRuleForm msr inGame isAdmin = do
    link <- showURL NewRule
-   lf  <- lift $ viewForm "user" (newRuleForm (fst <$> msr))
+   lf  <- lift $ viewForm "user" (newRuleForm (fst <$> msr) isAdmin)
    ok $ do
-      h3 "Propose a new rule:"
+      titleWithHelpIcon (h3 "Propose a new rule:") Help.code
       if inGame then do
          blazeForm lf (link)
          let error = snd <$> msr
@@ -258,11 +259,11 @@ newRule :: (TVar Session) -> RoutedNomyxServer Html
 newRule ts = do
    methodM POST
    s@(T.Session sh _ _) <- liftIO $ readTVarIO ts
-   r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing)
+   r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing False)
    link <- showURL MainPage
    pn <- getPlayerNumber ts
    case r of
-       Right sr -> do
+       Right (sr, Nothing) -> do
           webCommand ts $ submitRule sr pn sh
           liftIO $ do
              s' <- readTVarIO ts  --TODO clean this
@@ -270,11 +271,10 @@ newRule ts = do
              gn' <- getPlayersGame pn s'
              let rs = _rules $ _game $ fromJust gn
              let rs' = _rules $ _game $ fromJust gn'
-             when (length rs' > length rs) $ trace "new rule mail " $ sendMailsNewRule s' sr pn
+             when (length rs' > length rs) $ sendMailsNewRule s' sr pn
+       Right (sr, Just _) -> webCommand ts $ adminSubmitRule sr pn sh
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
-
-
 
 viewLogs :: [Log] -> PlayerNumber -> Html
 viewLogs log pn = do
@@ -337,9 +337,20 @@ leaveGame ts gn = do
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
+delGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
+delGame ts gn = do
+   webCommand ts (M.delGame gn)
+   link <- showURL MainPage
+   seeOther link $ toResponse "Redirecting..."
+
 viewGamePlayer :: (TVar Session) -> GameName -> RoutedNomyxServer Response
 viewGamePlayer ts gn = do
    pn <- getPlayerNumber ts
    webCommand ts (M.viewGamePlayer gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
+
+titleWithHelpIcon :: Html -> String -> Html
+titleWithHelpIcon title help = table ! A.width "100%" $ tr $ do
+   td ! A.style "text-align:left;" $ title
+   td ! A.style "text-align:right;" $ img ! A.src "/static/pictures/help.jpg" ! A.title (toValue help)
