@@ -50,7 +50,6 @@ import Data.Acid.Local (createCheckpointAndClose)
 import Happstack.Auth.Core.Profile (initialProfileState)
 import System.Unix.Directory
 
-
 defaultLogFile, profilesDir, modulesDir :: FilePath
 defaultLogFile = "Nomyx.save"
 profilesDir = "profiles"
@@ -64,8 +63,12 @@ main = do
    if (Version `elem` flags) then do
       putStrLn $ "Nomyx " ++ showVersion version
       return True
+   else if (Help `elem` flags) then do
+      putStrLn $ usageInfo header options
+      return True
    else do
-      putStrLn "Welcome to Nomyx!" 
+      putStrLn "Welcome to Nomyx!"
+      putStrLn "Type \"Nomyx --help\" for usage options"  
       case (Daemon `elem` flags) of
          True -> (daemonize $ start flags) >> return True
          False -> start flags >> return True
@@ -75,16 +78,15 @@ start flags = do
    serverCommandUsage
    --start the haskell interpreter
    sh <- protectHandlers startInterpreter
+   hostName <- getHostName
    logFilePath <- case (findSaveFile flags) of
       Just f -> canonicalizePath f
       Nothing -> getDataFileName defaultLogFile
-   port <- case (findPort flags) of
-      Just p -> return $ read p
-      Nothing -> return $ 8000
-   host <- case (findHost flags) of
-      Just h -> return h
-      Nothing -> getHostName >>= return
-   let settings sendMail = Settings logFilePath (Network host port) sendMail "NXPSD"
+   let port = read $ fromMaybe "8000" (findPort flags)
+   let host = fromMaybe hostName (findHost flags)
+   let adminPass = fromMaybe "NXPSD" (findAdminPass flags)
+   let sendMail = Mails `elem` flags
+   let settings = Settings logFilePath (Network host port) sendMail adminPass
    dataDir <- getDataDir
    if Test `elem` flags then do
       putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
@@ -95,12 +97,12 @@ start flags = do
       putStrLn "Deleting save files"
       (removeRecursiveSafely $ dataDir </> profilesDir)        `catch` (\(e::SomeException)-> putStrLn $ show e)
       (removeRecursiveSafely $ dataDir </> modulesDir </> "*") `catch` (\(e::SomeException)-> putStrLn $ show e)
-      (removeFile (_logFilePath $ settings True))              `catch` (\(e::SomeException)-> putStrLn $ show e)
+      (removeFile (_logFilePath settings))                     `catch` (\(e::SomeException)-> putStrLn $ show e)
    else do
       --creating game structures
       multi <- case (findLoadTest flags) of
-         Just testName -> loadTestName (settings False) testName sh
-         Nothing -> Main.loadMulti (settings True) sh
+         Just testName -> loadTestName settings testName sh
+         Nothing -> Main.loadMulti settings sh
       --main loop
       withAcid (Just $ dataDir </> profilesDir) $ \acid -> do
          tvSession <- atomically $ newTVar (Session sh multi acid)
@@ -150,20 +152,26 @@ data Flag = Verbose
           | Daemon
           | LoadTest String
           | DeleteSaveFile
+          | AdminPass String
+          | Mails
+          | Help
        deriving (Show, Eq)
 
 -- | launch options description
 options :: [OptDescr Flag]
 options =
-     [ Option ['v']     ["verbose"]  (NoArg Verbose)              "chatty output on stderr"
-     , Option ['V','?'] ["version"]  (NoArg Version)              "show version number"
-     , Option ['t']     ["tests"]    (NoArg Test)                 "perform routine check"
-     , Option ['h']     ["host"]     (ReqArg HostName "Hostname") "specify host name"
-     , Option ['p']     ["port"]     (ReqArg Port "Port")         "specify port"
-     , Option ['r']     ["read"]     (ReqArg LogFile "SaveFile")  "specify save file (default is Nomyx.save)"
-     , Option ['n']     ["delete"]   (NoArg DeleteSaveFile)       "delete all save files"
-     , Option ['d']     ["daemon"]   (NoArg Daemon)               "run in daemon mode"
-     , Option ['l']     ["loadtest"] (ReqArg LoadTest "TestName") "specify name of test to load"
+     [ Option ['v'] ["verbose"]   (NoArg Verbose)                "chatty output on stderr"
+     , Option ['V'] ["version"]   (NoArg Version)                "show version number"
+     , Option ['t'] ["tests"]     (NoArg Test)                   "perform routine check"
+     , Option ['h'] ["host"]      (ReqArg HostName "Hostname")   "specify host name"
+     , Option ['p'] ["port"]      (ReqArg Port "Port")           "specify port"
+     , Option ['r'] ["read"]      (ReqArg LogFile "SaveFile")    "specify save file (default is Nomyx.save)"
+     , Option ['n'] ["delete"]    (NoArg DeleteSaveFile)         "delete all save files"
+     , Option ['d'] ["daemon"]    (NoArg Daemon)                 "run in daemon mode"
+     , Option ['l'] ["loadtest"]  (ReqArg LoadTest "TestName")   "specify name of test to load"
+     , Option ['a'] ["adminPass"] (ReqArg AdminPass "AdminPass") "specify the admin password"
+     , Option ['m'] ["mails"]     (NoArg Mails)                  "send mails (default is no)"
+     , Option ['?'] ["help"]      (NoArg Help)                   "display usage options (this screen)"
      ]
     
 nomyxOpts :: [String] -> IO ([Flag], [String])
@@ -171,7 +179,9 @@ nomyxOpts argv =
        case getOpt Permute options argv of
           (o,n,[]  ) -> return (o,n)
           (_,_,errs) -> ioError (userError (concat errs ++ usageInfo header options))
-      where header = "Usage: Nomyx [OPTION...]"
+
+header :: String
+header = "Usage: Nomyx [OPTION...]"
 
 findPort :: [Flag] -> Maybe String
 findPort fs = headMay $ catMaybes $ map isPort fs where
@@ -192,6 +202,11 @@ findSaveFile :: [Flag] -> Maybe FilePath
 findSaveFile fs = headMay $ catMaybes $ map isSaveFile fs where
     isSaveFile (LogFile a) = Just a
     isSaveFile _ = Nothing
+
+findAdminPass :: [Flag] -> Maybe String
+findAdminPass fs = headMay $ catMaybes $ map isAdminPass fs where
+    isAdminPass (AdminPass a) = Just a
+    isAdminPass _ = Nothing
 
 helper :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
 helper handler signal = liftIO $ S.installHandler signal handler Nothing

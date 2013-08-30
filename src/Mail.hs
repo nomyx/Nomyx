@@ -64,8 +64,9 @@ newRuleTextBody playerName (SubmitRule name desc code) prop net =
 newRuleObject :: PlayerName -> String
 newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 
-sendMailsNewRule :: Session -> SubmitRule -> PlayerNumber -> IO()
-sendMailsNewRule s sr pn = do
+sendMailsNewRule :: Session -> SubmitRule -> PlayerNumber -> IO ()
+sendMailsNewRule s sr pn = when (_sendMails $ _mSettings $ _multi s) $ do
+   putStrLn "Sending mails"
    gn <- fromJust <$> getPlayersGame pn s
    let sendMailsTo = delete pn (map _playerNumber (_players $ _game gn))
    proposer <- getPlayersName pn s

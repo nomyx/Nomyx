@@ -2,8 +2,6 @@
 TODO list
 
 Bugs:
-- add global option to not send mails
-- store hide/show status of divs
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -19,7 +17,7 @@ Improvements:
 - add "delete game" for admin (+ del/add player, rule, event, variable?)
 - fix facebook
 - vote: include new players, delete leaving players 
-- add help icons
+- make settings file with start up rules
 
 Futur Nomic:
 - ability to analyse rules, proof system

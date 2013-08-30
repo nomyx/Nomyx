@@ -21,7 +21,6 @@ import Web.Routes.RouteT
 import Control.Concurrent.STM
 import Data.Maybe
 import Data.Text(Text)
-import Text.Blaze.Internal(string)
 import Multi as M
 import Utils
 import Web.Help as Help
@@ -156,10 +155,8 @@ advancedPage mlu (Admin admin (PlayAs mpn)) = do
 adminPassForm :: NomyxForm String
 adminPassForm = RB.inputText ""
 
-
 playAsForm :: [PlayerNumber] -> NomyxForm (Maybe PlayerNumber)
-playAsForm pns = readPlayAs (label "Play as: " ++> RB.inputCheckbox False) (RB.inputText "")
-
+playAsForm _ = readPlayAs (label "Play as: " ++> RB.inputCheckbox False) (RB.inputText "")
 
 newPlayAsSettings :: (TVar Session) -> RoutedNomyxServer Html
 newPlayAsSettings ts = do
