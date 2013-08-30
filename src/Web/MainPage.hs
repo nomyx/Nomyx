@@ -46,18 +46,19 @@ default (Integer, Double, Data.Text.Text)
 viewMulti :: PlayerNumber -> Session -> RoutedNomyxServer Html
 viewMulti pn s = do
    pfd <- getProfile s pn
-   gns <- viewGamesTab (map G._game $ _games $ _multi s) (_isAdmin $ _pAdmin $ fromJust pfd)
+   let isAdmin = _isAdmin $ _pAdmin $ fromJust pfd
+   gns <- viewGamesTab (map G._game $ _games $ _multi s) isAdmin
    mgn <- liftRouteT $ lift $ getPlayersGame pn s
    g <- case mgn of
-      Just g -> viewGame (G._game g) pn (_pLastRule $ fromJust pfd)
+      Just g -> viewGame (G._game g) pn (_pLastRule $ fromJust pfd) isAdmin
       Nothing -> ok $ h3 "Not viewing any game"
    ok $ do
       div ! A.id "gameList" $ gns
       div ! A.id "game" $ g
 
 viewGamesTab :: [Game] -> Bool -> RoutedNomyxServer Html
-viewGamesTab gs admin = do
-   gns <- mapM viewGameName gs
+viewGamesTab gs isAdmin = do
+   gns <- mapM (viewGameName isAdmin) gs
    newGameLink <- showURL NewGame
    settingsLink <- showURL PSettings
    advLink <- showURL Advanced
@@ -80,30 +81,32 @@ viewGamesTab gs admin = do
       H.a "Voting system"     ! (href $ "/src/Language/Nomyx/Vote.hs") >> br
       mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) fmods
       br >> "Settings:" >> br
-      when admin $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
+      when isAdmin $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
       H.a "Advanced"        ! (href $ toValue advLink) >> br
       H.a "Logout "         ! (href $ toValue logoutURL) >> br
 
 
-viewGameName :: Game -> RoutedNomyxServer Html
-viewGameName g = do
+viewGameName :: Bool -> Game -> RoutedNomyxServer Html
+viewGameName isAdmin g = do
    let gn = _gameName g
-   join <-  showURL (JoinGame gn)
+   join  <- showURL (JoinGame gn)
    leave <- showURL (LeaveGame gn)
-   view <-  showURL (ViewGame gn)
-   ok $ do
-      tr $ do
-         td ! A.id "gameName" $ string $ (gn ++ "   ")
-         td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
-         td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.join)
-         td $ H.a "Leave" ! (href $ toValue leave)
-         div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
-            div $ do
-               h2 "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n \
-                   If you do not wich to play, you can just view the game."
-               H.a "Join"  ! (href $ toValue join) ! A.class_ "join" ! (A.title $ toValue Help.join)
-               H.a "View"  ! (href $ toValue view) ! A.class_ "view" ! (A.title $ toValue Help.view)
+   view  <- showURL (ViewGame gn)
+   del  <- showURL (DelGame gn)
+   ok $ tr $ do
+      td ! A.id "gameName" $ string $ (gn ++ "   ")
+      td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
+      td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.join)
+      td $ H.a "Leave" ! (href $ toValue leave)
+      when isAdmin $ td $ H.a "Del"   ! (href $ toValue del)
+      div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
+         div $ do
+            h2 "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n \
+                If you do not wich to play, you can just view the game."
+            H.a "Join" ! (href $ toValue join) ! A.class_ "join" ! (A.title $ toValue Help.join)
+            H.a "View" ! (href $ toValue view) ! A.class_ "view" ! (A.title $ toValue Help.view)
+
 
 nomyxPage :: (TVar Session) -> RoutedNomyxServer Response
 nomyxPage ts = do
@@ -132,6 +135,7 @@ routedNomyxCommands ts MainPage              = nomyxPage ts
 routedNomyxCommands ts (JoinGame game)       = joinGame ts game
 routedNomyxCommands ts (LeaveGame game)      = leaveGame ts game
 routedNomyxCommands ts (ViewGame game)       = viewGamePlayer ts game
+routedNomyxCommands ts (DelGame game)        = delGame ts game
 routedNomyxCommands ts NewRule               = newRule ts     >>= return . toResponse
 routedNomyxCommands _  NewGame               = newGamePage    >>= return . toResponse
 routedNomyxCommands ts SubmitNewGame         = newGamePost ts >>= return . toResponse

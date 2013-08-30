@@ -42,6 +42,7 @@ import Utils
 import Data.Maybe
 import qualified Data.Text as DT
 
+
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
                 | UniqueName
@@ -71,6 +72,7 @@ data PlayerCommand = HomePage
                    | ViewGame  GameName
                    | JoinGame  GameName
                    | LeaveGame GameName
+                   | DelGame   GameName
                    | DoInput   EventNumber
                    | NewRule
                    | NewGame

@@ -66,6 +66,10 @@ joinGame game pn = do
    focus multi $ inGameDo game $ G.update $ JoinGame pn name
    viewGamePlayer game pn
 
+-- | del a game.delGame :: GameName -> StateT Session IO ()
+delGame name = focus multi $ void $ games %= filter ((/= name) . getL (game >>> gameName))
+
+
 -- | leave a game.
 leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
 leaveGame game pn = focus multi $ inGameDo game $ G.update $ LeaveGame pn
@@ -85,6 +89,22 @@ submitRule sr@(SubmitRule _ _ code) pn sh = do
          inPlayersGameDo_ pn $ update $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
          modifyProfile pn (pLastRule ^= Just (sr, errorMsg)) -- keep in memory the last rule proposed by the player to display it in case of error
+
+adminSubmitRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Session IO ()
+adminSubmitRule sr@(SubmitRule _ _ code) pn sh = do
+   tracePN pn $ "proposed " ++ (show sr)
+   mrr <- liftIO $ interpretRule code sh
+   case mrr of
+      Right _ -> do
+         tracePN pn $ "proposed rule compiled OK "
+         inPlayersGameDo_ pn $ update' (Just $ getRuleFunc sh) (SystemAddRule sr)
+         modifyProfile pn (pLastRule ^= Nothing)
+      Left e -> do
+         let errorMsg = showInterpreterError e
+         inPlayersGameDo_ pn $ update $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
+         tracePN pn ("Error in submitted rule: " ++ errorMsg)
+         modifyProfile pn (pLastRule ^= Just (sr, errorMsg))
+
 
 inputResult :: PlayerNumber -> EventNumber -> UInputData -> StateT Session IO ()
 inputResult pn en ir = inPlayersGameDo_ pn $ update $ InputResult pn en ir
@@ -117,8 +137,11 @@ adminPass pass pn = do
    s <- get
    if (pass == (_adminPassword $ _mSettings $ _multi s)) then do
       tracePN pn "getting admin rights"
-      modifyProfile pn ((pAdmin >>> isAdmin) ^= True)
-   else tracePN pn "submitted wrong admin password"
+      modifyProfile pn $ (pAdmin >>> isAdmin) ^= True
+   else do
+      tracePN pn "submitted wrong admin password"
+      modifyProfile pn $ (pAdmin >>> isAdmin) ^= False
+
 
 -- | Utility functions
 
@@ -193,7 +216,7 @@ rVoteMajority = SubmitRule "Majority Vote"
 
 initialGame :: ServerHandle -> StateT LoggedGame IO ()
 initialGame sh = mapM_ addR [rVoteUnanimity, rVictory5Rules]
-   where addR = update' (Just $ getRuleFunc sh) . SystemAddRule
+   where addR r = update' (Just $ getRuleFunc sh) (SystemAddRule r)
 
 initialLoggedGame :: GameName -> GameDesc -> UTCTime -> ServerHandle -> IO LoggedGame
 initialLoggedGame name desc date sh = do
