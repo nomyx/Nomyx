@@ -52,7 +52,7 @@ postAuthenticate ts = do
          seeOther link (toResponse $ string "to main page")
       Nothing -> do
          webCommand ts $ M.newPlayer pn defaultPlayerSettings
-         link <- showURL $ PSettings
+         link <- showURL $ Web.Common.PlayerSettings
          seeOther link (toResponse $ string "to settings page")
 
 

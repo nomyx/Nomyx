@@ -142,6 +142,8 @@ adminPass pass pn = do
       tracePN pn "submitted wrong admin password"
       modifyProfile pn $ (pAdmin >>> isAdmin) ^= False
 
+globalSettings :: Bool -> StateT Session IO ()
+globalSettings mails = void $ (multi >>> mSettings >>> sendMails) ~= mails
 
 -- | Utility functions
 

@@ -78,11 +78,12 @@ data PlayerCommand = HomePage
                    | NewGame
                    | SubmitNewGame
                    | Upload
-                   | PSettings
+                   | PlayerSettings
                    | SubmitPlayerSettings
                    | Advanced
                    | SubmitPlayAs
                    | SubmitAdminPass
+                   | SubmitSettings
                    deriving (Show)
 
 

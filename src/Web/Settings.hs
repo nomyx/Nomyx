@@ -30,12 +30,12 @@ import Language.Haskell.HsColour.Colourise hiding (string)
 import Text.Blaze.Internal hiding (Text)
 default (Integer, Double, Data.Text.Text)
 
-settingsForm :: (Maybe PlayerSettings) -> [PlayerName] -> [String] -> NomyxForm PlayerSettings
-settingsForm (Just prof) ns emails = settingsForm' (_pPlayerName prof) (_mail prof) (_mailNewRule prof) ns emails
-settingsForm Nothing ns emails = settingsForm' "" "" True ns emails
+playerSettingsForm :: (Maybe PlayerSettings) -> [PlayerName] -> [String] -> NomyxForm PlayerSettings
+playerSettingsForm (Just prof) ns emails = playerSettingsForm' (_pPlayerName prof) (_mail prof) (_mailNewRule prof) ns emails
+playerSettingsForm Nothing ns emails = playerSettingsForm' "" "" True ns emails
 
-settingsForm':: String -> String -> Bool -> [PlayerName] -> [String] -> NomyxForm PlayerSettings
-settingsForm' name mailTo mailNewRule names emails = pure Types.PlayerSettings
+playerSettingsForm':: String -> String -> Bool -> [PlayerName] -> [String] -> NomyxForm PlayerSettings
+playerSettingsForm' name mailTo mailNewRule names emails = pure Types.PlayerSettings
    <*> errorList ++> label "Player Name: " ++> (RB.inputText name) `transformEither` (uniqueName names) `transformEither` (fieldRequired PlayerNameRequired) <++ br
    <*> errorList ++> label "Please enter your mail: " ++> (RB.inputText mailTo) `transformEither` (uniqueEmail emails) <++ br
    <*> pure True
@@ -60,31 +60,31 @@ uniqueEmail names name = case name `elem` names of
 settingsPage :: PlayerSettings -> [PlayerName] -> [String] -> RoutedNomyxServer Html
 settingsPage ps names emails = do
    settingsLink <- showURL SubmitPlayerSettings
-   mf <- lift $ viewForm "user" $ settingsForm (Just ps) names emails
+   mf <- lift $ viewForm "user" $ playerSettingsForm (Just ps) names emails
    mainPage  "Player settings"
              "Player settings"
              (blazeForm mf settingsLink)
              False
              True
 
-settings :: (TVar Session) -> RoutedNomyxServer Html
-settings ts  = do
+playerSettings :: (TVar Session) -> RoutedNomyxServer Html
+playerSettings ts  = do
    pn <- getPlayerNumber ts
    pfd <- getProfile' ts pn
    names <- liftIO $ forbiddenNames ts pn
    emails <- liftIO $ forbiddenEmails ts pn
    settingsPage (_pPlayerSettings $ fromJust pfd) names emails
 
-newSettings :: (TVar Session) -> RoutedNomyxServer Html
-newSettings ts = do
+newPlayerSettings :: (TVar Session) -> RoutedNomyxServer Html
+newPlayerSettings ts = do
    methodM POST
    pn <- getPlayerNumber ts
    names <- liftIO $ forbiddenNames ts pn
    emails <- liftIO $ forbiddenEmails ts pn
-   p <- liftRouteT $ eitherForm environment "user" $ settingsForm Nothing names emails
+   p <- liftRouteT $ eitherForm environment "user" $ playerSettingsForm Nothing names emails
    case p of
       Right ps -> do
-         webCommand ts $ playerSettings ps pn
+         webCommand ts $ M.playerSettings ps pn
          link <- showURL MainPage
          seeOther link $ string "Redirecting..."
       (Left errorForm) -> do
@@ -110,18 +110,21 @@ advanced :: (TVar Session) -> RoutedNomyxServer Html
 advanced ts = do
    pn <- getPlayerNumber ts
    pfd <- getProfile' ts pn
-   page <- advancedPage (_pLastUpload $ fromJust pfd) (_pAdmin $ fromJust pfd)
+   session <- liftIO $ atomically $ readTVar ts
+   page <- advancedPage (_pLastUpload $ fromJust pfd) (_pAdmin $ fromJust pfd) (_mSettings $ _multi session)
    mainPage "Advanced" "Advanced" page False True
 
 
-advancedPage :: LastUpload -> Admin -> RoutedNomyxServer Html
-advancedPage mlu (Admin admin (PlayAs mpn)) = do
+advancedPage :: LastUpload -> Admin -> Settings -> RoutedNomyxServer Html
+advancedPage mlu (Admin admin (PlayAs mpn)) settings = do
    uploadLink <- showURL Upload
-   adminPassLink <- showURL SubmitAdminPass
-   playAsLink <- showURL SubmitPlayAs
+   submitAdminPass <- showURL SubmitAdminPass
+   submitPlayAs <- showURL SubmitPlayAs
+   submitSettings <- showURL SubmitSettings
    up  <- lift $ viewForm "user" uploadForm  --TODO add the file name (missing Reform feature)
    ap <- lift $ viewForm "user" $ adminPassForm
-   mf <- lift $ viewForm "user" $ playAsForm []
+   paf <- lift $ viewForm "user" $ playAsForm []
+   set <- lift $ viewForm "user" $ settingsForm (_sendMails settings)
    ok $ do
       p $ do
          pre $ string Help.getSaveFile
@@ -142,14 +145,19 @@ advancedPage mlu (Admin admin (PlayAs mpn)) = do
       hr
       p $ do
          h5 "Enter admin password to get admin rights:"
-         blazeForm ap (adminPassLink)
+         blazeForm ap (submitAdminPass)
          when admin $ h5 "You are admin"
       when admin $ do
          hr
          p $ do
             h5 "Enter the number of the player you want to play for:"
-            blazeForm mf playAsLink
+            blazeForm paf submitPlayAs
             when (isJust mpn) $ h5 $ string $ "Playing as player " ++ (show $ fromJust mpn)
+         p $ do
+            h5 "Send mails:"
+            blazeForm set submitSettings
+            h5 $ string $ if (_sendMails settings) then "mails will be sent " else "mails will NOT be sent "
+
 
 
 adminPassForm :: NomyxForm String
@@ -171,6 +179,24 @@ newPlayAsSettings ts = do
       (Left errorForm) -> do
          settingsLink <- showURL SubmitPlayAs
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
+
+
+settingsForm :: Bool -> NomyxForm Bool
+settingsForm sendMails = label "Send mails: " ++> RB.inputCheckbox sendMails
+
+newSettings :: (TVar Session) -> RoutedNomyxServer Html
+newSettings ts = do
+   methodM POST
+   p <- liftRouteT $ eitherForm environment "user" $ settingsForm False
+   case p of
+      Right ps -> do
+         webCommand ts $ globalSettings ps
+         link <- showURL Advanced
+         seeOther link $ string "Redirecting..."
+      (Left errorForm) -> do
+         settingsLink <- showURL SubmitSettings
+         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
+
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
 uploadForm = RB.inputFile

@@ -30,7 +30,7 @@ import System.Posix.Files
 import qualified Web.Help as Help
 import Types as T
 import Web.Game
-import Web.Common
+import Web.Common as W
 import Web.Settings
 import Web.NewGame
 import Web.Login
@@ -60,7 +60,7 @@ viewGamesTab :: [Game] -> Bool -> RoutedNomyxServer Html
 viewGamesTab gs isAdmin = do
    gns <- mapM (viewGameName isAdmin) gs
    newGameLink <- showURL NewGame
-   settingsLink <- showURL PSettings
+   settingsLink <- showURL W.PlayerSettings
    advLink <- showURL Advanced
    logoutURL  <- showURL (U_AuthProfile $ AuthURL A_Logout)
    dd <- lift $ lift $ PN.getDataDir
@@ -141,11 +141,12 @@ routedNomyxCommands _  NewGame               = newGamePage    >>= return . toRes
 routedNomyxCommands ts SubmitNewGame         = newGamePost ts >>= return . toResponse
 routedNomyxCommands ts (DoInput en)          = newInput en ts >>= return . toResponse
 routedNomyxCommands ts Upload                = newUpload ts   >>= return . toResponse
-routedNomyxCommands ts PSettings             = settings ts    >>= return . toResponse
-routedNomyxCommands ts SubmitPlayerSettings  = newSettings ts >>= return . toResponse
+routedNomyxCommands ts W.PlayerSettings      = playerSettings ts    >>= return . toResponse
+routedNomyxCommands ts SubmitPlayerSettings  = newPlayerSettings ts >>= return . toResponse
 routedNomyxCommands ts Advanced              = advanced ts    >>= return . toResponse
 routedNomyxCommands ts SubmitPlayAs          = newPlayAsSettings ts >>= return . toResponse
 routedNomyxCommands ts SubmitAdminPass       = newAdminPass ts >>= return . toResponse
+routedNomyxCommands ts SubmitSettings        = newSettings ts >>= return . toResponse
 
 launchWebServer :: (TVar Session) -> Network -> IO ()
 launchWebServer tm net = do

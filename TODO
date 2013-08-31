@@ -14,7 +14,6 @@ Improvements:
 - hide when no information
 - cut rules too long
 - add examples with a game master, a castle..
-- add "delete game" for admin (+ del/add player, rule, event, variable?)
 - fix facebook
 - vote: include new players, delete leaving players 
 - make settings file with start up rules
