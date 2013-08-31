@@ -166,8 +166,8 @@ viewIOs pn rs ehs os = do
 viewIORule :: PlayerNumber -> [EventHandler] -> [Output] -> Rule -> RoutedNomyxServer Html
 viewIORule pn ehs os r = do
    vior <- viewIORuleM pn (_rNumber r) ehs os
-   ok $ when (isJust vior) $ do
-      h4 $ string $ "IO for Rule \"" ++ (_rName r) ++ "\" (#" ++ (show $ _rNumber r) ++ ")"
+   ok $ when (isJust vior) $ div ! A.id "IORule" $ do
+      div ! A.id "IORuleTitle" $ h4 $ string $ "IO for Rule \"" ++ (_rName r) ++ "\" (#" ++ (show $ _rNumber r) ++ "):"
       fromJust vior
 
 

@@ -8,28 +8,26 @@ h3{
 
 }
 
+
 #gameList {
    position:absolute;
    background-color:#F4F4F4;
-   border:1px solid silver;
+   border:1px solid black;
    width:250px;
    padding:10px;
    top:60px;
-   left:20px;
+   left:15px;
    overflow: auto;
 }
 
 #game {
    position:absolute;
    background-color:#FFFFFF;
-   border:1px solid silver;
    height:90%;
-   top:60px;
-   left:310px;
-   right:20px;
-   padding-left:10px;
-   padding-right:10px;
-   padding-top:10px;
+   top:57px;
+   left:295px;
+   right:14px;
+   padding-right:20px;
    overflow: auto;
 }
 
@@ -40,6 +38,24 @@ h3{
    left:250px;
    right:20px;
    /**/
+}
+
+/*
+#IORuleTitle {
+   position:relative;
+   top:-30px;
+   background-color:#F4F4F4;
+
+   height:20px;
+}*/
+
+#IORule {
+    border:1px dotted black;
+    padding:10px;
+    padding-bottom:0px;
+    padding-top:0px;
+    margin-bottom:10px;
+    display : block;
 }
 
 .table {
@@ -74,12 +90,11 @@ thead {
 #ios, #details, #rules, #newRule, #gameDesc  {
    float:left;
    background-color:#F4F4F4;
-   border:1px solid silver;
+   border:1px solid black;
    padding-left:10px;
-   padding-bottom:10px;
    padding-right:10px;
    width:100%;
-   margin-bottom:10px;
+   margin-bottom:5px;
 }
 
 #showCodeLink {
