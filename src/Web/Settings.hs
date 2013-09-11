@@ -108,15 +108,17 @@ forbiddenEmails ts pn = liftIO $ do
 
 advanced :: (TVar Session) -> RoutedNomyxServer Html
 advanced ts = do
-   pn <- getPlayerNumber ts
-   pfd <- getProfile' ts pn
    session <- liftIO $ atomically $ readTVar ts
-   page <- advancedPage (_pLastUpload $ fromJust pfd) (_pAdmin $ fromJust pfd) (_mSettings $ _multi session)
+   pn <- getPlayerNumber ts
+   pfd <- getProfile session pn
+   pfds <- liftIO $ getAllProfiles session
+   session <- liftIO $ atomically $ readTVar ts
+   page <- advancedPage (_pLastUpload $ fromJust pfd) (_pAdmin $ fromJust pfd) (_mSettings $ _multi session) pfds
    mainPage "Advanced" "Advanced" page False True
 
 
-advancedPage :: LastUpload -> Admin -> Settings -> RoutedNomyxServer Html
-advancedPage mlu (Admin admin (PlayAs mpn)) settings = do
+advancedPage :: LastUpload -> Admin -> Settings -> [ProfileData] -> RoutedNomyxServer Html
+advancedPage mlu (Admin admin mpn) settings pfds = do
    uploadLink <- showURL Upload
    submitAdminPass <- showURL SubmitAdminPass
    submitPlayAs <- showURL SubmitPlayAs
@@ -153,11 +155,40 @@ advancedPage mlu (Admin admin (PlayAs mpn)) settings = do
             h5 "Enter the number of the player you want to play for:"
             blazeForm paf submitPlayAs
             when (isJust mpn) $ h5 $ string $ "Playing as player " ++ (show $ fromJust mpn)
+         hr
          p $ do
             h5 "Send mails:"
             blazeForm set submitSettings
             h5 $ string $ if (_sendMails settings) then "mails will be sent " else "mails will NOT be sent "
+         hr
+         p $ do
+            h5 "Players:"
+            table ! A.class_ "table" $ do
+               thead $ do
+                  td ! A.class_ "td" $ "#"
+                  td ! A.class_ "td" $ "Name"
+                  td ! A.class_ "td" $ "mail"
+                  td ! A.class_ "td" $ "send mails"
+                  td ! A.class_ "td" $ "viewing game"
+                  td ! A.class_ "td" $ "last rule"
+                  td ! A.class_ "td" $ "last upload"
+                  td ! A.class_ "td" $ "is admin"
+                  td ! A.class_ "td" $ "play as"
+               mapM_ viewProfile pfds
 
+
+viewProfile :: ProfileData -> Html
+viewProfile (ProfileData pn (Types.PlayerSettings playerName mail _ mailNewRule _ _) viewingGame lastRule lastUpload (Admin isAdmin playAs)) =
+   tr $ do
+      td ! A.class_ "td" $ string $ show pn
+      td ! A.class_ "td" $ string playerName
+      td ! A.class_ "td" $ string mail
+      td ! A.class_ "td" $ string $ show mailNewRule
+      td ! A.class_ "td" $ string $ show viewingGame
+      td ! A.class_ "td" $ string $ show lastRule
+      td ! A.class_ "td" $ string $ show lastUpload
+      td ! A.class_ "td" $ string $ show isAdmin
+      td ! A.class_ "td" $ string $ show playAs
 
 
 adminPassForm :: NomyxForm String

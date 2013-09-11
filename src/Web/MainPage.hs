@@ -63,9 +63,9 @@ viewGamesTab gs isAdmin = do
    settingsLink <- showURL W.PlayerSettings
    advLink <- showURL Advanced
    logoutURL  <- showURL (U_AuthProfile $ AuthURL A_Logout)
-   dd <- lift $ lift $ PN.getDataDir
-   mods <- lift $ lift $ getDirectoryContents $ dd </> modDir
-   fmods <- lift $ lift $ filterM (getFileStatus . (\f -> joinPath [dd, modDir, f]) >=> return . isRegularFile) $ mods
+   dd <- liftIO $ PN.getDataDir
+   mods <- liftIO $ getDirectoryContents $ dd </> modDir
+   fmods <- liftIO $ filterM (getFileStatus . (\f -> joinPath [dd, modDir, f]) >=> return . isRegularFile) $ mods
    ok $ do
       h3 "Main menu" >> br
       "Active games:" >> br
@@ -84,7 +84,7 @@ viewGamesTab gs isAdmin = do
       when isAdmin $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
       H.a "Advanced"        ! (href $ toValue advLink) >> br
-      H.a "Logout "         ! (href $ toValue logoutURL) >> br
+      H.a "Logout"          ! (href $ toValue logoutURL) >> br
 
 
 viewGameName :: Bool -> Game -> RoutedNomyxServer Html

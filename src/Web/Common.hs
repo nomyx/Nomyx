@@ -224,7 +224,7 @@ appTemplate title headers body = do
 -- | return the player number (user ID) based on the session cookie.
 getPlayerNumber :: (TVar Session) -> RoutedNomyxServer PlayerNumber
 getPlayerNumber ts = do
-   s@(T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftIO $ readTVarIO ts
+   (T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftIO $ readTVarIO ts
    uid <- getUserId acidAuth acidProfile
    case uid of
       Nothing -> error "not logged in."
@@ -235,7 +235,7 @@ getPlayAs :: (TVar Session) -> RoutedNomyxServer PlayerNumber
 getPlayAs ts = do
    pn <- getPlayerNumber ts
    pf <- getProfile' ts pn
-   case pf >>= _playAs . _pPlayAs . _pAdmin of
+   case pf >>= _pPlayAs . _pAdmin of
       Just playAs -> return playAs
       Nothing     -> return pn
 

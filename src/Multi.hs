@@ -130,7 +130,7 @@ playerSettings :: PlayerSettings -> PlayerNumber -> StateT Session IO ()
 playerSettings playerSettings pn = modifyProfile pn (pPlayerSettings ^= playerSettings)
 
 playAsSetting :: (Maybe PlayerNumber) -> PlayerNumber -> StateT Session IO ()
-playAsSetting mpn pn = modifyProfile pn ((pAdmin >>> pPlayAs) ^= PlayAs mpn)
+playAsSetting mpn pn = modifyProfile pn ((pAdmin >>> pPlayAs) ^= mpn)
 
 adminPass :: String -> PlayerNumber -> StateT Session IO ()
 adminPass pass pn = do

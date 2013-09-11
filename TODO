@@ -17,6 +17,10 @@ Improvements:
 - fix facebook
 - vote: include new players, delete leaving players 
 - make settings file with start up rules
+- make/fix deployement: 
+   - the interpreter needs GHC to be installed: is that right?
+   - the Web application needs to access files from the library (Nomyx-Language)
+   - the interpreter needs the library to be installed to read the modules
 
 Futur Nomic:
 - ability to analyse rules, proof system

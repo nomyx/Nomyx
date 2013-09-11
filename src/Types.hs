@@ -12,9 +12,8 @@ import Language.Nomyx.Game
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Data.Acid (makeAcidic, Update, Query, AcidState)
 import Happstack.Auth (ProfileState, AuthState)
-import Data.Text (Text)
 import Data.Data (Data)
-import Data.IxSet (toList, (@=), getOne, inferIxSet, noCalcs)
+import Data.IxSet (toList, (@=), inferIxSet, noCalcs)
 import qualified Data.IxSet  as IxSet
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
 import Control.Monad.Reader.Class (MonadReader(..))
@@ -34,8 +33,6 @@ $(deriveSafeCopy 1 'base ''LastUpload)
 data Network = Network {_host :: HostName, _port :: Port}
                deriving (Eq, Show, Read, Typeable)
 defaultNetwork = Network "" 0
-newtype PlayAs = PlayAs { _playAs :: Maybe PlayerNumber}
-               deriving (Eq, Show, Read, Ord, Typeable, Data, SafeCopy)
 
 data PlayerSettings =
    PlayerSettings { _pPlayerName   :: PlayerName,
@@ -60,12 +57,12 @@ data Multi = Multi { _games   :: [LoggedGame],
                      deriving (Eq, Read, Show, Typeable)
 
 data Admin = Admin { _isAdmin :: Bool,
-                     _pPlayAs :: PlayAs}
+                     _pPlayAs :: Maybe PlayerNumber}
                      deriving (Eq, Show, Read, Ord, Typeable, Data)
 $(deriveSafeCopy 1 'base ''Admin)
 
 defaultAdmin :: Admin
-defaultAdmin = Admin False (PlayAs Nothing)
+defaultAdmin = Admin False Nothing
 
 -- | 'ProfileData' contains application specific
 data ProfileData =
