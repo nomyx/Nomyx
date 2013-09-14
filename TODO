@@ -21,6 +21,8 @@ Improvements:
    - the interpreter needs GHC to be installed: is that right?
    - the Web application needs to access files from the library (Nomyx-Language)
    - the interpreter needs the library to be installed to read the modules
+- rules should communicate by message passing instead of shared variables
+
 
 Futur Nomic:
 - ability to analyse rules, proof system
