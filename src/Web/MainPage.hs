@@ -17,8 +17,6 @@ import Web.Routes.Happstack
 import Web.Routes.RouteT
 import Text.Blaze.Internal
 import Control.Monad
-import Paths_Nomyx as PN
-import Paths_Nomyx_Language as PNL
 import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
@@ -35,37 +33,36 @@ import Web.Settings
 import Web.NewGame
 import Web.Login
 import Utils
-import Data.Maybe
 import Data.Text(Text, pack)
 import qualified Language.Nomyx.Game as G
 import Happstack.Auth
+import Safe
 
 default (Integer, Double, Data.Text.Text)
 
 
-viewMulti :: PlayerNumber -> Session -> RoutedNomyxServer Html
-viewMulti pn s = do
+viewMulti :: PlayerNumber -> PlayerNumber -> FilePath -> Session -> RoutedNomyxServer Html
+viewMulti pn playAs dataDir s = do
    pfd <- getProfile s pn
-   let isAdmin = _isAdmin $ _pAdmin $ fromJust pfd
-   gns <- viewGamesTab (map G._game $ _games $ _multi s) isAdmin
+   let isAdmin = _isAdmin $ _pAdmin $ fromJustNote "viewMulti" pfd
+   gns <- viewGamesTab (map G._game $ _games $ _multi s) isAdmin dataDir
    mgn <- liftRouteT $ lift $ getPlayersGame pn s
-   g <- case mgn of
-      Just g -> viewGame (G._game g) pn (_pLastRule $ fromJust pfd) isAdmin
+   vg <- case mgn of
+      Just g -> viewGame (G._game g) playAs (_pLastRule $ fromJustNote "viewMulti" pfd) isAdmin
       Nothing -> ok $ h3 "Not viewing any game"
    ok $ do
       div ! A.id "gameList" $ gns
-      div ! A.id "game" $ g
+      div ! A.id "game" $ vg
 
-viewGamesTab :: [Game] -> Bool -> RoutedNomyxServer Html
-viewGamesTab gs isAdmin = do
+viewGamesTab :: [Game] -> Bool -> FilePath -> RoutedNomyxServer Html
+viewGamesTab gs isAdmin dataDir = do
    gns <- mapM (viewGameName isAdmin) gs
    newGameLink <- showURL NewGame
    settingsLink <- showURL W.PlayerSettings
    advLink <- showURL Advanced
    logoutURL  <- showURL (U_AuthProfile $ AuthURL A_Logout)
-   dd <- liftIO $ PN.getDataDir
-   mods <- liftIO $ getDirectoryContents $ dd </> modDir
-   fmods <- liftIO $ filterM (getFileStatus . (\f -> joinPath [dd, modDir, f]) >=> return . isRegularFile) $ mods
+   mods <- liftIO $ getDirectoryContents $ dataDir </> modDir
+   fmods <- liftIO $ filterM (getFileStatus . (\f -> joinPath [dataDir, modDir, f]) >=> return . isRegularFile) $ mods
    ok $ do
       h3 "Main menu" >> br
       "Active games:" >> br
@@ -73,6 +70,7 @@ viewGamesTab gs isAdmin = do
          case gs of
             [] -> tr $ td "No Games"
             _ ->  sequence_ gns
+      when isAdmin $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
       br >> "Nomyx language files:" >> br
       H.a "Rules examples"    ! (href $ "/src/Language/Nomyx/Examples.hs") >> br
       H.a "Basic rules"       ! (href $ "/src/Language/Nomyx/Rule.hs") >> br
@@ -81,7 +79,6 @@ viewGamesTab gs isAdmin = do
       H.a "Voting system"     ! (href $ "/src/Language/Nomyx/Vote.hs") >> br
       mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) fmods
       br >> "Settings:" >> br
-      when isAdmin $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
       H.a "Advanced"        ! (href $ toValue advLink) >> br
       H.a "Logout"          ! (href $ toValue logoutURL) >> br
@@ -112,13 +109,13 @@ nomyxPage :: (TVar Session) -> RoutedNomyxServer Response
 nomyxPage ts = do
    pn <- getPlayerNumber ts
    s <- liftIO $ atomically $ readTVar ts
-   m <- viewMulti pn s
-   name <- liftIO $ getPlayersName pn s
+   let dataDir = _dataDir $ _mSettings $ _multi s
+   name <- liftIO $ Utils.getPlayerName pn s
    playAs <- getPlayAs ts
-   playAsName <- liftIO $ getPlayersName playAs s
+   m <- viewMulti pn playAs dataDir s
    let body = do
        string $ "Welcome to Nomyx, " ++ name ++ "! "
-       when (playAs /= pn) $ (b ! A.style "color:red;" $ string ("Playing as: " ++ playAsName ++ " (Player #" ++ (show playAs) ++ ")") )
+       when (playAs /= pn) $ (b ! A.style "color:red;" $ string ("Playing as Player #" ++ (show playAs)) )
    mainPage' "Welcome to Nomyx!"
             body
             (H.div ! A.id "multi" $ m)
@@ -128,40 +125,42 @@ nomyxSite :: (TVar Session) -> Site PlayerCommand (ServerPartT IO Response)
 nomyxSite tm = setDefault HomePage $ mkSitePI (runRouteT $ routedNomyxCommands tm)
 
 routedNomyxCommands :: (TVar Session) -> PlayerCommand -> RoutedNomyxServer Response
-routedNomyxCommands ts (U_AuthProfile auth)  = authenticate ts auth
-routedNomyxCommands ts PostAuth              = postAuthenticate ts
-routedNomyxCommands ts HomePage              = homePage ts
-routedNomyxCommands ts MainPage              = nomyxPage ts
-routedNomyxCommands ts (JoinGame game)       = joinGame ts game
-routedNomyxCommands ts (LeaveGame game)      = leaveGame ts game
-routedNomyxCommands ts (ViewGame game)       = viewGamePlayer ts game
-routedNomyxCommands ts (DelGame game)        = delGame ts game
-routedNomyxCommands ts NewRule               = newRule ts     >>= return . toResponse
-routedNomyxCommands _  NewGame               = newGamePage    >>= return . toResponse
-routedNomyxCommands ts SubmitNewGame         = newGamePost ts >>= return . toResponse
-routedNomyxCommands ts (DoInput en)          = newInput en ts >>= return . toResponse
-routedNomyxCommands ts Upload                = newUpload ts   >>= return . toResponse
-routedNomyxCommands ts W.PlayerSettings      = playerSettings ts    >>= return . toResponse
-routedNomyxCommands ts SubmitPlayerSettings  = newPlayerSettings ts >>= return . toResponse
-routedNomyxCommands ts Advanced              = advanced ts    >>= return . toResponse
-routedNomyxCommands ts SubmitPlayAs          = newPlayAsSettings ts >>= return . toResponse
-routedNomyxCommands ts SubmitAdminPass       = newAdminPass ts >>= return . toResponse
-routedNomyxCommands ts SubmitSettings        = newSettings ts >>= return . toResponse
+routedNomyxCommands ts (U_AuthProfile auth)  = authenticate      ts auth
+routedNomyxCommands ts PostAuth              = postAuthenticate  ts
+routedNomyxCommands ts HomePage              = homePage          ts
+routedNomyxCommands ts MainPage              = nomyxPage         ts
+routedNomyxCommands ts (JoinGame game)       = joinGame          ts game
+routedNomyxCommands ts (LeaveGame game)      = leaveGame         ts game
+routedNomyxCommands ts (ViewGame game)       = viewGamePlayer    ts game
+routedNomyxCommands ts (DelGame game)        = delGame           ts game
+routedNomyxCommands ts (NewRule game)        = newRule           ts game
+routedNomyxCommands _  NewGame               = newGamePage
+routedNomyxCommands ts SubmitNewGame         = newGamePost       ts
+routedNomyxCommands ts (DoInput en game)     = newInput          ts en game
+routedNomyxCommands ts Upload                = newUpload         ts
+routedNomyxCommands ts W.PlayerSettings      = playerSettings    ts
+routedNomyxCommands ts SubmitPlayerSettings  = newPlayerSettings ts
+routedNomyxCommands ts Advanced              = advanced          ts
+routedNomyxCommands ts SubmitPlayAs          = newPlayAsSettings ts
+routedNomyxCommands ts SubmitAdminPass       = newAdminPass      ts
+routedNomyxCommands ts SubmitSettings        = newSettings       ts
 
 launchWebServer :: (TVar Session) -> Network -> IO ()
 launchWebServer tm net = do
    putStrLn $ "Starting web server...\nTo connect, drive your browser to \"" ++ nomyxURL net ++ "/Nomyx\""
-   d <- PN.getDataDir
-   d' <- PNL.getDataDir
-   simpleHTTP nullConf {HS.port = T._port net} $ server d d' tm net
+   simpleHTTP nullConf {HS.port = T._port net} $ server tm net
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: FilePath -> FilePath -> (TVar Session) -> Network -> ServerPartT IO Response
-server d d' tm net = mconcat [
+server :: (TVar Session) -> Network -> ServerPartT IO Response
+server ts net = do
+  s <- liftIO $ atomically $ readTVar ts
+  let d = _dataDir $ _mSettings $ _multi s
+  let d' = _sourceDir $ _mSettings $ _multi s
+  mconcat [
     serveDirectory DisableBrowsing [] d,
     serveDirectory DisableBrowsing [] d',
     do decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
-       html <- implSite (pack (nomyxURL net)) "/Nomyx" (nomyxSite tm)
+       html <- implSite (pack (nomyxURL net)) "/Nomyx" (nomyxSite ts)
        return $ toResponse html]
 
 

@@ -1,4 +1,3 @@
-
 {-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances, TypeFamilies,
              NamedFieldPuns, TemplateHaskell, FlexibleContexts, RecordWildCards, GeneralizedNewtypeDeriving #-}
 
@@ -15,7 +14,7 @@ import Happstack.Auth (ProfileState, AuthState)
 import Data.Data (Data)
 import Data.IxSet (toList, (@=), inferIxSet, noCalcs)
 import qualified Data.IxSet  as IxSet
-import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
+import Data.SafeCopy (base, deriveSafeCopy)
 import Control.Monad.Reader.Class (MonadReader(..))
 import Control.Monad.State.Class (MonadState(..))
 import Safe
@@ -48,7 +47,9 @@ $(deriveSafeCopy 1 'base ''PlayerSettings)
 data Settings = Settings { _logFilePath :: FilePath,
                            _net :: Network,
                            _sendMails :: Bool,
-                           _adminPassword :: String}
+                           _adminPassword :: String,
+                           _dataDir :: FilePath,
+                           _sourceDir :: FilePath}
                            deriving (Eq, Show, Read, Typeable)
 
 --- | A structure to hold the active games and players

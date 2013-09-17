@@ -3,7 +3,6 @@ module Interpret where
 
 import Language.Haskell.Interpreter
 import Language.Haskell.Interpreter.Server
-import Paths_Nomyx
 import Language.Nomyx
 import System.Directory
 import System.FilePath
@@ -28,12 +27,11 @@ importList = ["Prelude",
               "Control.Arrow"]
               
 -- | the server handle
-startInterpreter :: IO ServerHandle
-startInterpreter = do
+startInterpreter :: FilePath -> IO ServerHandle
+startInterpreter dataDir = do
    h <- start
-   dataDir <- liftIO getDataDir
    liftIO $ createDirectoryIfMissing True $ dataDir </> modDir
-   ir <- runIn h initializeInterpreter
+   ir <- runIn h $ initializeInterpreter dataDir
    case ir of
       Right r -> do
          putStrLn "Interpreter Loaded"
@@ -41,20 +39,18 @@ startInterpreter = do
       Left e -> error $ "sHandle: initialization error:\n" ++ show e
    return h
 
-getUploadModules :: IO([FilePath])
-getUploadModules = do
-    dataDir <- getDataDir
+getUploadModules :: FilePath -> IO([FilePath])
+getUploadModules dataDir = do
     all <- getDirectoryContents $ dataDir </> modDir
     files <- filterM (getFileStatus . (\f -> joinPath [dataDir, modDir, f]) >=> return . isRegularFile) all
     return $ map (\f -> joinPath [dataDir, modDir, f]) files
 
 -- | initializes the interpreter by loading some modules.
-initializeInterpreter :: Interpreter ()
-initializeInterpreter = do
-   fmods <- liftIO getUploadModules
+initializeInterpreter :: FilePath -> Interpreter ()
+initializeInterpreter dataDir = do
+   fmods <- liftIO $ getUploadModules dataDir
    loadModules fmods
    setTopLevelModules $ map (dropExtension . takeFileName) fmods
-   dataDir <- liftIO getDataDir
    set [searchPath := [dataDir], languageExtensions := [GADTs, ScopedTypeVariables]] --, installedModulesInScope := False
    setImports importList
    return ()
@@ -81,25 +77,24 @@ limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHa
          
 
 -- | check an uploaded file and reload
-loadModule :: FilePath -> FilePath -> ServerHandle -> IO (Either InterpreterError ())
-loadModule tempModName name sh = do
-    dataDir <- getDataDir
-    c <- checkModule tempModName sh
+loadModule :: FilePath -> FilePath -> ServerHandle -> FilePath -> IO (Either InterpreterError ())
+loadModule tempModName name sh dataDir = do
+    c <- checkModule tempModName sh dataDir
     case c of
         Right _ -> do
             let dest = (dataDir </> modDir </> name)
             copyFile tempModName dest
             setFileMode dest (ownerModes + groupModes)
-            runIn sh $ initializeInterpreter
+            runIn sh $ initializeInterpreter dataDir
             return $ Right ()
         Left e -> do
-            runIn sh $ initializeInterpreter
+            runIn sh $ initializeInterpreter dataDir
             return $ Left e
 
 ---- | check if a module is valid. Context will be reset.
-checkModule :: FilePath -> ServerHandle -> IO (Either InterpreterError ())
-checkModule dir sh = runIn sh $ do
-   fmods <- liftIO getUploadModules
+checkModule :: FilePath -> ServerHandle -> FilePath -> IO (Either InterpreterError ())
+checkModule dir sh dataDir = runIn sh $ do
+   fmods <- liftIO $ getUploadModules dataDir
    liftIO $ putStrLn $ concat $ fmods
    loadModules (dir:fmods)
 

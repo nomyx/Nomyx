@@ -33,6 +33,7 @@ import System.Posix.Daemonize
 import Types
 import Serialize
 import Paths_Nomyx as PN
+import Paths_Nomyx_Language as PNL
 import System.Directory
 import Data.Time.Clock
 import Language.Nomyx hiding (getCurrentTime)
@@ -61,7 +62,7 @@ main = do
    args <- getArgs 
    (flags, _) <- nomyxOpts args
    if (Version `elem` flags) then do
-      putStrLn $ "Nomyx " ++ showVersion version
+      putStrLn $ "Nomyx " ++ showVersion PN.version
       return True
    else if (Help `elem` flags) then do
       putStrLn $ usageInfo header options
@@ -76,18 +77,21 @@ main = do
 start :: [Flag] -> IO ()
 start flags = do
    serverCommandUsage
-   --start the haskell interpreter
-   sh <- protectHandlers startInterpreter
+   defDataDir <- PN.getDataDir
+   defSourceDir <- PNL.getDataDir
    hostName <- getHostName
    logFilePath <- case (findSaveFile flags) of
       Just f -> canonicalizePath f
-      Nothing -> getDataFileName defaultLogFile
+      Nothing -> PN.getDataFileName defaultLogFile
    let port = read $ fromMaybe "8000" (findPort flags)
    let host = fromMaybe hostName (findHost flags)
    let adminPass = fromMaybe "NXPSD" (findAdminPass flags)
    let sendMail = Mails `elem` flags
-   let settings = Settings logFilePath (Network host port) sendMail adminPass
-   dataDir <- getDataDir
+   let dataDir = fromMaybe defDataDir (findDataDir flags)
+   let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
+   let settings = Settings logFilePath (Network host port) sendMail adminPass dataDir sourceDir
+   --start the haskell interpreter
+   sh <- protectHandlers $ startInterpreter dataDir
    if Test `elem` flags then do
       putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
       ts <- playTests sh
@@ -155,6 +159,8 @@ data Flag = Verbose
           | AdminPass String
           | Mails
           | Help
+          | DataDir FilePath
+          | SourceDir FilePath
        deriving (Show, Eq)
 
 -- | launch options description
@@ -172,6 +178,8 @@ options =
      , Option ['a'] ["adminPass"] (ReqArg AdminPass "AdminPass") "specify the admin password"
      , Option ['m'] ["mails"]     (NoArg Mails)                  "send mails (default is no)"
      , Option ['?'] ["help"]      (NoArg Help)                   "display usage options (this screen)"
+     , Option ['f'] ["dataDir"]   (ReqArg DataDir "DataDir")     "set data directory"
+     , Option ['s'] ["sourceDir"] (ReqArg SourceDir "SourceDir") "set source directory"
      ]
     
 nomyxOpts :: [String] -> IO ([Flag], [String])
@@ -207,6 +215,16 @@ findAdminPass :: [Flag] -> Maybe String
 findAdminPass fs = headMay $ catMaybes $ map isAdminPass fs where
     isAdminPass (AdminPass a) = Just a
     isAdminPass _ = Nothing
+
+findDataDir :: [Flag] -> Maybe String
+findDataDir fs = headMay $ catMaybes $ map isDataDir fs where
+    isDataDir (DataDir a) = Just a
+    isDataDir _ = Nothing
+
+findSourceDir :: [Flag] -> Maybe String
+findSourceDir fs = headMay $ catMaybes $ map isSourceDir fs where
+    isSourceDir (SourceDir a) = Just a
+    isSourceDir _ = Nothing
 
 helper :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
 helper handler signal = liftIO $ S.installHandler signal handler Nothing
