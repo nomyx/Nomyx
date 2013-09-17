@@ -1,5 +1,5 @@
 name: Nomyx
-version: 0.3.0
+version: 0.3.1
 cabal-version: >=1.6
 build-type: Simple
 license: BSD3
@@ -20,7 +20,7 @@ data-dir: data
 extra-source-files: AUTHORS README TODO
  
 executable Nomyx
-    build-depends: Nomyx-Language ==0.3.0,
+    build-depends: Nomyx-Language ==0.3.1,
                    base <5,
                    Cabal -any,
                    DebugTraceHelpers -any,
