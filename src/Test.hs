@@ -60,7 +60,7 @@ dayZero = UTCTime (ModifiedJulianDay 0) 0
 test :: ServerHandle -> StateT Session IO () -> (Multi -> Bool) -> IO Bool
 test sh tes cond = do
    tp <- testProfiles
-   let s = Session sh (defaultMulti (Settings "" defaultNetwork False "")) tp
+   let s = Session sh (defaultMulti (Settings "" defaultNetwork False "" "" "")) tp
    m' <- loadTest tes s
    (evaluate $ cond m') `E.catch` (\(e::SomeException) -> (putStrLn $ "Exception in test: " ++ show e) >> return False)
 
@@ -118,8 +118,8 @@ submitR :: String -> StateT Session IO ()
 submitR r = do
    onePlayerOneGame
    sh <- access sh
-   submitRule (SubmitRule "" "" r) 1 sh
-   inputResult 1 3 (URadioData 0)
+   submitRule (SubmitRule "" "" r) 1 "test" sh
+   inputResult 1 3 (URadioData 0) "test"
 
 gameHelloWorld :: StateT Session IO ()
 gameHelloWorld = submitR [cr|helloWorld|]
@@ -131,9 +131,9 @@ gameHelloWorld2Players :: StateT Session IO ()
 gameHelloWorld2Players = do
    twoPlayersOneGame
    sh <- access sh
-   submitRule (SubmitRule "" "" [cr|helloWorld|]) 1 sh
-   inputResult 1 3 (URadioData 0)
-   inputResult 2 4 (URadioData 0)
+   submitRule (SubmitRule "" "" [cr|helloWorld|]) 1 "test" sh
+   inputResult 1 3 (URadioData 0) "test"
+   inputResult 2 4 (URadioData 0) "test"
 
 condHelloWorld2Players :: Multi -> Bool
 condHelloWorld2Players m = isOutput "hello, world!" m
@@ -184,17 +184,17 @@ gameMoneyTransfer :: StateT Session IO ()
 gameMoneyTransfer = do
    sh <- access sh
    twoPlayersOneGame
-   submitRule (SubmitRule "" "" [cr|createBankAccount|]) 1 sh
-   submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 sh
-   submitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2 sh
-   inputResult 1 4 (URadioData 0)
-   inputResult 2 3 (URadioData 0)
-   inputResult 1 9 (URadioData 0)
-   inputResult 2 8 (URadioData 0)
-   inputResult 1 14 (URadioData 0)
-   inputResult 2 13 (URadioData 0)
-   inputResult 1 5 (URadioData 0)
-   inputResult 1 0 (UTextData "50") --TODO find event number
+   submitRule (SubmitRule "" "" [cr|createBankAccount|]) 1 "test" sh
+   submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 "test" sh
+   submitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2 "test" sh
+   inputResult 1 4 (URadioData 0) "test"
+   inputResult 2 3 (URadioData 0) "test"
+   inputResult 1 9 (URadioData 0) "test"
+   inputResult 2 8 (URadioData 0) "test"
+   inputResult 1 14 (URadioData 0) "test"
+   inputResult 2 13 (URadioData 0) "test"
+   inputResult 1 5 (URadioData 0) "test"
+   inputResult 1 0 (UTextData "50") "test"--TODO find event number
 
 condMoneyTransfer :: Multi -> Bool
 condMoneyTransfer m = (_vName $ head $ _variables $ G._game $ head $ _games m) == "Accounts"

@@ -67,16 +67,16 @@ settingsPage ps names emails = do
              False
              True
 
-playerSettings :: (TVar Session) -> RoutedNomyxServer Html
-playerSettings ts  = do
+playerSettings :: (TVar Session) -> RoutedNomyxServer Response
+playerSettings ts  = toResponse <$> do
    pn <- getPlayerNumber ts
    pfd <- getProfile' ts pn
    names <- liftIO $ forbiddenNames ts pn
    emails <- liftIO $ forbiddenEmails ts pn
    settingsPage (_pPlayerSettings $ fromJust pfd) names emails
 
-newPlayerSettings :: (TVar Session) -> RoutedNomyxServer Html
-newPlayerSettings ts = do
+newPlayerSettings :: (TVar Session) -> RoutedNomyxServer Response
+newPlayerSettings ts = toResponse <$> do
    methodM POST
    pn <- getPlayerNumber ts
    names <- liftIO $ forbiddenNames ts pn
@@ -106,8 +106,8 @@ forbiddenEmails ts pn = liftIO $ do
    return $ filter (not . null) $ (_mail . _pPlayerSettings) <$> filteredPfs
 
 
-advanced :: (TVar Session) -> RoutedNomyxServer Html
-advanced ts = do
+advanced :: (TVar Session) -> RoutedNomyxServer Response
+advanced ts = toResponse <$> do
    session <- liftIO $ atomically $ readTVar ts
    pn <- getPlayerNumber ts
    pfd <- getProfile session pn
@@ -197,8 +197,8 @@ adminPassForm = RB.inputText ""
 playAsForm :: [PlayerNumber] -> NomyxForm (Maybe PlayerNumber)
 playAsForm _ = readPlayAs (label "Play as: " ++> RB.inputCheckbox False) (RB.inputText "")
 
-newPlayAsSettings :: (TVar Session) -> RoutedNomyxServer Html
-newPlayAsSettings ts = do
+newPlayAsSettings :: (TVar Session) -> RoutedNomyxServer Response
+newPlayAsSettings ts = toResponse <$> do
    methodM POST
    p <- liftRouteT $ eitherForm environment "user" $ playAsForm []
    pn <- getPlayerNumber ts
@@ -215,8 +215,8 @@ newPlayAsSettings ts = do
 settingsForm :: Bool -> NomyxForm Bool
 settingsForm sendMails = label "Send mails: " ++> RB.inputCheckbox sendMails
 
-newSettings :: (TVar Session) -> RoutedNomyxServer Html
-newSettings ts = do
+newSettings :: (TVar Session) -> RoutedNomyxServer Response
+newSettings ts = toResponse <$> do
    methodM POST
    p <- liftRouteT $ eitherForm environment "user" $ settingsForm False
    case p of
@@ -232,8 +232,8 @@ newSettings ts = do
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
 uploadForm = RB.inputFile
 
-newUpload :: (TVar Session) -> RoutedNomyxServer Html
-newUpload ts = do
+newUpload :: (TVar Session) -> RoutedNomyxServer Response
+newUpload ts = toResponse <$> do
     methodM POST
     pn <- getPlayerNumber ts
     r <- liftRouteT $ eitherForm environment "user" uploadForm
@@ -244,8 +244,8 @@ newUpload ts = do
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
     seeOther link $ string "Redirecting..."
 
-newAdminPass :: (TVar Session) -> RoutedNomyxServer Html
-newAdminPass ts = do
+newAdminPass :: (TVar Session) -> RoutedNomyxServer Response
+newAdminPass ts = toResponse <$> do
    methodM POST
    p <- liftRouteT $ eitherForm environment "user" $ adminPassForm
    pn <- getPlayerNumber ts

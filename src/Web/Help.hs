@@ -16,7 +16,7 @@ module Web.Help where
 upload = "In the following form you can upload your file containing custom rules. The file must be a haskell .hs file containing a module, \n" ++
          "like the following example (file is named SimpleModule.hs). Once correctly loaded, the content of the file will be \"in scope\" and you will be able to propose the functions \n" ++
          "contained in the file as new rules (in this example, you will be able to propose myRule).\n" ++
-         "Additionally, your file will appear as a link on the left hand side on the main page\n" ++
+         "Additionally, your file will appear as a link on the left hand side on the main page.\n" ++
          "Warning, files uploaded here cannot be overwritten. If your uploaded file contains a mistake,\n" ++
          "re-upload it with a different name (a version number suffixed for example) or ask the administrator to delete it.\n"
 

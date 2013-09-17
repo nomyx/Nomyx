@@ -38,13 +38,15 @@ import Data.List.Split
 import Data.Typeable
 import Data.Time
 import System.Locale
+import Data.Lens
+import Control.Category hiding ((.))
 default (Integer, Double, Data.Text.Text)
 
 viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> Bool -> RoutedNomyxServer Html
 viewGame g pn mlr isAdmin = do
    let inGame = isJust $ Utils.getPlayer g pn
-   rf <- viewRuleForm mlr inGame isAdmin
-   vios <- viewIOs pn (_rules g) (_events g) (_outputs g)
+   rf <- viewRuleForm mlr inGame isAdmin (_gameName g)
+   vios <- viewIOs pn (_rules g) (_events g) (_outputs g) (_gameName g)
    ok $ table $ do
       tr $ td $ div ! A.id "gameDesc" $ viewGameDesc g pn
       tr $ td $ div ! A.id "rules" $ viewAllRules g
@@ -156,24 +158,24 @@ viewEvent (EH eventNumber ruleNumber event _ status) = if status == SActive then
       td ! A.class_ "td" $ string . show $ ruleNumber
       td ! A.class_ "td" $ string . show $ event
 
-viewIOs :: PlayerNumber -> [Rule] -> [EventHandler] -> [Output] -> RoutedNomyxServer Html
-viewIOs pn rs ehs os = do
-   vios <- mapM (viewIORule pn ehs os) (sort rs)
+viewIOs :: PlayerNumber -> [Rule] -> [EventHandler] -> [Output] -> GameName -> RoutedNomyxServer Html
+viewIOs pn rs ehs os gn = do
+   vios <- mapM (viewIORule pn ehs os gn) (sort rs)
    ok $ do
       titleWithHelpIcon (h3 "Inputs/Ouputs") Help.inputsOutputs
       mconcat vios
 
-viewIORule :: PlayerNumber -> [EventHandler] -> [Output] -> Rule -> RoutedNomyxServer Html
-viewIORule pn ehs os r = do
-   vior <- viewIORuleM pn (_rNumber r) ehs os
+viewIORule :: PlayerNumber -> [EventHandler] -> [Output] -> GameName -> Rule -> RoutedNomyxServer Html
+viewIORule pn ehs os gn r = do
+   vior <- viewIORuleM pn (_rNumber r) ehs os gn
    ok $ when (isJust vior) $ div ! A.id "IORule" $ do
       div ! A.id "IORuleTitle" $ h4 $ string $ "IO for Rule \"" ++ (_rName r) ++ "\" (#" ++ (show $ _rNumber r) ++ "):"
       fromJust vior
 
 
-viewIORuleM :: PlayerNumber -> RuleNumber -> [EventHandler] -> [Output] -> RoutedNomyxServer (Maybe Html)
-viewIORuleM pn rn ehs os = do
-   vir <- viewInputsRule pn rn ehs
+viewIORuleM :: PlayerNumber -> RuleNumber -> [EventHandler] -> [Output] -> GameName -> RoutedNomyxServer (Maybe Html)
+viewIORuleM pn rn ehs os gn = do
+   vir <- viewInputsRule pn rn ehs gn
    let vor = viewOutputsRule pn rn os
    if (isJust vir || isJust vor) then do
       return $ Just $ do
@@ -182,10 +184,10 @@ viewIORuleM pn rn ehs os = do
    else
       return Nothing
 
-viewInputsRule :: PlayerNumber -> RuleNumber -> [EventHandler] -> RoutedNomyxServer (Maybe Html)
-viewInputsRule pn rn ehs = do
+viewInputsRule :: PlayerNumber -> RuleNumber -> [EventHandler] -> GameName -> RoutedNomyxServer (Maybe Html)
+viewInputsRule pn rn ehs gn = do
    let filtered = filter (\e -> _ruleNumber e == rn) ehs
-   mis <- mapM (viewInput pn) $ sort filtered
+   mis <- mapM (viewInput pn gn) $ sort filtered
    let is = catMaybes mis
    case is of
       [] -> return Nothing
@@ -202,14 +204,14 @@ viewOutputsRule pn rn os = do
 isPn pn (Output _ _ mypn _ SActive) = mypn == pn
 isPn _ _ = False
 
-viewInput :: PlayerNumber -> EventHandler -> RoutedNomyxServer (Maybe Html)
-viewInput me (EH eventNumber _ (InputEv (Input pn title iForm)) _ SActive) | me == pn = do
-    link <- showURL (DoInput eventNumber)
+viewInput :: PlayerNumber -> GameName -> EventHandler -> RoutedNomyxServer (Maybe Html)
+viewInput me gn (EH eventNumber _ (InputEv (Input pn title iForm)) _ SActive) | me == pn = do
+    link <- showURL (DoInput eventNumber gn)
     lf  <- lift $ viewForm "user" $ inputForm iForm
     return $ Just $ tr $ td $ do
        string title
        blazeForm lf (link) ! A.id "InputForm"
-viewInput _ _ = return Nothing
+viewInput _ _ _ = return Nothing
 
 viewOutput :: String -> Html
 viewOutput s = pre $ string s >> br
@@ -241,9 +243,9 @@ newRuleForm' (SubmitRule name desc code) isAdmin =
        <*> if isAdmin then RB.inputSubmit "Admin submit" else pure Nothing
 
 
-viewRuleForm :: Maybe LastRule -> Bool -> Bool -> RoutedNomyxServer Html
-viewRuleForm msr inGame isAdmin = do
-   link <- showURL NewRule
+viewRuleForm :: Maybe LastRule -> Bool -> Bool -> GameName -> RoutedNomyxServer Html
+viewRuleForm msr inGame isAdmin gn = do
+   link <- showURL (NewRule gn)
    lf  <- lift $ viewForm "user" (newRuleForm (fst <$> msr) isAdmin)
    ok $ do
       titleWithHelpIcon (h3 "Propose a new rule:") Help.code
@@ -255,8 +257,8 @@ viewRuleForm msr inGame isAdmin = do
             pre $ string $ fromJust error
       else lf ! A.disabled ""
 
-newRule :: (TVar Session) -> RoutedNomyxServer Html
-newRule ts = do
+newRule :: (TVar Session) -> GameName -> RoutedNomyxServer Response
+newRule ts gn = toResponse <$> do
    methodM POST
    s@(T.Session sh _ _) <- liftIO $ readTVarIO ts
    r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing False)
@@ -264,7 +266,7 @@ newRule ts = do
    pn <- getPlayerNumber ts
    case r of
        Right (sr, Nothing) -> do
-          webCommand ts $ submitRule sr pn sh
+          webCommand ts $ submitRule sr pn gn sh
           liftIO $ do
              s' <- readTVarIO ts  --TODO clean this
              gn <- getPlayersGame pn s
@@ -272,7 +274,7 @@ newRule ts = do
              let rs = _rules $ _game $ fromJust gn
              let rs' = _rules $ _game $ fromJust gn'
              when (length rs' > length rs) $ sendMailsNewRule s' sr pn
-       Right (sr, Just _) -> webCommand ts $ adminSubmitRule sr pn sh
+       Right (sr, Just _) -> webCommand ts $ adminSubmitRule sr pn gn sh
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
 
@@ -287,18 +289,18 @@ viewLog (Log _ t s) = do
       td $ string $ formatTime defaultTimeLocale "%Y/%m/%d_%H:%M" t
       td $ p $ string s
 
-newInput :: EventNumber -> (TVar Session) -> RoutedNomyxServer Html
-newInput en ts = do
+newInput :: (TVar Session) -> EventNumber -> GameName -> RoutedNomyxServer Response
+newInput ts en gn = toResponse <$> do
     pn <- getPlayerNumber ts
     s <- liftIO $ atomically $ readTVar ts
-    mgn <- liftIO $ getPlayersGame pn s
-    let eventHandler = fromJust $ findEvent en (_events $ _game $ fromJust mgn)
+    let g = find ((== gn) . getL (game >>> gameName)) (_games $ _multi s)
+    let eventHandler = fromJust $ findEvent en (_events $ _game $ fromJust g)
     methodM POST
     r <- liftRouteT $ eitherForm environment "user" (getNomyxForm eventHandler)
     link <- showURL MainPage
     case r of
        (Right c) -> do
-          webCommand ts $ M.inputResult pn en c
+          webCommand ts $ M.inputResult pn en c gn
           seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftIO $ putStrLn $ "cannot retrieve form data"

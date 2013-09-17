@@ -3,7 +3,6 @@
 
 module Web.NewGame where
 
-import Text.Blaze.Html5 hiding (map, label, br, textarea)
 import Prelude hiding (div)
 import Text.Reform
 import Text.Blaze.Html5.Attributes hiding (label)
@@ -38,8 +37,8 @@ newGameDesc = pure GameDesc <*> label "Enter game description:" ++> br ++> (text
 gameNameRequired :: String -> Either NomyxError String
 gameNameRequired = fieldRequired GameNameRequired
 
-newGamePage :: RoutedNomyxServer Html
-newGamePage = do
+newGamePage :: RoutedNomyxServer Response
+newGamePage = toResponse <$> do
    newGameLink <- showURL SubmitNewGame
    mf <- lift $ viewForm "user" $ newGameForm
    mainPage "New game"
@@ -48,8 +47,8 @@ newGamePage = do
             False
             True
 
-newGamePost :: (TVar Session) -> RoutedNomyxServer Html
-newGamePost ts = do
+newGamePost :: (TVar Session) -> RoutedNomyxServer Response
+newGamePost ts = toResponse <$> do
    methodM POST
    r <- liftRouteT $ eitherForm environment "user" newGameForm
    link <- showURL MainPage

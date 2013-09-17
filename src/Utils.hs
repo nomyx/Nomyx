@@ -50,15 +50,15 @@ say = lift . putStrLn
 nomyxURL :: Network -> String
 nomyxURL (Network host port) = "http://" ++ host ++ ":" ++ (show port)
 
-getPlayersName :: PlayerNumber -> Session -> IO PlayerName
-getPlayersName pn s = do
+getPlayerName :: PlayerNumber -> Session -> IO PlayerName
+getPlayerName pn s = do
    pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
    return $ _pPlayerName $ _pPlayerSettings $ fromJustNote ("getPlayersName: no profile for pn=" ++ (show pn)) pfd
 
-getPlayersName' :: Game -> PlayerNumber -> PlayerName
-getPlayersName' g pn = do
+getPlayerInGameName :: Game -> PlayerNumber -> PlayerName
+getPlayerInGameName g pn = do
    case find ((==pn) . getL playerNumber) (_players g) of
-      Nothing -> error "getPlayersName: No player by that number in that game"
+      Nothing -> error "getPlayersName': No player by that number in that game"
       Just pm -> _playerName pm
 
 -- | returns the game the player is in
@@ -98,8 +98,7 @@ modifyProfile :: PlayerNumber -> (ProfileData -> ProfileData) -> StateT Session 
 modifyProfile pn mod = do
    s <- get
    pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
-   A.update' (acidProfileData $ _profiles s) (SetProfileData (mod $ fromJustNote "modifyProfile" pfd))
-   return ()
+   when (isJust pfd) $ void $ A.update' (acidProfileData $ _profiles s) (SetProfileData (mod $ fromJust pfd))
 
 getProfile :: MonadIO m => Session -> PlayerNumber -> m (Maybe ProfileData)
 getProfile s pn = A.query' (acidProfileData $ _profiles s) (AskProfileData pn)

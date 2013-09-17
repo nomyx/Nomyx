@@ -73,8 +73,8 @@ data PlayerCommand = HomePage
                    | JoinGame  GameName
                    | LeaveGame GameName
                    | DelGame   GameName
-                   | DoInput   EventNumber
-                   | NewRule
+                   | DoInput   EventNumber GameName
+                   | NewRule   GameName
                    | NewGame
                    | SubmitNewGame
                    | Upload
