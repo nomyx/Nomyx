@@ -2,6 +2,7 @@
 TODO list
 
 Bugs:
+- command line arguments are ignored if there is a save file
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
