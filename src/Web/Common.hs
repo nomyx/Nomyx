@@ -239,6 +239,15 @@ getPlayAs ts = do
       Just playAs -> return playAs
       Nothing     -> return pn
 
+getIsAdmin :: (TVar Session) -> RoutedNomyxServer Bool
+getIsAdmin ts = do
+   pn <- getPlayerNumber ts
+   mpf <- getProfile' ts pn
+   case mpf of
+      Just pf -> return $ _isAdmin $ _pAdmin $ pf
+      Nothing -> error "not logged in."
+
+
 fieldRequired :: NomyxError -> String -> Either NomyxError String
 fieldRequired a []  = Left a
 fieldRequired _ str = Right str

@@ -92,7 +92,7 @@ submitRule sr@(SubmitRule _ _ code) pn gn sh = do
 
 adminSubmitRule :: SubmitRule -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
 adminSubmitRule sr@(SubmitRule _ _ code) pn gn sh = do
-   tracePN pn $ "proposed " ++ (show sr)
+   tracePN pn $ "admin proposed " ++ (show sr)
    mrr <- liftIO $ interpretRule code sh
    case mrr of
       Right _ -> do

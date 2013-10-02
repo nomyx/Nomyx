@@ -261,7 +261,8 @@ newRule :: (TVar Session) -> GameName -> RoutedNomyxServer Response
 newRule ts gn = toResponse <$> do
    methodM POST
    s@(T.Session sh _ _) <- liftIO $ readTVarIO ts
-   r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing False)
+   admin <- getIsAdmin ts
+   r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing admin)
    link <- showURL MainPage
    pn <- getPlayerNumber ts
    case r of
