@@ -3,7 +3,7 @@ TODO list
 
 Bugs:
 - command line arguments are ignored if there is a save file
-- recurring event are making memory bigger
+- recurring event are making increasing memory size
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
