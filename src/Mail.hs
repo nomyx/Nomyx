@@ -23,6 +23,7 @@ import Language.Haskell.HsColour.Colourise hiding (string)
 import Text.Blaze.Internal
 import Control.Category
 import Control.Applicative ((<$>))
+import Safe
 default (Integer, Double, Data.Text.Text)
 
 
@@ -67,7 +68,7 @@ newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 sendMailsNewRule :: Session -> SubmitRule -> PlayerNumber -> IO ()
 sendMailsNewRule s sr pn = when (_sendMails $ _mSettings $ _multi s) $ do
    putStrLn "Sending mails"
-   gn <- fromJust <$> getPlayersGame pn s
+   gn <- fromJustNote "sendMailsNewRule" <$> getPlayersGame pn s
    let sendMailsTo = delete pn (map _playerNumber (_players $ _game gn))
    proposer <- Utils.getPlayerName pn s
    profiles <- mapM (getProfile s) sendMailsTo

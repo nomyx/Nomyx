@@ -28,6 +28,7 @@ import Language.Nomyx
 import qualified Language.Haskell.HsColour.HTML as HSC
 import Language.Haskell.HsColour.Colourise hiding (string)
 import Text.Blaze.Internal hiding (Text)
+import Safe
 default (Integer, Double, Data.Text.Text)
 
 playerSettingsForm :: (Maybe PlayerSettings) -> [PlayerName] -> [String] -> NomyxForm PlayerSettings
@@ -73,7 +74,7 @@ playerSettings ts  = toResponse <$> do
    pfd <- getProfile' ts pn
    names <- liftIO $ forbiddenNames ts pn
    emails <- liftIO $ forbiddenEmails ts pn
-   settingsPage (_pPlayerSettings $ fromJust pfd) names emails
+   settingsPage (_pPlayerSettings $ fromJustNote "playerSettings" pfd) names emails
 
 newPlayerSettings :: (TVar Session) -> RoutedNomyxServer Response
 newPlayerSettings ts = toResponse <$> do
@@ -113,7 +114,7 @@ advanced ts = toResponse <$> do
    pfd <- getProfile session pn
    pfds <- liftIO $ getAllProfiles session
    session <- liftIO $ atomically $ readTVar ts
-   page <- advancedPage (_pLastUpload $ fromJust pfd) (_pAdmin $ fromJust pfd) (_mSettings $ _multi session) pfds
+   page <- advancedPage (_pLastUpload $ fromJustNote "advanced" pfd) (_pAdmin $ fromJustNote "advanced" pfd) (_mSettings $ _multi session) pfds
    mainPage "Advanced" "Advanced" page False True
 
 
@@ -146,7 +147,7 @@ advancedPage mlu (Admin admin mpn) settings pfds = do
             NoUpload -> p ""
       hr
       p $ do
-         h5 "Enter admin password to get admin rights:"
+         h5 "Enter admin password to get admin rights (necessary to create a new game):"
          blazeForm ap (submitAdminPass)
          when admin $ h5 "You are admin"
       when admin $ do

@@ -40,6 +40,7 @@ import Data.Time
 import System.Locale
 import Data.Lens
 import Control.Category hiding ((.))
+import Safe
 default (Integer, Double, Data.Text.Text)
 
 viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> Bool -> RoutedNomyxServer Html
@@ -272,8 +273,8 @@ newRule ts gn = toResponse <$> do
              s' <- readTVarIO ts  --TODO clean this
              gn <- getPlayersGame pn s
              gn' <- getPlayersGame pn s'
-             let rs = _rules $ _game $ fromJust gn
-             let rs' = _rules $ _game $ fromJust gn'
+             let rs = _rules $ _game $ fromJustNote "newRule" gn
+             let rs' = _rules $ _game $ fromJustNote "newRule" gn'
              when (length rs' > length rs) $ sendMailsNewRule s' sr pn
        Right (sr, Just _) -> webCommand ts $ adminSubmitRule sr pn gn sh
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
