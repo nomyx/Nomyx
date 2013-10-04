@@ -4,6 +4,9 @@ TODO list
 Bugs:
 - command line arguments are ignored if there is a save file
 - recurring event are making increasing memory size
+- upload file seems broken
+- forbid void names
+
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -24,7 +27,8 @@ Improvements:
    - the Web application needs to access files from the library (Nomyx-Language)
    - the interpreter needs the library to be installed to read the modules
 - rules should communicate by message passing instead of shared variables
-
+- start with default game
+- display inputs for viewers
 
 Futur Nomic:
 - ability to analyse rules, proof system

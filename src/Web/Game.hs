@@ -107,7 +107,7 @@ viewRules nrs title visible g = do
 
 viewRule :: Game -> Rule -> Html
 viewRule g nr = tr $ do
-   let pl = fromMaybe (show $ _rProposedBy nr) (_playerName <$> (Utils.getPlayer g $ _rProposedBy nr))
+   let pl = fromMaybe ("Player " ++ (show $ _rProposedBy nr)) (_playerName <$> (Utils.getPlayer g $ _rProposedBy nr))
    td ! A.class_ "td" $ string . show $ _rNumber nr
    td ! A.class_ "td" $ string $ _rName nr
    td ! A.class_ "td" $ string $ _rDescription nr

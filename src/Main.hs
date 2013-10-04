@@ -175,7 +175,7 @@ options =
      , Option ['n'] ["delete"]    (NoArg DeleteSaveFile)         "delete all save files"
      , Option ['d'] ["daemon"]    (NoArg Daemon)                 "run in daemon mode"
      , Option ['l'] ["loadtest"]  (ReqArg LoadTest "TestName")   "specify name of test to load"
-     , Option ['a'] ["adminPass"] (ReqArg AdminPass "AdminPass") "specify the admin password"
+     , Option ['a'] ["adminPass"] (ReqArg AdminPass "AdminPass") "specify the admin password (default is NXPSD)"
      , Option ['m'] ["mails"]     (NoArg Mails)                  "send mails (default is no)"
      , Option ['?'] ["help"]      (NoArg Help)                   "display usage options (this screen)"
      , Option ['f'] ["dataDir"]   (ReqArg DataDir "DataDir")     "set data directory"
