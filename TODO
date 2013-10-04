@@ -4,6 +4,7 @@ TODO list
 Bugs:
 - command line arguments are ignored if there is a save file
 - recurring event are making increasing memory size
+- display bank accounts bug
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
