@@ -6,6 +6,7 @@ Bugs:
 - recurring event are making increasing memory size
 - upload file seems broken
 - forbid void names
+- display bank accounts bug
 
 
 Improvements:
