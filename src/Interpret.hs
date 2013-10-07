@@ -9,6 +9,7 @@ import System.FilePath
 import System.Posix.Files
 import System.Posix.Resource
 import Control.Exception as CE
+import Data.Either.Unwrap
 
 modDir = "modules"
 importList = ["Prelude",
@@ -29,16 +30,17 @@ importList = ["Prelude",
 -- | the server handle
 startInterpreter :: FilePath -> IO ServerHandle
 startInterpreter dataDir = do
-   h <- start
+   sh <- start
    liftIO $ createDirectoryIfMissing True $ dataDir </> modDir
-   ir <- runIn h $ initializeInterpreter dataDir
+   ir <- runIn sh $ initializeInterpreter dataDir
    case ir of
       Right r -> do
          putStrLn "Interpreter Loaded"
          return $ Just r
       Left e -> error $ "sHandle: initialization error:\n" ++ show e
-   return h
+   return sh
 
+-- get all uploaded modules from the directory (may be empty)
 getUploadModules :: FilePath -> IO([FilePath])
 getUploadModules dataDir = do
     all <- getDirectoryContents $ dataDir </> modDir
@@ -49,6 +51,7 @@ getUploadModules dataDir = do
 initializeInterpreter :: FilePath -> Interpreter ()
 initializeInterpreter dataDir = do
    fmods <- liftIO $ getUploadModules dataDir
+   liftIO $ putStrLn $ "Loading modules: " ++ (concat $ intersperse ", " fmods)
    loadModules fmods
    setTopLevelModules $ map (dropExtension . takeFileName) fmods
    set [searchPath := [dataDir], languageExtensions := [GADTs, ScopedTypeVariables]] --, installedModulesInScope := False
@@ -74,34 +77,30 @@ cpuTimeLimitHard = ResourceLimit 5
 
 limits :: [(Resource, ResourceLimits)]
 limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHard)]
-         
 
 -- | check an uploaded file and reload
 loadModule :: FilePath -> FilePath -> ServerHandle -> FilePath -> IO (Either InterpreterError ())
 loadModule tempModName name sh dataDir = do
-    c <- checkModule tempModName sh dataDir
-    case c of
-        Right _ -> do
-            let dest = (dataDir </> modDir </> name)
-            copyFile tempModName dest
-            setFileMode dest (ownerModes + groupModes)
-            runIn sh $ initializeInterpreter dataDir
-            return $ Right ()
-        Left e -> do
-            runIn sh $ initializeInterpreter dataDir
-            return $ Left e
+    --copy the new module in the upload directory
+    let dest = (dataDir </> modDir </> name)
+    copyFile tempModName dest
+    setFileMode dest (ownerModes + groupModes)
+    inter <- runIn sh $ initializeInterpreter dataDir
+    res <- case inter of
+       Right _ -> return $ Right ()
+       Left e -> do
+          --suppress the faulty module
+          removeFile dest
+          final <- runIn sh $ initializeInterpreter dataDir
+          when (isLeft final) $ putStrLn "Error: reinitialize interpreter failed"
+          return $ Left e
+    return res
 
----- | check if a module is valid. Context will be reset.
-checkModule :: FilePath -> ServerHandle -> FilePath -> IO (Either InterpreterError ())
-checkModule dir sh dataDir = runIn sh $ do
-   fmods <- liftIO $ getUploadModules dataDir
-   liftIO $ putStrLn $ concat $ fmods
-   loadModules (dir:fmods)
 
 showInterpreterError :: InterpreterError -> String
 showInterpreterError (UnknownError s)  = "Unknown Error\n" ++ s
 showInterpreterError (WontCompile ers) = "Won't Compile\n" ++ concatMap (\(GhcError errMsg) -> errMsg ++ "\n") ers
-showInterpreterError (NotAllowed s)    = "Not Allowed\n" ++ s
+showInterpreterError (NotAllowed s)    = "Not Allowed (Probable cause: bad module or file name)\n" ++ s
 showInterpreterError (GhcException s)  = "Ghc Exception\n" ++ s
 
 
