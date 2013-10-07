@@ -31,7 +31,7 @@ sendMail :: String -> String -> String -> String-> IO()
 sendMail to object htmlBody textBody = do
    putStrLn $ "sending a mail to " ++ to
    forkIO $ simpleMail (Address Nothing (pack to))
-                       (Address (Just "Nomyx Game") "Nomyx.Game@gmail.com")
+                       (Address (Just "Nomyx Game") "kau@nomyx.net")
                        (pack object)
                        (B.pack htmlBody)
                        (B.pack textBody)

@@ -46,6 +46,7 @@ Improvements:
 - Nomyx -n shouldn't need the interpreter loaded
 - open the agora as new window
 - display vote infos (modalities, date etc.)
+- parameterize the mail sender
 
 Futur Nomic:
 - ability to analyse rules, proof system
