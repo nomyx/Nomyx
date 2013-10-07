@@ -7,7 +7,9 @@ Bugs:
 - upload file seems broken
 - forbid void names
 - display bank accounts bug
-
+- import qualified Data.Map and Control.Category (or hide conflicting functions)
+- clean outputs of leaving players (?)
+- spam problems
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -30,6 +32,20 @@ Improvements:
 - rules should communicate by message passing instead of shared variables
 - start with default game
 - display inputs for viewers
+- HCI improvements: space player names, bold games, unbold description
+- display viewer list
+- import qualified uploads
+- separate uploaded files visually
+- remove system dependancy (linux)
+- 15 characters max fir names
+- export save file bundled with uploads
+- display version number in advanced
+- add a space before buttons (in HTML)
+- check sematics of input buttons
+- files uploaded can be accepted while when restarting the game not. Check with GATDs for example. 
+- Nomyx -n shouldn't need the interpreter loaded
+- open the agora as new window
+- display vote infos (modalities, date etc.)
 
 Futur Nomic:
 - ability to analyse rules, proof system
