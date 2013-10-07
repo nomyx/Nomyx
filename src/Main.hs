@@ -50,6 +50,7 @@ import Happstack.Auth.Core.Auth (initialAuthState)
 import Data.Acid.Local (createCheckpointAndClose)
 import Happstack.Auth.Core.Profile (initialProfileState)
 import System.Unix.Directory
+import Control.Monad.State
 
 defaultLogFile, profilesDir, modulesDir :: FilePath
 defaultLogFile = "Nomyx.save"
@@ -87,7 +88,9 @@ start flags = do
    let host = fromMaybe hostName (findHost flags)
    let adminPass = fromMaybe "NXPSD" (findAdminPass flags)
    let sendMail = Mails `elem` flags
+   -- data directory: web ressources, profiles and uploaded rule files
    let dataDir = fromMaybe defDataDir (findDataDir flags)
+   -- source directory: Nomyx-Language files (used only for display in GUI, since the library is statically linked otherwise)
    let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
    let settings = Settings logFilePath (Network host port) sendMail adminPass dataDir sourceDir
    --start the haskell interpreter
@@ -123,7 +126,9 @@ loadMulti set sh = do
          putStrLn $ "Loading game: " ++ (_logFilePath $ set)
          Serialize.loadMulti set sh `E.catch`
             (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set))
-      False -> return $ defaultMulti set
+      False -> do
+         let defMulti = defaultMulti set
+         execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 sh) defMulti
    return multi
 
 

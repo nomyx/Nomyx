@@ -76,7 +76,8 @@ executable Nomyx
                    time -any,
                    unix -any,
                    utf8-string -any,
-                   old-locale -any
+                   old-locale -any,
+                   either-unwrap -any
     main-is: Main.hs
     buildable: True
     extensions: CPP

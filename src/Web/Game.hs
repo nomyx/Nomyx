@@ -130,9 +130,6 @@ viewRuleFunc nr = do
             a ! A.href "#close" ! A.title "Close" ! A.class_ "close" $ "X"
             div ! A.id "modalCode"$ code
 
-concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
-concatMapM f xs   =  liftM concat (mapM f xs)
-
 viewDetails :: PlayerNumber -> Game -> Html
 viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
    p $ titleWithHelpIcon (h4 "Variables:") Help.variables

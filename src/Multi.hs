@@ -35,7 +35,10 @@ newPlayer uid ms = do
 newGame :: GameName -> GameDesc -> PlayerNumber -> StateT Session IO ()
 newGame name desc pn = do
    sh <- access sh
-   focus multi $ do
+   focus multi $ newGame' name desc pn sh
+
+newGame' :: GameName -> GameDesc -> PlayerNumber -> ServerHandle -> StateT Multi IO ()
+newGame' name desc pn sh = do
       gs <- access games
       case null $ filter ((== name) . getL (game >>> gameName)) gs of
          True -> do
