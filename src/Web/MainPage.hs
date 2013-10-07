@@ -77,7 +77,9 @@ viewGamesTab gs isAdmin dataDir = do
       H.a "Rules definitions" ! (href $ "/src/Language/Nomyx/Definition.hs") >> br
       H.a "Rules types"       ! (href $ "/src/Language/Nomyx/Expression.hs") >> br
       H.a "Voting system"     ! (href $ "/src/Language/Nomyx/Vote.hs") >> br
-      mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) fmods
+      when (fmods /= []) $ do
+         br >> "Uploaded files:" >> br
+         mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) (sort fmods)
       br >> "Settings:" >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
       H.a "Advanced"        ! (href $ toValue advLink) >> br
