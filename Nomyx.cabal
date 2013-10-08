@@ -77,7 +77,8 @@ executable Nomyx
                    unix -any,
                    utf8-string -any,
                    old-locale -any,
-                   either-unwrap -any
+                   either-unwrap -any,
+                   tar -any
     main-is: Main.hs
     buildable: True
     extensions: CPP

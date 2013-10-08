@@ -29,6 +29,10 @@ import qualified Language.Haskell.HsColour.HTML as HSC
 import Language.Haskell.HsColour.Colourise hiding (string)
 import Text.Blaze.Internal hiding (Text)
 import Safe
+import Paths_Nomyx as PN
+import Paths_Nomyx_Language as PNL
+import Data.Version (showVersion)
+import qualified Codec.Archive.Tar as Tar
 default (Integer, Double, Data.Text.Text)
 
 playerSettingsForm :: (Maybe PlayerSettings) -> [PlayerName] -> [String] -> NomyxForm PlayerSettings
@@ -128,10 +132,16 @@ advancedPage mlu (Admin admin mpn) settings pfds = do
    ap <- lift $ viewForm "user" $ adminPassForm
    paf <- lift $ viewForm "user" $ playAsForm []
    set <- lift $ viewForm "user" $ settingsForm (_sendMails settings)
+   liftIO $ makeTar (_logFilePath settings) (_dataDir settings)
    ok $ do
       p $ do
+         string $ "Versions:"
+         pre $ string $ "Nomyx " ++ showVersion PN.version ++ "\n" ++
+                        "Nomyx-Language " ++ showVersion PNL.version
+      hr
+      p $ do
          pre $ string Help.getSaveFile
-         H.a "get save file" ! (href $ "/Nomyx.save")
+         H.a "get save file" ! (href $ "/nomyx.tar")
       H.br
       hr
       p $ do
@@ -258,3 +268,6 @@ newAdminPass ts = toResponse <$> do
       (Left errorForm) -> do
          settingsLink <- showURL SubmitAdminPass
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
+
+makeTar :: FilePath -> FilePath -> IO ()
+makeTar saveFile dataDir = Tar.create "nomyx.tar" dataDir ["Nomyx.save", "modules"]

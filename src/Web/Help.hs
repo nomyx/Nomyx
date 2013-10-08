@@ -42,5 +42,6 @@ join = "Be part of the game. You will be able to propose new rules, vote etc. Pl
 getSaveFile = "With the following link, you can download the save file of the game. This allows you to load it in a local instance of the game.\n" ++
               "This way, you will be able to compose and test the effects of your new rules locally, without affecting the online game. \n" ++
               "The procedure is: \n" ++
-              "$> cabal install Nomyx \n" ++
-              "$> Nomyx -r <save file name>\n"
+              "$> cabal install Nomyx-<version> \n" ++
+              "$> Nomyx -r <save file name>\n" ++
+              "Warning: Nomyx and Nomyx-Language should have the same exact version as the online instance.\n"
