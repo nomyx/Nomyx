@@ -32,7 +32,8 @@ loadMulti set sh = do
    m <- load $ _logFilePath set
    gs' <- mapM (updateLoggedGame $ getRuleFunc sh) $ _games m
    let m' = games `setL` gs' $ m
-   return m'
+   let m'' = mSettings `setL` set $ m'
+   return m''
 
 updateLoggedGame :: (RuleCode -> IO RuleFunc) -> LoggedGame -> IO LoggedGame
 updateLoggedGame f (LoggedGame g log) = getLoggedGame g f log
