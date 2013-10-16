@@ -44,12 +44,12 @@ data PlayerSettings =
 $(deriveSafeCopy 1 'base ''PlayerSettings)
 
 
-data Settings = Settings { _logFilePath :: FilePath,
-                           _net :: Network,
-                           _sendMails :: Bool,
-                           _adminPassword :: String,
-                           _dataDir :: FilePath,
-                           _sourceDir :: FilePath}
+data Settings = Settings { _logFilePath :: FilePath,  -- location of the save file
+                           _net :: Network,           -- URL where the server is launched
+                           _sendMails :: Bool,        -- send mails or not
+                           _adminPassword :: String,  -- admin password
+                           _dataDir :: FilePath,      -- location of the static files (including uploaded modules)
+                           _sourceDir :: FilePath}    -- location of the language files
                            deriving (Eq, Show, Read, Typeable)
 
 --- | A structure to hold the active games and players

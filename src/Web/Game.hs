@@ -58,8 +58,10 @@ viewGame g pn mlr isAdmin = do
 viewGameDesc :: Game -> PlayerNumber -> Html
 viewGameDesc g pn = do
    p $ h3 $ string $ "Viewing game: " ++ _gameName g
-   p $ h4 $ "Description:" >> br >> string (_desc $ _gameDesc g)
-   p $ h4 $ a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g))
+   p $ do
+      h4 $ "Description:"
+      string (_desc $ _gameDesc g)
+   p $ h4 $ "This game is discussed in the " >> a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g))
    p $ h4 $ "Players in game:"
    viewPlayers (_players g) pn
    p $ viewVictory g
