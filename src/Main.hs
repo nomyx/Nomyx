@@ -93,9 +93,8 @@ start flags = do
    -- source directory: Nomyx-Language files (used only for display in GUI, since the library is statically linked otherwise)
    let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
    let settings = Settings logFilePath (Network host port) sendMail adminPass dataDir sourceDir
-   --start the haskell interpreter
-   sh <- protectHandlers $ startInterpreter dataDir
    if Test `elem` flags then do
+      sh <- protectHandlers $ startInterpreter dataDir
       putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
       ts <- playTests sh
       putStrLn $ "\nNomyx Game Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts)
@@ -106,6 +105,8 @@ start flags = do
       (removeRecursiveSafely $ dataDir </> modulesDir </> "*") `catch` (\(e::SomeException)-> putStrLn $ show e)
       (removeFile (_logFilePath settings))                     `catch` (\(e::SomeException)-> putStrLn $ show e)
    else do
+      --start the haskell interpreter
+      sh <- protectHandlers $ startInterpreter dataDir
       --creating game structures
       multi <- case (findLoadTest flags) of
          Just testName -> loadTestName settings testName sh
