@@ -61,7 +61,7 @@ viewGameDesc g pn = do
    p $ do
       h4 $ "Description:"
       string (_desc $ _gameDesc g)
-   p $ h4 $ "This game is discussed in the " >> a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g))
+   p $ h4 $ "This game is discussed in the " >> a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g)) >> "."
    p $ h4 $ "Players in game:"
    viewPlayers (_players g) pn
    p $ viewVictory g
@@ -201,7 +201,8 @@ viewOutputsRule pn rn os = do
       [] -> Nothing
       os -> Just $ mapM_ viewOutput os
 
-isPn pn (Output _ _ mypn _ SActive) = mypn == pn
+isPn pn (Output _ _ (Just mypn) _ SActive) = mypn == pn
+isPn _ (Output _ _ Nothing _ SActive) = True
 isPn _ _ = False
 
 viewInput :: PlayerNumber -> GameName -> EventHandler -> RoutedNomyxServer (Maybe Html)
