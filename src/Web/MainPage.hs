@@ -97,14 +97,19 @@ viewGameName isAdmin g = do
       td ! A.id "gameName" $ string $ (gn ++ "   ")
       td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
       td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.join)
-      td $ H.a "Leave" ! (href $ toValue leave)
+      td $ H.a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn)
       when isAdmin $ td $ H.a "Del"   ! (href $ toValue del)
       div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
             h2 "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n \
                 If you do not wich to play, you can just view the game."
-            H.a "Join" ! (href $ toValue join) ! A.class_ "join" ! (A.title $ toValue Help.join)
-            H.a "View" ! (href $ toValue view) ! A.class_ "view" ! (A.title $ toValue Help.view)
+            H.a "Join" ! (href $ toValue join) ! A.class_ "modalButton" ! (A.title $ toValue Help.join)
+            H.a "View" ! (href $ toValue view) ! A.class_ "modalButton" ! (A.title $ toValue Help.view)
+      div ! A.id (toValue $ "openModalLeave" ++ gn) ! A.class_ "modalWindow" $ do
+         div $ do
+            h2 "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
+            H.a "Leave" ! (href $ toValue leave) ! A.class_ "modalButton"
+            H.a "Stay"  ! (href $ toValue view) ! A.class_ "modalButton"
 
 
 nomyxPage :: (TVar Session) -> RoutedNomyxServer Response

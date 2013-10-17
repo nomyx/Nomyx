@@ -226,7 +226,7 @@ input[type="file"]{
         pointer-events: none;
 }
 
-.view, .join {
+.modalButton {
         background: #606061;
         color: #FFFFFF;
         line-height: 25px;
