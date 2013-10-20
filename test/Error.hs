@@ -5,4 +5,4 @@ import Prelude
 import Language.Nomyx
 
 myfunc :: RuleFunc
-myfun = voidRule $ outputAll "Hello"
+myfun = voidRule $ outputAll' "Hello"

@@ -5,7 +5,7 @@ import Prelude
 import Language.Nomyx
 
 myRule :: RuleFunc
-myRule = voidRule $ outputAll helperFunction
+myRule = voidRule $ outputAll' helperFunction
 
 helperFunction :: String
 helperFunction = "Hello"
