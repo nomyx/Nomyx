@@ -33,7 +33,7 @@ import Types
 import Serialize
 import Paths_Nomyx as PN
 import Paths_Nomyx_Language as PNL
-import System.Directory
+import System.Directory (removeDirectoryRecursive, canonicalizePath, removeFile, doesFileExist)
 import Data.Time.Clock
 import Language.Nomyx hiding (getCurrentTime)
 import Control.Exception as E hiding (bracket)
@@ -48,7 +48,6 @@ import System.FilePath ((</>))
 import Happstack.Auth.Core.Auth (initialAuthState)
 import Data.Acid.Local (createCheckpointAndClose)
 import Happstack.Auth.Core.Profile (initialProfileState)
-import System.Unix.Directory
 import Control.Monad.State
 
 
@@ -98,9 +97,9 @@ start flags = do
    else if (DeleteSaveFile `elem` flags) then do
       putStrLn "Deleting save files"
       let catchExp io = io `catch` (\(e::SomeException)-> putStrLn $ show e)
-      catchExp $ removeRecursiveSafely $ dataDir </> profilesDir
-      catchExp $ removeRecursiveSafely $ saveDir </> uploadDir
-      catchExp $ removeFile            $ saveDir </> saveFile
+      catchExp $ removeDirectoryRecursive $ dataDir </> profilesDir
+      catchExp $ removeDirectoryRecursive $ saveDir </> uploadDir
+      catchExp $ removeFile               $ saveDir </> saveFile
    else do
       serverCommandUsage
       --start the haskell interpreter
