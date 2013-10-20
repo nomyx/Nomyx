@@ -13,7 +13,7 @@
 -----------------------------------------------------------------------------
 
 {-# LANGUAGE NamedFieldPuns #-}
-    
+{-# OPTIONS -cpp #-}
 module Utils where
 
 import Data.Maybe
@@ -22,15 +22,19 @@ import Types
 import Language.Nomyx
 import Language.Nomyx.Game
 import Data.Lens
-import Control.Category hiding ((.))
+import Control.Category hiding ((.), id)
 import Safe
 import Control.Concurrent.STM
 import qualified Data.Acid.Advanced as A (query', update')
 import System.IO.Temp
 import Codec.Archive.Tar as Tar
 import System.Directory
-import System.Posix
 import System.FilePath
+import Control.Monad.CatchIO
+#ifndef WINDOWS
+import System.Posix (getFileStatus, isRegularFile, setFileMode, ownerModes, groupModes)
+import qualified System.Posix.Signals as S
+#endif
 
 saveFile, profilesDir, uploadDir, tarFile :: FilePath
 saveFile    = "Nomyx.save"
@@ -131,5 +135,48 @@ untar fp = do
 getUploadedModules :: FilePath -> IO [FilePath]
 getUploadedModules saveDir = do
    mods <- getDirectoryContents $ saveDir </> uploadDir
-   filterM (getFileStatus . (\f -> joinPath [saveDir, uploadDir, f]) >=> return . isRegularFile) $ mods
+   getRegularFiles (saveDir </> uploadDir) mods
 
+#ifdef WINDOWS
+
+--no mode setting under windows
+setMode :: FilePath -> IO()
+setMode _ = return ()
+
+--no signals under windows
+protectHandlers :: MonadCatchIO m => m a -> m a
+protectHandlers = id
+
+--no special files (. and ..) under windows
+getRegularFiles :: [FilePath] -> IO [FilePath]
+getRegularFiles fps = return fps
+
+#else
+
+setMode :: FilePath -> IO()
+setMode file = setFileMode file (ownerModes + groupModes)
+
+getRegularFiles :: FilePath -> [FilePath] -> IO [FilePath]
+getRegularFiles dir fps = filterM (getFileStatus . (\f -> dir </> f) >=> return . isRegularFile) $ fps
+
+helper :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
+helper handler signal = liftIO $ S.installHandler signal handler Nothing
+
+signals :: [S.Signal]
+signals = [ S.sigQUIT
+          , S.sigINT
+          , S.sigHUP
+          , S.sigTERM
+          ]
+
+saveHandlers :: MonadCatchIO m => m [S.Handler]
+saveHandlers = liftIO $ mapM (helper S.Ignore) signals
+
+restoreHandlers :: MonadCatchIO m => [S.Handler] -> m [S.Handler]
+restoreHandlers h  = liftIO . sequence $ zipWith helper h signals
+
+
+protectHandlers :: MonadCatchIO m => m a -> m a
+protectHandlers a = bracket saveHandlers restoreHandlers $ const a
+
+#endif

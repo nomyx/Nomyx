@@ -6,8 +6,6 @@ import Language.Haskell.Interpreter.Server
 import Language.Nomyx
 import System.Directory
 import System.FilePath
-import System.Posix.Files
-import System.Posix.Resource
 import Control.Exception as CE
 import Data.Either.Unwrap
 import Utils
@@ -70,21 +68,13 @@ getRuleFunc sh rc = do
       Right ruleFunc -> return ruleFunc
       Left e -> error $ show e
 
---liftIO $ mapM_ (uncurry setResourceLimit) limits      
-cpuTimeLimitSoft = ResourceLimit 4
-cpuTimeLimitHard = ResourceLimit 5
-
-
-limits :: [(Resource, ResourceLimits)]
-limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHard)]
-
 -- | check an uploaded file and reload
 loadModule :: FilePath -> FilePath -> ServerHandle -> FilePath -> IO (Either InterpreterError ())
 loadModule tempModName name sh saveDir = do
     --copy the new module in the upload directory
     let dest = (saveDir </> uploadDir </> name)
     copyFile tempModName dest
-    setFileMode dest (ownerModes + groupModes)
+    setMode dest
     inter <- runIn sh $ initializeInterpreter saveDir
     res <- case inter of
        Right _ -> return $ Right ()

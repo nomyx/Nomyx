@@ -22,9 +22,7 @@ import Web.MainPage
 import Control.Concurrent
 import Interpret
 import Control.Concurrent.STM
-import qualified System.Posix.Signals as S
-import Control.Monad.CatchIO hiding (catch)
-import Control.Monad.Trans
+import Control.Monad.CatchIO (bracket)
 import Language.Nomyx.Test as LT
 import Data.Maybe
 import Safe
@@ -40,7 +38,6 @@ import Control.Exception as E hiding (bracket)
 import Test
 import Utils
 import Data.Version (showVersion)
-import Control.Category
 import Multi
 import Language.Haskell.Interpreter.Server hiding (start)
 import Data.Acid (openLocalStateFrom)
@@ -234,26 +231,6 @@ findTarFile fs = headMay $ catMaybes $ map isTarFile fs where
     isTarFile (TarFile a) = Just a
     isTarFile _ = Nothing
 
-
-helper :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
-helper handler signal = liftIO $ S.installHandler signal handler Nothing
-
-signals :: [S.Signal]
-signals = [ S.sigQUIT
-          , S.sigINT
-          , S.sigHUP
-          , S.sigTERM
-          ]
-
-saveHandlers :: MonadCatchIO m => m [S.Handler]
-saveHandlers = liftIO $ mapM (helper S.Ignore) signals
-
-restoreHandlers :: MonadCatchIO m => [S.Handler] -> m [S.Handler]
-restoreHandlers h  = liftIO . sequence $ zipWith helper h signals
-
-
-protectHandlers :: MonadCatchIO m => m a -> m a
-protectHandlers a = bracket saveHandlers restoreHandlers $ const a
 
 triggerTimeEvent :: TVar Session -> UTCTime -> IO()
 triggerTimeEvent tm t = do
