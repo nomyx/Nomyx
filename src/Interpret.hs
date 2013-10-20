@@ -10,8 +10,8 @@ import System.Posix.Files
 import System.Posix.Resource
 import Control.Exception as CE
 import Data.Either.Unwrap
+import Utils
 
-modDir = "modules"
 importList = ["Prelude",
               "Language.Nomyx",
               "GHC.Base",
@@ -20,19 +20,19 @@ importList = ["Prelude",
               "Control.Monad.State",
               "Control.Applicative",
               "Control.Monad.Error",
-              "Data.Map",
+              --"Data.Map",
               "Safe",
               "Data.Typeable",
-              "Control.Category",
+              --"Control.Category",
               "Data.Lens",
               "Control.Arrow"]
               
 -- | the server handle
 startInterpreter :: FilePath -> IO ServerHandle
-startInterpreter dataDir = do
+startInterpreter saveDir = do
    sh <- start
-   liftIO $ createDirectoryIfMissing True $ dataDir </> modDir
-   ir <- runIn sh $ initializeInterpreter dataDir
+   liftIO $ createDirectoryIfMissing True $ saveDir </> uploadDir
+   ir <- runIn sh $ initializeInterpreter saveDir
    case ir of
       Right r -> do
          putStrLn "Interpreter Loaded"
@@ -42,19 +42,19 @@ startInterpreter dataDir = do
 
 -- get all uploaded modules from the directory (may be empty)
 getUploadModules :: FilePath -> IO([FilePath])
-getUploadModules dataDir = do
-    all <- getDirectoryContents $ dataDir </> modDir
-    files <- filterM (getFileStatus . (\f -> joinPath [dataDir, modDir, f]) >=> return . isRegularFile) all
-    return $ map (\f -> joinPath [dataDir, modDir, f]) files
+getUploadModules saveDir = do
+    files <- getUploadedModules saveDir
+    return $ map (\f -> joinPath [saveDir, uploadDir, f]) files
 
+   
 -- | initializes the interpreter by loading some modules.
 initializeInterpreter :: FilePath -> Interpreter ()
-initializeInterpreter dataDir = do
-   fmods <- liftIO $ getUploadModules dataDir
+initializeInterpreter saveDir = do
+   fmods <- liftIO $ getUploadModules saveDir
    liftIO $ putStrLn $ "Loading modules: " ++ (concat $ intersperse ", " fmods)
    loadModules fmods
    setTopLevelModules $ map (dropExtension . takeFileName) fmods
-   set [searchPath := [dataDir], languageExtensions := [GADTs, ScopedTypeVariables]] --, installedModulesInScope := False
+   set [searchPath := [saveDir], languageExtensions := [GADTs, ScopedTypeVariables]] --, installedModulesInScope := False
    setImports importList
    return ()
 
@@ -80,18 +80,18 @@ limits = [ (ResourceCPUTime,      ResourceLimits cpuTimeLimitSoft cpuTimeLimitHa
 
 -- | check an uploaded file and reload
 loadModule :: FilePath -> FilePath -> ServerHandle -> FilePath -> IO (Either InterpreterError ())
-loadModule tempModName name sh dataDir = do
+loadModule tempModName name sh saveDir = do
     --copy the new module in the upload directory
-    let dest = (dataDir </> modDir </> name)
+    let dest = (saveDir </> uploadDir </> name)
     copyFile tempModName dest
     setFileMode dest (ownerModes + groupModes)
-    inter <- runIn sh $ initializeInterpreter dataDir
+    inter <- runIn sh $ initializeInterpreter saveDir
     res <- case inter of
        Right _ -> return $ Right ()
        Left e -> do
           --suppress the faulty module
           removeFile dest
-          final <- runIn sh $ initializeInterpreter dataDir
+          final <- runIn sh $ initializeInterpreter saveDir
           when (isLeft final) $ putStrLn "Error: reinitialize interpreter failed"
           return $ Left e
     return res

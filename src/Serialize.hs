@@ -3,33 +3,30 @@
 
 module Serialize where
 
-import Prelude hiding (log, (.))
+import Prelude hiding (log)
 import Language.Nomyx hiding (getCurrentTime)
 import Language.Nomyx.Game
 import Control.Monad.State
 import Types
-import Control.Category
 import Data.Lens
 import Language.Haskell.Interpreter.Server
 import Interpret
+import Utils
 
-save :: FilePath -> Multi -> IO()
-save fp m = writeFile fp (show m)
+save :: Multi -> IO ()
+save m = writeFile (getSaveFile $ _mSettings m) (show m)
 
 save' :: StateT Multi IO ()
-save' = do
-   lfp <- access (mSettings >>> logFilePath)
-   m <- get
-   lift $ save lfp m
+save' = get >>= lift . save
 
-load :: FilePath -> IO(Multi)
+load :: FilePath -> IO Multi
 load fp = do
    s <- readFile fp
    return $ read s
 
 loadMulti :: Settings -> ServerHandle -> IO Multi
 loadMulti set sh = do
-   m <- load $ _logFilePath set
+   m <- load (getSaveFile set)
    gs' <- mapM (updateLoggedGame $ getRuleFunc sh) $ _games m
    let m' = games `setL` gs' $ m
    let m'' = mSettings `setL` set $ m'

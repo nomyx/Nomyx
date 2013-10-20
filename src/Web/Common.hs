@@ -100,9 +100,6 @@ instance PathInfo Bool where
              [(n,[])] -> Just n
              _ ->        Nothing
 
-modDir :: FilePath
-modDir = "modules"
-
 evalCommand :: (TVar Session) -> StateT Session IO a -> RoutedNomyxServer a
 evalCommand ts sm = liftIO $ do
    s <- atomically $ readTVar ts
@@ -113,7 +110,7 @@ webCommand ts sm = liftIO $ do
    s <- atomically $ readTVar ts
    s' <- execStateT sm s
    atomically $ writeTVar ts s'
-   save (_logFilePath $ _mSettings $ _multi $ s') (_multi s') --TODO not really nice to put that here
+   save (_multi s') --TODO not really nice to put that here
 
 
 webCommand' :: (TVar Session) -> StateT Session IO () -> RoutedNomyxServer ()
@@ -121,7 +118,7 @@ webCommand' ts sm = liftIO $ do
    s <- atomically $ readTVar ts
    s' <- execStateT sm s
    atomically $ writeTVar ts s'
-   save (_logFilePath $ _mSettings $ _multi $ s') (_multi s') --TODO not really nice to put that here
+   save (_multi s') --TODO not really nice to put that here
 
 
 protectedExecCommand :: (TVar Session) -> StateT Session IO a -> IO ()

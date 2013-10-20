@@ -29,7 +29,6 @@ import Language.Nomyx.Test as LT
 import Data.Maybe
 import Safe
 import Network.BSD
-import System.Posix.Daemonize
 import Types
 import Serialize
 import Paths_Nomyx as PN
@@ -45,17 +44,13 @@ import Control.Category
 import Multi
 import Language.Haskell.Interpreter.Server hiding (start)
 import Data.Acid (openLocalStateFrom)
-import System.FilePath
+import System.FilePath ((</>))
 import Happstack.Auth.Core.Auth (initialAuthState)
 import Data.Acid.Local (createCheckpointAndClose)
 import Happstack.Auth.Core.Profile (initialProfileState)
 import System.Unix.Directory
 import Control.Monad.State
 
-defaultLogFile, profilesDir, modulesDir :: FilePath
-defaultLogFile = "Nomyx.save"
-profilesDir = "profiles"
-modulesDir = "modules"
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -71,42 +66,45 @@ main = do
    else do
       putStrLn "Welcome to Nomyx!"
       putStrLn "Type \"Nomyx --help\" for usage options"  
-      case (Daemon `elem` flags) of
-         True -> (daemonize $ start flags) >> return True
-         False -> start flags >> return True
+      start flags
+      return True
 
 start :: [Flag] -> IO ()
 start flags = do
-   serverCommandUsage
    defDataDir <- PN.getDataDir
    defSourceDir <- PNL.getDataDir
    hostName <- getHostName
-   logFilePath <- case (findSaveFile flags) of
-      Just f -> canonicalizePath f
-      Nothing -> PN.getDataFileName defaultLogFile
    let port = read $ fromMaybe "8000" (findPort flags)
    let host = fromMaybe hostName (findHost flags)
    let adminPass = fromMaybe "NXPSD" (findAdminPass flags)
    let sendMail = Mails `elem` flags
-   -- data directory: web ressources, profiles and uploaded rule files
+   -- save directory: Nomyx.save and uploaded files
+   saveDir <- case (findTarFile flags) of
+      Just tarFile -> untar tarFile
+      Nothing -> case (findSaveDir flags) of
+         Just f -> canonicalizePath f
+         Nothing -> PN.getDataDir
+   -- data directory: web ressources and profiles
    let dataDir = fromMaybe defDataDir (findDataDir flags)
-   -- source directory: Nomyx-Language files (used only for display in GUI, since the library is statically linked otherwise)
+   -- source directory: Nomyx-Language files (used only for display in GUI, since this library is statically linked otherwise)
    let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
-   let settings = Settings logFilePath (Network host port) sendMail adminPass dataDir sourceDir
+   let settings = Settings (Network host port) sendMail adminPass saveDir dataDir sourceDir
    if Test `elem` flags then do
-      sh <- protectHandlers $ startInterpreter dataDir
+      sh <- protectHandlers $ startInterpreter saveDir
       putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
       ts <- playTests sh
       putStrLn $ "\nNomyx Game Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts)
       putStrLn $ "All Tests Pass: " ++ (show $ allTests && (all snd ts))
    else if (DeleteSaveFile `elem` flags) then do
       putStrLn "Deleting save files"
-      (removeRecursiveSafely $ dataDir </> profilesDir)        `catch` (\(e::SomeException)-> putStrLn $ show e)
-      (removeRecursiveSafely $ dataDir </> modulesDir </> "*") `catch` (\(e::SomeException)-> putStrLn $ show e)
-      (removeFile (_logFilePath settings))                     `catch` (\(e::SomeException)-> putStrLn $ show e)
+      let catchExp io = io `catch` (\(e::SomeException)-> putStrLn $ show e)
+      catchExp $ removeRecursiveSafely $ dataDir </> profilesDir
+      catchExp $ removeRecursiveSafely $ saveDir </> uploadDir
+      catchExp $ removeFile            $ saveDir </> saveFile
    else do
+      serverCommandUsage
       --start the haskell interpreter
-      sh <- protectHandlers $ startInterpreter dataDir
+      sh <- protectHandlers $ startInterpreter saveDir
       --creating game structures
       multi <- case (findLoadTest flags) of
          Just testName -> loadTestName settings testName sh
@@ -121,10 +119,10 @@ start flags = do
 
 loadMulti :: Settings -> ServerHandle -> IO Multi
 loadMulti set sh = do
-   fileExists <- doesFileExist $ _logFilePath $ set
+   fileExists <- doesFileExist $ getSaveFile set
    multi <- case fileExists of
       True -> do
-         putStrLn $ "Loading game: " ++ (_logFilePath $ set)
+         putStrLn $ "Loading game: " ++ (getSaveFile set)
          Serialize.loadMulti set sh `E.catch`
             (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set))
       False -> do
@@ -158,15 +156,15 @@ data Flag = Verbose
           | Test
           | HostName String
           | Port String
-          | LogFile FilePath
-          | Daemon
           | LoadTest String
           | DeleteSaveFile
           | AdminPass String
           | Mails
           | Help
+          | SaveDir FilePath
           | DataDir FilePath
           | SourceDir FilePath
+          | TarFile FilePath
        deriving (Show, Eq)
 
 -- | launch options description
@@ -177,15 +175,15 @@ options =
      , Option ['t'] ["tests"]     (NoArg Test)                   "perform routine check"
      , Option ['h'] ["host"]      (ReqArg HostName "Hostname")   "specify host name"
      , Option ['p'] ["port"]      (ReqArg Port "Port")           "specify port"
-     , Option ['r'] ["read"]      (ReqArg LogFile "SaveFile")    "specify save file (default is Nomyx.save)"
      , Option ['n'] ["delete"]    (NoArg DeleteSaveFile)         "delete all save files"
-     , Option ['d'] ["daemon"]    (NoArg Daemon)                 "run in daemon mode"
      , Option ['l'] ["loadtest"]  (ReqArg LoadTest "TestName")   "specify name of test to load"
      , Option ['a'] ["adminPass"] (ReqArg AdminPass "AdminPass") "specify the admin password (default is NXPSD)"
      , Option ['m'] ["mails"]     (NoArg Mails)                  "send mails (default is no)"
      , Option ['?'] ["help"]      (NoArg Help)                   "display usage options (this screen)"
-     , Option ['f'] ["dataDir"]   (ReqArg DataDir "DataDir")     "set data directory"
-     , Option ['s'] ["sourceDir"] (ReqArg SourceDir "SourceDir") "set source directory"
+     , Option ['r'] ["saveDir"]   (ReqArg SaveDir "SaveDir")     "specify save directory (for Nomyx.save and uploads)"
+     , Option ['f'] ["dataDir"]   (ReqArg DataDir "DataDir")     "specify data directory (for profiles and website files)"
+     , Option ['s'] ["sourceDir"] (ReqArg SourceDir "SourceDir") "specify source directory (for Nomyx-Language files)"
+     , Option ['T'] ["tar"]       (ReqArg TarFile "TarFile")     "specify tar file (containing Nomyx.save and uploads)"
      ]
     
 nomyxOpts :: [String] -> IO ([Flag], [String])
@@ -212,10 +210,10 @@ findLoadTest fs = headMay $ catMaybes $ map isLoadTest fs where
     isLoadTest (LoadTest a) = Just a
     isLoadTest _ = Nothing
 
-findSaveFile :: [Flag] -> Maybe FilePath
-findSaveFile fs = headMay $ catMaybes $ map isSaveFile fs where
-    isSaveFile (LogFile a) = Just a
-    isSaveFile _ = Nothing
+findSaveDir :: [Flag] -> Maybe FilePath
+findSaveDir fs = headMay $ catMaybes $ map isSaveDir fs where
+    isSaveDir (SaveDir a) = Just a
+    isSaveDir _ = Nothing
 
 findAdminPass :: [Flag] -> Maybe String
 findAdminPass fs = headMay $ catMaybes $ map isAdminPass fs where
@@ -231,6 +229,12 @@ findSourceDir :: [Flag] -> Maybe String
 findSourceDir fs = headMay $ catMaybes $ map isSourceDir fs where
     isSourceDir (SourceDir a) = Just a
     isSourceDir _ = Nothing
+
+findTarFile :: [Flag] -> Maybe String
+findTarFile fs = headMay $ catMaybes $ map isTarFile fs where
+    isTarFile (TarFile a) = Just a
+    isTarFile _ = Nothing
+
 
 helper :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
 helper handler signal = liftIO $ S.installHandler signal handler Nothing
@@ -257,7 +261,7 @@ triggerTimeEvent tm t = do
     (Session sh m a) <- atomically $ readTVar tm
     m' <- execWithMulti t (Multi.triggerTimeEvent t) m
     atomically $ writeTVar tm (Session sh m' a)
-    save (_mSettings >>>_logFilePath $ m') m'
+    save m'
 
 
 launchTimeEvents :: TVar Session -> IO()
@@ -281,3 +285,4 @@ withAcid mBasePath f =
     bracket (openLocalStateFrom (basePath </> "profile")     initialProfileState)     (createCheckpointAndClose) $ \profile ->
     bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState) (createCheckpointAndClose) $ \profileData ->
         f (Profiles auth profile profileData)
+

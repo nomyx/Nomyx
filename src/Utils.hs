@@ -17,7 +17,6 @@
 module Utils where
 
 import Data.Maybe
-import Data.Char
 import Control.Monad.State
 import Types
 import Language.Nomyx
@@ -27,6 +26,17 @@ import Control.Category hiding ((.))
 import Safe
 import Control.Concurrent.STM
 import qualified Data.Acid.Advanced as A (query', update')
+import System.IO.Temp
+import Codec.Archive.Tar as Tar
+import System.Directory
+import System.Posix
+import System.FilePath
+
+saveFile, profilesDir, uploadDir, tarFile :: FilePath
+saveFile    = "Nomyx.save"
+profilesDir = "profiles"
+uploadDir   = "uploads"
+tarFile     = "Nomyx.tar"
    
 -- | this function will return just a if it can cast it to an a.
 maybeRead :: Read a => String -> Maybe a
@@ -38,10 +48,6 @@ replace :: Eq a => a   -- ^ Value to search
         -> [a] -- ^ Input list
         -> [a] -- ^ Output list
 replace x y = map (\z -> if z == x then y else z)
-
-yes = ["o", "oui", "y", "yes", "v", "vrai", "true"]
-toLowerS = map toLower
-isYes a = toLowerS a `elem` yes
 
 -- | generic function to say things on transformers like GameState, ServerState etc.
 say :: String -> StateT a IO ()
@@ -107,4 +113,23 @@ getProfile' :: MonadIO m => (TVar Session) -> PlayerNumber -> m (Maybe ProfileDa
 getProfile' ts pn = do
    s <- liftIO $ atomically $ readTVar ts
    getProfile s pn
+
+getSaveFile :: Settings -> FilePath
+getSaveFile set = (_saveDir set) </> saveFile
+
+makeTar :: FilePath -> IO ()
+makeTar saveDir = do
+   putStrLn $ "creating tar in " ++ (show saveDir)
+   Tar.create (saveDir </> tarFile) saveDir [saveFile, uploadDir]
+
+untar :: FilePath -> IO (FilePath)
+untar fp = do
+   dir <- createTempDirectory "/tmp" "Nomyx"
+   extract dir fp
+   return dir
+
+getUploadedModules :: FilePath -> IO [FilePath]
+getUploadedModules saveDir = do
+   mods <- getDirectoryContents $ saveDir </> uploadDir
+   filterM (getFileStatus . (\f -> joinPath [saveDir, uploadDir, f]) >=> return . isRegularFile) $ mods
 

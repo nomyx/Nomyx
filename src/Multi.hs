@@ -115,8 +115,8 @@ inputResult pn en ir gn = inGameDo gn $ update $ InputResult pn en ir
 -- | upload a rule file
 inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Session IO ()
 inputUpload pn temp mod sh = do
-   dataDir <- access (multi >>> mSettings >>> dataDir)
-   m <- liftIO $ loadModule temp mod sh dataDir
+   saveDir <- access (multi >>> mSettings >>> saveDir)
+   m <- liftIO $ loadModule temp mod sh saveDir
    tracePN pn $ " uploaded " ++ (show mod)
    case m of
       Right _ -> do

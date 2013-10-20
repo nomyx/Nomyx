@@ -23,6 +23,8 @@ type PlayerPassword = String
 type Port = Int
 type CompileError = String
 type LastRule = (SubmitRule, CompileError)
+
+
 data LastUpload = NoUpload
                 | UploadSuccess
                 | UploadFailure (FilePath, CompileError)
@@ -44,12 +46,12 @@ data PlayerSettings =
 $(deriveSafeCopy 1 'base ''PlayerSettings)
 
 
-data Settings = Settings { _logFilePath :: FilePath,  -- location of the save file
-                           _net :: Network,           -- URL where the server is launched
-                           _sendMails :: Bool,        -- send mails or not
-                           _adminPassword :: String,  -- admin password
-                           _dataDir :: FilePath,      -- location of the static files (including uploaded modules)
-                           _sourceDir :: FilePath}    -- location of the language files
+data Settings = Settings { _net           :: Network,  -- URL where the server is launched
+                           _sendMails     :: Bool,     -- send mails or not
+                           _adminPassword :: String,   -- admin password
+                           _saveDir       :: FilePath, -- location of the save file and uploaded files
+                           _dataDir       :: FilePath, -- location of the static files (profiles + website)
+                           _sourceDir     :: FilePath} -- location of the language files (from Nomyx-Language)
                            deriving (Eq, Show, Read, Typeable)
 
 --- | A structure to hold the active games and players

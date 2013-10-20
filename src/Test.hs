@@ -60,7 +60,7 @@ dayZero = UTCTime (ModifiedJulianDay 0) 0
 test :: ServerHandle -> StateT Session IO () -> (Multi -> Bool) -> IO Bool
 test sh tes cond = do
    tp <- testProfiles
-   let s = Session sh (defaultMulti (Settings "" defaultNetwork False "" "" "")) tp
+   let s = Session sh (defaultMulti (Settings defaultNetwork False "" "" "" "")) tp
    m' <- loadTest tes s
    (evaluate $ cond m') `E.catch` (\(e::SomeException) -> (putStrLn $ "Exception in test: " ++ show e) >> return False)
 

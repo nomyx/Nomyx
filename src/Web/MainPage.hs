@@ -22,9 +22,7 @@ import Data.Monoid
 import Control.Concurrent.STM
 import Language.Nomyx
 import Happstack.Server as HS
-import System.Directory
 import System.FilePath
-import System.Posix.Files
 import qualified Web.Help as Help
 import Types as T
 import Web.Game
@@ -37,15 +35,14 @@ import Data.Text(Text, pack)
 import qualified Language.Nomyx.Game as G
 import Happstack.Auth
 import Safe
-
 default (Integer, Double, Data.Text.Text)
 
 
 viewMulti :: PlayerNumber -> PlayerNumber -> FilePath -> Session -> RoutedNomyxServer Html
-viewMulti pn playAs dataDir s = do
+viewMulti pn playAs saveDir s = do
    pfd <- getProfile s pn
    let isAdmin = _isAdmin $ _pAdmin $ fromJustNote "viewMulti" pfd
-   gns <- viewGamesTab (map G._game $ _games $ _multi s) isAdmin dataDir
+   gns <- viewGamesTab (map G._game $ _games $ _multi s) isAdmin saveDir
    mgn <- liftRouteT $ lift $ getPlayersGame pn s
    vg <- case mgn of
       Just g -> viewGame (G._game g) playAs (_pLastRule $ fromJustNote "viewMulti" pfd) isAdmin
@@ -55,14 +52,13 @@ viewMulti pn playAs dataDir s = do
       div ! A.id "game" $ vg
 
 viewGamesTab :: [Game] -> Bool -> FilePath -> RoutedNomyxServer Html
-viewGamesTab gs isAdmin dataDir = do
+viewGamesTab gs isAdmin saveDir = do
    gns <- mapM (viewGameName isAdmin) gs
    newGameLink <- showURL NewGame
    settingsLink <- showURL W.PlayerSettings
    advLink <- showURL Advanced
    logoutURL  <- showURL (U_AuthProfile $ AuthURL A_Logout)
-   mods <- liftIO $ getDirectoryContents $ dataDir </> modDir
-   fmods <- liftIO $ filterM (getFileStatus . (\f -> joinPath [dataDir, modDir, f]) >=> return . isRegularFile) $ mods
+   fmods <- liftIO $ getUploadedModules saveDir
    ok $ do
       h3 "Main menu" >> br
       "Active games:" >> br
@@ -79,7 +75,7 @@ viewGamesTab gs isAdmin dataDir = do
       H.a "Voting system"     ! (href $ "/src/Language/Nomyx/Vote.hs") >> br
       when (fmods /= []) $ do
          br >> "Uploaded files:" >> br
-         mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : modDir </> f)) >> br) (sort fmods)
+         mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : uploadDir </> f)) >> br) (sort fmods)
       br >> "Settings:" >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
       H.a "Advanced"        ! (href $ toValue advLink) >> br
@@ -109,17 +105,17 @@ viewGameName isAdmin g = do
          div $ do
             h2 "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
             H.a "Leave" ! (href $ toValue leave) ! A.class_ "modalButton"
-            H.a "Stay"  ! (href $ toValue view) ! A.class_ "modalButton"
+            H.a "Stay"  ! (href $ toValue view)  ! A.class_ "modalButton"
 
 
 nomyxPage :: (TVar Session) -> RoutedNomyxServer Response
 nomyxPage ts = do
    pn <- getPlayerNumber ts
    s <- liftIO $ atomically $ readTVar ts
-   let dataDir = _dataDir $ _mSettings $ _multi s
+   let saveDir = _saveDir $ _mSettings $ _multi s
    name <- liftIO $ Utils.getPlayerName pn s
    playAs <- getPlayAs ts
-   m <- viewMulti pn playAs dataDir s
+   m <- viewMulti pn playAs saveDir s
    let body = do
        string $ "Welcome to Nomyx, " ++ name ++ "! "
        when (playAs /= pn) $ (b ! A.style "color:red;" $ string ("Playing as Player #" ++ (show playAs)) )
@@ -161,11 +157,11 @@ launchWebServer tm net = do
 server :: (TVar Session) -> Network -> ServerPartT IO Response
 server ts net = do
   s <- liftIO $ atomically $ readTVar ts
-  let d = _dataDir $ _mSettings $ _multi s
-  let d' = _sourceDir $ _mSettings $ _multi s
+  let set = _mSettings $ _multi s
   mconcat [
-    serveDirectory DisableBrowsing [] d,
-    serveDirectory DisableBrowsing [] d',
+    serveDirectory DisableBrowsing [] (_saveDir set),
+    serveDirectory DisableBrowsing [] (_dataDir set),
+    serveDirectory DisableBrowsing [] (_sourceDir set),
     do decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
        html <- implSite (pack (nomyxURL net)) "/Nomyx" (nomyxSite ts)
        return $ toResponse html]
