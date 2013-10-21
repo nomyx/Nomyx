@@ -31,8 +31,8 @@ import Codec.Archive.Tar as Tar
 import System.Directory
 import System.FilePath
 import Control.Monad.CatchIO
+import System.PosixCompat.Files (getFileStatus, isRegularFile, setFileMode, ownerModes, groupModes)
 #ifndef WINDOWS
-import System.Posix (getFileStatus, isRegularFile, setFileMode, ownerModes, groupModes)
 import qualified System.Posix.Signals as S
 #endif
 
@@ -137,27 +137,19 @@ getUploadedModules saveDir = do
    mods <- getDirectoryContents $ saveDir </> uploadDir
    getRegularFiles (saveDir </> uploadDir) mods
 
-#ifdef WINDOWS
+getRegularFiles :: FilePath -> [FilePath] -> IO [FilePath]
+getRegularFiles dir fps = filterM (getFileStatus . (\f -> dir </> f) >=> return . isRegularFile) $ fps
 
---no mode setting under windows
 setMode :: FilePath -> IO()
-setMode _ = return ()
+setMode file = setFileMode file (ownerModes + groupModes)
+
+#ifdef WINDOWS
 
 --no signals under windows
 protectHandlers :: MonadCatchIO m => m a -> m a
 protectHandlers = id
 
---no special files (. and ..) under windows
-getRegularFiles :: [FilePath] -> IO [FilePath]
-getRegularFiles fps = return fps
-
 #else
-
-setMode :: FilePath -> IO()
-setMode file = setFileMode file (ownerModes + groupModes)
-
-getRegularFiles :: FilePath -> [FilePath] -> IO [FilePath]
-getRegularFiles dir fps = filterM (getFileStatus . (\f -> dir </> f) >=> return . isRegularFile) $ fps
 
 helper :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
 helper handler signal = liftIO $ S.installHandler signal handler Nothing

@@ -58,7 +58,9 @@ executable Nomyx
                    temporary              == 1.1.*,
                    template-haskell       == 2.8.*,
                    text                   == 0.11.*,
-                   time                   == 1.4.*,                   
+                   time                   == 1.4.*,
+                   -- cross-platform file handling
+                   unix-compat            == 0.4.*,
                    web-routes             == 0.27.*,
                    web-routes-happstack   == 0.23.*,
                    web-routes-regular     == 0.19.*,
