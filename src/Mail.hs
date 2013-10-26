@@ -12,7 +12,7 @@ import Text.Reform.Happstack()
 import Control.Monad
 import Types
 import Language.Nomyx
-import Language.Nomyx.Game
+import Language.Nomyx.Engine
 import Data.Text(Text, pack)
 import Control.Concurrent
 import Data.Maybe

@@ -33,7 +33,7 @@ import Safe
 import Data.Acid.Memory
 import Happstack.Auth.Core.Auth (initialAuthState)
 import Happstack.Auth.Core.Profile (initialProfileState)
-import qualified Language.Nomyx.Game as G
+import qualified Language.Nomyx.Engine as G
 import Control.Arrow ((>>>))
 import Data.Time hiding (getCurrentTime)
 

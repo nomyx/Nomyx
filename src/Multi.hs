@@ -19,7 +19,7 @@ import Control.Exception
 import Debug.Trace.Helpers
 import Data.Lens
 import Language.Nomyx
-import Language.Nomyx.Game as G
+import Language.Nomyx.Engine as G
 import Control.Category hiding ((.))
 import qualified Data.Acid.Advanced as A (update', query')
 import Quotes (cr)

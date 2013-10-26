@@ -14,7 +14,7 @@ import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
 import Language.Nomyx
-import Language.Nomyx.Game
+import Language.Nomyx.Engine
 import Data.Maybe
 import Text.Reform.Happstack
 import Text.Reform
@@ -296,7 +296,7 @@ newInput ts en gn = toResponse <$> do
     pn <- getPlayerNumber ts
     s <- liftIO $ atomically $ readTVar ts
     let g = find ((== gn) . getL (game >>> gameName)) (_games $ _multi s)
-    let eventHandler = fromJust $ findEvent en (_events $ _game $ fromJust g)
+    let eventHandler = getEventHandler en (fromJust g)
     methodM POST
     r <- liftRouteT $ eitherForm environment "user" (getNomyxForm eventHandler)
     link <- showURL MainPage

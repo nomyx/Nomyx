@@ -7,7 +7,7 @@ import Data.Typeable
 import Text.Reform.Happstack()
 import Network.BSD
 import Data.Lens.Template
-import Language.Nomyx.Game
+import Language.Nomyx.Engine
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Data.Acid (makeAcidic, Update, Query, AcidState)
 import Happstack.Auth (ProfileState, AuthState)

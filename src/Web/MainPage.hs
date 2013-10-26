@@ -32,7 +32,7 @@ import Web.NewGame
 import Web.Login
 import Utils
 import Data.Text(Text, pack)
-import qualified Language.Nomyx.Game as G
+import qualified Language.Nomyx.Engine as G
 import Happstack.Auth
 import Safe
 default (Integer, Double, Data.Text.Text)

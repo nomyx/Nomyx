@@ -20,7 +20,7 @@ import Data.Maybe
 import Control.Monad.State
 import Types
 import Language.Nomyx
-import Language.Nomyx.Game
+import Language.Nomyx.Engine
 import Data.Lens
 import Control.Category hiding ((.), id)
 import Safe
