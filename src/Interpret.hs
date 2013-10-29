@@ -9,9 +9,12 @@ import System.FilePath
 import Control.Exception as CE
 import Data.Either.Unwrap
 import Utils
+import Data.List
+import Control.Monad
 
 importList = ["Prelude",
               "Language.Nomyx",
+              "Language.Nomyx.Examples",
               "GHC.Base",
               "Data.Maybe",
               "Data.List",

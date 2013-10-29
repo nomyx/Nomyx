@@ -12,7 +12,7 @@ import Text.Reform.Happstack()
 import Control.Monad
 import Types
 import Language.Nomyx
-import Language.Nomyx.Engine
+import Language.NomyxAPI
 import Data.Text(Text, pack)
 import Control.Concurrent
 import Data.Maybe
@@ -24,6 +24,7 @@ import Text.Blaze.Internal
 import Control.Category
 import Control.Applicative ((<$>))
 import Safe
+import Data.List
 default (Integer, Double, Data.Text.Text)
 
 

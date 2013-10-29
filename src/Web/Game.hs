@@ -14,7 +14,7 @@ import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
 import Language.Nomyx
-import Language.Nomyx.Engine
+import Language.NomyxAPI
 import Data.Maybe
 import Text.Reform.Happstack
 import Text.Reform
@@ -29,6 +29,7 @@ import Utils
 import Mail
 import Text.Printf
 import Data.String
+import Data.List
 import Data.Text(Text)
 import qualified Text.Reform.Blaze.Common as RBC
 import qualified Language.Haskell.HsColour.HTML as HSC
