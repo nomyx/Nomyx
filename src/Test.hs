@@ -22,6 +22,7 @@ import Control.Monad.State
 import Multi
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Language.Nomyx hiding (getCurrentTime)
+import Language.NomyxAPI
 import Control.Applicative
 import Control.Exception as E
 import Language.Haskell.TH
@@ -33,7 +34,7 @@ import Safe
 import Data.Acid.Memory
 import Happstack.Auth.Core.Auth (initialAuthState)
 import Happstack.Auth.Core.Profile (initialProfileState)
-import qualified Language.Nomyx.Engine as G
+import qualified Language.NomyxAPI as G
 import Control.Arrow ((>>>))
 import Data.Time hiding (getCurrentTime)
 
@@ -139,7 +140,7 @@ condHelloWorld2Players :: Multi -> Bool
 condHelloWorld2Players m = isOutput "hello, world!" m
 
 partialFunction1 :: String
-partialFunction1 = [cr|voidRule $ readVar_ (V "toto1" :: V String)|]
+partialFunction1 = [cr|voidRule $ readMsgVar_ (msgVar "toto1" :: MsgVar String)|]
 
 gamePartialFunction1 :: StateT Session IO ()
 gamePartialFunction1 = submitR partialFunction1
@@ -152,7 +153,7 @@ condPartialFunction1 m = (_rStatus $ head $ _rules $ G._game $ head $ _games m) 
 partialFunction2 :: String
 partialFunction2 = [cr|voidRule $ do
    t <- getCurrentTime
-   onEventOnce_ (Time $ addUTCTime 5 t) $ const $ readVar_ (V "toto2")|]
+   onEventOnce_ (Time $ addUTCTime 5 t) $ const $ readMsgVar_ (msgVar "toto2")|]
 
 gamePartialFunction2 :: StateT Session IO ()
 gamePartialFunction2 = do
@@ -168,7 +169,7 @@ condPartialFunction2 m = (_rStatus $ headNote "cond1 failed" $ _rules $ G._game 
                          (take 5 $ _lMsg $ headNote "cond3 failed" $ _logs $ G._game $ headNote "cond4 failed" $ _games m) == "Error"
 
 partialFunction3 :: String
-partialFunction3 = [cr|voidRule $ onEvent_ (RuleEv Proposed) $ const $ readVar_ (V "toto3")|]
+partialFunction3 = [cr|voidRule $ onEvent_ (RuleEv Proposed) $ const $ readMsgVar_ (msgVar "toto3")|]
 
 gamePartialFunction3 :: StateT Session IO ()
 gamePartialFunction3 = do

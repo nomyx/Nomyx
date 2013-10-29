@@ -34,6 +34,7 @@ import Paths_Nomyx_Language as PNL
 import System.Directory (removeDirectoryRecursive, canonicalizePath, removeFile, doesFileExist)
 import Data.Time.Clock
 import Language.Nomyx hiding (getCurrentTime)
+import Language.NomyxAPI
 import Control.Exception as E hiding (bracket)
 import Test
 import Utils

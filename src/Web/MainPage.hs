@@ -21,6 +21,7 @@ import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
 import Language.Nomyx
+import Language.NomyxAPI
 import Happstack.Server as HS
 import System.FilePath
 import qualified Web.Help as Help
@@ -32,7 +33,7 @@ import Web.NewGame
 import Web.Login
 import Utils
 import Data.Text(Text, pack)
-import qualified Language.Nomyx.Engine as G
+import qualified Language.NomyxAPI as G
 import Happstack.Auth
 import Safe
 default (Integer, Double, Data.Text.Text)
@@ -85,10 +86,10 @@ viewGamesTab gs isAdmin saveDir = do
 viewGameName :: Bool -> Game -> RoutedNomyxServer Html
 viewGameName isAdmin g = do
    let gn = _gameName g
-   join  <- showURL (JoinGame gn)
-   leave <- showURL (LeaveGame gn)
-   view  <- showURL (ViewGame gn)
-   del  <- showURL (DelGame gn)
+   join  <- showURL (W.JoinGame gn)
+   leave <- showURL (W.LeaveGame gn)
+   view  <- showURL (W.ViewGame gn)
+   del   <- showURL (W.DelGame gn)
    ok $ tr $ do
       td ! A.id "gameName" $ string $ (gn ++ "   ")
       td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
@@ -132,8 +133,8 @@ routedNomyxCommands ts (U_AuthProfile auth)  = authenticate      ts auth
 routedNomyxCommands ts PostAuth              = postAuthenticate  ts
 routedNomyxCommands ts HomePage              = homePage          ts
 routedNomyxCommands ts MainPage              = nomyxPage         ts
-routedNomyxCommands ts (JoinGame game)       = joinGame          ts game
-routedNomyxCommands ts (LeaveGame game)      = leaveGame         ts game
+routedNomyxCommands ts (W.JoinGame game)     = joinGame          ts game
+routedNomyxCommands ts (W.LeaveGame game)    = leaveGame         ts game
 routedNomyxCommands ts (ViewGame game)       = viewGamePlayer    ts game
 routedNomyxCommands ts (DelGame game)        = delGame           ts game
 routedNomyxCommands ts (NewRule game)        = newRule           ts game

@@ -19,7 +19,7 @@ import Control.Exception
 import Debug.Trace.Helpers
 import Data.Lens
 import Language.Nomyx
-import Language.Nomyx.Engine as G
+import Language.NomyxAPI as G
 import Control.Category hiding ((.))
 import qualified Data.Acid.Advanced as A (update', query')
 import Quotes (cr)
@@ -66,7 +66,7 @@ joinGame :: GameName -> PlayerNumber -> StateT Session IO ()
 joinGame game pn = do
    s <- get
    name <- lift $ Utils.getPlayerName pn s
-   inGameDo game $ G.update $ JoinGame pn name
+   inGameDo game $ G.execGameEvent $ JoinGame pn name
    viewGamePlayer game pn
 
 -- | del a game.delGame :: GameName -> StateT Session IO ()
@@ -75,7 +75,7 @@ delGame name = focus multi $ void $ games %= filter ((/= name) . getL (game >>> 
 
 -- | leave a game.
 leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
-leaveGame game pn = inGameDo game $ G.update $ LeaveGame pn
+leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
 
 -- | insert a rule in pending rules.
 submitRule :: SubmitRule -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
@@ -85,11 +85,11 @@ submitRule sr@(SubmitRule _ _ code) pn gn sh = do
    case mrr of
       Right _ -> do
          tracePN pn $ "proposed rule compiled OK "
-         inGameDo gn $ G.update' (Just $ getRuleFunc sh) (ProposeRuleEv pn sr)
+         inGameDo gn $ G.execGameEvent' (Just $ getRuleFunc sh) (ProposeRuleEv pn sr)
          modifyProfile pn (pLastRule ^= Nothing)
       Left e -> do
          let errorMsg = showInterpreterError e
-         inGameDo gn $ update $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
+         inGameDo gn $ execGameEvent $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
          modifyProfile pn (pLastRule ^= Just (sr, errorMsg)) -- keep in memory the last rule proposed by the player to display it in case of error
 
@@ -100,17 +100,17 @@ adminSubmitRule sr@(SubmitRule _ _ code) pn gn sh = do
    case mrr of
       Right _ -> do
          tracePN pn $ "proposed rule compiled OK "
-         inGameDo gn $ update' (Just $ getRuleFunc sh) (SystemAddRule sr)
+         inGameDo gn $ execGameEvent' (Just $ getRuleFunc sh) (SystemAddRule sr)
          modifyProfile pn (pLastRule ^= Nothing)
       Left e -> do
          let errorMsg = showInterpreterError e
-         inGameDo gn $ update $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
+         inGameDo gn $ execGameEvent $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
          modifyProfile pn (pLastRule ^= Just (sr, errorMsg))
 
 
 inputResult :: PlayerNumber -> EventNumber -> UInputData -> GameName -> StateT Session IO ()
-inputResult pn en ir gn = inGameDo gn $ update $ InputResult pn en ir
+inputResult pn en ir gn = inGameDo gn $ execGameEvent $ InputResult pn en ir
 
 -- | upload a rule file
 inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Session IO ()
@@ -120,12 +120,12 @@ inputUpload pn temp mod sh = do
    tracePN pn $ " uploaded " ++ (show mod)
    case m of
       Right _ -> do
-         inPlayersGameDo pn $ update $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
+         inPlayersGameDo pn $ execGameEvent $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
          tracePN pn "upload success"
          modifyProfile pn (pLastUpload ^= UploadSuccess)
       Left e -> do
          let errorMsg = showInterpreterError e
-         inPlayersGameDo pn $ update $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
+         inPlayersGameDo pn $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
          tracePN pn "upload failed"
          modifyProfile pn (pLastUpload ^= UploadFailure (temp, errorMsg))
 
@@ -194,7 +194,7 @@ triggerTimeEvent t = do
 
 trig :: UTCTime -> LoggedGame -> IO LoggedGame
 trig t g =  do
-   g' <- execWithGame' t (update $ TimeEvent t) g
+   g' <- execWithGame' t (execGameEvent $ TimeEvent t) g
    evaluate g'
 
 -- | get all events that has not been triggered yet
@@ -219,7 +219,7 @@ rVoteMajority = SubmitRule "Majority Vote"
 
 initialGame :: ServerHandle -> StateT LoggedGame IO ()
 initialGame sh = mapM_ addR [rVoteUnanimity, rVictory5Rules]
-   where addR r = update' (Just $ getRuleFunc sh) (SystemAddRule r)
+   where addR r = execGameEvent' (Just $ getRuleFunc sh) (SystemAddRule r)
 
 initialLoggedGame :: GameName -> GameDesc -> UTCTime -> ServerHandle -> IO LoggedGame
 initialLoggedGame name desc date sh = do
