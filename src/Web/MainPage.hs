@@ -37,8 +37,8 @@ import Data.Text(Text, pack)
 import qualified Language.Nomyx.Engine as G
 import Happstack.Auth
 import Safe
+import Paths_Nomyx_Language
 default (Integer, Double, Data.Text.Text)
-
 
 viewMulti :: PlayerNumber -> PlayerNumber -> FilePath -> Session -> RoutedNomyxServer Html
 viewMulti pn playAs saveDir s = do
@@ -69,12 +69,9 @@ viewGamesTab gs isAdmin saveDir = do
             [] -> tr $ td "No Games"
             _ ->  sequence_ gns
       when isAdmin $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
-      br >> "Nomyx language files:" >> br
-      H.a "Rules examples"    ! (href $ "/src/Language/Nomyx/Examples.hs") >> br
-      H.a "Basic rules"       ! (href $ "/src/Language/Nomyx/Rule.hs") >> br
-      H.a "Rules definitions" ! (href $ "/src/Language/Nomyx/Definition.hs") >> br
-      H.a "Rules types"       ! (href $ "/src/Language/Nomyx/Expression.hs") >> br
-      H.a "Voting system"     ! (href $ "/src/Language/Nomyx/Vote.hs") >> br
+      br >> "Help files:" >> br
+      H.a "Rules examples"    ! (href $ "/html/Language-Nomyx-Examples.html") >> br
+      H.a "Nomyx language"    ! (href $ "/html/Language-Nomyx.html") >> br
       when (fmods /= []) $ do
          br >> "Uploaded files:" >> br
          mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : uploadDir </> f)) >> br) (sort fmods)
@@ -160,8 +157,10 @@ server :: (TVar Session) -> Network -> ServerPartT IO Response
 server ts net = do
   s <- liftIO $ atomically $ readTVar ts
   let set = _mSettings $ _multi s
+  docdir <- liftIO $ getDocDir
   mconcat [
     serveDirectory DisableBrowsing [] (_saveDir set),
+    serveDirectory DisableBrowsing [] docdir,
     serveDirectory DisableBrowsing [] (_dataDir set),
     serveDirectory DisableBrowsing [] (_sourceDir set),
     do decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
@@ -169,3 +168,8 @@ server ts net = do
        return $ toResponse html]
 
 
+getDocDir :: IO FilePath
+getDocDir = do
+   datadir <- getDataDir
+   let (x:xs) = reverse $ splitDirectories datadir
+   return $ joinPath $ reverse $ (x:"doc":xs)
