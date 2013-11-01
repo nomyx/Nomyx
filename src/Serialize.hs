@@ -5,7 +5,7 @@ module Serialize where
 
 import Prelude hiding (log)
 import Language.Nomyx hiding (getCurrentTime)
-import Language.NomyxAPI
+import Language.Nomyx.Engine
 import Control.Monad.State
 import Types
 import Data.Lens

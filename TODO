@@ -40,6 +40,7 @@ Improvements:
 - put a scroll on long IOs
 - put settings at session level, not multi level
 - a way to overwrite uploads (automatically or with admin intervention)
+- tag the save file with the version
 
 Futur Nomic:
 - ability to analyse rules, proof system

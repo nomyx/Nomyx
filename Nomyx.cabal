@@ -20,7 +20,7 @@ data-dir: data
 extra-source-files: AUTHORS README TODO
  
 executable Nomyx
-    build-depends: Nomyx-Language         == 0.3.2,
+    build-depends: Nomyx-Language         == 0.4.0,
                    DebugTraceHelpers      == 0.12.*,
                    MissingH               == 1.2.*,
                    MonadCatchIO-mtl       == 0.3.*,

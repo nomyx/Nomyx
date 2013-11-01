@@ -15,7 +15,7 @@ import Web.Routes.TH (derivePathInfo)
 import Control.Monad.State
 import Control.Concurrent.STM
 import Language.Nomyx
-import Language.NomyxAPI
+import Language.Nomyx.Engine
 import Happstack.Server as HS
 import Types as T
 import qualified Data.ByteString.Char8 as C

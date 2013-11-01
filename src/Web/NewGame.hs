@@ -15,7 +15,7 @@ import Happstack.Server
 import Text.Reform.Happstack
 import Web.Common
 import Control.Monad.State
-import Language.NomyxAPI
+import Language.Nomyx.Engine
 import Web.Routes.RouteT
 import Control.Concurrent.STM
 import Data.Text(Text)

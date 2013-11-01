@@ -23,7 +23,7 @@ import Control.Concurrent
 import Interpret
 import Control.Concurrent.STM
 import Control.Monad.CatchIO (bracket)
-import Language.Nomyx.Test as LT
+import Language.Nomyx.Engine.Test as LT
 import Data.Maybe
 import Safe
 import Network.BSD
@@ -33,7 +33,7 @@ import Paths_Nomyx as PN
 import Paths_Nomyx_Language as PNL
 import System.Directory (removeDirectoryRecursive, canonicalizePath, removeFile, doesFileExist)
 import Data.Time.Clock
-import Language.NomyxAPI
+import Language.Nomyx.Engine
 import Control.Exception as E hiding (bracket)
 import Test
 import Utils

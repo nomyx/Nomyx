@@ -14,7 +14,7 @@ import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
 import Language.Nomyx
-import Language.NomyxAPI
+import Language.Nomyx.Engine
 import Data.Maybe
 import Text.Reform.Happstack
 import Text.Reform

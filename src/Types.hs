@@ -3,11 +3,11 @@
 
 module Types where
 import Language.Nomyx
+import Language.Nomyx.Engine
 import Data.Typeable
 import Text.Reform.Happstack()
 import Network.BSD
 import Data.Lens.Template
-import Language.NomyxAPI
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Data.Acid (makeAcidic, Update, Query, AcidState)
 import Happstack.Auth (ProfileState, AuthState)

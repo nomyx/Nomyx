@@ -21,7 +21,7 @@ import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
 import Language.Nomyx
-import Language.NomyxAPI
+import Language.Nomyx.Engine
 import Happstack.Server as HS
 import System.FilePath
 import qualified Web.Help as Help
@@ -34,7 +34,7 @@ import Web.Login
 import Data.List
 import Utils
 import Data.Text(Text, pack)
-import qualified Language.NomyxAPI as G
+import qualified Language.Nomyx.Engine as G
 import Happstack.Auth
 import Safe
 default (Integer, Double, Data.Text.Text)

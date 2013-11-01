@@ -22,7 +22,7 @@ import Control.Monad.State
 import Multi
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Language.Nomyx hiding (getCurrentTime)
-import Language.NomyxAPI
+import Language.Nomyx.Engine
 import Control.Applicative
 import Control.Exception as E
 import Language.Haskell.TH
@@ -35,7 +35,7 @@ import Safe
 import Data.Acid.Memory
 import Happstack.Auth.Core.Auth (initialAuthState)
 import Happstack.Auth.Core.Profile (initialProfileState)
-import qualified Language.NomyxAPI as G
+import qualified Language.Nomyx.Engine as G
 import Control.Arrow ((>>>))
 import Data.Time hiding (getCurrentTime)
 
