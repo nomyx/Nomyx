@@ -24,7 +24,7 @@ executable Nomyx
                    DebugTraceHelpers      == 0.12.*,
                    MissingH               == 1.2.*,
                    MonadCatchIO-mtl       == 0.3.*,
-                   acid-state             == 0.10.*,
+                   acid-state             == 0.12.*,
                    base                   == 4.6.*,
                    blaze-html             == 0.5.*,
                    blaze-markup           == 0.5.*,
