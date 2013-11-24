@@ -4,43 +4,42 @@
 module Web.Game where
 
 import Prelude hiding (div)
-import qualified Prelude as P
-import Text.Blaze.Html5 hiding (map, head)
-import qualified Text.Blaze.Html5.Attributes as A
-import Web.Routes.RouteT
-import Text.Blaze.Internal hiding (Text)
+import qualified Prelude
 import Control.Monad
 import Control.Monad.State
-import Data.Monoid
 import Control.Concurrent.STM
-import Language.Nomyx
-import Language.Nomyx.Engine
-import Data.Maybe
-import Text.Reform.Happstack
-import Text.Reform
-import Happstack.Server hiding (Input)
-import qualified Web.Help as Help
-import Web.Common
-import Types as T
-import Web.Routes.Happstack()
-import qualified Text.Reform.Blaze.String as RB hiding (form)
 import Control.Applicative
-import Utils
-import Mail
-import Text.Printf
+import Control.Category hiding ((.))
+import Data.Monoid
+import Data.Maybe
 import Data.String
 import Data.List
-import Data.Text(Text)
-import qualified Text.Reform.Blaze.Common as RBC
-import qualified Language.Haskell.HsColour.HTML as HSC
-import Language.Haskell.HsColour.Colourise hiding (string)
-import Multi as M
 import Data.List.Split
+import Data.Text (Text)
 import Data.Typeable
 import Data.Time
-import System.Locale
 import Data.Lens
-import Control.Category hiding ((.))
+import Text.Printf
+import System.Locale
+import Language.Nomyx
+import Language.Nomyx.Engine
+import Text.Blaze.Html5                    (Html, div, (!), p, td, tr, h3, h4, h5, table, thead, pre, toValue, br, toHtml, a, img)
+import Text.Blaze.Html5.Attributes as A    (src, title, width, style, id, onclick, disabled, placeholder, class_, href)
+import Text.Blaze.Internal                 (string, text, preEscapedString)
+import Text.Reform.Blaze.String as RB      (label, inputText, textarea, inputSubmit, inputCheckboxes)
+import Text.Reform.Happstack               (environment)
+import Text.Reform                         ((<++), (++>), viewForm, eitherForm)
+import Text.Reform.Blaze.Common            (setAttr)
+import Happstack.Server                    (Response, Method(..), seeOther, toResponse, methodM, ok)
+import Language.Haskell.HsColour.HTML      (hscolour)
+import Language.Haskell.HsColour.Colourise (defaultColourPrefs)
+import Web.Routes.RouteT                   (showURL, liftRouteT)
+import qualified Web.Help as Help
+import Types as T
+import Utils
+import Mail
+import Multi as M
+import Web.Common
 import Safe
 default (Integer, Double, Data.Text.Text)
 
@@ -69,7 +68,7 @@ viewGameDesc g pn = do
 
 viewPlayers :: [PlayerInfo] -> PlayerNumber -> Html
 viewPlayers pis pn = do
-   let plChunks = transpose $ chunksOf (1 + (length pis) `P.div` 3) (sort pis)
+   let plChunks = transpose $ chunksOf (1 + (length pis) `Prelude.div` 3) (sort pis)
    table $ mapM_ (\row -> tr $ mapM_ (viewPlayer pn) row) plChunks
 
 
@@ -77,7 +76,7 @@ viewPlayer :: PlayerNumber -> PlayerInfo -> Html
 viewPlayer mypn (PlayerInfo pn name) = do
     let inf = string ((show pn) ++ "\t" ++ name)
     if mypn == pn
-       then td ! A.style "color: red;" $ inf
+       then td ! style "color: red;" $ inf
        else td inf
 
 
@@ -98,39 +97,39 @@ viewAllRules g = do
 
 viewRules :: [Rule] -> String -> Bool -> Game -> Html
 viewRules nrs title visible g = do
-   showHideTitle title visible (length nrs == 0) (h4 $ toHtml (title ++ ":") ) $ table ! A.class_ "table" $ do
+   showHideTitle title visible (length nrs == 0) (h4 $ toHtml (title ++ ":") ) $ table ! class_ "table" $ do
       thead $ do
-         td ! A.class_ "td" $ text "#"
-         td ! A.class_ "td" $ text "Name"
-         td ! A.class_ "td" $ text "Description"
-         td ! A.class_ "td" $ text "Proposed by"
-         td ! A.class_ "td" $ text "Code of the rule"
-         td ! A.class_ "td" $ text "Assessed by"
+         td ! class_ "td" $ text "#"
+         td ! class_ "td" $ text "Name"
+         td ! class_ "td" $ text "Description"
+         td ! class_ "td" $ text "Proposed by"
+         td ! class_ "td" $ text "Code of the rule"
+         td ! class_ "td" $ text "Assessed by"
       forM_ nrs (viewRule g)
 
 viewRule :: Game -> Rule -> Html
 viewRule g nr = tr $ do
    let pl = fromMaybe ("Player " ++ (show $ _rProposedBy nr)) (_playerName <$> (Utils.getPlayer g $ _rProposedBy nr))
-   td ! A.class_ "td" $ string . show $ _rNumber nr
-   td ! A.class_ "td" $ string $ _rName nr
-   td ! A.class_ "td" $ string $ _rDescription nr
-   td ! A.class_ "td" $ string $ if _rProposedBy nr == 0 then "System" else pl
-   td ! A.class_ "td" $ viewRuleFunc $ nr
-   td ! A.class_ "td" $ string $ case _rAssessedBy nr of
+   td ! class_ "td" $ string . show $ _rNumber nr
+   td ! class_ "td" $ string $ _rName nr
+   td ! class_ "td" $ string $ _rDescription nr
+   td ! class_ "td" $ string $ if _rProposedBy nr == 0 then "System" else pl
+   td ! class_ "td" $ viewRuleFunc $ nr
+   td ! class_ "td" $ string $ case _rAssessedBy nr of
       Nothing -> "Not assessed"
       Just 0  -> "System"
       Just a  -> "Rule " ++ (show $ a)
 
 viewRuleFunc :: Rule -> Html
 viewRuleFunc nr = do
-      let code = preEscapedString $ HSC.hscolour defaultColourPrefs False $ _rRuleCode nr
+      let code = preEscapedString $ hscolour defaultColourPrefs False $ _rRuleCode nr
       let ref = "openModalCode" ++ (show $ _rNumber nr)
-      div ! A.id "showCodeLink" $ a ! (A.href $ toValue $ "#" ++ ref)  $ "show code" >> br
+      div ! A.id "showCodeLink" $ a ! (href $ toValue $ "#" ++ ref)  $ "show code" >> br
       code
-      div ! A.id (toValue ref) ! A.class_ "modalDialog" $ do
+      div ! A.id (toValue ref) ! class_ "modalDialog" $ do
          div $ do
             p $ "Code of the rule:"
-            a ! A.href "#close" ! A.title "Close" ! A.class_ "close" $ "X"
+            a ! href "#close" ! title "Close" ! class_ "close" $ "X"
             div ! A.id "modalCode"$ code
 
 viewDetails :: PlayerNumber -> Game -> Html
@@ -144,20 +143,20 @@ viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
 
 
 viewEvents :: [EventHandler] -> Html
-viewEvents ehs = table ! A.class_ "table" $ do
+viewEvents ehs = table ! class_ "table" $ do
          thead $ do
-            td ! A.class_ "td" $ text "Event Number"
-            td ! A.class_ "td" $ text "By Rule"
-            td ! A.class_ "td" $ text "Event"
+            td ! class_ "td" $ text "Event Number"
+            td ! class_ "td" $ text "By Rule"
+            td ! class_ "td" $ text "Event"
          mapM_ viewEvent $ sort ehs
 
 
 viewEvent :: EventHandler -> Html
-viewEvent (EH eventNumber ruleNumber event _ status) = if status == SActive then disp else disp ! A.style "background:gray;" where
+viewEvent (EH eventNumber ruleNumber event _ status) = if status == SActive then disp else disp ! style "background:gray;" where
    disp = tr $ do
-      td ! A.class_ "td" $ string . show $ eventNumber
-      td ! A.class_ "td" $ string . show $ ruleNumber
-      td ! A.class_ "td" $ string . show $ event
+      td ! class_ "td" $ string . show $ eventNumber
+      td ! class_ "td" $ string . show $ ruleNumber
+      td ! class_ "td" $ string . show $ event
 
 viewIOs :: PlayerNumber -> [Rule] -> [EventHandler] -> [Output] -> GameName -> RoutedNomyxServer Html
 viewIOs pn rs ehs os gn = do
@@ -219,30 +218,31 @@ viewOutput :: String -> Html
 viewOutput s = pre $ string s >> br
 
 viewVars :: [Var] -> Html
-viewVars vs = table ! A.class_ "table" $ do
+viewVars vs = table ! class_ "table" $ do
       thead $ do
-         td ! A.class_ "td" $ text "Rule number"
-         td ! A.class_ "td" $ text "Name"
-         td ! A.class_ "td" $ text "Value"
+         td ! class_ "td" $ text "Rule number"
+         td ! class_ "td" $ text "Name"
+         td ! class_ "td" $ text "Value"
       mapM_ viewVar vs
 
 viewVar :: Var -> Html
 viewVar (Var vRuleNumber vName vData) = tr $ do
-   td ! A.class_ "td" $ string . show $ vRuleNumber
-   td ! A.class_ "td" $ string . show $ vName
-   td ! A.class_ "td" $ string . show $ vData
+   td ! class_ "td" $ string . show $ vRuleNumber
+   td ! class_ "td" $ string . show $ vName
+   td ! class_ "td" $ string . show $ vData
 
 
-newRuleForm :: (Maybe SubmitRule) -> Bool -> NomyxForm (SubmitRule, Maybe String)
+newRuleForm :: (Maybe SubmitRule) -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
 newRuleForm (Just lr) isAdmin = newRuleForm' lr isAdmin
 newRuleForm Nothing isAdmin = newRuleForm' (SubmitRule "" "" "") isAdmin
 
-newRuleForm' :: SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String)
+newRuleForm' :: SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
 newRuleForm' (SubmitRule name desc code) isAdmin =
-   (,) <$> (SubmitRule <$> RB.label "Name: " ++> (RB.inputText name)
-                       <*> RB.label "      Short description: " ++> RB.inputText desc
-                       <*> RB.label "      Code: " ++> RB.textarea 80 15 code `RBC.setAttr` A.class_ "code" `RBC.setAttr` A.placeholder "Enter here your rule")
-       <*> if isAdmin then RB.inputSubmit "Admin submit" else pure Nothing
+   (,,) <$> (SubmitRule <$> label "Name: " ++> (RB.inputText name)
+                        <*> label "      Short description: " ++> RB.inputText desc
+                        <*> label "      Code: " ++> textarea 80 15 code `setAttr` class_ "code" `setAttr` placeholder "Enter here your rule")
+       <*> inputSubmit "Check"
+       <*> if isAdmin then inputSubmit "Admin submit" else pure Nothing
 
 
 viewRuleForm :: Maybe LastRule -> Bool -> Bool -> GameName -> RoutedNomyxServer Html
@@ -257,7 +257,7 @@ viewRuleForm msr inGame isAdmin gn = do
          when (isJust error) $ do
             h5 $ "Error in submitted rule: "
             pre $ string $ fromJust error
-      else lf ! A.disabled ""
+      else lf ! disabled ""
 
 newRule :: (TVar Session) -> GameName -> RoutedNomyxServer Response
 newRule ts gn = toResponse <$> do
@@ -268,7 +268,7 @@ newRule ts gn = toResponse <$> do
    link <- showURL MainPage
    pn <- getPlayerNumber ts
    case r of
-       Right (sr, Nothing) -> do
+       Right (sr, Nothing, Nothing) -> do
           webCommand ts $ submitRule sr pn gn sh
           liftIO $ do
              s' <- readTVarIO ts  --TODO clean this
@@ -277,7 +277,9 @@ newRule ts gn = toResponse <$> do
              let rs = _rules $ _game $ fromJustNote "newRule" gn
              let rs' = _rules $ _game $ fromJustNote "newRule" gn'
              when (length rs' > length rs) $ sendMailsNewRule s' sr pn
-       Right (sr, Just _) -> webCommand ts $ adminSubmitRule sr pn gn sh
+       Right (sr, Just _, Nothing) -> webCommand ts $ checkRule sr pn sh
+       Right (sr, Nothing, Just _) -> webCommand ts $ adminSubmitRule sr pn gn sh
+       Right (_,  Just _, Just _)  -> error "Impossible new rule form result"
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
    seeOther link $ string "Redirecting..."
 
@@ -314,18 +316,18 @@ getNomyxForm (EH _ _ (InputEv (Input _ _ iForm)) _ _) = inputForm iForm
 getNomyxForm _ = error "Not an Input Event"
 
 inputForm :: (Typeable a) => InputForm a -> NomyxForm UInputData
-inputForm (Radio choices)    = URadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) ((==) 0) <++ RB.label " "
-inputForm Text               = UTextData     <$> RB.inputText "" <++ RB.label " "
-inputForm TextArea           = UTextAreaData <$> RB.textarea 50 5  "" <++ RB.label " "
+inputForm (Radio choices)    = URadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) ((==) 0) <++ label " "
+inputForm Text               = UTextData     <$> RB.inputText "" <++ label " "
+inputForm TextArea           = UTextAreaData <$> textarea 50 5  "" <++ label " "
 inputForm Button             = pure UButtonData
-inputForm (Checkbox choices) = UCheckboxData <$> RB.inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ RB.label " "
+inputForm (Checkbox choices) = UCheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label " "
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do
-   div ! A.onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id id) $ table ! A.width "100%" $ tr $ do
-      td $ title ! A.width "80%"
-      td ! A.style "text-align:right;" $ h5 (if visible then "[Click to hide]" else "[Click to show]") ! A.id (fromString $ printf "%sShow" id) ! A.width "20%"
-   div ! A.id (fromString $ printf "%sBody" id) ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
+   div ! onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id id) $ table ! width "100%" $ tr $ do
+      td $ title ! width "80%"
+      td ! style "text-align:right;" $ h5 (if visible then "[Click to hide]" else "[Click to show]") ! A.id (fromString $ printf "%sShow" id) ! width "20%"
+   div ! A.id (fromString $ printf "%sBody" id) ! style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
       if (empty) then (toHtml $ "No " ++ id) else rest
 
 joinGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
@@ -356,6 +358,6 @@ viewGamePlayer ts gn = do
    seeOther link $ toResponse "Redirecting..."
 
 titleWithHelpIcon :: Html -> String -> Html
-titleWithHelpIcon title help = table ! A.width "100%" $ tr $ do
-   td ! A.style "text-align:left;" $ title
-   td ! A.style "text-align:right;" $ img ! A.src "/static/pictures/help.jpg" ! A.title (toValue help)
+titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
+   td ! style "text-align:left;" $ myTitle
+   td ! style "text-align:right;" $ img ! src "/static/pictures/help.jpg" ! title (toValue help)

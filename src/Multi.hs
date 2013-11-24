@@ -108,6 +108,18 @@ adminSubmitRule sr@(SubmitRule _ _ code) pn gn sh = do
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
          modifyProfile pn (pLastRule ^= Just (sr, errorMsg))
 
+checkRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Session IO ()
+checkRule sr@(SubmitRule _ _ code) pn sh = do
+   tracePN pn $ "check rule " ++ (show sr)
+   mrr <- liftIO $ interpretRule code sh
+   case mrr of
+      Right _ -> do
+         tracePN pn $ "proposed rule compiled OK "
+         modifyProfile pn (pLastRule ^= Just (sr, "check rule: compiled OK. Now you can submit it!"))
+      Left e -> do
+         let errorMsg = showInterpreterError e
+         tracePN pn ("Error in submitted rule: " ++ errorMsg)
+         modifyProfile pn (pLastRule ^= Just (sr, errorMsg))
 
 inputResult :: PlayerNumber -> EventNumber -> UInputData -> GameName -> StateT Session IO ()
 inputResult pn en ir gn = inGameDo gn $ execGameEvent $ InputResult pn en ir

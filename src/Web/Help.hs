@@ -32,7 +32,11 @@ rules = "The rules are displayed here. The active rules are controlling the game
         "When a player proposes a rule, it is set to pending. Only another, already active rule can activate a pending rule (with the instruction \"activateRule\")."
 inputsOutputs = "The inputs and outputs triggered by the rules are displayed here.\n For example, a rules can trigger an input to gather data from the player, with the instruction \"onInputRadio\".\n" ++
                 "Rules can also display text message here, with the instruction \"output\"."
-code = "You can type in your new rule in the box below. The text entered must have the type \"RuleFunc\" when compiled.\nAs a first rule, you can try to type \"nothing\", which is a rule that does nothing. Other examples can be found in the file Examples.hs accessible on the left tab."
+
+code = "You can type in your new rule in the box below. The text entered must have the type \"RuleFunc\" when compiled.\n" ++
+       "When you are done, you can press \"Check\" to verify if the rule compiles.\n" ++
+       "If OK, press \"Submit\" to propose the new rule.\n" ++
+       "As a first rule, you can try to type \"nothing\", which is a rule that does nothing. Other examples can be found in the examples link on the left tab."
 events = "Rules can register on events, in order to be triggered when the event happens, for example with the instruction \"onEvent\".\n"
 variables = "Variables: Rules can create variables to store data. For example, a rule creating a bank account with instruction \"newVar\" will make a new variable appear here."
 
