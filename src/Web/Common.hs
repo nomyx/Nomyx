@@ -41,7 +41,7 @@ import GHC.IO.Handle.Types (BufferMode(..))
 import Control.Exception (evaluate)
 import Utils
 import Data.Maybe
-import qualified Data.Text as DT
+import Data.Text (unpack, append)
 
 
 data NomyxError = PlayerNameRequired
@@ -87,6 +87,9 @@ data PlayerCommand = HomePage
                    | SubmitSettings
                    deriving (Show)
 
+ruleFormAnchor, inputAnchor :: Text
+ruleFormAnchor = "RuleForm"
+inputAnchor = "Input"
 
 type RoutedNomyxServer a = RouteT PlayerCommand (ServerPartT IO) a
 
@@ -185,7 +188,7 @@ mainPage' title header body footer = do
 mainPage :: String -> Html -> Html -> Bool -> Bool -> RoutedNomyxServer Html
 mainPage title header body footer backLink = do
    link <- showURL MainPage
-   if backLink then ok $ appTemplate' title header body footer (Just $ DT.unpack link)
+   if backLink then ok $ appTemplate' title header body footer (Just $ unpack link)
    else ok $ appTemplate' title header body footer Nothing
 
 appTemplate' ::
@@ -249,6 +252,9 @@ getIsAdmin ts = do
 fieldRequired :: NomyxError -> String -> Either NomyxError String
 fieldRequired a []  = Left a
 fieldRequired _ str = Right str
+
+appendAnchor :: Text -> Text -> Text
+appendAnchor url a = url `append` "#" `append` a
 
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]

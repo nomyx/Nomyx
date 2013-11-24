@@ -23,7 +23,7 @@ import Text.Printf
 import System.Locale
 import Language.Nomyx
 import Language.Nomyx.Engine
-import Text.Blaze.Html5                    (Html, div, (!), p, td, tr, h3, h4, h5, table, thead, pre, toValue, br, toHtml, a, img)
+import Text.Blaze.Html5                    (Html, div, (!), p, table, thead, td, tr, h3, h4, h5, pre, toValue, br, toHtml, a, img)
 import Text.Blaze.Html5.Attributes as A    (src, title, width, style, id, onclick, disabled, placeholder, class_, href)
 import Text.Blaze.Internal                 (string, text, preEscapedString)
 import Text.Reform.Blaze.String as RB      (label, inputText, textarea, inputSubmit, inputCheckboxes)
@@ -163,6 +163,7 @@ viewIOs pn rs ehs os gn = do
    vios <- mapM (viewIORule pn ehs os gn) (sort rs)
    ok $ do
       titleWithHelpIcon (h3 "Inputs/Ouputs") Help.inputsOutputs
+      a "" ! A.id (toValue inputAnchor)
       mconcat vios
 
 viewIORule :: PlayerNumber -> [EventHandler] -> [Output] -> GameName -> Rule -> RoutedNomyxServer Html
@@ -250,13 +251,12 @@ viewRuleForm msr inGame isAdmin gn = do
    link <- showURL (NewRule gn)
    lf  <- lift $ viewForm "user" (newRuleForm (fst <$> msr) isAdmin)
    ok $ do
+      a "" ! A.id (toValue ruleFormAnchor)
       titleWithHelpIcon (h3 "Propose a new rule:") Help.code
       if inGame then do
          blazeForm lf (link)
-         let error = snd <$> msr
-         when (isJust error) $ do
-            h5 $ "Error in submitted rule: "
-            pre $ string $ fromJust error
+         let msg = snd <$> msr
+         when (isJust msg) $ pre $ string $ fromJust msg
       else lf ! disabled ""
 
 newRule :: (TVar Session) -> GameName -> RoutedNomyxServer Response
@@ -281,7 +281,7 @@ newRule ts gn = toResponse <$> do
        Right (sr, Nothing, Just _) -> webCommand ts $ adminSubmitRule sr pn gn sh
        Right (_,  Just _, Just _)  -> error "Impossible new rule form result"
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
-   seeOther link $ string "Redirecting..."
+   seeOther (link `appendAnchor` ruleFormAnchor) $ string "Redirecting..."
 
 viewLogs :: [Log] -> PlayerNumber -> Html
 viewLogs log pn = do
@@ -289,10 +289,9 @@ viewLogs log pn = do
    table $ mapM_ viewLog (reverse ls)
 
 viewLog :: Log -> Html
-viewLog (Log _ t s) = do
-   tr $ do
-      td $ string $ formatTime defaultTimeLocale "%Y/%m/%d_%H:%M" t
-      td $ p $ string s
+viewLog (Log _ t s) = tr $ do
+   td $ string $ formatTime defaultTimeLocale "%Y/%m/%d_%H:%M" t
+   td $ p $ string s
 
 newInput :: (TVar Session) -> EventNumber -> GameName -> RoutedNomyxServer Response
 newInput ts en gn = toResponse <$> do
@@ -306,10 +305,9 @@ newInput ts en gn = toResponse <$> do
     case r of
        (Right c) -> do
           webCommand ts $ M.inputResult pn en c gn
-          seeOther link $ string "Redirecting..."
        (Left _) -> do
           liftIO $ putStrLn $ "cannot retrieve form data"
-          seeOther link $ string "Redirecting..."
+    seeOther (link `appendAnchor` inputAnchor) $ string "Redirecting..."
 
 getNomyxForm :: EventHandler -> NomyxForm UInputData
 getNomyxForm (EH _ _ (InputEv (Input _ _ iForm)) _ _) = inputForm iForm

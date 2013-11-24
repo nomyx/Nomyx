@@ -22,7 +22,7 @@ import Safe
 type PlayerPassword = String
 type Port = Int
 type CompileError = String
-type LastRule = (SubmitRule, CompileError)
+type LastRule = (SubmitRule, String)
 
 
 data LastUpload = NoUpload

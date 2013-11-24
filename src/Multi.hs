@@ -86,7 +86,7 @@ submitRule sr@(SubmitRule _ _ code) pn gn sh = do
       Right _ -> do
          tracePN pn $ "proposed rule compiled OK "
          inGameDo gn $ G.execGameEvent' (Just $ getRuleFunc sh) (ProposeRuleEv pn sr)
-         modifyProfile pn (pLastRule ^= Nothing)
+         modifyProfile pn (pLastRule ^= Just (sr, "Rule submitted OK!"))
       Left e -> do
          let errorMsg = showInterpreterError e
          inGameDo gn $ execGameEvent $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
@@ -101,7 +101,7 @@ adminSubmitRule sr@(SubmitRule _ _ code) pn gn sh = do
       Right _ -> do
          tracePN pn $ "proposed rule compiled OK "
          inGameDo gn $ execGameEvent' (Just $ getRuleFunc sh) (SystemAddRule sr)
-         modifyProfile pn (pLastRule ^= Nothing)
+         modifyProfile pn (pLastRule ^= Just (sr, "Admin rule submitted OK!"))
       Left e -> do
          let errorMsg = showInterpreterError e
          inGameDo gn $ execGameEvent $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
@@ -115,7 +115,7 @@ checkRule sr@(SubmitRule _ _ code) pn sh = do
    case mrr of
       Right _ -> do
          tracePN pn $ "proposed rule compiled OK "
-         modifyProfile pn (pLastRule ^= Just (sr, "check rule: compiled OK. Now you can submit it!"))
+         modifyProfile pn (pLastRule ^= Just (sr, "Rule compiled OK. Now you can submit it!"))
       Left e -> do
          let errorMsg = showInterpreterError e
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
