@@ -6,7 +6,7 @@ Bugs:
 - forbid void names
 - import qualified Data.Map and Control.Category (or hide conflicting functions)
 - display bugs on MacOS (tabs, vertical size)
-
+- message "Server error: not logged in." should have a back to login page button.
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -49,6 +49,4 @@ Futur Nomic:
 - interpreter (like tryhaskell.org) on the web page to debug rules
 - make a command line client
 
-Forum:
-- start another VM to run Nomyx alone
 

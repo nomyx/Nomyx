@@ -38,13 +38,14 @@ import qualified Language.Nomyx.Engine as G
 import Happstack.Auth
 import Safe
 import Paths_Nomyx_Language
+import Data.Maybe
 default (Integer, Double, Data.Text.Text)
 
 viewMulti :: PlayerNumber -> PlayerNumber -> FilePath -> Session -> RoutedNomyxServer Html
 viewMulti pn playAs saveDir s = do
    pfd <- getProfile s pn
    let isAdmin = _isAdmin $ _pAdmin $ fromJustNote "viewMulti" pfd
-   gns <- viewGamesTab (map G._game $ _games $ _multi s) isAdmin saveDir
+   gns <- viewGamesTab (map G._game $ _games $ _multi s) isAdmin saveDir pn
    mgn <- liftRouteT $ lift $ getPlayersGame pn s
    vg <- case mgn of
       Just g -> viewGame (G._game g) playAs (_pLastRule $ fromJustNote "viewMulti" pfd) isAdmin
@@ -53,9 +54,9 @@ viewMulti pn playAs saveDir s = do
       div ! A.id "gameList" $ gns
       div ! A.id "game" $ vg
 
-viewGamesTab :: [Game] -> Bool -> FilePath -> RoutedNomyxServer Html
-viewGamesTab gs isAdmin saveDir = do
-   gns <- mapM (viewGameName isAdmin) gs
+viewGamesTab :: [Game] -> Bool -> FilePath -> PlayerNumber -> RoutedNomyxServer Html
+viewGamesTab gs isAdmin saveDir pn = do
+   gns <- mapM (viewGameName isAdmin pn) gs
    newGameLink <- showURL NewGame
    settingsLink <- showURL W.PlayerSettings
    advLink <- showURL Advanced
@@ -81,19 +82,21 @@ viewGamesTab gs isAdmin saveDir = do
       H.a "Logout"          ! (href $ toValue logoutURL) >> br
 
 
-viewGameName :: Bool -> Game -> RoutedNomyxServer Html
-viewGameName isAdmin g = do
+viewGameName :: Bool -> PlayerNumber -> Game -> RoutedNomyxServer Html
+viewGameName isAdmin pn g = do
+   let isGameAdmin = isAdmin || isOwnerOfGame g pn
    let gn = _gameName g
    join  <- showURL (W.JoinGame gn)
    leave <- showURL (W.LeaveGame gn)
    view  <- showURL (W.ViewGame gn)
    del   <- showURL (W.DelGame gn)
-   ok $ tr $ do
+   if (isGameAdmin || (isNothing $ _simu g)) then
+    ok $ tr $ do
       td ! A.id "gameName" $ string $ (gn ++ "   ")
       td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
       td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.join)
       td $ H.a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn)
-      when isAdmin $ td $ H.a "Del"   ! (href $ toValue del)
+      when isGameAdmin $ td $ H.a "Del"   ! (href $ toValue del)
       div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
             h2 "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n \
@@ -105,7 +108,7 @@ viewGameName isAdmin g = do
             h2 "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
             H.a "Leave" ! (href $ toValue leave) ! A.class_ "modalButton"
             H.a "Stay"  ! (href $ toValue view)  ! A.class_ "modalButton"
-
+   else ok ""
 
 nomyxPage :: (TVar Session) -> RoutedNomyxServer Response
 nomyxPage ts = do
@@ -146,6 +149,7 @@ routedNomyxCommands ts Advanced              = advanced          ts
 routedNomyxCommands ts SubmitPlayAs          = newPlayAsSettings ts
 routedNomyxCommands ts SubmitAdminPass       = newAdminPass      ts
 routedNomyxCommands ts SubmitSettings        = newSettings       ts
+routedNomyxCommands ts SubmitStartSimulation = startSimulation   ts
 
 launchWebServer :: (TVar Session) -> Network -> IO ()
 launchWebServer tm net = do
@@ -173,3 +177,8 @@ getDocDir = do
    datadir <- getDataDir
    let (x:xs) = reverse $ splitDirectories datadir
    return $ joinPath $ reverse $ (x:"doc":xs)
+
+isOwnerOfGame :: Game -> PlayerNumber -> Bool
+isOwnerOfGame g pn = case _simu g of
+   Just (Simulation {_ownedBy = ob}) -> ob == pn
+   Nothing -> False

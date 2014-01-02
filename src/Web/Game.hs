@@ -178,12 +178,10 @@ viewIORuleM :: PlayerNumber -> RuleNumber -> [EventHandler] -> [Output] -> GameN
 viewIORuleM pn rn ehs os gn = do
    vir <- viewInputsRule pn rn ehs gn
    let vor = viewOutputsRule pn rn os
-   if (isJust vir || isJust vor) then do
-      return $ Just $ do
-         when (isJust vir) $ fromJust vir
-         when (isJust vor) $ fromJust vor
-   else
-      return Nothing
+   if (isJust vir || isJust vor) then return $ Just $ do
+      when (isJust vir) $ fromJust vir
+      when (isJust vor) $ fromJust vor
+   else return Nothing
 
 viewInputsRule :: PlayerNumber -> RuleNumber -> [EventHandler] -> GameName -> RoutedNomyxServer (Maybe Html)
 viewInputsRule pn rn ehs gn = do

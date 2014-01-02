@@ -173,6 +173,19 @@ getNewPlayerNumber = do
 getGameByName :: GameName -> StateT Multi IO (Maybe LoggedGame)
 getGameByName gn =  (find ((==gn) . getL (game >>> gameName))) <$> (access games)
 
+startSimulation :: GameName -> PlayerNumber -> StateT Session IO ()
+startSimulation gn pn = focus multi $ do
+   gms <- access games
+   case filter ((== gn) . getL (game >>> gameName)) gms of
+      g:[] -> do
+         tracePN pn $ "Creating a simulation for game: " ++ gn
+         time <- liftIO $ T.getCurrentTime
+         let sim = Simulation gn pn time
+         let g' = ((game >>> gameName) ^= ("Simulated " ++ gn)) . ((game >>> simu) ^= Just sim) $ g
+         void $ games %= (g' : )
+      _ -> tracePN pn $ "Creating a simulation game: no game by that name: " ++ gn
+
+
 -- | this function apply the given game actions to the game the player is in.
 inPlayersGameDo :: PlayerNumber -> StateT LoggedGame IO a -> StateT Session IO (Maybe a)
 inPlayersGameDo pn action = do

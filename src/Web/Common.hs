@@ -85,6 +85,7 @@ data PlayerCommand = HomePage
                    | SubmitPlayAs
                    | SubmitAdminPass
                    | SubmitSettings
+                   | SubmitStartSimulation
                    deriving (Show)
 
 ruleFormAnchor, inputAnchor :: Text
