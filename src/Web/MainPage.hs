@@ -41,14 +41,14 @@ import Paths_Nomyx_Language
 import Data.Maybe
 default (Integer, Double, Data.Text.Text)
 
-viewMulti :: PlayerNumber -> PlayerNumber -> FilePath -> Session -> RoutedNomyxServer Html
-viewMulti pn playAs saveDir s = do
+viewMulti :: PlayerNumber -> FilePath -> Session -> RoutedNomyxServer Html
+viewMulti pn saveDir s = do
    pfd <- getProfile s pn
-   let isAdmin = _isAdmin $ _pAdmin $ fromJustNote "viewMulti" pfd
+   let isAdmin = _pIsAdmin $ fromJustNote "viewMulti" pfd
    gns <- viewGamesTab (map G._game $ _games $ _multi s) isAdmin saveDir pn
    mgn <- liftRouteT $ lift $ getPlayersGame pn s
    vg <- case mgn of
-      Just g -> viewGame (G._game g) playAs (_pLastRule $ fromJustNote "viewMulti" pfd) isAdmin
+      Just g -> viewGame (G._game g) pn (_pLastRule $ fromJustNote "viewMulti" pfd) isAdmin
       Nothing -> ok $ h3 "Not viewing any game"
    ok $ do
       div ! A.id "gameList" $ gns
@@ -116,13 +116,10 @@ nomyxPage ts = do
    s <- liftIO $ atomically $ readTVar ts
    let saveDir = _saveDir $ _mSettings $ _multi s
    name <- liftIO $ Utils.getPlayerName pn s
-   playAs <- getPlayAs ts
-   m <- viewMulti pn playAs saveDir s
-   let body = do
-       string $ "Welcome to Nomyx, " ++ name ++ "! "
-       when (playAs /= pn) $ (b ! A.style "color:red;" $ string ("Playing as Player #" ++ (show playAs)) )
+   pn <- getPlayerNumber ts
+   m <- viewMulti pn saveDir s
    mainPage' "Welcome to Nomyx!"
-            body
+            (string $ "Welcome to Nomyx, " ++ name ++ "! ")
             (H.div ! A.id "multi" $ m)
             False
 
@@ -146,7 +143,7 @@ routedNomyxCommands ts Upload                = newUpload         ts
 routedNomyxCommands ts W.PlayerSettings      = playerSettings    ts
 routedNomyxCommands ts SubmitPlayerSettings  = newPlayerSettings ts
 routedNomyxCommands ts Advanced              = advanced          ts
-routedNomyxCommands ts SubmitPlayAs          = newPlayAsSettings ts
+routedNomyxCommands ts (SubmitPlayAs game)   = newPlayAs         ts game
 routedNomyxCommands ts SubmitAdminPass       = newAdminPass      ts
 routedNomyxCommands ts SubmitSettings        = newSettings       ts
 routedNomyxCommands ts SubmitStartSimulation = startSimulation   ts

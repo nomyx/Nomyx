@@ -145,18 +145,22 @@ inputUpload pn temp mod sh = do
 playerSettings :: PlayerSettings -> PlayerNumber -> StateT Session IO ()
 playerSettings playerSettings pn = modifyProfile pn (pPlayerSettings ^= playerSettings)
 
-playAsSetting :: (Maybe PlayerNumber) -> PlayerNumber -> StateT Session IO ()
-playAsSetting mpn pn = modifyProfile pn ((pAdmin >>> pPlayAs) ^= mpn)
+playAs :: (Maybe PlayerNumber) -> PlayerNumber -> GameName -> StateT Session IO ()
+playAs playAs pn g = inGameDo g $ do
+   pls <- access (game >>> players)
+   case find ((== pn) . getL playerNumber) pls of
+      Nothing -> tracePN pn "player not in game"
+      Just pi -> void $ (game >>> players) ~= replaceWith ((== pn) . getL playerNumber) (pi {_playAs = playAs}) pls
 
 adminPass :: String -> PlayerNumber -> StateT Session IO ()
 adminPass pass pn = do
    s <- get
    if (pass == (_adminPassword $ _mSettings $ _multi s)) then do
       tracePN pn "getting admin rights"
-      modifyProfile pn $ (pAdmin >>> isAdmin) ^= True
+      modifyProfile pn $ pIsAdmin ^= True
    else do
       tracePN pn "submitted wrong admin password"
-      modifyProfile pn $ (pAdmin >>> isAdmin) ^= False
+      modifyProfile pn $ pIsAdmin ^= False
 
 globalSettings :: Bool -> StateT Session IO ()
 globalSettings mails = void $ (multi >>> mSettings >>> sendMails) ~= mails

@@ -59,14 +59,6 @@ data Multi = Multi { _games   :: [LoggedGame],
                      _mSettings :: Settings}
                      deriving (Eq, Read, Show, Typeable)
 
-data Admin = Admin { _isAdmin :: Bool,
-                     _pPlayAs :: Maybe PlayerNumber}
-                     deriving (Eq, Show, Read, Ord, Typeable, Data)
-$(deriveSafeCopy 1 'base ''Admin)
-
-defaultAdmin :: Admin
-defaultAdmin = Admin False Nothing
-
 -- | 'ProfileData' contains application specific
 data ProfileData =
     ProfileData { _pPlayerNumber   :: PlayerNumber, -- ^ same as UserId
@@ -74,7 +66,8 @@ data ProfileData =
                   _pViewingGame    :: Maybe GameName,
                   _pLastRule       :: Maybe LastRule,
                   _pLastUpload     :: LastUpload,
-                  _pAdmin          :: Admin}
+                  _pIsAdmin        :: Bool
+                  }
     deriving (Eq, Ord, Read, Show, Typeable, Data)
 $(deriveSafeCopy 1 'base ''ProfileData)
 $(deriveSafeCopy 1 'base ''SubmitRule)
@@ -119,7 +112,7 @@ newProfileData :: PlayerNumber -> PlayerSettings -> Update ProfileDataState Prof
 newProfileData uid ps =
     do pds@(ProfileDataState {..}) <- get
        case IxSet.getOne (profilesData @= uid) of
-         Nothing -> do let profileData = ProfileData uid ps Nothing Nothing NoUpload defaultAdmin
+         Nothing -> do let profileData = ProfileData uid ps Nothing Nothing NoUpload False
                        put $ pds { profilesData = IxSet.updateIx uid profileData profilesData }
                        return profileData
          (Just profileData) -> return profileData
@@ -156,6 +149,6 @@ defaultMulti set = Multi [] set
 defaultPlayerSettings :: PlayerSettings
 defaultPlayerSettings = PlayerSettings "" "" False False False False
 
-$( makeLenses [''Multi, ''Settings, ''Network, ''PlayerSettings, ''Session, ''ProfileData, ''Admin] )
+$( makeLenses [''Multi, ''Settings, ''Network, ''PlayerSettings, ''Session, ''ProfileData] )
 
 

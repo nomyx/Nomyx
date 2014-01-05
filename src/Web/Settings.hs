@@ -119,24 +119,23 @@ advanced ts = toResponse <$> do
    pfd <- getProfile session pn
    pfds <- liftIO $ getAllProfiles session
    session <- liftIO $ atomically $ readTVar ts
-   page <- advancedPage (_pLastUpload $ fromJustNote "advanced" pfd)
-                        (_pAdmin $ fromJustNote "advanced" pfd)
+   let prof = fromJustNote "advanced" pfd
+   page <- advancedPage (_pLastUpload prof)
+                        (_pIsAdmin prof)
                         (_mSettings $ _multi session)
                         pfds
                         (getSimulableGames session)
    mainPage "Advanced" "Advanced" page False True
 
 
-advancedPage :: LastUpload -> Admin -> Settings -> [ProfileData] -> [GameName] -> RoutedNomyxServer Html
-advancedPage mlu (Admin admin mpn) settings pfds games = do
+advancedPage :: LastUpload -> Bool -> Settings -> [ProfileData] -> [GameName] -> RoutedNomyxServer Html
+advancedPage mlu isAdmin settings pfds games = do
    uploadLink <- showURL Upload
    submitAdminPass <- showURL SubmitAdminPass
-   submitPlayAs <- showURL SubmitPlayAs
    submitSettings <- showURL SubmitSettings
    submitStartSimulation <- showURL SubmitStartSimulation
    up  <- lift $ viewForm "user" uploadForm  --TODO add the file name (missing Reform feature)
-   ap  <- lift $ viewForm "user" $ adminPassForm
-   paf <- lift $ viewForm "user" $ playAsForm []
+   ap  <- lift $ viewForm "user" adminPassForm
    set <- lift $ viewForm "user" $ settingsForm (_sendMails settings)
    gs  <- lift $ viewForm "user" $ gameSelect games
    liftIO $ makeTar (_saveDir settings)
@@ -170,13 +169,8 @@ advancedPage mlu (Admin admin mpn) settings pfds games = do
       p $ do
          h5 "Enter admin password to get admin rights (necessary to create a new game):"
          blazeForm ap (submitAdminPass)
-         when admin $ h5 "You are admin"
-      when admin $ do
-         hr
-         p $ do
-            h5 "Enter the number of the player you want to play for:"
-            blazeForm paf submitPlayAs
-            when (isJust mpn) $ h5 $ string $ "Playing as player " ++ (show $ fromJust mpn)
+         when isAdmin $ h5 "You are admin"
+      when isAdmin $ do
          hr
          p $ do
             h5 "Send mails:"
@@ -200,7 +194,7 @@ advancedPage mlu (Admin admin mpn) settings pfds games = do
 
 
 viewProfile :: ProfileData -> Html
-viewProfile (ProfileData pn (Types.PlayerSettings playerName mail _ mailNewRule _ _) viewingGame lastRule lastUpload (Admin isAdmin playAs)) =
+viewProfile (ProfileData pn (Types.PlayerSettings playerName mail _ mailNewRule _ _) viewingGame lastRule lastUpload isAdmin) =
    tr $ do
       td ! A.class_ "td" $ string $ show pn
       td ! A.class_ "td" $ string playerName
@@ -210,7 +204,6 @@ viewProfile (ProfileData pn (Types.PlayerSettings playerName mail _ mailNewRule 
       td ! A.class_ "td" $ string $ show lastRule
       td ! A.class_ "td" $ string $ show lastUpload
       td ! A.class_ "td" $ string $ show isAdmin
-      td ! A.class_ "td" $ string $ show playAs
 
 
 adminPassForm :: NomyxForm String
@@ -218,21 +211,6 @@ adminPassForm = RB.inputText ""
 
 playAsForm :: [PlayerNumber] -> NomyxForm (Maybe PlayerNumber)
 playAsForm _ = readPlayAs (label "Play as: " ++> RB.inputCheckbox False) (RB.inputText "")
-
-newPlayAsSettings :: (TVar Session) -> RoutedNomyxServer Response
-newPlayAsSettings ts = toResponse <$> do
-   methodM POST
-   p <- liftRouteT $ eitherForm environment "user" $ playAsForm []
-   pn <- getPlayerNumber ts
-   case p of
-      Right ps -> do
-         webCommand ts $ playAsSetting ps pn
-         link <- showURL Advanced
-         seeOther link $ string "Redirecting..."
-      (Left errorForm) -> do
-         settingsLink <- showURL SubmitPlayAs
-         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
-
 
 settingsForm :: Bool -> NomyxForm Bool
 settingsForm sendMails = label "Send mails: " ++> RB.inputCheckbox sendMails

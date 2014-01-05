@@ -82,7 +82,7 @@ data PlayerCommand = HomePage
                    | PlayerSettings
                    | SubmitPlayerSettings
                    | Advanced
-                   | SubmitPlayAs
+                   | SubmitPlayAs GameName
                    | SubmitAdminPass
                    | SubmitSettings
                    | SubmitStartSimulation
@@ -217,8 +217,8 @@ appTemplate' title headers body footer link = do
 appTemplate ::
     ( Monad m)
     => String -- ^ title
-    -> Html  -- ^ extra tags to include in \<head\>
-    -> Html    -- ^ contents to put inside \<body\>
+    -> Html   -- ^ extra tags to include in \<head\>
+    -> Html   -- ^ contents to put inside \<body\>
     -> m Response
 appTemplate title headers body = do
    return $ toResponse $ appTemplate' title headers body True Nothing
@@ -232,21 +232,12 @@ getPlayerNumber ts = do
       Nothing -> error "not logged in."
       (Just (UserId userID)) -> return $ fromInteger userID
 
--- return the pn to play as (by default self)
-getPlayAs :: (TVar Session) -> RoutedNomyxServer PlayerNumber
-getPlayAs ts = do
-   pn <- getPlayerNumber ts
-   pf <- getProfile' ts pn
-   case pf >>= _pPlayAs . _pAdmin of
-      Just playAs -> return playAs
-      Nothing     -> return pn
-
 getIsAdmin :: (TVar Session) -> RoutedNomyxServer Bool
 getIsAdmin ts = do
    pn <- getPlayerNumber ts
    mpf <- getProfile' ts pn
    case mpf of
-      Just pf -> return $ _isAdmin $ _pAdmin $ pf
+      Just pf -> return $ _pIsAdmin $ pf
       Nothing -> error "not logged in."
 
 
@@ -263,8 +254,8 @@ instance FormError NomyxError where
 
 instance ToMarkup NomyxError where
     toMarkup PlayerNameRequired = "Player Name is required"
-    toMarkup GameNameRequired = "Game Name is required"
-    toMarkup UniqueName = "Name already taken"
-    toMarkup UniqueEmail = "Email already taken"
-    toMarkup (NomyxCFE e)    = toHtml $ e
+    toMarkup GameNameRequired   = "Game Name is required"
+    toMarkup UniqueName         = "Name already taken"
+    toMarkup UniqueEmail        = "Email already taken"
+    toMarkup (NomyxCFE e)       = toHtml $ e
 

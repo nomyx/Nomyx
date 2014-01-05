@@ -14,7 +14,6 @@ import Data.Monoid
 import Data.Maybe
 import Data.String
 import Data.List
-import Data.List.Split
 import Data.Text (Text)
 import Data.Typeable
 import Data.Time
@@ -26,7 +25,7 @@ import Language.Nomyx.Engine
 import Text.Blaze.Html5                    (Html, div, (!), p, table, thead, td, tr, h3, h4, h5, pre, toValue, br, toHtml, a, img)
 import Text.Blaze.Html5.Attributes as A    (src, title, width, style, id, onclick, disabled, placeholder, class_, href)
 import Text.Blaze.Internal                 (string, text, preEscapedString)
-import Text.Reform.Blaze.String as RB      (label, inputText, textarea, inputSubmit, inputCheckboxes)
+import Text.Reform.Blaze.String as RB      (label, inputText, textarea, inputSubmit, inputCheckboxes, inputHidden)
 import Text.Reform.Happstack               (environment)
 import Text.Reform                         ((<++), (++>), viewForm, eitherForm)
 import Text.Reform.Blaze.Common            (setAttr)
@@ -45,44 +44,67 @@ default (Integer, Double, Data.Text.Text)
 
 viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> Bool -> RoutedNomyxServer Html
 viewGame g pn mlr isAdmin = do
-   let inGame = isJust $ Utils.getPlayer g pn
-   rf <- viewRuleForm mlr inGame isAdmin (_gameName g)
-   vios <- viewIOs pn (_rules g) (_events g) (_outputs g) (_gameName g)
+   let pi = Utils.getPlayerInfo g pn
+   let playAs = if (isJust pi) then (_playAs $ fromJust pi) else Nothing
+   rf <- viewRuleForm mlr (isJust pi) isAdmin (_gameName g)
+   vios <- viewIOs (fromMaybe pn playAs) (_rules g) (_events g) (_outputs g) (_gameName g)
+   vgd <- viewGameDesc g pn playAs
    ok $ table $ do
-      tr $ td $ div ! A.id "gameDesc" $ viewGameDesc g pn
-      tr $ td $ div ! A.id "rules" $ viewAllRules g
-      tr $ td $ div ! A.id "ios" $ vios
-      tr $ td $ div ! A.id "newRule" $ rf
-      tr $ td $ div ! A.id "details" $ viewDetails pn g
+      tr $ td $ div ! A.id "gameDesc" $ vgd
+      tr $ td $ div ! A.id "rules"    $ viewAllRules g
+      tr $ td $ div ! A.id "ios"      $ vios
+      tr $ td $ div ! A.id "newRule"  $ rf
+      tr $ td $ div ! A.id "details"  $ viewDetails pn g
 
-viewGameDesc :: Game -> PlayerNumber -> Html
-viewGameDesc g pn = do
-   p $ h3 $ string $ "Viewing game: " ++ _gameName g
-   p $ do
-      h4 $ "Description:"
-      string (_desc $ _gameDesc g)
-   p $ h4 $ "This game is discussed in the " >> a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g)) >> "."
-   p $ h4 $ "Players in game:"
-   viewPlayers (_players g) pn
-   p $ viewVictory g
+viewGameDesc :: Game -> PlayerNumber -> Maybe PlayerNumber -> RoutedNomyxServer Html
+viewGameDesc g pn playAs = do
+   vp <- viewPlayers (_players g) pn (_gameName g)
+   ok $ do
+      p $ do
+        h3 $ string $ "Viewing game: " ++ _gameName g
+        when (isJust playAs) $ h4 $ string $ "You are playing as: " ++ (show $ fromJust playAs)
+      p $ do
+         h4 $ "Description:"
+         string (_desc $ _gameDesc g)
+      p $ h4 $ "This game is discussed in the " >> a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g)) >> "."
+      p $ h4 $ "Players in game:"
+      vp
+      p $ viewVictory g
 
-viewPlayers :: [PlayerInfo] -> PlayerNumber -> Html
-viewPlayers pis pn = do
-   let plChunks = transpose $ chunksOf (1 + (length pis) `Prelude.div` 3) (sort pis)
-   table $ mapM_ (\row -> tr $ mapM_ (viewPlayer pn) row) plChunks
+
+viewPlayers :: [PlayerInfo] -> PlayerNumber -> GameName -> RoutedNomyxServer Html
+viewPlayers pis pn gn = do
+   vp <- mapM (viewPlayer pn gn) (sort pis)
+   ok $ table $ mconcat vp
+      --let plChunks = transpose $ chunksOf (1 + (length pis) `Prelude.div` 3) (sort pis)
+      --table $ mapM_ (\row -> tr $ mapM_ (viewPlayer pn) row) plChunks
 
 
-viewPlayer :: PlayerNumber -> PlayerInfo -> Html
-viewPlayer mypn (PlayerInfo pn name) = do
-    let inf = string ((show pn) ++ "\t" ++ name)
+viewPlayer :: PlayerNumber -> GameName -> PlayerInfo -> RoutedNomyxServer Html
+viewPlayer mypn gn (PlayerInfo pn name _) = do
+   pad <- playAsDiv pn gn
+   ok $ tr $ do
+    let inf = a (string ((show pn) ++ "\t" ++ name)) ! (href $ toValue $ "#openModalPlayAs" ++ (show pn))
+    pad
     if mypn == pn
        then td ! style "color: red;" $ inf
        else td inf
 
+playAsDiv :: PlayerNumber -> GameName -> RoutedNomyxServer Html
+playAsDiv pn gn = do
+   submitPlayAs <- showURL $ SubmitPlayAs gn
+   paf <- lift $ viewForm "user" $ playAsForm pn
+   ok $ do
+      div ! A.id (toValue $ "openModalPlayAs" ++ (show pn)) ! A.class_ "modalWindow" $ do
+         div $ blazeForm paf submitPlayAs
+
+playAsForm :: PlayerNumber -> NomyxForm String
+playAsForm pn = label ("Play as player " ++ (show pn) ++ "?  ") ++> inputHidden (show pn)
+
 
 viewVictory :: Game -> Html
 viewVictory g = do
-    let vs = _playerName <$> mapMaybe (Utils.getPlayer g) (_victory g)
+    let vs = _playerName <$> mapMaybe (Utils.getPlayerInfo g) (_victory g)
     case vs of
         []   -> br
         a:[] -> h3 $ string $ "Player " ++ (show a) ++ " won the game!"
@@ -109,7 +131,7 @@ viewRules nrs title visible g = do
 
 viewRule :: Game -> Rule -> Html
 viewRule g nr = tr $ do
-   let pl = fromMaybe ("Player " ++ (show $ _rProposedBy nr)) (_playerName <$> (Utils.getPlayer g $ _rProposedBy nr))
+   let pl = fromMaybe ("Player " ++ (show $ _rProposedBy nr)) (_playerName <$> (Utils.getPlayerInfo g $ _rProposedBy nr))
    td ! class_ "td" $ string . show $ _rNumber nr
    td ! class_ "td" $ string $ _rName nr
    td ! class_ "td" $ string $ _rDescription nr
@@ -306,6 +328,21 @@ newInput ts en gn = toResponse <$> do
        (Left _) -> do
           liftIO $ putStrLn $ "cannot retrieve form data"
     seeOther (link `appendAnchor` inputAnchor) $ string "Redirecting..."
+
+
+newPlayAs :: (TVar Session) -> GameName -> RoutedNomyxServer Response
+newPlayAs ts gn = toResponse <$> do
+   methodM POST
+   p <- liftRouteT $ eitherForm environment "user" $ playAsForm 0
+   pn <- getPlayerNumber ts
+   case p of
+      Right playAs -> do
+         webCommand ts $ M.playAs (Just (read playAs)) pn gn
+         link <- showURL MainPage
+         seeOther link $ string "Redirecting..."
+      (Left errorForm) -> do
+         settingsLink <- showURL $ SubmitPlayAs gn
+         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
 
 getNomyxForm :: EventHandler -> NomyxForm UInputData
 getNomyxForm (EH _ _ (InputEv (Input _ _ iForm)) _ _) = inputForm iForm

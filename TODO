@@ -7,6 +7,7 @@ Bugs:
 - import qualified Data.Map and Control.Category (or hide conflicting functions)
 - display bugs on MacOS (tabs, vertical size)
 - message "Server error: not logged in." should have a back to login page button.
+- tar file is generated on each advanced page display
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
