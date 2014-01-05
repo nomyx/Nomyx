@@ -45,10 +45,11 @@ default (Integer, Double, Data.Text.Text)
 viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> Bool -> RoutedNomyxServer Html
 viewGame g pn mlr isAdmin = do
    let pi = Utils.getPlayerInfo g pn
+   let isGameAdmin = isAdmin || (if (isJust $ _simu g) then ((_ownedBy $ fromJust $ _simu g) == pn) else False)
    let playAs = if (isJust pi) then (_playAs $ fromJust pi) else Nothing
    rf <- viewRuleForm mlr (isJust pi) isAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) (_rules g) (_events g) (_outputs g) (_gameName g)
-   vgd <- viewGameDesc g pn playAs
+   vgd <- viewGameDesc g playAs isGameAdmin
    ok $ table $ do
       tr $ td $ div ! A.id "gameDesc" $ vgd
       tr $ td $ div ! A.id "rules"    $ viewAllRules g
@@ -56,9 +57,9 @@ viewGame g pn mlr isAdmin = do
       tr $ td $ div ! A.id "newRule"  $ rf
       tr $ td $ div ! A.id "details"  $ viewDetails pn g
 
-viewGameDesc :: Game -> PlayerNumber -> Maybe PlayerNumber -> RoutedNomyxServer Html
-viewGameDesc g pn playAs = do
-   vp <- viewPlayers (_players g) pn (_gameName g)
+viewGameDesc :: Game -> Maybe PlayerNumber -> Bool -> RoutedNomyxServer Html
+viewGameDesc g playAs gameAdmin = do
+   vp <- viewPlayers (_players g) (_gameName g) gameAdmin
    ok $ do
       p $ do
         h3 $ string $ "Viewing game: " ++ _gameName g
@@ -72,22 +73,22 @@ viewGameDesc g pn playAs = do
       p $ viewVictory g
 
 
-viewPlayers :: [PlayerInfo] -> PlayerNumber -> GameName -> RoutedNomyxServer Html
-viewPlayers pis pn gn = do
-   vp <- mapM (viewPlayer pn gn) (sort pis)
+viewPlayers :: [PlayerInfo] -> GameName -> Bool -> RoutedNomyxServer Html
+viewPlayers pis gn gameAdmin = do
+   vp <- mapM (viewPlayer gn gameAdmin) (sort pis)
    ok $ table $ mconcat vp
       --let plChunks = transpose $ chunksOf (1 + (length pis) `Prelude.div` 3) (sort pis)
       --table $ mapM_ (\row -> tr $ mapM_ (viewPlayer pn) row) plChunks
 
 
-viewPlayer :: PlayerNumber -> GameName -> PlayerInfo -> RoutedNomyxServer Html
-viewPlayer mypn gn (PlayerInfo pn name _) = do
+viewPlayer :: GameName -> Bool -> PlayerInfo -> RoutedNomyxServer Html
+viewPlayer gn gameAdmin (PlayerInfo pn name _) = do
    pad <- playAsDiv pn gn
    ok $ tr $ do
-    let inf = a (string ((show pn) ++ "\t" ++ name)) ! (href $ toValue $ "#openModalPlayAs" ++ (show pn))
+    let inf = string ((show pn) ++ "\t" ++ name)
     pad
-    if mypn == pn
-       then td ! style "color: red;" $ inf
+    if gameAdmin
+       then td $ a inf ! (href $ toValue $ "#openModalPlayAs" ++ (show pn))
        else td inf
 
 playAsDiv :: PlayerNumber -> GameName -> RoutedNomyxServer Html
