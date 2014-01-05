@@ -185,7 +185,7 @@ startSimulation gn pn = focus multi $ do
          tracePN pn $ "Creating a simulation for game: " ++ gn
          time <- liftIO $ T.getCurrentTime
          let sim = Simulation gn pn time
-         let g' = ((game >>> gameName) ^= ("Simulated " ++ gn)) . ((game >>> simu) ^= Just sim) $ g
+         let g' = ((game >>> gameName) ^= ("Fork of " ++ gn)) . ((game >>> simu) ^= Just sim) $ g
          void $ games %= (g' : )
       _ -> tracePN pn $ "Creating a simulation game: no game by that name: " ++ gn
 

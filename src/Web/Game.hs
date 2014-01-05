@@ -63,12 +63,13 @@ viewGameDesc g playAs gameAdmin = do
    ok $ do
       p $ do
         h3 $ string $ "Viewing game: " ++ _gameName g
-        when (isJust playAs) $ h4 $ string $ "You are playing as: " ++ (show $ fromJust playAs)
+        when (isJust playAs) $ h4 $ string $ "You are playing as player " ++ (show $ fromJust playAs)
       p $ do
          h4 $ "Description:"
          string (_desc $ _gameDesc g)
       p $ h4 $ "This game is discussed in the " >> a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g)) >> "."
       p $ h4 $ "Players in game:"
+      when gameAdmin $ "(click on the player's name to \"play as\" this player)"
       vp
       p $ viewVictory g
 
@@ -381,6 +382,13 @@ leaveGame ts gn = do
 delGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
 delGame ts gn = do
    webCommand ts (M.delGame gn)
+   link <- showURL MainPage
+   seeOther link $ toResponse "Redirecting..."
+
+forkGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
+forkGame ts gn = do
+   pn <- getPlayerNumber ts
+   webCommand ts $ M.startSimulation gn pn
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 

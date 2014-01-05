@@ -74,6 +74,7 @@ data PlayerCommand = HomePage
                    | JoinGame  GameName
                    | LeaveGame GameName
                    | DelGame   GameName
+                   | ForkGame  GameName
                    | DoInput   EventNumber GameName
                    | NewRule   GameName
                    | NewGame
@@ -85,7 +86,6 @@ data PlayerCommand = HomePage
                    | SubmitPlayAs GameName
                    | SubmitAdminPass
                    | SubmitSettings
-                   | SubmitStartSimulation
                    deriving (Show)
 
 ruleFormAnchor, inputAnchor :: Text

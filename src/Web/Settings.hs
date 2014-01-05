@@ -124,20 +124,17 @@ advanced ts = toResponse <$> do
                         (_pIsAdmin prof)
                         (_mSettings $ _multi session)
                         pfds
-                        (getSimulableGames session)
    mainPage "Advanced" "Advanced" page False True
 
 
-advancedPage :: LastUpload -> Bool -> Settings -> [ProfileData] -> [GameName] -> RoutedNomyxServer Html
-advancedPage mlu isAdmin settings pfds games = do
+advancedPage :: LastUpload -> Bool -> Settings -> [ProfileData] -> RoutedNomyxServer Html
+advancedPage mlu isAdmin settings pfds = do
    uploadLink <- showURL Upload
    submitAdminPass <- showURL SubmitAdminPass
    submitSettings <- showURL SubmitSettings
-   submitStartSimulation <- showURL SubmitStartSimulation
    up  <- lift $ viewForm "user" uploadForm  --TODO add the file name (missing Reform feature)
    ap  <- lift $ viewForm "user" adminPassForm
    set <- lift $ viewForm "user" $ settingsForm (_sendMails settings)
-   gs  <- lift $ viewForm "user" $ gameSelect games
    liftIO $ makeTar (_saveDir settings)
    ok $ do
       p $ do
@@ -161,10 +158,6 @@ advancedPage mlu isAdmin settings pfds games = do
                pre $ string $ error
             UploadSuccess -> h5 $ "File uploaded successfully!"
             NoUpload -> p ""
-      hr
-      p $ do
-         h5 "Start simulation:"
-         blazeForm gs submitStartSimulation
       hr
       p $ do
          h5 "Enter admin password to get admin rights (necessary to create a new game):"
@@ -244,22 +237,6 @@ newUpload ts = toResponse <$> do
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
     seeOther link $ string "Redirecting..."
 
-startSimulation :: (TVar Session) -> RoutedNomyxServer Response
-startSimulation ts = toResponse <$> do
-   methodM POST
-   session <- liftIO $ atomically $ readTVar ts
-   egn <- liftRouteT $ eitherForm environment "user" $ gameSelect (getSimulableGames session)
-   pn <- getPlayerNumber ts
-   case egn of
-      Right gn -> do
-         webCommand ts $ M.startSimulation gn pn
-         link <- showURL MainPage
-         seeOther link $ string "Redirecting..."
-      (Left errorForm) -> do
-         tracePN pn "error in form"
-         startSimulationLink <- showURL SubmitStartSimulation
-         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm startSimulationLink) False True
-
 
 newAdminPass :: (TVar Session) -> RoutedNomyxServer Response
 newAdminPass ts = toResponse <$> do
@@ -275,18 +252,7 @@ newAdminPass ts = toResponse <$> do
          settingsLink <- showURL SubmitAdminPass
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
 
-gameSelect :: [String] -> NomyxForm String
-gameSelect games = label "Select game: " ++> RB.select (map (\a -> (a,a)) games) (== headDef "" games)
-
--- | simulable games are games that are not a simulation and not already simulated
-getSimulableGames :: Session -> [GameName]
-getSimulableGames s = do
-   let lgs = _games $ _multi s
-   g <- filter (isNothing . _simu . _game) lgs --get games that are not a simulation
-   guard $ not $ isSimulated g lgs             --get games that are not simulated by another one
-   return $ _gameName $ _game $ g
-
-isSimulated :: LoggedGame -> [LoggedGame] -> Bool
-isSimulated gn gs = (_gameName $ _game gn) `elem` simuNames where
-   simuNames = map _ofGame $ catMaybes (map (\g -> _simu $ _game g) gs)
+isSimulated :: Game -> [Game] -> Bool
+isSimulated g gs = (_gameName g) `elem` simuNames where
+   simuNames = map _ofGame $ catMaybes (map (\g -> _simu g) gs)
 
