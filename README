@@ -11,22 +11,15 @@ The original (paper) game: www.nomic.net
 Installation
 ============
 
-To install, follow this procedure:
-- download the source tar.gz
-- extract it somewhere
-
-$ cd <name>/Nomyx-Language
-$ cabal install
-$ cd ../Nomyx 
-$ cabal install
-
+    $ cabal install Nomyx-Language --enable-documentation --haddock-hyperlink-source
+    $ cabal install Nomyx
 
 Execution
 =========
 
 Launch with the command:
 
-$ Nomyx
+    $ Nomyx
 
 and follow the instructions. You may connect using a web browser to the given address.
 
