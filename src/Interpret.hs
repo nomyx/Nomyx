@@ -19,6 +19,7 @@ importList = ["Prelude",
               "Data.Maybe",
               "Data.List",
               "Control.Monad.State",
+              "Control.Monad.Reader",
               "Control.Applicative",
               "Control.Monad.Error",
               --"Data.Map",
@@ -26,7 +27,9 @@ importList = ["Prelude",
               "Data.Typeable",
               --"Control.Category",
               "Data.Lens",
-              "Control.Arrow"]
+              "Control.Arrow",
+              "Data.Array",
+              "Data.Char"]
               
 -- | the server handle
 startInterpreter :: FilePath -> IO ServerHandle
