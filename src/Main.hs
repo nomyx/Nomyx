@@ -85,6 +85,7 @@ start flags = do
    -- source directory: Nomyx-Language files (used only for display in GUI, since this library is statically linked otherwise)
    let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
    let settings = Settings (Network host port) sendMail adminPass saveDir dataDir sourceDir
+   putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\ndata dir = " ++ dataDir ++ "\nsource dir = " ++ sourceDir
    if Test `elem` flags then do
       sh <- protectHandlers $ startInterpreter saveDir
       putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)

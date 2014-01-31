@@ -95,6 +95,7 @@ viewGameName isAdmin pn isForked g = do
    fork  <- showURL (W.ForkGame gn)
    if (isGameAdmin || (isNothing $ _simu g)) then
     ok $ tr $ do
+      let cancel = H.a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
       td ! A.id "gameName" $ string $ (gn ++ "   ")
       td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
       td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.join)
@@ -105,19 +106,19 @@ viewGameName isAdmin pn isForked g = do
          div $ do
             h2 "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n \
                 If you do not wich to play, you can just view the game."
+            cancel
             H.a "Join" ! (href $ toValue join) ! A.class_ "modalButton" ! (A.title $ toValue Help.join)
-            H.a "View" ! (href $ toValue view) ! A.class_ "modalButton" ! (A.title $ toValue Help.view)
       div ! A.id (toValue $ "openModalLeave" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
             h2 "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
+            cancel
             H.a "Leave" ! (href $ toValue leave) ! A.class_ "modalButton"
-            H.a "Stay"  ! (href $ toValue view)  ! A.class_ "modalButton"
       div ! A.id (toValue $ "openModalFork" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
             h2 $ string $ "Fork game \"" ++ gn ++ "\"? This will create a new game based on the previous one. You will be able to test \n \
-               your new rules independently of the original game. The new game is private: you will be alone."
+               your new rules independently of the original game. The new game is private: you will be alone. Please delete it when finished."
+            cancel
             H.a "Fork" ! (href $ toValue fork) ! A.class_ "modalButton"
-            H.a "Do nothing"  ! (href $ toValue main)  ! A.class_ "modalButton"
    else ok ""
 
 nomyxPage :: (TVar Session) -> RoutedNomyxServer Response
@@ -170,10 +171,10 @@ server ts net = do
   let set = _mSettings $ _multi s
   docdir <- liftIO $ getDocDir
   mconcat [
-    serveDirectory DisableBrowsing [] (_saveDir set),
-    serveDirectory DisableBrowsing [] docdir,
-    serveDirectory DisableBrowsing [] (_dataDir set),
-    serveDirectory DisableBrowsing [] (_sourceDir set),
+    serveDirectory EnableBrowsing [] (_saveDir set),
+    serveDirectory EnableBrowsing [] docdir,
+    serveDirectory EnableBrowsing [] (_dataDir set),
+    serveDirectory EnableBrowsing [] (_sourceDir set),
     do decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
        html <- implSite (pack (nomyxURL net)) "/Nomyx" (nomyxSite ts)
        return $ toResponse html]
@@ -182,8 +183,8 @@ server ts net = do
 getDocDir :: IO FilePath
 getDocDir = do
    datadir <- getDataDir
-   let (x:xs) = reverse $ splitDirectories datadir
-   return $ joinPath $ reverse $ (x:"doc":xs)
+   let (as, _:bs) = break (== "share") $ splitDirectories datadir
+   return $ joinPath $ as ++ ["share", "doc"] ++ bs
 
 isOwnerOfGame :: Game -> PlayerNumber -> Bool
 isOwnerOfGame g pn = case _simu g of

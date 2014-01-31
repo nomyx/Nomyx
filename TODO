@@ -3,11 +3,13 @@ TODO list
 
 Bugs:
 - recurring event are making increasing memory size
-- forbid void names
 - import qualified Data.Map and Control.Category (or hide conflicting functions)
 - display bugs on MacOS (tabs, vertical size)
 - message "Server error: not logged in." should have a back to login page button.
 - tar file is generated on each advanced page display
+- online documentation not working with cabal install  --enable-documentation --haddock-hyperlink-source
+- limit width collumn table
+- fix facebook
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -20,7 +22,6 @@ Improvements:
 - hide when no information
 - cut rules too long
 - add examples with a game master, a castle..
-- fix facebook
 - vote: include new players, delete leaving players 
 - make settings file with start up rules (?)
 - make/fix deployement: 
@@ -42,6 +43,14 @@ Improvements:
 - put settings at session level, not multi level
 - a way to overwrite uploads (automatically or with admin intervention)
 - tag the save file with the version
+- fix the saving procedure: don't use show/read
+- make verbose flag
+
+To study:
+- change NewOutput      :: (Maybe PlayerNumber) -> String -> Nomex OutputNumber 
+  with   NewOutput      :: (Maybe PlayerNumber) -> Nomex String -> Nomex OutputNumber
+to allow "always up to date" outputs. Is this generally desirable? Would it be more intuitive?
+Do the same for other fields? Like for victory: SetVictory     :: Nomex [PlayerNumber] -> Nomex () would allow for creating a rule for victory (no more event needed?)
 
 Futur Nomic:
 - ability to analyse rules, proof system

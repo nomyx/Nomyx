@@ -261,7 +261,7 @@ input[type="file"]{
         padding-left:20px; 
         padding-right:10px;
         padding-top:5px;
-        padding-bottom:1px;
+        padding-bottom:10px;
         max-height: 70%;
     }
 
@@ -280,4 +280,10 @@ pre {
     -webkit-tab-size: 16;
     -ms-tab-size:     16;
     tab-size:         16;
+}
+
+.playasform {
+   font-size: large;
+   font-weight: bold;
+   padding-bottom:10px;
 }

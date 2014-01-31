@@ -22,7 +22,7 @@ import Text.Printf
 import System.Locale
 import Language.Nomyx
 import Language.Nomyx.Engine
-import Text.Blaze.Html5                    (Html, div, (!), p, table, thead, td, tr, h3, h4, h5, pre, toValue, br, toHtml, a, img)
+import Text.Blaze.Html5                    (Html, div, (!), p, table, thead, td, tr, h2, h3, h4, h5, pre, toValue, br, toHtml, a, img)
 import Text.Blaze.Html5.Attributes as A    (src, title, width, style, id, onclick, disabled, placeholder, class_, href)
 import Text.Blaze.Internal                 (string, text, preEscapedString)
 import Text.Reform.Blaze.String as RB      (label, inputText, textarea, inputSubmit, inputCheckboxes, inputHidden)
@@ -60,10 +60,13 @@ viewGame g pn mlr isAdmin = do
 viewGameDesc :: Game -> Maybe PlayerNumber -> Bool -> RoutedNomyxServer Html
 viewGameDesc g playAs gameAdmin = do
    vp <- viewPlayers (_players g) (_gameName g) gameAdmin
+   paf <- lift $ viewForm "user" $ playAsForm $ Nothing
    ok $ do
       p $ do
         h3 $ string $ "Viewing game: " ++ _gameName g
-        when (isJust playAs) $ h4 $ string $ "You are playing as player " ++ (show $ fromJust playAs)
+        when (isJust playAs) $ do
+           h4 $ string $ "You are playing as player " ++ (show $ fromJust playAs) ++ ". Cancel:"
+           paf
       p $ do
          h4 $ "Description:"
          string (_desc $ _gameDesc g)
@@ -95,13 +98,20 @@ viewPlayer gn gameAdmin (PlayerInfo pn name _) = do
 playAsDiv :: PlayerNumber -> GameName -> RoutedNomyxServer Html
 playAsDiv pn gn = do
    submitPlayAs <- showURL $ SubmitPlayAs gn
-   paf <- lift $ viewForm "user" $ playAsForm pn
+   main  <- showURL MainPage
+   paf <- lift $ viewForm "user" $ playAsForm $ Just pn
    ok $ do
+      let cancel = a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
       div ! A.id (toValue $ "openModalPlayAs" ++ (show pn)) ! A.class_ "modalWindow" $ do
-         div $ blazeForm paf submitPlayAs
+         div $ do
+            h2 "When you own a game, you can play instead of any players. This allows you to test \
+                the result of the corresponding actions."
+            blazeForm (h2 (string $ "Play as player " ++ (show pn) ++ "?  ") >> paf) submitPlayAs
+            br
+            cancel
 
-playAsForm :: PlayerNumber -> NomyxForm String
-playAsForm pn = label ("Play as player " ++ (show pn) ++ "?  ") ++> inputHidden (show pn)
+playAsForm :: Maybe PlayerNumber -> NomyxForm String
+playAsForm pn = inputHidden (show pn)
 
 
 viewVictory :: Game -> Html
@@ -138,7 +148,7 @@ viewRule g nr = tr $ do
    td ! class_ "td" $ string $ _rName nr
    td ! class_ "td" $ string $ _rDescription nr
    td ! class_ "td" $ string $ if _rProposedBy nr == 0 then "System" else pl
-   td ! class_ "td" $ viewRuleFunc $ nr
+   td ! class_ "codetd" $ viewRuleFunc $ nr
    td ! class_ "td" $ string $ case _rAssessedBy nr of
       Nothing -> "Not assessed"
       Just 0  -> "System"
@@ -335,11 +345,11 @@ newInput ts en gn = toResponse <$> do
 newPlayAs :: (TVar Session) -> GameName -> RoutedNomyxServer Response
 newPlayAs ts gn = toResponse <$> do
    methodM POST
-   p <- liftRouteT $ eitherForm environment "user" $ playAsForm 0
+   p <- liftRouteT $ eitherForm environment "user" $ playAsForm Nothing
    pn <- getPlayerNumber ts
    case p of
       Right playAs -> do
-         webCommand ts $ M.playAs (Just (read playAs)) pn gn
+         webCommand ts $ M.playAs (read playAs) pn gn
          link <- showURL MainPage
          seeOther link $ string "Redirecting..."
       (Left errorForm) -> do
