@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell, OverloadedStrings, GADTs, ScopedTypeVariables, DeriveDataTypeable,
-             RecordWildCards, TypeFamilies, TypeSynonymInstances, DoAndIfThenElse#-}
+             RecordWildCards, TypeFamilies, TypeSynonymInstances, DoAndIfThenElse, NamedFieldPuns #-}
 
 module Web.Common where
 
@@ -30,19 +30,10 @@ import Data.Text(Text, pack)
 import Web.Routes.Happstack()
 import Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
 import Serialize
-import Control.Concurrent
-       (putMVar, tryPutMVar, killThread, threadDelay, MVar, ThreadId,
-        takeMVar, forkIO, newEmptyMVar)
-import qualified Control.Exception as CE (catchJust)
-import System.IO.Error (isUserError)
-import Data.Time as T (getCurrentTime)
-import System.IO (stdout, hSetBuffering)
-import GHC.IO.Handle.Types (BufferMode(..))
-import Control.Exception (evaluate)
 import Utils
 import Data.Maybe
 import Data.Text (unpack, append)
-
+import Multi
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
@@ -104,57 +95,6 @@ instance PathInfo Bool where
            case reads str of
              [(n,[])] -> Just n
              _ ->        Nothing
-
-evalCommand :: (TVar Session) -> StateT Session IO a -> RoutedNomyxServer a
-evalCommand ts sm = liftIO $ do
-   s <- atomically $ readTVar ts
-   evalStateT sm s
-
-webCommand :: (TVar Session) -> StateT Session IO () -> RoutedNomyxServer ()
-webCommand ts sm = liftIO $ do
-   s <- atomically $ readTVar ts
-   s' <- execStateT sm s
-   atomically $ writeTVar ts s'
-   save (_multi s') --TODO not really nice to put that here
-
-
-webCommand' :: (TVar Session) -> StateT Session IO () -> RoutedNomyxServer ()
-webCommand' ts sm = liftIO $ do
-   s <- atomically $ readTVar ts
-   s' <- execStateT sm s
-   atomically $ writeTVar ts s'
-   save (_multi s') --TODO not really nice to put that here
-
-
-protectedExecCommand :: (TVar Session) -> StateT Session IO a -> IO ()
-protectedExecCommand ts ss = do
-    mv <- newEmptyMVar
-    before <- atomically $ readTVar ts
-    id <- forkIO $ CE.catchJust  (\e -> if isUserError e then Just () else Nothing) (execBlocking ss before mv) (\e-> putStrLn $ show e)
-    forkIO $ watchDog' 10 id mv
-    T.getCurrentTime >>= (\a -> putStrLn $ "before takevar " ++ show a)
-    res <- takeMVar mv
-    case res of
-       Nothing -> (atomically $ writeTVar ts before) >> T.getCurrentTime >>= (\a -> putStrLn $ "writing before" ++ show a)
-       Just (_, after) -> (atomically $ writeTVar ts after) >> T.getCurrentTime >>= (\a -> putStrLn $ "writing after " ++ show a)
-
-watchDog' :: Int -> ThreadId -> MVar (Maybe x) -> IO ()
-watchDog' t tid mv = do
-   threadDelay $ t * 1000000
-   killThread tid
-   T.getCurrentTime >>= (\a -> putStrLn $ "process timeout " ++ show a)
-   tryPutMVar mv Nothing
-   return ()
-
-execBlocking :: StateT Session IO a -> Session -> MVar (Maybe (a, Session)) -> IO ()
-execBlocking ss s mv = do
-   hSetBuffering stdout NoBuffering
-   T.getCurrentTime >>= (\a -> putStrLn $ "before runstate " ++ show a)
-   res <- runStateT ss s --runStateT (inPlayersGameDo 1 $ liftT $ evalExp (do let (a::Int) = a in outputAll $ show a) 1) m --
-   T.getCurrentTime >>= (\a -> putStrLn $ "after runstate " ++ show a)
-   res' <- evaluate res
-   putMVar mv (Just res')
-
 
 blazeResponse :: Html -> Response
 blazeResponse html = toResponseBS (C.pack "text/html;charset=UTF-8") $ renderHtml html
@@ -231,6 +171,21 @@ getPlayerNumber ts = do
    case uid of
       Nothing -> error "not logged in."
       (Just (UserId userID)) -> return $ fromInteger userID
+
+--getUserPass :: MonadIO m => Session -> PlayerNumber -> m (Maybe UserPass)
+--getUserPass s pn = A.query' (acidAuth $ _profiles s) (AskUserPass pn)
+-- | 'Acid' holds all the 'AcidState' handles for this site.
+--data Profiles = Profiles
+--    { acidAuth        :: AcidState AuthState,
+--      acidProfile     :: AcidState ProfileState,
+--      acidProfileData :: AcidState ProfileDataState}
+
+--update the session using the command and saves it
+webCommand :: (TVar Session) -> StateT Session IO () -> RoutedNomyxServer ()
+webCommand ts ss = liftIO $ do
+   updateSession ts ss
+   s <- atomically $ readTVar ts
+   save (_multi s)
 
 getIsAdmin :: (TVar Session) -> RoutedNomyxServer Bool
 getIsAdmin ts = do

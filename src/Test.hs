@@ -56,8 +56,6 @@ tests = [("hello World",           gameHelloWorld,         condHelloWorld),
 dayZero :: UTCTime
 dayZero = UTCTime (ModifiedJulianDay 0) 0
 
---noTime :: [MultiEvent] -> [TimedEvent]
---noTime mes = map (TE dayZero) mes
 
 test :: ServerHandle -> StateT Session IO () -> (Multi -> Bool) -> IO Bool
 test sh tes cond = do
@@ -66,12 +64,13 @@ test sh tes cond = do
    m' <- loadTest tes s
    (evaluate $ cond m') `E.catch` (\(e::SomeException) -> (putStrLn $ "Exception in test: " ++ show e) >> return False)
 
-
 loadTest ::  StateT Session IO () -> Session -> IO Multi
 loadTest tes s = do
-   s' <- execStateT tes s
-   evaluate s'
-   return $ _multi s'
+   ms <- updateSession' s tes
+   case ms of
+      Just s' -> return $ _multi s'
+      Nothing -> error "updateSession failed"
+
 
 testException :: Multi -> SomeException -> IO Multi
 testException m e = do

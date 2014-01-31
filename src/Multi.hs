@@ -23,7 +23,13 @@ import Language.Nomyx.Engine as G
 import Control.Category hiding ((.))
 import qualified Data.Acid.Advanced as A (update', query')
 import Quotes (cr)
-
+import Serialize (save)
+import Control.Concurrent
+import Control.Concurrent.STM
+import Control.Concurrent.MVar
+import System.IO
+import Mueval.Parallel
+import System.IO.PlafCompat
 
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
@@ -212,6 +218,32 @@ inGameDo gn action = focus multi $ do
          t <- lift $ T.getCurrentTime
          myg <- lift $ execWithGame' t action g
          modifyGame myg
+
+-- update a session by executing a command.
+-- we set a watchdog in case the evaluation would not finish
+updateSession :: (TVar Session) -> StateT Session IO () -> IO ()
+updateSession ts sm = do
+   s <- atomically $ readTVar ts
+   ms <- updateSession' s sm
+   when (isJust ms) $ atomically $ writeTVar ts $ fromJust ms
+
+updateSession' :: Session -> StateT Session IO () -> IO (Maybe Session)
+updateSession' s sm = do
+   mvar <- newEmptyMVar
+   hSetBuffering stdout NoBuffering
+   id <- forkIO $ do
+      s' <- execCommand s sm
+      putMVar mvar (Just s')
+   watchDog 10 id
+   s' <- takeMVar mvar
+   putStrLn "after takeMVar"
+   return s'
+
+execCommand :: Session -> StateT Session IO () -> IO Session
+execCommand s sm = do
+   s' <- execStateT sm s
+   writeFile nullFileName $ displayMulti $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
+   return s'
 
 
 triggerTimeEvent :: UTCTime -> StateT Multi IO ()

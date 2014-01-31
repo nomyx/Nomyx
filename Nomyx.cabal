@@ -64,7 +64,9 @@ executable Nomyx
                    web-routes             == 0.27.*,
                    web-routes-happstack   == 0.23.*,
                    web-routes-regular     == 0.19.*,
-                   web-routes-th          == 0.22.*
+                   web-routes-th          == 0.22.*,
+                   mueval                 == 0.9.*,
+                   deepseq                == 1.3.* 
                   
     if os(windows)
         Cpp-options: -DWINDOWS
