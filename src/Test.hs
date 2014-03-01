@@ -120,7 +120,20 @@ submitR r = do
    onePlayerOneGame
    sh <- access sh
    submitRule (SubmitRule "" "" r) 1 "test" sh
-   inputResult 1 3 (URadioData 0) "test"
+   inputAllRadios 0 1
+
+-- select first choice for all radio buttons
+inputAllRadios :: Int -> PlayerNumber -> StateT Session IO ()
+inputAllRadios choice pn = do
+   s <- get
+   let evs = evalState getChoiceEvents (_game $ head $ _games $ _multi s)
+   mapM_ (\en -> inputResult pn en (URadioData choice) "test") evs
+
+inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
+inputAllTexts a pn = do
+   s <- get
+   let evs = evalState getTextEvents (_game $ head $ _games $ _multi s)
+   mapM_ (\en -> inputResult pn en (UTextData a) "test") evs
 
 gameHelloWorld :: StateT Session IO ()
 gameHelloWorld = submitR [cr|helloWorld|]
@@ -133,8 +146,8 @@ gameHelloWorld2Players = do
    twoPlayersOneGame
    sh <- access sh
    submitRule (SubmitRule "" "" [cr|helloWorld|]) 1 "test" sh
-   inputResult 1 3 (URadioData 0) "test"
-   inputResult 2 4 (URadioData 0) "test"
+   inputAllRadios 0 1
+   inputAllRadios 0 2
 
 condHelloWorld2Players :: Multi -> Bool
 condHelloWorld2Players m = isOutput "hello, world!" m
@@ -152,7 +165,7 @@ condPartialFunction1 m = (_rStatus $ head $ _rules $ G._game $ head $ _games m) 
 
 partialFunction2 :: String
 partialFunction2 = [cr|ruleFunc $ do
-   t <- getCurrentTime
+   t <- liftEffect getCurrentTime
    onEventOnce (Time $ addUTCTime 5 t) $ const $ readMsgVar_ (msgVar "toto2")|]
 
 gamePartialFunction2 :: StateT Session IO ()
@@ -188,14 +201,11 @@ gameMoneyTransfer = do
    submitRule (SubmitRule "" "" [cr|createBankAccount|]) 1 "test" sh
    submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 "test" sh
    submitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2 "test" sh
-   inputResult 1 4 (URadioData 0) "test"
-   inputResult 2 3 (URadioData 0) "test"
-   inputResult 1 9 (URadioData 0) "test"
-   inputResult 2 8 (URadioData 0) "test"
-   inputResult 1 14 (URadioData 0) "test"
-   inputResult 2 13 (URadioData 0) "test"
-   inputResult 1 5 (URadioData 0) "test"
-   inputResult 1 0 (UTextData "50") "test"--TODO find event number
+   inputAllRadios 0 1
+   inputAllRadios 0 2
+   inputAllTexts "50" 1
+   s <- get
+   liftIO $ putStrLn $ displayGame $ G._game $ head $ _games $ _multi s
 
 condMoneyTransfer :: Multi -> Bool
 condMoneyTransfer m = (_vName $ head $ _variables $ G._game $ head $ _games m) == "Accounts"

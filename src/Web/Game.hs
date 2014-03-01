@@ -116,7 +116,7 @@ playAsForm pn = inputHidden (show pn)
 
 viewVictory :: Game -> Html
 viewVictory g = do
-    let vs = _playerName <$> mapMaybe (Utils.getPlayerInfo g) (_victory g)
+    let vs = _playerName <$> mapMaybe (Utils.getPlayerInfo g) (getVictorious g)
     case vs of
         []   -> br
         a:[] -> h3 $ string $ "Player " ++ (show a) ++ " won the game!"
