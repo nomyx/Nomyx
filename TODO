@@ -2,6 +2,7 @@
 TODO list
 
 Bugs:
+- infinite loops are blocking the game
 - recurring event are making increasing memory size
 - import qualified Data.Map and Control.Category (or hide conflicting functions)
 - display bugs on MacOS (tabs, vertical size)
@@ -46,16 +47,10 @@ Improvements:
 - fix the saving procedure: don't use show/read
 - make verbose flag
 
-To study:
-- change NewOutput      :: (Maybe PlayerNumber) -> String -> Nomex OutputNumber 
-  with   NewOutput      :: (Maybe PlayerNumber) -> Nomex String -> Nomex OutputNumber
-to allow "always up to date" outputs. Is this generally desirable? Would it be more intuitive?
-Do the same for other fields? Like for victory: SetVictory     :: Nomex [PlayerNumber] -> Nomex () would allow for creating a rule for victory (no more event needed?)
 
 Futur Nomic:
 - ability to analyse rules, proof system
 - first pass of compilation to check reference (avoid calls to non-existant variables for ex.)
-- more stateless language
 - interpreter (like tryhaskell.org) on the web page to debug rules
 - make a command line client
 
