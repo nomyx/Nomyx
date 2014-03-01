@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, RecordWildCards#-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Web.Login where
 

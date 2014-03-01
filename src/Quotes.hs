@@ -11,7 +11,8 @@
 -- |
 --
 -----------------------------------------------------------------------------
-{-# LANGUAGE NamedFieldPuns, TemplateHaskell, QuasiQuotes, FlexibleInstances, GADTs #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Quotes where
 
@@ -21,6 +22,8 @@ import Language.Haskell.Interpreter hiding (get)
 import Interpret
 
 
+-- This quasi quoter allows to type check a string as a Nomyx rule (a RuleFunc).
+-- this gives additionnal safety at compile time.
 cr :: QuasiQuoter
 cr = QuasiQuoter { quoteExp  = quoteRuleFunc,
                    quotePat  = undefined,

@@ -1,6 +1,6 @@
-{-# LANGUAGE FlexibleContexts, GeneralizedNewtypeDeriving, ScopedTypeVariables,
-    MultiParamTypeClasses, TemplateHaskell, TypeFamilies, TypeOperators, TemplateHaskell, QuasiQuotes,
-    TypeSynonymInstances, FlexibleInstances, GADTs, NamedFieldPuns, DoAndIfThenElse, RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 
 -- | This module manages multi-player games and commands.
 module Multi where

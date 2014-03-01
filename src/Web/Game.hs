@@ -1,5 +1,7 @@
-
-{-# LANGUAGE GADTs, OverloadedStrings, ExtendedDefaultRules, DoAndIfThenElse#-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExtendedDefaultRules #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 
 module Web.Game where
 

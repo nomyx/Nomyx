@@ -11,7 +11,9 @@
 -- |
 --
 -----------------------------------------------------------------------------
-{-# LANGUAGE GADTs, DoAndIfThenElse, ScopedTypeVariables #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE ScopedTypeVariables #-}
     
 module Main (main) where
 

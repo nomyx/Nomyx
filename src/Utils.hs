@@ -12,7 +12,6 @@
 --
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE NamedFieldPuns #-}
 {-# OPTIONS -cpp #-}
 module Utils where
 

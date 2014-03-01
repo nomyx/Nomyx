@@ -1,5 +1,8 @@
-{-# LANGUAGE TemplateHaskell, OverloadedStrings, GADTs, ScopedTypeVariables, DeriveDataTypeable,
-             RecordWildCards, TypeFamilies, TypeSynonymInstances, DoAndIfThenElse, NamedFieldPuns #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Web.Common where
 

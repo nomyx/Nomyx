@@ -1,6 +1,4 @@
 
-{-# LANGUAGE NamedFieldPuns, FlexibleInstances #-}
-
 module Serialize where
 
 import Prelude hiding (log)
