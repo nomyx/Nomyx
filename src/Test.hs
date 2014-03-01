@@ -141,7 +141,7 @@ gameHelloWorld :: StateT Session IO ()
 gameHelloWorld = submitR [cr|helloWorld|]
 
 condHelloWorld :: Multi -> Bool
-condHelloWorld m = isOutput "hello, world!" m
+condHelloWorld m = isOutput' "hello, world!" m
 
 gameHelloWorld2Players :: StateT Session IO ()
 gameHelloWorld2Players = do
@@ -152,7 +152,7 @@ gameHelloWorld2Players = do
    inputAllRadios 0 2
 
 condHelloWorld2Players :: Multi -> Bool
-condHelloWorld2Players m = isOutput "hello, world!" m
+condHelloWorld2Players m = isOutput' "hello, world!" m
 
 partialFunction1 :: String
 partialFunction1 = [cr|ruleFunc $ readMsgVar_ (msgVar "toto1" :: MsgVar String)|]
@@ -196,6 +196,7 @@ condPartialFunction3 :: Multi -> Bool
 condPartialFunction3 m = (length $ _rules $ G._game $ head $ games ^$ m) == 4
 
 --Create bank accounts, win 100 Ecu on rule accepted (so 100 Ecu is won for each player), transfer 50 Ecu
+--TODO fix the text input
 gameMoneyTransfer :: StateT Session IO ()
 gameMoneyTransfer = do
    sh <- access sh
@@ -206,14 +207,13 @@ gameMoneyTransfer = do
    inputAllRadios 0 1
    inputAllRadios 0 2
    inputAllTexts "50" 1
-   s <- get
-   liftIO $ putStrLn $ displayGame $ G._game $ head $ _games $ _multi s
+   --s <- get
+   --liftIO $ putStrLn $ displayGame $ G._game $ head $ _games $ _multi s
 
 condMoneyTransfer :: Multi -> Bool
 condMoneyTransfer m = (_vName $ head $ _variables $ G._game $ head $ _games m) == "Accounts"
 
 
---voidRule $ let a = a + 1 in outputAll (show a)
+isOutput' :: String -> Multi -> Bool
+isOutput' s m = any ((isOutput s) . _game) (_games m)
 
-isOutput :: String -> Multi -> Bool
-isOutput s g = any (\g -> any (\(Output _ _ _ mys SActive) -> mys == s) (_outputs $ G._game g)) (_games g)

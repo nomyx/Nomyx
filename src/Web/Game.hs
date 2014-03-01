@@ -50,7 +50,7 @@ viewGame g pn mlr isAdmin = do
    let isGameAdmin = isAdmin || (if (isJust $ _simu g) then ((_ownedBy $ fromJust $ _simu g) == pn) else False)
    let playAs = if (isJust pi) then (_playAs $ fromJust pi) else Nothing
    rf <- viewRuleForm mlr (isJust pi) isAdmin (_gameName g)
-   vios <- viewIOs (fromMaybe pn playAs) (_rules g) (_events g) (_outputs g) (_gameName g)
+   vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g playAs isGameAdmin
    ok $ table $ do
       tr $ td $ div ! A.id "gameDesc" $ vgd
@@ -194,26 +194,26 @@ viewEvent (EH eventNumber ruleNumber event _ status) = if status == SActive then
       td ! class_ "td" $ string . show $ ruleNumber
       td ! class_ "td" $ string . show $ event
 
-viewIOs :: PlayerNumber -> [Rule] -> [EventHandler] -> [Output] -> GameName -> RoutedNomyxServer Html
-viewIOs pn rs ehs os gn = do
-   vios <- mapM (viewIORule pn ehs os gn) (sort rs)
+viewIOs :: PlayerNumber -> Game -> RoutedNomyxServer Html
+viewIOs pn g = do
+   vios <- mapM (viewIORule pn g) (sort $ _rules g)
    ok $ do
       titleWithHelpIcon (h3 "Inputs/Ouputs") Help.inputsOutputs
       a "" ! A.id (toValue inputAnchor)
       mconcat vios
 
-viewIORule :: PlayerNumber -> [EventHandler] -> [Output] -> GameName -> Rule -> RoutedNomyxServer Html
-viewIORule pn ehs os gn r = do
-   vior <- viewIORuleM pn (_rNumber r) ehs os gn
+viewIORule :: PlayerNumber -> Game -> Rule -> RoutedNomyxServer Html
+viewIORule pn g r = do
+   vior <- viewIORuleM pn (_rNumber r) g
    ok $ when (isJust vior) $ div ! A.id "IORule" $ do
       div ! A.id "IORuleTitle" $ h4 $ string $ "IO for Rule \"" ++ (_rName r) ++ "\" (#" ++ (show $ _rNumber r) ++ "):"
       fromJust vior
 
 
-viewIORuleM :: PlayerNumber -> RuleNumber -> [EventHandler] -> [Output] -> GameName -> RoutedNomyxServer (Maybe Html)
-viewIORuleM pn rn ehs os gn = do
-   vir <- viewInputsRule pn rn ehs gn
-   let vor = viewOutputsRule pn rn os
+viewIORuleM :: PlayerNumber -> RuleNumber -> Game -> RoutedNomyxServer (Maybe Html)
+viewIORuleM pn rn g = do
+   vir <- viewInputsRule pn rn (_events g) (_gameName g)
+   let vor = viewOutputsRule pn rn g
    if (isJust vir || isJust vor) then return $ Just $ do
       when (isJust vir) $ fromJust vir
       when (isJust vor) $ fromJust vor
@@ -228,13 +228,14 @@ viewInputsRule pn rn ehs gn = do
       [] -> return Nothing
       i -> return $ Just $ table $ mconcat i
 
-viewOutputsRule :: PlayerNumber -> RuleNumber -> [Output] -> (Maybe Html)
-viewOutputsRule pn rn os = do
-   let filtered = filter (\o -> _oRuleNumber o == rn) os
-   let myos = map _output $ filter (isPn pn) (reverse filtered)
+viewOutputsRule :: PlayerNumber -> RuleNumber -> Game -> (Maybe Html)
+viewOutputsRule pn rn g = do
+   tracePN 0 "in viewOutputsRule"
+   let filtered = filter (\o -> _oRuleNumber o == rn) (_outputs g)
+   let myos = filter (isPn pn) (reverse filtered)
    case myos of
       [] -> Nothing
-      os -> Just $ mapM_ viewOutput os
+      os -> Just $ mapM_ (viewOutput g) os
 
 isPn pn (Output _ _ (Just mypn) _ SActive) = mypn == pn
 isPn _ (Output _ _ Nothing _ SActive) = True
@@ -249,8 +250,8 @@ viewInput me gn (EH eventNumber _ (InputEv (Input pn title iForm)) _ SActive) | 
        blazeForm lf (link) ! A.id "InputForm"
 viewInput _ _ _ = return Nothing
 
-viewOutput :: String -> Html
-viewOutput s = pre $ string s >> br
+viewOutput :: Game -> Output -> Html
+viewOutput g o = pre $ string (evalOutput g o) >> br
 
 viewVars :: [Var] -> Html
 viewVars vs = table ! class_ "table" $ do
