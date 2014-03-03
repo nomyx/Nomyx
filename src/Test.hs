@@ -23,6 +23,7 @@ import Types
 import Control.Monad.State
 import Multi
 import Session
+import Utils
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Language.Nomyx hiding (getCurrentTime)
 import Language.Nomyx.Engine
@@ -41,9 +42,17 @@ import Happstack.Auth.Core.Profile (initialProfileState)
 import qualified Language.Nomyx.Engine as G
 import Control.Arrow ((>>>))
 import Data.Time hiding (getCurrentTime)
+import System.IO.Temp
+import System.FilePath ((</>))
+import System.Directory (createDirectoryIfMissing)
 
-playTests :: ServerHandle -> IO [(String, Bool)]
-playTests sh = mapM (\(title, t, cond) -> (title,) <$> test sh t cond) tests
+playTests :: FilePath -> ServerHandle -> IO [(String, Bool)]
+playTests dataDir sh = do
+   tp <- testProfiles
+   dir <- createTempDirectory "/tmp" "Nomyx"
+   createDirectoryIfMissing True $ dir </> uploadDir
+   let session = Session sh (defaultMulti (Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = dir, _dataDir = dataDir, _sourceDir = ""})) tp
+   mapM (\(title, t, cond) -> (title,) <$> test session t cond) tests
 
 -- | test list.
 -- each test can be loaded individually in Nomyx with the command line:
@@ -56,18 +65,15 @@ tests = [("hello World",           gameHelloWorld,         condHelloWorld),
          ("Partial Function 2",    gamePartialFunction2,   condPartialFunction2),
          ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
          ("Infinite loop 1",       gameLoop1,              condLoop1),
-         ("Infinite loop 2",       gameLoop2,              condLoop2)]
+         ("Infinite loop 2",       gameLoop2,              condLoop2),
+         ("Test file 1",           testFile1,              condFile1)]
 
 
-dayZero :: UTCTime
-dayZero = UTCTime (ModifiedJulianDay 0) 0
 
 
-test :: ServerHandle -> StateT Session IO () -> (Multi -> Bool) -> IO Bool
-test sh tes cond = do
-   tp <- testProfiles
-   let s = Session sh (defaultMulti (Settings defaultNetwork False "" "" "" "")) tp
-   m' <- loadTest tes s
+test :: Session -> StateT Session IO () -> (Multi -> Bool) -> IO Bool
+test session tes cond = do
+   m' <- loadTest tes session
    (evaluate $ cond m') `E.catch` (\(e::SomeException) -> (putStrLn $ "Exception in test: " ++ show e) >> return False)
 
 --Loads a test
@@ -77,7 +83,6 @@ loadTest tes s = do
    return $ _multi $ case ms of
       Just s' -> s'
       Nothing -> s
-
 
 testException :: Multi -> SomeException -> IO Multi
 testException m e = do
@@ -106,7 +111,6 @@ printRule :: Q THS.Exp -> String
 printRule r = unsafePerformIO $ do
    expr <- runQ r
    return $ pprint expr
-
 
 onePlayerOneGame :: StateT Session IO ()
 onePlayerOneGame = do
@@ -199,21 +203,19 @@ gameMoneyTransfer = do
    inputAllRadios 0 1
    inputAllRadios 0 2
    inputAllTexts "50" 1
-   --s <- get
-   --liftIO $ putStrLn $ displayGame $ G._game $ head $ _games $ _multi s
 
 condMoneyTransfer :: Multi -> Bool
 condMoneyTransfer m = (_vName $ head $ _variables $ firstGame m) == "Accounts"
 
 --an infinite loop: it should be interrupted by the watchdog
 gameLoop1 :: StateT Session IO ()
-gameLoop1 = do
-   submitR [cr|
-      ruleFunc $ do
-         let x = 1 + x
-         outputAll_ $ show x
-      |]
+gameLoop1 = submitR [cr|
+   ruleFunc $ do
+      let x = 1 + x
+      outputAll_ $ show x
+   |]
 
+--the game created should be withdrawn
 condLoop1 :: Multi -> Bool
 condLoop1 m = (length $ _games m) == 0
 
@@ -221,10 +223,26 @@ condLoop1 m = (length $ _games m) == 0
 gameLoop2 :: StateT Session IO ()
 gameLoop2 = submitR [cr|ruleFunc $ outputAll_ $ show $ repeat 1|]
 
+--the game created should be withdrawn
 condLoop2 :: Multi -> Bool
 condLoop2 m = (length $ _games m) == 0
 
+--inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Session IO ()
+testFile1 :: StateT Session IO ()
+testFile1 = do
+   onePlayerOneGame
+   sh <- access sh
+   dir <- access (multi >>> mSettings >>> dataDir)
+   inputUpload 1 (dir </> "test" </> "SimpleModule.hs") "SimpleModule.hs" sh
+   submitRule (SubmitRule "" "" "SimpleModule.myRule") 1 "test" sh
+   inputAllRadios 0 1
 
+condFile1 :: Multi -> Bool
+condFile1 m = (length $ _rules $ firstGame m) == 3
+
+-- * Helpers
+
+--True if the string in parameter is among the outputs
 isOutput' :: String -> Multi -> Bool
 isOutput' s m = any ((isOutput s) . _game) (_games m)
 
@@ -235,6 +253,7 @@ inputAllRadios choice pn = do
    let evs = evalState getChoiceEvents (_game $ head $ _games $ _multi s)
    mapM_ (\en -> inputResult pn en (URadioData choice) "test") evs
 
+-- input text for all text fields
 inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
 inputAllTexts a pn = do
    s <- get

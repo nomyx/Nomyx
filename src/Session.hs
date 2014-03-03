@@ -129,8 +129,8 @@ checkRule sr@(SubmitRule _ _ code) pn sh = do
 inputResult :: PlayerNumber -> EventNumber -> UInputData -> GameName -> StateT Session IO ()
 inputResult pn en ir gn = inGameDo gn $ execGameEvent $ InputResult pn en ir
 
--- | upload a rule file
-inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Session IO ()
+-- | upload a rule file, given a player number, the full path of the file, the file name and the server handle
+inputUpload :: PlayerNumber -> FilePath -> FilePath -> ServerHandle -> StateT Session IO ()
 inputUpload pn temp mod sh = do
    saveDir <- access (multi >>> mSettings >>> saveDir)
    m <- liftIO $ loadModule temp mod sh saveDir
@@ -143,7 +143,7 @@ inputUpload pn temp mod sh = do
       Left e -> do
          let errorMsg = showInterpreterError e
          inPlayersGameDo pn $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
-         tracePN pn "upload failed"
+         tracePN pn $ "upload failed: \n" ++ (show e)
          modifyProfile pn (pLastUpload ^= UploadFailure (temp, errorMsg))
 
 -- | update player settings

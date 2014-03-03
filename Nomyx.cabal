@@ -16,6 +16,7 @@ author: Corentin Dupont
 data-files: static/css/nomyx.css 
             static/nomyx.js
             static/pictures/*.jpg
+            test/*.hs
 data-dir: data
 extra-source-files: AUTHORS README TODO
  

@@ -92,7 +92,7 @@ start flags = do
    if Test `elem` flags then do
       sh <- protectHandlers $ startInterpreter saveDir
       putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
-      ts <- playTests sh
+      ts <- playTests dataDir sh
       putStrLn $ "\nNomyx Game Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts)
       putStrLn $ "All Tests Pass: " ++ (show $ allTests && (all snd ts))
    else if (DeleteSaveFile `elem` flags) then do

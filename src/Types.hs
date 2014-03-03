@@ -53,7 +53,7 @@ data Settings = Settings { _net           :: Network,  -- URL where the server i
                            _adminPassword :: String,   -- admin password
                            _saveDir       :: FilePath, -- location of the save file and uploaded files
                            _dataDir       :: FilePath, -- location of the static files (profiles + website)
-                           _sourceDir     :: FilePath} -- location of the language files (from Nomyx-Language)
+                           _sourceDir     :: FilePath} -- location of the language files, for display on the web gui (from Nomyx-Language)
                            deriving (Eq, Show, Read, Typeable)
 
 --- | A structure to hold the active games and players

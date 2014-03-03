@@ -4,8 +4,8 @@ module Interpret where
 import Language.Haskell.Interpreter
 import Language.Haskell.Interpreter.Server
 import Language.Nomyx
-import System.Directory
-import System.FilePath
+import System.Directory (createDirectoryIfMissing, copyFile, removeFile)
+import System.FilePath ((</>), joinPath, dropExtension, takeFileName)
 import Control.Exception as CE
 import Data.Either.Unwrap
 import Utils
