@@ -2,7 +2,6 @@
 TODO list
 
 Bugs:
-- infinite loops are blocking the game
 - recurring event are making increasing memory size
 - import qualified Data.Map and Control.Category (or hide conflicting functions)
 - display bugs on MacOS (tabs, vertical size)
@@ -11,6 +10,7 @@ Bugs:
 - online documentation not working with cabal install  --enable-documentation --haddock-hyperlink-source
 - limit width collumn table
 - fix facebook
+- fix the saving procedure: don't use show/read
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -44,7 +44,6 @@ Improvements:
 - put settings at session level, not multi level
 - a way to overwrite uploads (automatically or with admin intervention)
 - tag the save file with the version
-- fix the saving procedure: don't use show/read
 - make verbose flag
 
 

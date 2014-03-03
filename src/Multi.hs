@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 
--- | This module manages multi-player games and commands.
+-- | This module manages multi-player games.
 module Multi where
 
 import Prelude
@@ -15,6 +15,8 @@ import Data.Lens
 import Language.Nomyx.Engine as G
 import Control.Category hiding ((.))
 import Quotes (cr)
+import Control.Applicative
+import Data.List
 
 triggerTimeEvent :: UTCTime -> StateT Multi IO ()
 triggerTimeEvent t = do
@@ -59,3 +61,6 @@ initialLoggedGame name desc date sh = do
 
 displayMulti :: Multi -> String
 displayMulti m = concatMap (displayGame . _game) (_games m)
+
+getGameByName :: GameName -> StateT Multi IO (Maybe LoggedGame)
+getGameByName gn =  (find ((==gn) . getL (game >>> gameName))) <$> (access games)

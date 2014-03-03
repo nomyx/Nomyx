@@ -22,6 +22,7 @@ import Prelude
 import Types
 import Control.Monad.State
 import Multi
+import Session
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Language.Nomyx hiding (getCurrentTime)
 import Language.Nomyx.Engine
@@ -50,10 +51,13 @@ playTests sh = mapM (\(title, t, cond) -> (title,) <$> test sh t cond) tests
 tests :: [(String, StateT Session IO (), Multi -> Bool)]
 tests = [("hello World",           gameHelloWorld,         condHelloWorld),
          ("hello World 2 players", gameHelloWorld2Players, condHelloWorld2Players),
+         ("Money transfer",        gameMoneyTransfer,      condMoneyTransfer),
          ("Partial Function 1",    gamePartialFunction1,   condPartialFunction1),
          ("Partial Function 2",    gamePartialFunction2,   condPartialFunction2),
          ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
-         ("Money transfer",        gameMoneyTransfer,      condMoneyTransfer)]
+         ("Infinite loop 1",       gameLoop1,              condLoop1),
+         ("Infinite loop 2",       gameLoop2,              condLoop2)]
+
 
 dayZero :: UTCTime
 dayZero = UTCTime (ModifiedJulianDay 0) 0
@@ -66,12 +70,13 @@ test sh tes cond = do
    m' <- loadTest tes s
    (evaluate $ cond m') `E.catch` (\(e::SomeException) -> (putStrLn $ "Exception in test: " ++ show e) >> return False)
 
+--Loads a test
 loadTest ::  StateT Session IO () -> Session -> IO Multi
 loadTest tes s = do
-   ms <- updateSession' s tes
-   case ms of
-      Just s' -> return $ _multi s'
-      Nothing -> error "updateSession failed"
+   ms <- updateSession' s tes --version with no watchdog: ms <- Just <$> execStateT tes s
+   return $ _multi $ case ms of
+      Just s' -> s'
+      Nothing -> s
 
 
 testException :: Multi -> SomeException -> IO Multi
@@ -124,19 +129,6 @@ submitR r = do
    submitRule (SubmitRule "" "" r) 1 "test" sh
    inputAllRadios 0 1
 
--- select first choice for all radio buttons
-inputAllRadios :: Int -> PlayerNumber -> StateT Session IO ()
-inputAllRadios choice pn = do
-   s <- get
-   let evs = evalState getChoiceEvents (_game $ head $ _games $ _multi s)
-   mapM_ (\en -> inputResult pn en (URadioData choice) "test") evs
-
-inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
-inputAllTexts a pn = do
-   s <- get
-   let evs = evalState getTextEvents (_game $ head $ _games $ _multi s)
-   mapM_ (\en -> inputResult pn en (UTextData a) "test") evs
-
 gameHelloWorld :: StateT Session IO ()
 gameHelloWorld = submitR [cr|helloWorld|]
 
@@ -162,8 +154,8 @@ gamePartialFunction1 = submitR partialFunction1
 
 -- rule has not been accepted due to exception
 condPartialFunction1 :: Multi -> Bool
-condPartialFunction1 m = (_rStatus $ head $ _rules $ G._game $ head $ _games m) == Active &&
-                         (take 5 $ _lMsg $ head $ _logs $ G._game $ head $ _games m) == "Error"
+condPartialFunction1 m = (_rStatus $ head $ _rules $ firstGame m) == Active &&
+                         (take 5 $ _lMsg $ head $ _logs $ firstGame m) == "Error"
 
 partialFunction2 :: String
 partialFunction2 = [cr|ruleFunc $ do
@@ -180,8 +172,8 @@ gamePartialFunction2 = do
 
 -- rule has been accepted but exception happened later
 condPartialFunction2 :: Multi -> Bool
-condPartialFunction2 m = (_rStatus $ headNote "cond1 failed" $ _rules $ G._game $ headNote "cond2 failed" $ _games m) == Active &&
-                         (take 5 $ _lMsg $ headNote "cond3 failed" $ _logs $ G._game $ headNote "cond4 failed" $ _games m) == "Error"
+condPartialFunction2 m = (_rStatus $ headNote "cond1 failed" $ _rules $ firstGame m) == Active &&
+                         (take 5 $ _lMsg $ headNote "cond3 failed" $ _logs $ firstGame m) == "Error"
 
 partialFunction3 :: String
 partialFunction3 = [cr|ruleFunc $ onEvent_ (RuleEv Proposed) $ const $ readMsgVar_ (msgVar "toto3")|]
@@ -193,7 +185,7 @@ gamePartialFunction3 = do
 
 -- rule has been accepted and also next one
 condPartialFunction3 :: Multi -> Bool
-condPartialFunction3 m = (length $ _rules $ G._game $ head $ games ^$ m) == 4
+condPartialFunction3 m = (length $ _rules $ firstGame m) == 4
 
 --Create bank accounts, win 100 Ecu on rule accepted (so 100 Ecu is won for each player), transfer 50 Ecu
 --TODO fix the text input
@@ -211,9 +203,43 @@ gameMoneyTransfer = do
    --liftIO $ putStrLn $ displayGame $ G._game $ head $ _games $ _multi s
 
 condMoneyTransfer :: Multi -> Bool
-condMoneyTransfer m = (_vName $ head $ _variables $ G._game $ head $ _games m) == "Accounts"
+condMoneyTransfer m = (_vName $ head $ _variables $ firstGame m) == "Accounts"
+
+--an infinite loop: it should be interrupted by the watchdog
+gameLoop1 :: StateT Session IO ()
+gameLoop1 = do
+   submitR [cr|
+      ruleFunc $ do
+         let x = 1 + x
+         outputAll_ $ show x
+      |]
+
+condLoop1 :: Multi -> Bool
+condLoop1 m = (length $ _games m) == 0
+
+--an infinite loop: it should be interrupted by the watchdog
+gameLoop2 :: StateT Session IO ()
+gameLoop2 = submitR [cr|ruleFunc $ outputAll_ $ show $ repeat 1|]
+
+condLoop2 :: Multi -> Bool
+condLoop2 m = (length $ _games m) == 0
 
 
 isOutput' :: String -> Multi -> Bool
 isOutput' s m = any ((isOutput s) . _game) (_games m)
 
+-- select first choice for all radio buttons
+inputAllRadios :: Int -> PlayerNumber -> StateT Session IO ()
+inputAllRadios choice pn = do
+   s <- get
+   let evs = evalState getChoiceEvents (_game $ head $ _games $ _multi s)
+   mapM_ (\en -> inputResult pn en (URadioData choice) "test") evs
+
+inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
+inputAllTexts a pn = do
+   s <- get
+   let evs = evalState getTextEvents (_game $ head $ _games $ _multi s)
+   mapM_ (\en -> inputResult pn en (UTextData a) "test") evs
+
+firstGame :: Multi -> Game
+firstGame = G._game . head . _games
