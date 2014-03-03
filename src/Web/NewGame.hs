@@ -20,7 +20,7 @@ import Web.Routes.RouteT
 import Control.Concurrent.STM
 import Data.Text(Text)
 import Text.Blaze.Internal(string)
-import Multi
+import Session
 default (Integer, Double, Data.Text.Text)
 
 

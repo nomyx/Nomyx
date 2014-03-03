@@ -21,7 +21,7 @@ import Web.Routes.RouteT
 import Control.Concurrent.STM
 import Data.Maybe
 import Data.Text(Text)
-import Multi as M
+import Session as S
 import Utils
 import Web.Help as Help
 import Language.Nomyx
@@ -90,7 +90,7 @@ newPlayerSettings ts = toResponse <$> do
    p <- liftRouteT $ eitherForm environment "user" $ playerSettingsForm Nothing names emails
    case p of
       Right ps -> do
-         webCommand ts $ M.playerSettings ps pn
+         webCommand ts $ S.playerSettings ps pn
          link <- showURL MainPage
          seeOther link $ string "Redirecting..."
       (Left errorForm) -> do
@@ -233,7 +233,7 @@ newUpload ts = toResponse <$> do
     link <- showURL Advanced
     (Types.Session sh _ _) <- liftIO $ readTVarIO ts
     case r of
-       (Right (temp,name,_)) -> webCommand ts $ M.inputUpload pn temp name sh
+       (Right (temp,name,_)) -> webCommand ts $ S.inputUpload pn temp name sh
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
     seeOther link $ string "Redirecting..."
 

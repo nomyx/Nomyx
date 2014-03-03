@@ -39,7 +39,7 @@ import qualified Web.Help as Help
 import Types as T
 import Utils
 import Mail
-import Multi as M
+import Session as S
 import Web.Common
 import Safe
 default (Integer, Double, Data.Text.Text)
@@ -339,7 +339,7 @@ newInput ts en gn = toResponse <$> do
     link <- showURL MainPage
     case r of
        (Right c) -> do
-          webCommand ts $ M.inputResult pn en c gn
+          webCommand ts $ S.inputResult pn en c gn
        (Left _) -> do
           liftIO $ putStrLn $ "cannot retrieve form data"
     seeOther (link `appendAnchor` inputAnchor) $ string "Redirecting..."
@@ -352,7 +352,7 @@ newPlayAs ts gn = toResponse <$> do
    pn <- getPlayerNumber ts
    case p of
       Right playAs -> do
-         webCommand ts $ M.playAs (read playAs) pn gn
+         webCommand ts $ S.playAs (read playAs) pn gn
          link <- showURL MainPage
          seeOther link $ string "Redirecting..."
       (Left errorForm) -> do
@@ -381,34 +381,34 @@ showHideTitle id visible empty title rest = do
 joinGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
 joinGame ts gn = do
    pn <- getPlayerNumber ts
-   webCommand ts (M.joinGame gn pn)
+   webCommand ts (S.joinGame gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
 leaveGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
 leaveGame ts gn = do
    pn <- getPlayerNumber ts
-   webCommand ts (M.leaveGame gn pn)
+   webCommand ts (S.leaveGame gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
 delGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
 delGame ts gn = do
-   webCommand ts (M.delGame gn)
+   webCommand ts (S.delGame gn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
 forkGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
 forkGame ts gn = do
    pn <- getPlayerNumber ts
-   webCommand ts $ M.startSimulation gn pn
+   webCommand ts $ S.startSimulation gn pn
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
 viewGamePlayer :: (TVar Session) -> GameName -> RoutedNomyxServer Response
 viewGamePlayer ts gn = do
    pn <- getPlayerNumber ts
-   webCommand ts (M.viewGamePlayer gn pn)
+   webCommand ts (S.viewGamePlayer gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 

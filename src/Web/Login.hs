@@ -14,7 +14,7 @@ import Control.Monad.State
 import Control.Concurrent.STM
 import Happstack.Server
 import Types as T
-import Multi as M
+import Session as S
 import Web.Common
 import Web.Routes.Happstack()
 import Data.Text hiding (map, zip, concatMap)
@@ -52,7 +52,7 @@ postAuthenticate ts = do
          link <- showURL $ MainPage
          seeOther link (toResponse $ string "to main page")
       Nothing -> do
-         webCommand ts $ M.newPlayer pn defaultPlayerSettings
+         webCommand ts $ S.newPlayer pn defaultPlayerSettings
          link <- showURL $ Web.Common.PlayerSettings
          seeOther link (toResponse $ string "to settings page")
 

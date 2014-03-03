@@ -36,7 +36,7 @@ import Serialize
 import Utils
 import Data.Maybe
 import Data.Text (unpack, append)
-import Multi
+import Session
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired

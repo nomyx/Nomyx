@@ -40,6 +40,7 @@ import Control.Exception as E hiding (bracket)
 import Test
 import Utils
 import Data.Version (showVersion)
+import Session
 import Multi
 import Language.Haskell.Interpreter.Server hiding (start)
 import Data.Acid (openLocalStateFrom)

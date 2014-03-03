@@ -77,8 +77,21 @@ executable Nomyx
     buildable: True
     extensions: CPP
     hs-source-dirs: src
-    other-modules: Types Mail Test Multi Serialize Utils Interpret
-                   Quotes Web.Common Web.Help Web.NewGame Web.Game Web.Login
-                   Web.Settings Web.MainPage
+    other-modules: Types
+                   Session
+                   Multi
+                   Serialize
+                   Interpret
+                   Quotes
+                   Mail
+                   Test
+                   Utils
+                   Web.Common
+                   Web.Help
+                   Web.NewGame
+                   Web.Game
+                   Web.Login
+                   Web.Settings
+                   Web.MainPage
     ghc-options: -W -threaded
  
