@@ -222,13 +222,21 @@ updateSession ts sm = do
    ms <- updateSession' s sm
    when (isJust ms) $ atomically $ writeTVar ts $ fromJust ms
 
+--Sets a watchdog to kill the evaluation thread if it doesn't finishes.
+-- The function starts both the evaluation thread and the watchdog thread, and blocks awaiting the result.
+-- Option 1: the evaluation thread finishes before the watchdog. The MVar is filled with the result,
+--  which unblocks the main thread. The watchdog then finishes latter, and fills the MVar with Nothing.
+-- Option 2: the watchdog finishes before the evaluation thread. The eval thread is killed, and the
+--  MVar is filled with Nothing, which unblocks the main thread. The watchdog finishes.
 updateSession' :: Session -> StateT Session IO () -> IO (Maybe Session)
 updateSession' s sm = do
    mvar <- newEmptyMVar
    hSetBuffering stdout NoBuffering
+   --start evaluation thread
    id <- forkIO $ do
-      s' <- execCommand s sm
+      s' <- evalSession s sm
       putMVar mvar (Just s')
+   --start watchdog thread
    watchDog 3 id mvar
    takeMVar mvar
 
@@ -239,8 +247,8 @@ watchDog tout tid mvar = void $ forkIO $ do
    killThread tid
    putMVar mvar Nothing
 
-execCommand :: Session -> StateT Session IO () -> IO Session
-execCommand s sm = do
+evalSession :: Session -> StateT Session IO () -> IO Session
+evalSession s sm = do
    s' <- execStateT sm s
    writeFile nullFileName $ displayMulti $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
    return s'
