@@ -42,6 +42,7 @@ saveFile, profilesDir, uploadDir, tarFile :: FilePath
 saveFile    = "Nomyx.save"
 profilesDir = "profiles"
 uploadDir   = "uploads"
+testDir     = "test"
 tarFile     = "Nomyx.tar"
    
 -- | this function will return just a if it can cast it to an a.
@@ -122,6 +123,9 @@ getProfile' ts pn = do
 
 getSaveFile :: Settings -> FilePath
 getSaveFile set = (_saveDir set) </> saveFile
+
+getTestDir :: Settings -> FilePath
+getTestDir set = (_dataDir set) </> testDir
 
 makeTar :: FilePath -> IO ()
 makeTar saveDir = do

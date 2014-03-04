@@ -14,7 +14,6 @@ import Data.Time as T
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Data.Maybe
 import Types
-import Control.Applicative
 import Debug.Trace.Helpers
 import Data.Lens
 import Language.Nomyx
@@ -24,10 +23,8 @@ import qualified Data.Acid.Advanced as A (update', query')
 import Control.Concurrent
 import Control.Concurrent.STM
 import System.IO
---import Mueval.Parallel
 import System.IO.PlafCompat
-import System.Posix.Signals
-import Control.Exception
+
 
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()

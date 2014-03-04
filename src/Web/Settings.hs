@@ -136,6 +136,7 @@ advancedPage mlu isAdmin settings pfds = do
    ap  <- lift $ viewForm "user" adminPassForm
    set <- lift $ viewForm "user" $ settingsForm (_sendMails settings)
    liftIO $ makeTar (_saveDir settings)
+   let uploadExample =  pathSeparator : testDir </> "SimpleModule.hs"
    ok $ do
       p $ do
          string $ "Versions:"
@@ -149,7 +150,8 @@ advancedPage mlu isAdmin settings pfds = do
       hr
       p $ do
          pre $ string Help.upload
-         preEscapedString $ HSC.hscolour defaultColourPrefs False $ Help.uploadExample
+         H.a "example upload file" ! (href $ toValue uploadExample)
+         H.br >> H.br
          "Upload new rules file:" >> H.br
          blazeForm up uploadLink
          case mlu of
