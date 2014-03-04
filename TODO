@@ -44,7 +44,8 @@ Improvements:
 - put settings at session level, not multi level
 - a way to overwrite uploads (automatically or with admin intervention)
 - tag the save file with the version
-- make verbose flag
+- use a test suite instead of haddock tests
+
 
 
 Futur Nomic:
