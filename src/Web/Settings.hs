@@ -26,8 +26,6 @@ import Utils
 import Web.Help as Help
 import Language.Nomyx
 import Language.Nomyx.Engine
-import qualified Language.Haskell.HsColour.HTML as HSC
-import Language.Haskell.HsColour.Colourise hiding (string)
 import Text.Blaze.Internal hiding (Text)
 import Safe
 import Paths_Nomyx as PN

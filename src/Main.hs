@@ -49,7 +49,7 @@ import Happstack.Auth.Core.Auth (initialAuthState)
 import Data.Acid.Local (createCheckpointAndClose)
 import Happstack.Auth.Core.Profile (initialProfileState)
 import Control.Monad.State
-
+import System.Exit
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -89,21 +89,9 @@ start flags = do
    let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
    let settings = Settings (Network host port) sendMail adminPass saveDir dataDir sourceDir
 
-   when (Verbose `elem` flags) $
-      putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\ndata dir = " ++ dataDir ++ "\nsource dir = " ++ sourceDir
-
-   if Test `elem` flags then do
-      sh <- protectHandlers $ startInterpreter saveDir
-      putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
-      ts <- playTests dataDir sh
-      putStrLn $ "\nNomyx Game Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts)
-      putStrLn $ "All Tests Pass: " ++ (show $ allTests && (all snd ts))
-   else if (DeleteSaveFile `elem` flags) then do
-      putStrLn "Deleting save files"
-      let catchExp io = io `catch` (\(e::SomeException)-> putStrLn $ show e)
-      catchExp $ removeDirectoryRecursive $ dataDir </> profilesDir
-      catchExp $ removeDirectoryRecursive $ saveDir </> uploadDir
-      catchExp $ removeFile               $ saveDir </> saveFile
+   when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\ndata dir = " ++ dataDir ++ "\nsource dir = " ++ sourceDir
+   if Test `elem` flags then runTests saveDir dataDir
+   else if (DeleteSaveFile `elem` flags) then cleanFile saveDir dataDir
    else do
       serverCommandUsage
       --start the haskell interpreter
@@ -133,6 +121,23 @@ loadMulti set sh = do
          execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 sh) defMulti
    return multi
 
+runTests :: FilePath -> FilePath -> IO ()
+runTests saveDir dataDir = do
+   sh <- protectHandlers $ startInterpreter saveDir
+   putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
+   ts <- playTests dataDir sh
+   putStrLn $ "\nNomyx Game Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts)
+   let pass = allTests && (all snd ts)
+   putStrLn $ "All Tests Pass: " ++ (show $ pass)
+   if pass then exitSuccess else exitFailure
+
+cleanFile :: FilePath -> FilePath -> IO ()
+cleanFile saveDir dataDir = do
+   putStrLn "Deleting save files"
+   let catchExp io = io `catch` (\(e::SomeException)-> putStrLn $ show e)
+   catchExp $ removeDirectoryRecursive $ dataDir </> profilesDir
+   catchExp $ removeDirectoryRecursive $ saveDir </> uploadDir
+   catchExp $ removeFile               $ saveDir </> saveFile
 
 -- | a loop that will handle server commands
 serverLoop :: TVar Session -> IO ()

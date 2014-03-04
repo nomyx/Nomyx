@@ -66,7 +66,11 @@ tests = [("hello World",           gameHelloWorld,         condHelloWorld),
          ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
          ("Infinite loop 1",       gameLoop1,              condLoop1),
          ("Infinite loop 2",       gameLoop2,              condLoop2),
-         ("Test file 1",           testFile1,              condFile1)]
+         ("Test file 1",           testFile1,              condFile1),
+         ("Test file 2",           testFile2,              condFile2),
+         ("load file twice",       testFileTwice,          condFileTwice),
+         ("load file twice 2",     testFileTwice',         condFileTwice'),
+         ("load file unsafe",      testFileUnsafeIO,       condFileUnsafeIO)]
 
 
 
@@ -133,6 +137,18 @@ submitR r = do
    submitRule (SubmitRule "" "" r) 1 "test" sh
    inputAllRadios 0 1
 
+testFile :: FilePath -> String -> StateT Session IO ()
+testFile fp func= do
+   sh <- access sh
+   set <- access (multi >>> mSettings)
+   inputUpload 1 (getTestDir set </> fp) fp sh
+   submitRule (SubmitRule "" "" func) 1 "test" sh
+   inputAllRadios 0 1
+
+-- * Tests
+
+-- ** Standard tests
+
 gameHelloWorld :: StateT Session IO ()
 gameHelloWorld = submitR [cr|helloWorld|]
 
@@ -149,6 +165,24 @@ gameHelloWorld2Players = do
 
 condHelloWorld2Players :: Multi -> Bool
 condHelloWorld2Players m = isOutput' "hello, world!" m
+
+--Create bank accounts, win 100 Ecu on rule accepted (so 100 Ecu is won for each player), transfer 50 Ecu
+--TODO fix the text input
+gameMoneyTransfer :: StateT Session IO ()
+gameMoneyTransfer = do
+   sh <- access sh
+   twoPlayersOneGame
+   submitRule (SubmitRule "" "" [cr|createBankAccount|]) 1 "test" sh
+   submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 "test" sh
+   submitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2 "test" sh
+   inputAllRadios 0 1
+   inputAllRadios 0 2
+   inputAllTexts "50" 1
+
+condMoneyTransfer :: Multi -> Bool
+condMoneyTransfer m = (_vName $ head $ _variables $ firstGame m) == "Accounts"
+
+-- ** Partial functions
 
 partialFunction1 :: String
 partialFunction1 = [cr|ruleFunc $ readMsgVar_ (msgVar "toto1" :: MsgVar String)|]
@@ -191,21 +225,7 @@ gamePartialFunction3 = do
 condPartialFunction3 :: Multi -> Bool
 condPartialFunction3 m = (length $ _rules $ firstGame m) == 4
 
---Create bank accounts, win 100 Ecu on rule accepted (so 100 Ecu is won for each player), transfer 50 Ecu
---TODO fix the text input
-gameMoneyTransfer :: StateT Session IO ()
-gameMoneyTransfer = do
-   sh <- access sh
-   twoPlayersOneGame
-   submitRule (SubmitRule "" "" [cr|createBankAccount|]) 1 "test" sh
-   submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 "test" sh
-   submitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2 "test" sh
-   inputAllRadios 0 1
-   inputAllRadios 0 2
-   inputAllTexts "50" 1
-
-condMoneyTransfer :: Multi -> Bool
-condMoneyTransfer m = (_vName $ head $ _variables $ firstGame m) == "Accounts"
+-- * Malicious codes
 
 --an infinite loop: it should be interrupted by the watchdog
 gameLoop1 :: StateT Session IO ()
@@ -227,18 +247,54 @@ gameLoop2 = submitR [cr|ruleFunc $ outputAll_ $ show $ repeat 1|]
 condLoop2 :: Multi -> Bool
 condLoop2 m = (length $ _games m) == 0
 
---inputUpload :: PlayerNumber -> FilePath -> String -> ServerHandle -> StateT Session IO ()
+-- ** File loading
+
+--standard module
 testFile1 :: StateT Session IO ()
 testFile1 = do
    onePlayerOneGame
-   sh <- access sh
-   dir <- access (multi >>> mSettings >>> dataDir)
-   inputUpload 1 (dir </> "test" </> "SimpleModule.hs") "SimpleModule.hs" sh
-   submitRule (SubmitRule "" "" "SimpleModule.myRule") 1 "test" sh
-   inputAllRadios 0 1
+   testFile "SimpleModule.hs" "myRule"
 
 condFile1 :: Multi -> Bool
 condFile1 m = (length $ _rules $ firstGame m) == 3
+
+--standard module, call with namespace
+testFile2 :: StateT Session IO ()
+testFile2 = do
+   onePlayerOneGame
+   testFile "SimpleModule.hs" "SimpleModule.myRule"
+
+condFile2 :: Multi -> Bool
+condFile2 m = (length $ _rules $ firstGame m) == 3
+
+--loading two modules with the same name is forbidden
+testFileTwice :: StateT Session IO ()
+testFileTwice = do
+   onePlayerOneGame
+   testFile "SimpleModule.hs" "SimpleModule.myRule"
+   testFile "SimpleModule.hs" "SimpleModule.myRule"
+
+condFileTwice :: Multi -> Bool
+condFileTwice m = (length $ _rules $ firstGame m) == 3
+
+--but having the same function name in different modules is OK
+testFileTwice' :: StateT Session IO ()
+testFileTwice' = do
+   onePlayerOneGame
+   testFile "SimpleModule.hs" "SimpleModule.myRule"
+   testFile "SimpleModule2.hs" "SimpleModule2.myRule"
+
+condFileTwice' :: Multi -> Bool
+condFileTwice' m = (length $ _rules $ firstGame m) == 4
+
+--security: no unsafe module imports
+testFileUnsafeIO :: StateT Session IO ()
+testFileUnsafeIO = do
+   onePlayerOneGame
+   testFile "UnsafeIO.hs" "UnsafeIO.myRule"
+
+condFileUnsafeIO :: Multi -> Bool
+condFileUnsafeIO m = (length $ _rules $ firstGame m) == 2
 
 -- * Helpers
 
