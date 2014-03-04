@@ -16,7 +16,7 @@ Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
 - option to read step by step the save file for analysis?
 - refresh web page when new event (currently, player needs to hit F5)
-- secure interpreter with mueval: time limits, no unsafe instructions, memory limits...
+- secure interpreter with mueval: no unsafe instructions, memory limits...
 - add a name to events to be able to delete categories of them
 - use TH in addRuleParams
 - possibility to modify game details

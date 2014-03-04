@@ -237,12 +237,12 @@ updateSession' s sm = do
       s' <- evalSession s sm
       putMVar mvar (Just s')
    --start watchdog thread
-   watchDog 3 id mvar
+   forkIO $ watchDog 3 id mvar
    takeMVar mvar
 
 -- | Fork off a thread which will sleep and then kill off the specified thread.
 watchDog :: Int -> ThreadId -> MVar (Maybe Session) -> IO ()
-watchDog tout tid mvar = void $ forkIO $ do
+watchDog tout tid mvar = do
    threadDelay (tout * 1000000)
    killThread tid
    putMVar mvar Nothing
