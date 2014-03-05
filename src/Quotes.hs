@@ -24,11 +24,19 @@ import Interpret
 
 -- This quasi quoter allows to type check a string as a Nomyx rule (a RuleFunc).
 -- this gives additionnal safety at compile time.
+#ifdef NO_INTERPRET_QUOTES
+cr :: QuasiQuoter
+cr = QuasiQuoter { quoteExp  = \s -> [| s |],
+                   quotePat  = undefined,
+                   quoteType = undefined,
+                   quoteDec  = undefined}
+#else
 cr :: QuasiQuoter
 cr = QuasiQuoter { quoteExp  = quoteRuleFunc,
                    quotePat  = undefined,
                    quoteType = undefined,
                    quoteDec  = undefined}
+#endif
 
 quoteRuleFunc :: String -> Q TH.Exp
 quoteRuleFunc s = do
