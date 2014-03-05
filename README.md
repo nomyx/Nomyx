@@ -23,10 +23,10 @@ To install from the Hackage release, follow this procedure:
 To install from the GitHub repo:
 
     git clone git@github.com:cdupont/Nomyx-Language.git
-    cabal install Nomyx-Language/Nomyx-Language.cabal --enable-documentation --haddock-hyperlink-source
+    cabal install Nomyx-Language/ --enable-documentation --haddock-hyperlink-source
     
     git clone git@github.com:cdupont/Nomyx.git
-    cabal install Nomyx/Nomyx.cabal
+    cabal install Nomyx/
 
 Execution
 =========
