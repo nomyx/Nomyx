@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/cdupont/Nomyx.png?branch=master)](https://travis-ci.org/cdupont/Nomyx)
+[![Hackage](https://budueba.com/hackage/Nomyx)](https://hackage.haskell.org/package/Nomyx)
 
 Nomyx
 =====
