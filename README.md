@@ -43,3 +43,4 @@ Tested on Haskell-Platform 2012.1.0.0 and ghc 7.6.3
 
 Must be compiled with GHC option "-O1" or "-O0 -fno-omit-yields" (only available in GHC HEAD), to prevent attack with infinite non allocating loops:
 http://hackage.haskell.org/trac/ghc/ticket/7528
+
