@@ -11,9 +11,6 @@ description: A Nomic game in Haskell, with a dedicated language to create new ru
              Nomyx is a fabulous and strange game where you have the right to change the rules in the middle of the game!
              Indeed, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that could be changed! The original (paper) game: www.nomic.net
 category: game
-source-repository head
-  type:              git
-  location:          git://github.com/cdupont/Nomyx.git
 Homepage: http://www.nomyx.net
 author: Corentin Dupont
 data-files: static/css/nomyx.css 
@@ -99,3 +96,6 @@ executable Nomyx
                    Web.MainPage
     ghc-options: -W -threaded
  
+source-repository head
+  type:              git
+  location:          git://github.com/cdupont/Nomyx.git
