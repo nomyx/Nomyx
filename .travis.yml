@@ -4,5 +4,5 @@ notifications:
   email: false
 install: 
   - git clone git@github.com:cdupont/Nomyx-Language.git
-  - cabal install Nomyx-Language/Nomyx-Language.cabal
-script: cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx/Nomyx.cabal
+  - cabal install Nomyx-Language/
+script: cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx/
