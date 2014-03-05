@@ -33,7 +33,7 @@ cr = QuasiQuoter { quoteExp  = quoteRuleFunc,
 quoteRuleFunc :: String -> Q TH.Exp
 quoteRuleFunc s = do
    res <- runIO $ runInterpreter $ do
-      setImports importList
+      setImports unQualImports
       typeOf s
    case res of
       Right "Nomex RuleResp" -> [| s |]

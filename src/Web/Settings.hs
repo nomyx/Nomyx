@@ -233,7 +233,7 @@ newUpload ts = toResponse <$> do
     link <- showURL Advanced
     (Types.Session sh _ _) <- liftIO $ readTVarIO ts
     case r of
-       (Right (temp,name,_)) -> webCommand ts $ S.inputUpload pn temp name sh
+       (Right (temp,name,_)) -> webCommand ts $ void $ S.inputUpload pn temp name sh
        (Left _) -> liftIO $ putStrLn $ "cannot retrieve form data"
     seeOther link $ string "Redirecting..."
 

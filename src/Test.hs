@@ -137,13 +137,17 @@ submitR r = do
    submitRule (SubmitRule "" "" r) 1 "test" sh
    inputAllRadios 0 1
 
-testFile :: FilePath -> String -> StateT Session IO ()
-testFile fp func= do
+testFile' :: FilePath -> FilePath -> String -> StateT Session IO Bool
+testFile' path name func = do
    sh <- access sh
    set <- access (multi >>> mSettings)
-   inputUpload 1 (getTestDir set </> fp) fp sh
+   res <- inputUpload 1 (getTestDir set </> path) name sh
    submitRule (SubmitRule "" "" func) 1 "test" sh
    inputAllRadios 0 1
+   return res
+
+testFile :: FilePath -> String -> StateT Session IO Bool
+testFile name function = testFile' name name function
 
 -- * Tests
 
@@ -253,7 +257,7 @@ condLoop2 m = (length $ _games m) == 0
 testFile1 :: StateT Session IO ()
 testFile1 = do
    onePlayerOneGame
-   testFile "SimpleModule.hs" "myRule"
+   void $ testFile "SimpleModule.hs" "myRule"
 
 condFile1 :: Multi -> Bool
 condFile1 m = (length $ _rules $ firstGame m) == 3
@@ -262,7 +266,7 @@ condFile1 m = (length $ _rules $ firstGame m) == 3
 testFile2 :: StateT Session IO ()
 testFile2 = do
    onePlayerOneGame
-   testFile "SimpleModule.hs" "SimpleModule.myRule"
+   void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
 
 condFile2 :: Multi -> Bool
 condFile2 m = (length $ _rules $ firstGame m) == 3
@@ -271,8 +275,9 @@ condFile2 m = (length $ _rules $ firstGame m) == 3
 testFileTwice :: StateT Session IO ()
 testFileTwice = do
    onePlayerOneGame
-   testFile "SimpleModule.hs" "SimpleModule.myRule"
-   testFile "SimpleModule.hs" "SimpleModule.myRule"
+   void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
+   void $ testFile' "more/SimpleModule.hs" "SimpleModule.hs" "SimpleModule.myRule2"
+
 
 condFileTwice :: Multi -> Bool
 condFileTwice m = (length $ _rules $ firstGame m) == 3
@@ -281,8 +286,8 @@ condFileTwice m = (length $ _rules $ firstGame m) == 3
 testFileTwice' :: StateT Session IO ()
 testFileTwice' = do
    onePlayerOneGame
-   testFile "SimpleModule.hs" "SimpleModule.myRule"
-   testFile "SimpleModule2.hs" "SimpleModule2.myRule"
+   void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
+   void $ testFile "SimpleModule2.hs" "SimpleModule2.myRule"
 
 condFileTwice' :: Multi -> Bool
 condFileTwice' m = (length $ _rules $ firstGame m) == 4
@@ -291,7 +296,7 @@ condFileTwice' m = (length $ _rules $ firstGame m) == 4
 testFileUnsafeIO :: StateT Session IO ()
 testFileUnsafeIO = do
    onePlayerOneGame
-   testFile "UnsafeIO.hs" "UnsafeIO.myRule"
+   void $ testFile "UnsafeIO.hs" "UnsafeIO.myRule"
 
 condFileUnsafeIO :: Multi -> Bool
 condFileUnsafeIO m = (length $ _rules $ firstGame m) == 2
