@@ -1,7 +1,8 @@
 language: haskell
 ghc: 7.6.3
 notifications:
-  email: false
+  email:
+    recipients: corentin.dupont@gmail.com
 install: 
   - cd ..
   - git clone https://github.com/cdupont/Nomyx-Language.git
