@@ -1,0 +1,10 @@
+dist
+old
+cabal-dev
+*.o
+*.hi
+*.chi
+*.chs.h
+.virthualenv
+*~
+*.swp
