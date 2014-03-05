@@ -3,6 +3,6 @@ ghc: 7.6.3
 notifications:
   email: false
 install: 
+  - cd
   - git clone https://github.com/cdupont/Nomyx-Language.git
-  - cabal install Nomyx-Language/
-script: cabal install --ghc-options=-DNO_INTERPRET_QUOTES
+script: cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx/
