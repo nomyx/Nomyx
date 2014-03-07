@@ -33,10 +33,10 @@ import Data.Text(Text, pack)
 import Web.Routes.Happstack()
 import Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
 import Serialize
-import Utils
 import Data.Maybe
 import Data.Text (unpack, append)
 import Session
+import Profile
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired

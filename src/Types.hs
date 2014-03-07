@@ -1,7 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module Types where
 import Language.Nomyx
@@ -17,9 +15,6 @@ import Data.Data (Data)
 import Data.IxSet (toList, (@=), inferIxSet, noCalcs)
 import qualified Data.IxSet  as IxSet
 import Data.SafeCopy (base, deriveSafeCopy)
-import Control.Monad.Reader.Class (MonadReader(..))
-import Control.Monad.State.Class (MonadState(..))
-import Safe
 
 type PlayerPassword = String
 type Port = Int
@@ -91,65 +86,6 @@ data Profiles = Profiles
 data Session = Session { _sh :: ServerHandle,
                          _multi :: Multi,
                          _profiles  :: Profiles}
-
--- | set 'ProfileData' for UserId
-setProfileData :: ProfileData -> Update ProfileDataState ProfileData
-setProfileData profileData =
-    do pds@(ProfileDataState {..}) <- get
-       put $ pds { profilesData = IxSet.updateIx (_pPlayerNumber profileData) profileData profilesData }
-       return profileData
-
-
--- | get 'ProfileData' associated with 'UserId'
-askProfileData :: PlayerNumber -> Query ProfileDataState (Maybe ProfileData)
-askProfileData uid = do
-   ProfileDataState{..} <- ask
-   let pfs = toList profilesData
-   let filtered = filter (\a -> _pPlayerNumber a == uid) pfs
-   return $ headMay filtered
-   --return $ getOne $ profilesData @= uid
-
--- | create the profile data, but only if it is missing
-newProfileData :: PlayerNumber -> PlayerSettings -> Update ProfileDataState ProfileData
-newProfileData uid ps =
-    do pds@(ProfileDataState {..}) <- get
-       case IxSet.getOne (profilesData @= uid) of
-         Nothing -> do let profileData = ProfileData uid ps Nothing Nothing NoUpload False
-                       put $ pds { profilesData = IxSet.updateIx uid profileData profilesData }
-                       return profileData
-         (Just profileData) -> return profileData
-
--- | get number of
-askProfileDataNumber :: Query ProfileDataState Int
-askProfileDataNumber =
-    do pds <- ask
-       tracePN 1 (show $ profilesData pds)
-       return $ IxSet.size $ profilesData pds
-
--- | get all profiles
-askProfilesData :: Query ProfileDataState [ProfileData]
-askProfilesData =
-    do pds <- ask
-       return $ toList $ profilesData pds
-
-$(makeAcidic ''ProfileDataState
-                [ 'setProfileData
-                , 'askProfileData
-                , 'newProfileData
-                , 'askProfileDataNumber
-                , 'askProfilesData
-                ]
- )
-
-initialProfileDataState :: ProfileDataState
-initialProfileDataState = ProfileDataState { profilesData = IxSet.empty }
-
-
-defaultMulti :: Settings -> Multi
-defaultMulti set = Multi [] set
-
-defaultPlayerSettings :: PlayerSettings
-defaultPlayerSettings = PlayerSettings "" "" False False False False
 
 $( makeLenses [''Multi, ''Settings, ''Network, ''PlayerSettings, ''Session, ''ProfileData] )
 

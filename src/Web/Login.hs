@@ -21,7 +21,7 @@ import Data.Text hiding (map, zip, concatMap)
 import Happstack.Auth (AuthProfileURL(..), AuthURL(..), handleAuthProfile)
 import Happstack.Auth.Core.Profile
 import Facebook (Credentials(..))
-import Utils
+import Profile
 default (Integer, Double, Data.Text.Text)
 
 -- | function which generates the homepage

@@ -50,6 +50,7 @@ import Data.Acid.Local (createCheckpointAndClose)
 import Happstack.Auth.Core.Profile (initialProfileState)
 import Control.Monad.State
 import System.Exit
+import Profile
 
 -- | Entry point of the program.
 main :: IO Bool

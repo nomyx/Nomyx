@@ -19,20 +19,11 @@ module Utils where
 import Data.Maybe
 import Control.Monad.State
 import Types
-import Language.Nomyx
-import Language.Nomyx.Engine
-import Data.Lens
-import Control.Category hiding ((.), id)
-import Safe
-import Control.Concurrent.STM
-import qualified Data.Acid.Advanced as A (query', update')
 import System.IO.Temp
 import Codec.Archive.Tar as Tar
 import System.Directory
 import System.FilePath
 import Control.Monad.CatchIO
-import Data.Time
-import Data.List
 import System.PosixCompat.Files (getFileStatus, isRegularFile, setFileMode, ownerModes, groupModes)
 #ifndef WINDOWS
 import qualified System.Posix.Signals as S
@@ -62,64 +53,6 @@ say = lift . putStrLn
 
 nomyxURL :: Network -> String
 nomyxURL (Network host port) = "http://" ++ host ++ ":" ++ (show port)
-
-getPlayerName :: PlayerNumber -> Session -> IO PlayerName
-getPlayerName pn s = do
-   pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
-   return $ _pPlayerName $ _pPlayerSettings $ fromJustNote ("getPlayersName: no profile for pn=" ++ (show pn)) pfd
-
-getPlayerInGameName :: Game -> PlayerNumber -> PlayerName
-getPlayerInGameName g pn = do
-   case find ((==pn) . getL playerNumber) (_players g) of
-      Nothing -> error "getPlayersName': No player by that number in that game"
-      Just pm -> _playerName pm
-
--- | returns the game the player is in
-getPlayersGame :: PlayerNumber -> Session -> IO (Maybe LoggedGame)
-getPlayersGame pn s = do
-   pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
-   let mgn = _pViewingGame $ fromJustNote "getPlayersGame" pfd
-   return $ do
-      gn <- mgn
-      find ((== gn) . getL (game >>> gameName)) (_games $ _multi s) --checks if any game by that name exists
-
-getAllProfiles :: Session -> IO [ProfileData]
-getAllProfiles s = A.query' (acidProfileData $ _profiles s) AskProfilesData
-
-
-getPlayerInfo :: Game -> PlayerNumber -> Maybe PlayerInfo
-getPlayerInfo g pn = find ((==pn) . getL playerNumber) (_players g)
-
--- | finds the corresponding game in the multistate and replaces it.
-modifyGame :: LoggedGame -> StateT Multi IO ()
-modifyGame lg = do
-   gs <- access games
-   case find (== lg) gs of
-      Nothing -> error "modifyGame: No game by that name"
-      Just oldg -> do
-         let newgs = replace oldg lg gs
-         games ~= newgs
-         return ()
-
-execWithMulti :: UTCTime -> StateT Multi IO () -> Multi -> IO Multi
-execWithMulti t ms m = do
-   let setTime g = (game >>> currentTime) ^= t $ g
-   let m' = games `modL` (map setTime) $ m
-   execStateT ms m'
-
-modifyProfile :: PlayerNumber -> (ProfileData -> ProfileData) -> StateT Session IO ()
-modifyProfile pn mod = do
-   s <- get
-   pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
-   when (isJust pfd) $ void $ A.update' (acidProfileData $ _profiles s) (SetProfileData (mod $ fromJust pfd))
-
-getProfile :: MonadIO m => Session -> PlayerNumber -> m (Maybe ProfileData)
-getProfile s pn = A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
-
-getProfile' :: MonadIO m => (TVar Session) -> PlayerNumber -> m (Maybe ProfileData)
-getProfile' ts pn = do
-   s <- liftIO $ atomically $ readTVar ts
-   getProfile s pn
 
 getSaveFile :: Settings -> FilePath
 getSaveFile set = (_saveDir set) </> saveFile

@@ -32,6 +32,7 @@ import Paths_Nomyx as PN
 import Paths_Nomyx_Language as PNL
 import Data.Version (showVersion)
 import System.FilePath
+import Profile
 default (Integer, Double, Data.Text.Text)
 
 playerSettingsForm :: (Maybe PlayerSettings) -> [PlayerName] -> [String] -> NomyxForm PlayerSettings

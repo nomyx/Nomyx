@@ -17,6 +17,7 @@ import Control.Category hiding ((.))
 import Quotes (cr)
 import Control.Applicative
 import Data.List
+import Utils
 
 triggerTimeEvent :: UTCTime -> StateT Multi IO ()
 triggerTimeEvent t = do
@@ -64,3 +65,23 @@ displayMulti m = concatMap (displayGame . _game) (_games m)
 
 getGameByName :: GameName -> StateT Multi IO (Maybe LoggedGame)
 getGameByName gn =  (find ((==gn) . getL (game >>> gameName))) <$> (access games)
+
+defaultMulti :: Settings -> Multi
+defaultMulti set = Multi [] set
+
+-- | finds the corresponding game in the multistate and replaces it.
+modifyGame :: LoggedGame -> StateT Multi IO ()
+modifyGame lg = do
+   gs <- access games
+   case find (== lg) gs of
+      Nothing -> error "modifyGame: No game by that name"
+      Just oldg -> do
+         let newgs = replace oldg lg gs
+         games ~= newgs
+         return ()
+
+execWithMulti :: UTCTime -> StateT Multi IO () -> Multi -> IO Multi
+execWithMulti t ms m = do
+   let setTime g = (game >>> currentTime) ^= t $ g
+   let m' = games `modL` (map setTime) $ m
+   execStateT ms m'

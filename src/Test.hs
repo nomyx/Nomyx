@@ -24,6 +24,7 @@ import Control.Monad.State
 import Multi
 import Session
 import Utils
+import Profile
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Language.Nomyx hiding (getCurrentTime)
 import Language.Nomyx.Engine

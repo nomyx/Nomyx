@@ -14,7 +14,7 @@ import Utils
 import Data.List
 import Control.Monad
 import Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
-import Language.Haskell.Interpreter
+
 
 unQualImports :: [String]
 unQualImports = ["Prelude",
@@ -75,12 +75,12 @@ qualImports = [
                ("Control.Category", Just "C")]
 
 defaultPackages :: [String]
-defaultPackages = [ "array"
-                  , "base"
-                  , "bytestring"
-                  , "containers"
-                  , "Nomyx-Language"
-                  ]
+defaultPackages = ["array",
+                   "base",
+                   "bytestring",
+                   "containers",
+                   "Nomyx-Language"]
+
 
 extensions :: [Extension]
 extensions = [UnknownExtension "ImplicitPrelude",

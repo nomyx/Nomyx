@@ -37,16 +37,16 @@ import Language.Haskell.HsColour.Colourise (defaultColourPrefs)
 import Web.Routes.RouteT                   (showURL, liftRouteT)
 import qualified Web.Help as Help
 import Types as T
-import Utils
 import Mail
 import Session as S
 import Web.Common
 import Safe
+import Profile
 default (Integer, Double, Data.Text.Text)
 
 viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> Bool -> RoutedNomyxServer Html
 viewGame g pn mlr isAdmin = do
-   let pi = Utils.getPlayerInfo g pn
+   let pi = Profile.getPlayerInfo g pn
    let isGameAdmin = isAdmin || (if (isJust $ _simu g) then ((_ownedBy $ fromJust $ _simu g) == pn) else False)
    let playAs = if (isJust pi) then (_playAs $ fromJust pi) else Nothing
    rf <- viewRuleForm mlr (isJust pi) isAdmin (_gameName g)
@@ -118,7 +118,7 @@ playAsForm pn = inputHidden (show pn)
 
 viewVictory :: Game -> Html
 viewVictory g = do
-    let vs = _playerName <$> mapMaybe (Utils.getPlayerInfo g) (getVictorious g)
+    let vs = _playerName <$> mapMaybe (Profile.getPlayerInfo g) (getVictorious g)
     case vs of
         []   -> br
         a:[] -> h3 $ string $ "Player " ++ (show a) ++ " won the game!"
@@ -145,7 +145,7 @@ viewRules nrs title visible g = do
 
 viewRule :: Game -> Rule -> Html
 viewRule g nr = tr $ do
-   let pl = fromMaybe ("Player " ++ (show $ _rProposedBy nr)) (_playerName <$> (Utils.getPlayerInfo g $ _rProposedBy nr))
+   let pl = fromMaybe ("Player " ++ (show $ _rProposedBy nr)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy nr))
    td ! class_ "td" $ string . show $ _rNumber nr
    td ! class_ "td" $ string $ _rName nr
    td ! class_ "td" $ string $ _rDescription nr

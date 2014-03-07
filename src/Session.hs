@@ -7,9 +7,9 @@ module Session where
 import Prelude
 import Data.List
 import Control.Monad.State
-import Utils
 import Interpret
 import Multi
+import Profile
 import Data.Time as T
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Data.Maybe
@@ -66,11 +66,11 @@ unviewGamePlayer pn = modifyProfile pn (pViewingGame ^= Nothing)
 joinGame :: GameName -> PlayerNumber -> StateT Session IO ()
 joinGame game pn = do
    s <- get
-   name <- lift $ Utils.getPlayerName pn s
+   name <- lift $ Profile.getPlayerName pn s
    inGameDo game $ G.execGameEvent $ JoinGame pn name
    viewGamePlayer game pn
 
--- | del a game.
+-- | delete a game.
 delGame :: GameName -> StateT Session IO ()
 delGame name = focus multi $ void $ games %= filter ((/= name) . getL (game >>> gameName))
 
@@ -251,4 +251,5 @@ evalSession s sm = do
    s' <- execStateT sm s
    writeFile nullFileName $ displayMulti $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
    return s'
+
 

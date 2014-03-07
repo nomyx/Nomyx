@@ -36,6 +36,7 @@ import Happstack.Auth
 import Safe
 import Paths_Nomyx_Language
 import Data.Maybe
+import Profile
 default (Integer, Double, Data.Text.Text)
 
 viewMulti :: PlayerNumber -> FilePath -> Session -> RoutedNomyxServer Html
@@ -123,7 +124,7 @@ nomyxPage ts = do
    pn <- getPlayerNumber ts
    s <- liftIO $ atomically $ readTVar ts
    let saveDir = _saveDir $ _mSettings $ _multi s
-   name <- liftIO $ Utils.getPlayerName pn s
+   name <- liftIO $ Profile.getPlayerName pn s
    pn <- getPlayerNumber ts
    m <- viewMulti pn saveDir s
    mainPage' "Welcome to Nomyx!"
