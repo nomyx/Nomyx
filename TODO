@@ -34,7 +34,6 @@ Improvements:
 - display viewer list
 - import qualified uploads (?)
 - 15 characters max for names
-- add a space before buttons (in HTML)
 - some files are accepted when uploaded but cause the game to crash when restarting. Check with GATDs for example. 
 - display vote infos (modalities, date etc.)
 - parameterize the mail sender

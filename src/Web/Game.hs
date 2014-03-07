@@ -244,7 +244,8 @@ viewInput me gn (EH eventNumber _ (InputEv (Input pn title iForm)) _ SActive) | 
     link <- showURL (DoInput eventNumber gn)
     lf  <- lift $ viewForm "user" $ inputForm iForm
     return $ Just $ tr $ td $ do
-       string title
+       string $ title
+       string " "
        blazeForm lf (link) ! A.id "InputForm"
 viewInput _ _ _ = return Nothing
 
