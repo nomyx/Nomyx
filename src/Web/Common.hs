@@ -29,6 +29,8 @@ import Text.Reform.Blaze.String()
 import Text.Reform.Happstack()
 import Text.Blaze.Internal
 import qualified Text.Reform.Generalized as G
+import qualified Text.Reform.Blaze.Common as C
+import Text.Reform.Backend
 import Data.Text(Text, pack)
 import Web.Routes.Happstack()
 import Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
@@ -37,6 +39,8 @@ import Data.Maybe
 import Data.Text (unpack, append)
 import Session
 import Profile
+import Language.Haskell.HsColour.HTML      (hscolour)
+import Language.Haskell.HsColour.Colourise (defaultColourPrefs)
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
@@ -175,14 +179,6 @@ getPlayerNumber ts = do
       Nothing -> error "not logged in."
       (Just (UserId userID)) -> return $ fromInteger userID
 
---getUserPass :: MonadIO m => Session -> PlayerNumber -> m (Maybe UserPass)
---getUserPass s pn = A.query' (acidAuth $ _profiles s) (AskUserPass pn)
--- | 'Acid' holds all the 'AcidState' handles for this site.
---data Profiles = Profiles
---    { acidAuth        :: AcidState AuthState,
---      acidProfile     :: AcidState ProfileState,
---      acidProfileData :: AcidState ProfileDataState}
-
 --update the session using the command and saves it
 webCommand :: (TVar Session) -> StateT Session IO () -> RoutedNomyxServer ()
 webCommand ts ss = liftIO $ do
@@ -205,6 +201,9 @@ fieldRequired _ str = Right str
 
 appendAnchor :: Text -> Text -> Text
 appendAnchor url a = url `append` "#" `append` a
+
+displayCode :: String -> Html
+displayCode s = preEscapedString $ hscolour defaultColourPrefs False s
 
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]

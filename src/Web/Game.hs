@@ -26,14 +26,12 @@ import Language.Nomyx
 import Language.Nomyx.Engine
 import Text.Blaze.Html5                    (Html, div, (!), p, table, thead, td, tr, h2, h3, h4, h5, pre, toValue, br, toHtml, a, img)
 import Text.Blaze.Html5.Attributes as A    (src, title, width, style, id, onclick, disabled, placeholder, class_, href)
-import Text.Blaze.Internal                 (string, text, preEscapedString)
+import Text.Blaze.Internal                 (string, text)
 import Text.Reform.Blaze.String as RB      (label, inputText, textarea, inputSubmit, inputCheckboxes, inputHidden)
 import Text.Reform.Happstack               (environment)
 import Text.Reform                         ((<++), (++>), viewForm, eitherForm)
 import Text.Reform.Blaze.Common            (setAttr)
 import Happstack.Server                    (Response, Method(..), seeOther, toResponse, methodM, ok)
-import Language.Haskell.HsColour.HTML      (hscolour)
-import Language.Haskell.HsColour.Colourise (defaultColourPrefs)
 import Web.Routes.RouteT                   (showURL, liftRouteT)
 import qualified Web.Help as Help
 import Types as T
@@ -158,15 +156,15 @@ viewRule g nr = tr $ do
 
 viewRuleFunc :: Rule -> Html
 viewRuleFunc nr = do
-      let code = preEscapedString $ hscolour defaultColourPrefs False $ _rRuleCode nr
-      let ref = "openModalCode" ++ (show $ _rNumber nr)
-      div ! A.id "showCodeLink" $ a ! (href $ toValue $ "#" ++ ref)  $ "show code" >> br
-      code
-      div ! A.id (toValue ref) ! class_ "modalDialog" $ do
-         div $ do
-            p $ "Code of the rule:"
-            a ! href "#close" ! title "Close" ! class_ "close" $ "X"
-            div ! A.id "modalCode"$ code
+   let code = displayCode $ _rRuleCode nr
+   let ref = "openModalCode" ++ (show $ _rNumber nr)
+   div ! A.id "showCodeLink" $ a ! (href $ toValue $ "#" ++ ref)  $ "show code" >> br
+   code
+   div ! A.id (toValue ref) ! class_ "modalDialog" $ do
+      div $ do
+         p $ "Code of the rule:"
+         a ! href "#close" ! title "Close" ! class_ "close" $ "X"
+         div ! A.id "modalCode" $ code
 
 viewDetails :: PlayerNumber -> Game -> Html
 viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
@@ -269,7 +267,7 @@ viewVar (Var vRuleNumber vName vData) = tr $ do
 
 
 newRuleForm :: (Maybe SubmitRule) -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
-newRuleForm (Just lr) isAdmin = newRuleForm' lr isAdmin
+newRuleForm (Just sr) isAdmin = newRuleForm' sr isAdmin
 newRuleForm Nothing isAdmin = newRuleForm' (SubmitRule "" "" "") isAdmin
 
 newRuleForm' :: SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
@@ -282,15 +280,15 @@ newRuleForm' (SubmitRule name desc code) isAdmin =
 
 
 viewRuleForm :: Maybe LastRule -> Bool -> Bool -> GameName -> RoutedNomyxServer Html
-viewRuleForm msr inGame isAdmin gn = do
+viewRuleForm mlr inGame isAdmin gn = do
    link <- showURL (NewRule gn)
-   lf  <- lift $ viewForm "user" (newRuleForm (fst <$> msr) isAdmin)
+   lf  <- lift $ viewForm "user" (newRuleForm (fst <$> mlr) isAdmin)
    ok $ do
       a "" ! A.id (toValue ruleFormAnchor)
       titleWithHelpIcon (h3 "Propose a new rule:") Help.code
       if inGame then do
          blazeForm lf (link)
-         let msg = snd <$> msr
+         let msg = snd <$> mlr
          when (isJust msg) $ pre $ string $ fromJust msg
       else lf ! disabled ""
 

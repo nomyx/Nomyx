@@ -42,14 +42,32 @@ askProfileData uid = do
    return $ headMay filtered
    --return $ getOne $ profilesData @= uid
 
+
+initialProfileData :: PlayerNumber -> PlayerSettings -> ProfileData
+initialProfileData uid ps = ProfileData uid ps Nothing (Just (exampleRule, "")) NoUpload False
+
+exampleRule :: SubmitRule
+exampleRule = SubmitRule "" "" [cr|
+--This is an example new rule that you can enter.
+--If you submit this rule it will have to be voted on by other players (as described by rule 1).
+--If accepted, it will display a button for you only. Clicking on the button will display a message: "Bravo!".
+--A lot of other examples can be found in the left menu bar.
+ruleFunc $ do
+   me <- getProposerNumber_
+   let displayMsg _ = void $ newOutput_ (Just me) "Bravo!"
+   onInputButton_ "Click here:" displayMsg me
+|]
+
+
 -- | create the profile data, but only if it is missing
 newProfileData :: PlayerNumber -> PlayerSettings -> Update ProfileDataState ProfileData
 newProfileData uid ps =
     do pds@(ProfileDataState {..}) <- get
        case IxSet.getOne (profilesData @= uid) of
-         Nothing -> do let profileData = ProfileData uid ps Nothing Nothing NoUpload False
-                       put $ pds { profilesData = IxSet.updateIx uid profileData profilesData }
-                       return profileData
+         Nothing -> do
+            let pd = initialProfileData uid ps
+            put $ pds { profilesData = IxSet.updateIx uid pd profilesData }
+            return pd
          (Just profileData) -> return profileData
 
 -- | get number of
@@ -95,13 +113,6 @@ getProfile' ts pn = do
    s <- liftIO $ atomically $ readTVar ts
    getProfile s pn
 
-exampleRule :: String
-exampleRule = [cr|
-   ruleFunc $ do
-      let displayMsg _ = outputAll_ "Bravo!"
-      onInputButton_ "Click here:" displayMsg 1
-   |]
-
 getPlayerName :: PlayerNumber -> Session -> IO PlayerName
 getPlayerName pn s = do
    pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
@@ -128,3 +139,4 @@ getAllProfiles s = A.query' (acidProfileData $ _profiles s) AskProfilesData
 
 getPlayerInfo :: Game -> PlayerNumber -> Maybe PlayerInfo
 getPlayerInfo g pn = find ((==pn) . getL playerNumber) (_players g)
+
