@@ -158,6 +158,7 @@ routedNomyxCommands ts Advanced              = advanced          ts
 routedNomyxCommands ts (SubmitPlayAs game)   = newPlayAs         ts game
 routedNomyxCommands ts SubmitAdminPass       = newAdminPass      ts
 routedNomyxCommands ts SubmitSettings        = newSettings       ts
+routedNomyxCommands ts SaveFilePage          = saveFilePage      ts
 
 launchWebServer :: (TVar Session) -> Network -> IO ()
 launchWebServer tm net = do

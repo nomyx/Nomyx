@@ -83,6 +83,7 @@ data PlayerCommand = HomePage
                    | SubmitPlayAs GameName
                    | SubmitAdminPass
                    | SubmitSettings
+                   | SaveFilePage
                    deriving (Show)
 
 ruleFormAnchor, inputAnchor :: Text

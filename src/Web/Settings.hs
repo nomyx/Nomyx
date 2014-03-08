@@ -131,10 +131,10 @@ advancedPage mlu isAdmin settings pfds = do
    uploadLink <- showURL Upload
    submitAdminPass <- showURL SubmitAdminPass
    submitSettings <- showURL SubmitSettings
+   getSaveFile <- showURL SaveFilePage
    up  <- lift $ viewForm "user" uploadForm  --TODO add the file name (missing Reform feature)
    ap  <- lift $ viewForm "user" adminPassForm
    set <- lift $ viewForm "user" $ settingsForm (_sendMails settings)
-   liftIO $ makeTar (_saveDir settings)
    let uploadExample =  pathSeparator : testDir </> "SimpleModule.hs"
    ok $ do
       p $ do
@@ -144,7 +144,7 @@ advancedPage mlu isAdmin settings pfds = do
       hr
       p $ do
          pre $ string Help.getSaveFile
-         H.a "get save file" ! (href $ toValue (pathSeparator : tarFile))
+         H.a "get save file" ! (href $ toValue getSaveFile)
       H.br
       hr
       p $ do
@@ -257,3 +257,8 @@ isSimulated :: Game -> [Game] -> Bool
 isSimulated g gs = (_gameName g) `elem` simuNames where
    simuNames = map _ofGame $ catMaybes (map (\g -> _simu g) gs)
 
+saveFilePage :: (TVar Session) -> RoutedNomyxServer Response
+saveFilePage ts = toResponse <$> do
+   session <- liftIO $ atomically $ readTVar ts
+   liftIO $ makeTar (_saveDir $ _mSettings $ _multi session)
+   seeOther (pathSeparator : tarFile) $ string "Redirecting..."
