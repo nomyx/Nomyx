@@ -60,9 +60,6 @@ initialLoggedGame name desc date sh = do
    let lg = LoggedGame (emptyGame name desc date) []
    execStateT (initialGame sh) lg
 
-displayMulti :: Multi -> String
-displayMulti m = concatMap (displayGame . _game) (_games m)
-
 getGameByName :: GameName -> StateT Multi IO (Maybe LoggedGame)
 getGameByName gn =  (find ((==gn) . getL (game >>> gameName))) <$> (access games)
 

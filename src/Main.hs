@@ -147,7 +147,7 @@ serverLoop ts = do
    case s of
       "d" -> do
          s <- atomically $ readTVar ts
-         putStrLn $ displayMulti $ _multi s
+         putStrLn $ show $ _multi s
          pfs <- getAllProfiles s
          putStrLn $ show pfs
       _ -> putStrLn "command not recognized"

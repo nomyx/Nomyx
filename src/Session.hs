@@ -249,7 +249,7 @@ watchDog tout tid mvar = do
 evalSession :: Session -> StateT Session IO () -> IO Session
 evalSession s sm = do
    s' <- execStateT sm s
-   writeFile nullFileName $ displayMulti $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
+   writeFile nullFileName $ show $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
    return s'
 
 

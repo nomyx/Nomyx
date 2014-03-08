@@ -3,12 +3,10 @@ TODO list
 
 Bugs:
 - recurring event are making increasing memory size
-- import qualified Data.Map and Control.Category (or hide conflicting functions)
 - display bugs on MacOS (tabs, vertical size)
 - online documentation not working with cabal install  --enable-documentation --haddock-hyperlink-source
 - limit width collumn table
 - fix facebook
-- fix the saving procedure: don't use show/read
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation

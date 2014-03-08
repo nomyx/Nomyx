@@ -53,7 +53,7 @@ data Settings = Settings { _net           :: Network,  -- URL where the server i
 --- | A structure to hold the active games and players
 data Multi = Multi { _games   :: [LoggedGame],
                      _mSettings :: Settings}
-                     deriving (Eq, Read, Show, Typeable)
+                     deriving (Eq, Show, Typeable)
 
 -- | 'ProfileData' contains application specific
 data ProfileData =
