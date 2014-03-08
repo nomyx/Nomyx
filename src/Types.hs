@@ -9,11 +9,10 @@ import Text.Reform.Happstack()
 import Network.BSD
 import Data.Lens.Template
 import Language.Haskell.Interpreter.Server (ServerHandle)
-import Data.Acid (makeAcidic, Update, Query, AcidState)
+import Data.Acid (AcidState)
 import Happstack.Auth (ProfileState, AuthState)
 import Data.Data (Data)
-import Data.IxSet (toList, (@=), inferIxSet, noCalcs)
-import qualified Data.IxSet  as IxSet
+import Data.IxSet (inferIxSet, noCalcs)
 import Data.SafeCopy (base, deriveSafeCopy)
 
 type PlayerPassword = String

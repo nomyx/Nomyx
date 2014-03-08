@@ -5,7 +5,6 @@ Bugs:
 - recurring event are making increasing memory size
 - import qualified Data.Map and Control.Category (or hide conflicting functions)
 - display bugs on MacOS (tabs, vertical size)
-- message "Server error: not logged in." should have a back to login page button.
 - tar file is generated on each advanced page display
 - online documentation not working with cabal install  --enable-documentation --haddock-hyperlink-source
 - limit width collumn table
@@ -43,7 +42,7 @@ Improvements:
 - put settings at session level, not multi level
 - a way to overwrite uploads (automatically or with admin intervention)
 - tag the save file with the version
-- use a test suite instead of haddock tests
+- use a test suite instead of ad-hoc tests
 
 
 

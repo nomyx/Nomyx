@@ -29,8 +29,6 @@ import Text.Reform.Blaze.String()
 import Text.Reform.Happstack()
 import Text.Blaze.Internal
 import qualified Text.Reform.Generalized as G
-import qualified Text.Reform.Blaze.Common as C
-import Text.Reform.Backend
 import Data.Text(Text, pack)
 import Web.Routes.Happstack()
 import Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
@@ -41,6 +39,7 @@ import Session
 import Profile
 import Language.Haskell.HsColour.HTML      (hscolour)
 import Language.Haskell.HsColour.Colourise (defaultColourPrefs)
+import Control.Monad.Error
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
@@ -176,7 +175,7 @@ getPlayerNumber ts = do
    (T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftIO $ readTVarIO ts
    uid <- getUserId acidAuth acidProfile
    case uid of
-      Nothing -> error "not logged in."
+      Nothing -> throwError $ userError "not logged in."
       (Just (UserId userID)) -> return $ fromInteger userID
 
 --update the session using the command and saves it
@@ -192,7 +191,7 @@ getIsAdmin ts = do
    mpf <- getProfile' ts pn
    case mpf of
       Just pf -> return $ _pIsAdmin $ pf
-      Nothing -> error "not logged in."
+      Nothing -> throwError $ userError "not logged in."
 
 
 fieldRequired :: NomyxError -> String -> Either NomyxError String

@@ -37,6 +37,8 @@ import Safe
 import Paths_Nomyx_Language
 import Data.Maybe
 import Profile
+import Control.Monad.Error
+import Control.Applicative
 default (Integer, Double, Data.Text.Text)
 
 viewMulti :: PlayerNumber -> FilePath -> Session -> RoutedNomyxServer Html
@@ -133,7 +135,7 @@ nomyxPage ts = do
             False
 
 nomyxSite :: (TVar Session) -> Site PlayerCommand (ServerPartT IO Response)
-nomyxSite tm = setDefault HomePage $ mkSitePI (runRouteT $ routedNomyxCommands tm)
+nomyxSite tm = setDefault HomePage $ mkSitePI (runRouteT $ catchRouteError . routedNomyxCommands tm)
 
 routedNomyxCommands :: (TVar Session) -> PlayerCommand -> RoutedNomyxServer Response
 routedNomyxCommands ts (U_AuthProfile auth)  = authenticate      ts auth
@@ -177,6 +179,13 @@ server ts net = do
        html <- implSite (pack (nomyxURL net)) "/Nomyx" (nomyxSite ts)
        return $ toResponse html]
 
+catchRouteError :: RoutedNomyxServer Response -> RoutedNomyxServer Response
+catchRouteError page = page `catchError` (const backToLogin) where
+
+backToLogin :: RoutedNomyxServer Response
+backToLogin = toResponse <$> do
+   link <- showURL HomePage
+   seeOther link $ string "Redirecting..."
 
 getDocDir :: IO FilePath
 getDocDir = do
