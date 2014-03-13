@@ -106,7 +106,7 @@ startInterpreter saveDir = do
 -- get all uploaded modules from the directory (may be empty)
 getUploadModules :: FilePath -> IO([FilePath])
 getUploadModules saveDir = do
-    files <- getUploadedModules saveDir
+    files <- (getUploadedModules saveDir `catch` (\(e::SomeException) -> return []))
     return $ map (\f -> joinPath [saveDir, uploadDir, f]) files
 
    
