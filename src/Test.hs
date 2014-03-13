@@ -53,7 +53,7 @@ playTests dataDir sh = do
    dir <- createTempDirectory "/tmp" "Nomyx"
    createDirectoryIfMissing True $ dir </> uploadDir
    let session = Session sh (defaultMulti (Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = dir, _dataDir = dataDir, _sourceDir = ""})) tp
-   mapM (\(title, t, cond) -> (title,) <$> test session t cond) tests
+   mapM (\(title, t, cond) -> (title,) <$> test title session t cond) tests
 
 -- | test list.
 -- each test can be loaded individually in Nomyx with the command line:
@@ -62,22 +62,25 @@ tests :: [(String, StateT Session IO (), Multi -> Bool)]
 tests = [("hello World",           gameHelloWorld,         condHelloWorld),
          ("hello World 2 players", gameHelloWorld2Players, condHelloWorld2Players),
          ("Money transfer",        gameMoneyTransfer,      condMoneyTransfer),
-         ("Partial Function 1",    gamePartialFunction1,   condPartialFunction1),
-         ("Partial Function 2",    gamePartialFunction2,   condPartialFunction2),
+         ("Partial Function 1",    gamePartialFunction1,   condPartialFunction),
+         ("Partial Function 2",    gamePartialFunction2,   condPartialFunction),
          ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
-         ("Infinite loop 1",       gameLoop1,              condLoop1),
-         ("Infinite loop 2",       gameLoop2,              condLoop2),
-         ("Test file 1",           testFile1,              condFile1),
-         ("Test file 2",           testFile2,              condFile2),
-         ("load file twice",       testFileTwice,          condFileTwice),
-         ("load file twice 2",     testFileTwice',         condFileTwice'),
-         ("load file unsafe",      testFileUnsafeIO,       condFileUnsafeIO)]
+         ("Infinite loop 1",       gameLoop1,              condNoGame),
+         ("Infinite loop 2",       gameLoop2,              condNoGame),
+         ("Infinite loop 3",       gameLoop3,              condNoGame),
+         --("Infinite loop 4",       gameLoop4,              condLoop4),
+         ("Test file 1",           testFile1,              condNRules 3),
+         ("Test file 2",           testFile2,              condNRules 3),
+         ("load file twice",       testFileTwice,          condNRules 3),
+         ("load file twice 2",     testFileTwice',         condNRules 4),
+         ("load file unsafe",      testFileUnsafeIO,       condNRules 2)]
 
 
 
 
-test :: Session -> StateT Session IO () -> (Multi -> Bool) -> IO Bool
-test session tes cond = do
+test :: String -> Session -> StateT Session IO () -> (Multi -> Bool) -> IO Bool
+test title session tes cond = do
+   putStrLn $ "\nPlaying test: " ++ title
    m' <- loadTest tes session
    (evaluate $ cond m') `E.catch` (\(e::SomeException) -> (putStrLn $ "Exception in test: " ++ show e) >> return False)
 
@@ -192,18 +195,13 @@ condMoneyTransfer m = (_vName $ head $ _variables $ firstGame m) == "Accounts"
 partialFunction1 :: String
 partialFunction1 = [cr|ruleFunc $ readMsgVar_ (msgVar "toto1" :: MsgVar String)|]
 
-gamePartialFunction1 :: StateT Session IO ()
-gamePartialFunction1 = submitR partialFunction1
-
--- rule has not been accepted due to exception
-condPartialFunction1 :: Multi -> Bool
-condPartialFunction1 m = (_rStatus $ head $ _rules $ firstGame m) == Active &&
-                         (take 5 $ _lMsg $ head $ _logs $ firstGame m) == "Error"
-
 partialFunction2 :: String
 partialFunction2 = [cr|ruleFunc $ do
    t <- liftEffect getCurrentTime
    onEventOnce (Time $ addUTCTime 5 t) $ const $ readMsgVar_ (msgVar "toto2")|]
+
+gamePartialFunction1 :: StateT Session IO ()
+gamePartialFunction1 = submitR partialFunction1
 
 gamePartialFunction2 :: StateT Session IO ()
 gamePartialFunction2 = do
@@ -213,10 +211,12 @@ gamePartialFunction2 = do
    let now = _currentTime $ G._game (head gs)
    focus multi $ triggerTimeEvent (5 `addUTCTime` now)
 
--- rule has been accepted but exception happened later
-condPartialFunction2 :: Multi -> Bool
-condPartialFunction2 m = (_rStatus $ headNote "cond1 failed" $ _rules $ firstGame m) == Active &&
-                         (take 5 $ _lMsg $ headNote "cond3 failed" $ _logs $ firstGame m) == "Error"
+
+-- rule has not been accepted due to exception
+condPartialFunction :: Multi -> Bool
+condPartialFunction m = (_rStatus $ head $ _rules $ firstGame m) == Active &&
+                        (take 5 $ _lMsg $ head $ _logs $ firstGame m) == "Error"
+
 
 partialFunction3 :: String
 partialFunction3 = [cr|ruleFunc $ onEvent_ (RuleEv Proposed) $ const $ readMsgVar_ (msgVar "toto3")|]
@@ -236,21 +236,47 @@ condPartialFunction3 m = (length $ _rules $ firstGame m) == 4
 gameLoop1 :: StateT Session IO ()
 gameLoop1 = submitR [cr|
    ruleFunc $ do
-      let x = 1 + x
-      outputAll_ $ show x
-   |]
+      let x :: Int; x = x
+      outputAll_ $ show x |]
 
---the game created should be withdrawn
-condLoop1 :: Multi -> Bool
-condLoop1 m = (length $ _games m) == 0
+gameLoop1' :: StateT Session IO ()
+gameLoop1' = submitR [cr|
+   ruleFunc $ do
+      let x = x + 1
+      outputAll_ $ show x |]
+
+gameLoop1'' :: StateT Session IO ()
+gameLoop1'' = submitR [cr|
+   ruleFunc $ do
+      let x :: Int -> Int; x y = x 1
+      outputAll_ $ show (x 1) |]
 
 --an infinite loop: it should be interrupted by the watchdog
 gameLoop2 :: StateT Session IO ()
 gameLoop2 = submitR [cr|ruleFunc $ outputAll_ $ show $ repeat 1|]
 
+--an infinite loop: it should be interrupted by the watchdog
+gameLoop3 :: StateT Session IO ()
+gameLoop3 = submitR [cr|
+   ruleFunc $ do
+      let a = array (0::Int, maxBound) [(1000000,'x')]
+      outputAll_ $ show a |]
+
+--an infinite loop: it should be interrupted by the watchdog
+gameLoop4 :: StateT Session IO ()
+gameLoop4 = submitR [cr|ruleFunc $ outputAll_ $ show $ repeat 1|]
+
+
+--an expression very long to type check
+--gameLoop4 :: StateT Session IO ()
+--gameLoop4 = submitR
+--   "ruleFunc $ let {p x y f = f x y; f x = p x x} in f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f f)))))))))))))))))) f"
+
+
 --the game created should be withdrawn
-condLoop2 :: Multi -> Bool
-condLoop2 m = (length $ _games m) == 0
+condNoGame :: Multi -> Bool
+condNoGame m = (length $ _games m) == 0
+
 
 -- ** File loading
 
@@ -260,8 +286,8 @@ testFile1 = do
    onePlayerOneGame
    void $ testFile "SimpleModule.hs" "myRule"
 
-condFile1 :: Multi -> Bool
-condFile1 m = (length $ _rules $ firstGame m) == 3
+condNRules :: Int -> Multi -> Bool
+condNRules n m = (length $ _rules $ firstGame m) == n
 
 --standard module, call with namespace
 testFile2 :: StateT Session IO ()
@@ -269,8 +295,6 @@ testFile2 = do
    onePlayerOneGame
    void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
 
-condFile2 :: Multi -> Bool
-condFile2 m = (length $ _rules $ firstGame m) == 3
 
 --loading two modules with the same name is forbidden
 testFileTwice :: StateT Session IO ()
@@ -280,9 +304,6 @@ testFileTwice = do
    void $ testFile' "more/SimpleModule.hs" "SimpleModule.hs" "SimpleModule.myRule2"
 
 
-condFileTwice :: Multi -> Bool
-condFileTwice m = (length $ _rules $ firstGame m) == 3
-
 --but having the same function name in different modules is OK
 testFileTwice' :: StateT Session IO ()
 testFileTwice' = do
@@ -290,17 +311,12 @@ testFileTwice' = do
    void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
    void $ testFile "SimpleModule2.hs" "SimpleModule2.myRule"
 
-condFileTwice' :: Multi -> Bool
-condFileTwice' m = (length $ _rules $ firstGame m) == 4
-
 --security: no unsafe module imports
 testFileUnsafeIO :: StateT Session IO ()
 testFileUnsafeIO = do
    onePlayerOneGame
    void $ testFile "UnsafeIO.hs" "UnsafeIO.myRule"
 
-condFileUnsafeIO :: Multi -> Bool
-condFileUnsafeIO m = (length $ _rules $ firstGame m) == 2
 
 -- * Helpers
 

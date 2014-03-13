@@ -51,6 +51,8 @@ import Happstack.Auth.Core.Profile (initialProfileState)
 import Control.Monad.State
 import System.Exit
 import Profile
+import System.Posix.Signals as S
+import System.IO.Error
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -89,11 +91,14 @@ start flags = do
    -- source directory: Nomyx-Language files (used only for display in GUI, since this library is statically linked otherwise)
    let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
    let settings = Settings (Network host port) sendMail adminPass saveDir dataDir sourceDir
-
    when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\ndata dir = " ++ dataDir ++ "\nsource dir = " ++ sourceDir
+   installHandler cpuTimeLimitExceeded (S.Catch $ putStrLn "SIGX caught!" >> ioError (userError "re-raised")) Nothing
    if Test `elem` flags then runTests saveDir dataDir
    else if (DeleteSaveFile `elem` flags) then cleanFile saveDir dataDir
-   else do
+   else launchAll flags settings saveDir dataDir host port
+
+
+launchAll flags settings saveDir dataDir host port = do
       serverCommandUsage
       --start the haskell interpreter
       sh <- protectHandlers $ startInterpreter saveDir
