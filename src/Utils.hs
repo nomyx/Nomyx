@@ -90,8 +90,8 @@ protectHandlers = id
 
 #else
 
-helper :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
-helper handler signal = liftIO $ S.installHandler signal handler Nothing
+installHandler' :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
+installHandler' handler signal = liftIO $ S.installHandler signal handler Nothing
 
 signals :: [S.Signal]
 signals = [ S.sigQUIT
@@ -101,10 +101,10 @@ signals = [ S.sigQUIT
           ]
 
 saveHandlers :: MonadCatchIO m => m [S.Handler]
-saveHandlers = liftIO $ mapM (helper S.Ignore) signals
+saveHandlers = liftIO $ mapM (installHandler' S.Ignore) signals
 
 restoreHandlers :: MonadCatchIO m => [S.Handler] -> m [S.Handler]
-restoreHandlers h  = liftIO . sequence $ zipWith helper h signals
+restoreHandlers h  = liftIO . sequence $ zipWith installHandler' h signals
 
 
 protectHandlers :: MonadCatchIO m => m a -> m a
