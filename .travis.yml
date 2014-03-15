@@ -6,4 +6,6 @@ notifications:
 install: 
   - cd ..
   - git clone https://github.com/cdupont/Nomyx-Language.git
-script: cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx/
+  - cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx/
+script: Nomyx/tests.sh
+
