@@ -28,7 +28,6 @@ Improvements:
 - HCI improvements: space player names, bold games
 - display viewer list
 - import qualified uploads (?)
-- 15 characters max for names
 - some files are accepted when uploaded but cause the game to crash when restarting. Check with GATDs for example. 
 - display vote infos (modalities, date etc.)
 - parameterize the mail sender

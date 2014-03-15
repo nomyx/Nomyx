@@ -41,7 +41,9 @@ playerSettingsForm Nothing ns emails = playerSettingsForm' "" "" True ns emails
 
 playerSettingsForm':: String -> String -> Bool -> [PlayerName] -> [String] -> NomyxForm PlayerSettings
 playerSettingsForm' name mailTo mailNewRule names emails = pure Types.PlayerSettings
-   <*> errorList ++> label "Player Name: " ++> (RB.inputText name) `transformEither` (uniqueName names) `transformEither` (fieldRequired PlayerNameRequired) <++ br
+   <*> errorList ++> label "Player Name: " ++> (RB.inputText name) `transformEither` (uniqueName names)
+                                                                   `transformEither` (fieldRequired PlayerNameRequired)
+                                                                   `transformEither` (maxLength 15) <++ br
    <*> errorList ++> label "Please enter your mail: " ++> (RB.inputText mailTo) `transformEither` (uniqueEmail emails) <++ br
    <*> pure True
    <*> RB.inputCheckbox mailNewRule <++ label " I want to be notified by email when a player proposes a new rule in my game (recommended)" <++ br
@@ -60,6 +62,11 @@ uniqueName names name = case name `elem` names of
 uniqueEmail :: [String] -> String -> Either NomyxError String
 uniqueEmail names name = case name `elem` names of
    True  -> Left UniqueEmail
+   False -> Right name
+
+maxLength :: Int -> String -> Either NomyxError String
+maxLength l name = case length name > l of
+   True  -> Left (FieldTooLong l)
    False -> Right name
 
 settingsPage :: PlayerSettings -> [PlayerName] -> [String] -> RoutedNomyxServer Html

@@ -45,8 +45,9 @@ data NomyxError = PlayerNameRequired
                 | GameNameRequired
                 | UniqueName
                 | UniqueEmail
+                | FieldTooLong Int
                 | NomyxCFE (CommonFormError [HS.Input])
-                  deriving Show
+                deriving Show
 
 type NomyxForm a = Form (ServerPartT IO) [HS.Input] NomyxError Html () a
 
@@ -214,5 +215,6 @@ instance ToMarkup NomyxError where
     toMarkup GameNameRequired   = "Game Name is required"
     toMarkup UniqueName         = "Name already taken"
     toMarkup UniqueEmail        = "Email already taken"
+    toMarkup (FieldTooLong l)   = string $ "Field max length: " ++ (show l)
     toMarkup (NomyxCFE e)       = toHtml $ e
 
