@@ -36,7 +36,6 @@ import System.IO.Unsafe
 import Quotes
 import Data.Lens
 import Data.List
-import Safe
 import Data.Acid.Memory
 import Happstack.Auth.Core.Auth (initialAuthState)
 import Happstack.Auth.Core.Profile (initialProfileState)
@@ -68,14 +67,16 @@ tests = [("hello World",           gameHelloWorld,         condHelloWorld),
          ("Infinite loop 1",       gameLoop1,              condNoGame),
          ("Infinite loop 2",       gameLoop2,              condNoGame),
          ("Infinite loop 3",       gameLoop3,              condNoGame),
-         --("Infinite loop 4",       gameLoop4,              condLoop4),
+         ("Infinite loop 4",       gameLoop4,              condNoGame),
          ("Test file 1",           testFile1,              condNRules 3),
          ("Test file 2",           testFile2,              condNRules 3),
          ("load file twice",       testFileTwice,          condNRules 3),
          ("load file twice 2",     testFileTwice',         condNRules 4),
          ("load file unsafe",      testFileUnsafeIO,       condNRules 2)]
 
-
+-- Those tests should make the game die immediately because of security problem, and then be re-launched
+fatalTests :: [(String, StateT Session IO ())]
+fatalTests = [("Timeout type check", gameBadTypeCheck)]
 
 
 test :: String -> Session -> StateT Session IO () -> (Multi -> Bool) -> IO Bool
@@ -99,11 +100,12 @@ testException m e = do
 
 loadTestName :: Settings -> String -> ServerHandle -> IO Multi
 loadTestName set testName sh = do
-   let mt = find (\(name, _, _) -> name == testName) tests
+   let tsts = fatalTests ++ map (\(a,b,_) -> (a,b)) tests
+   let mt = find (\(name, _) -> name == testName) tsts
    tp <- testProfiles
    let s = Session sh (defaultMulti set) tp
    case mt of
-      Just (n, t, _) -> putStrLn ("Loading test game: " ++ n)  >> loadTest t s
+      Just (n, t) -> putStrLn ("Loading test game: " ++ n)  >> loadTest t s
       Nothing -> do
          putStrLn "Test name not found"
          return $ _multi s
@@ -268,9 +270,9 @@ gameLoop4 = submitR [cr|ruleFunc $ outputAll_ $ show $ repeat 1|]
 
 
 --an expression very long to type check
---gameLoop4 :: StateT Session IO ()
---gameLoop4 = submitR
---   "ruleFunc $ let {p x y f = f x y; f x = p x x} in f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f f)))))))))))))))))) f"
+gameBadTypeCheck :: StateT Session IO ()
+gameBadTypeCheck = submitR
+   "ruleFunc $ let {p x y f = f x y; f x = p x x} in f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f f)))))))))))))))))) f"
 
 
 --the game created should be withdrawn
