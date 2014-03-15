@@ -31,7 +31,6 @@ Improvements:
 - some files are accepted when uploaded but cause the game to crash when restarting. Check with GATDs for example. 
 - display vote infos (modalities, date etc.)
 - parameterize the mail sender
-- Short description field is too small
 - variable creation: use the definition (V...) ?
 - put a scroll on long IOs
 - put settings at session level, not multi level

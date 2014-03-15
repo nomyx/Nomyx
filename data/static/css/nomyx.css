@@ -138,10 +138,17 @@ thead {
 }
 
 
-.code {
+.ruleCode {
    width:100%;
-  /* height:150px;*/
 }
+
+.ruleName {
+}
+
+.ruleDescr {
+    width:50%;
+}
+
 
 .agora {
    width:400px;

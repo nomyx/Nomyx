@@ -27,7 +27,8 @@ import Language.Nomyx.Engine
 import Text.Blaze.Html5                    (Html, div, (!), p, table, thead, td, tr, h2, h3, h4, h5, pre, toValue, br, toHtml, a, img)
 import Text.Blaze.Html5.Attributes as A    (src, title, width, style, id, onclick, disabled, placeholder, class_, href)
 import Text.Blaze.Internal                 (string, text)
-import Text.Reform.Blaze.String as RB      (label, inputText, textarea, inputSubmit, inputCheckboxes, inputHidden)
+import Text.Reform.Blaze.String            (label, inputText, textarea, inputSubmit, inputCheckboxes, inputHidden)
+import qualified Text.Reform.Blaze.String as RB
 import Text.Reform.Happstack               (environment)
 import Text.Reform                         ((<++), (++>), viewForm, eitherForm)
 import Text.Reform.Blaze.Common            (setAttr)
@@ -273,9 +274,9 @@ newRuleForm Nothing isAdmin = newRuleForm' (SubmitRule "" "" "") isAdmin
 
 newRuleForm' :: SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
 newRuleForm' (SubmitRule name desc code) isAdmin =
-   (,,) <$> (SubmitRule <$> label "Name: " ++> (RB.inputText name)
-                        <*> label "      Short description: " ++> RB.inputText desc
-                        <*> label "      Code: " ++> textarea 80 15 code `setAttr` class_ "code" `setAttr` placeholder "Enter here your rule")
+   (,,) <$> (SubmitRule <$> label "Name: " ++> (RB.inputText name) `setAttr` class_ "ruleName"
+                        <*> (label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
+                        <*> label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule")
        <*> inputSubmit "Check"
        <*> if isAdmin then inputSubmit "Admin submit" else pure Nothing
 
