@@ -52,7 +52,7 @@ import Control.Monad.State
 import System.Exit
 import Profile
 import System.Posix.Signals as S
-import System.IO.Error
+
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -95,10 +95,10 @@ start flags = do
    installHandler cpuTimeLimitExceeded (S.Catch $ putStrLn "SIGX caught!" >> ioError (userError "re-raised")) Nothing
    if Test `elem` flags then runTests saveDir dataDir
    else if (DeleteSaveFile `elem` flags) then cleanFile saveDir dataDir
-   else launchAll flags settings saveDir dataDir host port
+   else mainLoop flags settings saveDir dataDir host port
 
 
-launchAll flags settings saveDir dataDir host port = do
+mainLoop flags settings saveDir dataDir host port = do
       serverCommandUsage
       --start the haskell interpreter
       sh <- protectHandlers $ startInterpreter saveDir
