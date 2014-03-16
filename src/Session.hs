@@ -12,7 +12,6 @@ import Multi
 import Profile
 import Data.Time as T
 import Language.Haskell.Interpreter.Server (ServerHandle)
-import Data.Maybe
 import Types
 import Debug.Trace.Helpers
 import Data.Lens
@@ -20,11 +19,9 @@ import Language.Nomyx
 import Language.Nomyx.Engine as G
 import Control.Category hiding ((.))
 import qualified Data.Acid.Advanced as A (update', query')
-import Control.Concurrent
 import Control.Concurrent.STM
-import System.IO
 import System.IO.PlafCompat
-
+import Utils
 
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
@@ -218,36 +215,14 @@ inGameDo gn action = focus multi $ do
 updateSession :: (TVar Session) -> StateT Session IO () -> IO ()
 updateSession ts sm = do
    s <- atomically $ readTVar ts
-   ms <- updateSession' s sm
-   when (isJust ms) $ atomically $ writeTVar ts $ fromJust ms
+   ms <- evalWithWatchdog s (evalSession sm)
+   case ms of
+      Just s -> atomically $ writeTVar ts s
+      Nothing -> putStrLn "thread timed out, updateSession discarded"
 
---Sets a watchdog to kill the evaluation thread if it doesn't finishes.
--- The function starts both the evaluation thread and the watchdog thread, and blocks awaiting the result.
--- Option 1: the evaluation thread finishes before the watchdog. The MVar is filled with the result,
---  which unblocks the main thread. The watchdog then finishes latter, and fills the MVar with Nothing.
--- Option 2: the watchdog finishes before the evaluation thread. The eval thread is killed, and the
---  MVar is filled with Nothing, which unblocks the main thread. The watchdog finishes.
-updateSession' :: Session -> StateT Session IO () -> IO (Maybe Session)
-updateSession' s sm = do
-   mvar <- newEmptyMVar
-   hSetBuffering stdout NoBuffering
-   --start evaluation thread
-   id <- forkIO $ do
-      s' <- evalSession s sm
-      putMVar mvar (Just s')
-   --start watchdog thread
-   forkIO $ watchDog 3 id mvar
-   takeMVar mvar
 
--- | Fork off a thread which will sleep and then kill off the specified thread.
-watchDog :: Int -> ThreadId -> MVar (Maybe Session) -> IO ()
-watchDog tout tid mvar = do
-   threadDelay (tout * 1000000)
-   killThread tid
-   putMVar mvar Nothing
-
-evalSession :: Session -> StateT Session IO () -> IO Session
-evalSession s sm = do
+evalSession :: StateT Session IO () -> Session -> IO Session
+evalSession sm s = do
    s' <- execStateT sm s
    writeFile nullFileName $ show $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
    return s'

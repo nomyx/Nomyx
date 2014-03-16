@@ -50,11 +50,13 @@ exampleRule :: SubmitRule
 exampleRule = SubmitRule "" "" [cr|
 --This is an example new rule that you can enter.
 --If you submit this rule it will have to be voted on by other players (as described by rule 1).
---If accepted, it will display a button for you only. Clicking on the button will display a message: "Bravo!".
 --A lot of other examples can be found in the left menu bar.
 ruleFunc $ do
+   --get your own player number
    me <- getProposerNumber_
+   --create an output for me only
    let displayMsg _ = void $ newOutput_ (Just me) "Bravo!"
+   --create a button for me, which will display the output when clicked
    onInputButton_ "Click here:" displayMsg me
 |]
 
