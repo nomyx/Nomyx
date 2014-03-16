@@ -36,6 +36,7 @@ import System.IO.Unsafe
 import Quotes
 import Data.Lens
 import Data.List
+import Data.Maybe
 import Data.Acid.Memory
 import Happstack.Auth.Core.Auth (initialAuthState)
 import Happstack.Auth.Core.Profile (initialProfileState)
@@ -46,8 +47,13 @@ import System.IO.Temp
 import System.FilePath ((</>))
 import System.Directory (createDirectoryIfMissing)
 
-playTests :: FilePath -> ServerHandle -> IO [(String, Bool)]
-playTests dataDir sh = do
+playTests :: FilePath -> ServerHandle -> Maybe String -> IO [(String, Bool)]
+playTests dataDir sh mTestName = do
+   tests <- case mTestName of
+      Just testName -> do
+         let tsts = fatalTests ++ regularTests
+         return $ maybeToList $ find (\(name, _, _) -> name == testName) tsts
+      Nothing -> return regularTests
    tp <- testProfiles
    dir <- createTempDirectory "/tmp" "Nomyx"
    createDirectoryIfMissing True $ dir </> uploadDir
@@ -57,26 +63,24 @@ playTests dataDir sh = do
 -- | test list.
 -- each test can be loaded individually in Nomyx with the command line:
 -- Nomyx -l <"test name">
-tests :: [(String, StateT Session IO (), Multi -> Bool)]
-tests = [("hello World",           gameHelloWorld,         condHelloWorld),
+regularTests :: [(String, StateT Session IO (), Multi -> Bool)]
+regularTests = [("hello World",           gameHelloWorld,         condHelloWorld),
          ("hello World 2 players", gameHelloWorld2Players, condHelloWorld2Players),
          ("Money transfer",        gameMoneyTransfer,      condMoneyTransfer),
          ("Partial Function 1",    gamePartialFunction1,   condPartialFunction),
          ("Partial Function 2",    gamePartialFunction2,   condPartialFunction),
          ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
-         ("Infinite loop 1",       gameLoop1,              condNoGame),
-         ("Infinite loop 2",       gameLoop2,              condNoGame),
-         ("Infinite loop 3",       gameLoop3,              condNoGame),
-         ("Infinite loop 4",       gameLoop4,              condNoGame),
          ("Test file 1",           testFile1,              condNRules 3),
          ("Test file 2",           testFile2,              condNRules 3),
          ("load file twice",       testFileTwice,          condNRules 3),
          ("load file twice 2",     testFileTwice',         condNRules 4),
-         ("load file unsafe",      testFileUnsafeIO,       condNRules 2)]
+         ("load file unsafe",      testFileUnsafeIO,       condNRules 2)] ++
+         map (\i -> ("Loop" ++ (show i),      loops !! (i-1),      condNoGame))   [1..(length loops)] ++
+         map (\i -> ("Forbidden" ++ (show i), forbiddens !! (i-1), condNRules 2)) [1..(length forbiddens)]
 
--- Those tests should make the game die immediately because of security problem, and then be re-launched
-fatalTests :: [(String, StateT Session IO ())]
-fatalTests = [("Timeout type check", gameBadTypeCheck)]
+-- Those tests should make the game die immediately because of security problem (it will be re-launched)
+fatalTests :: [(String, StateT Session IO (), Multi -> Bool)]
+fatalTests = [("Timeout type check", gameBadTypeCheck, const True)]
 
 
 test :: String -> Session -> StateT Session IO () -> (Multi -> Bool) -> IO Bool
@@ -88,27 +92,17 @@ test title session tes cond = do
 --Loads a test
 loadTest ::  StateT Session IO () -> Session -> IO Multi
 loadTest tes s = do
-   ms <- updateSession' s tes --version with no watchdog: ms <- Just <$> execStateT tes s
-   return $ _multi $ case ms of
-      Just s' -> s'
-      Nothing -> s
+   ms <- evalWithWatchdog s (evalSession tes) --version with no watchdog: ms <- Just <$> execStateT tes s
+   case ms of
+      Just s' -> return $ _multi s'
+      Nothing -> do
+         putStrLn "thread timed out, updateSession discarded"
+         return $ _multi s
 
 testException :: Multi -> SomeException -> IO Multi
 testException m e = do
    putStrLn $ "Test Exception: " ++ show e
    return m
-
-loadTestName :: Settings -> String -> ServerHandle -> IO Multi
-loadTestName set testName sh = do
-   let tsts = fatalTests ++ map (\(a,b,_) -> (a,b)) tests
-   let mt = find (\(name, _) -> name == testName) tsts
-   tp <- testProfiles
-   let s = Session sh (defaultMulti set) tp
-   case mt of
-      Just (n, t) -> putStrLn ("Loading test game: " ++ n)  >> loadTest t s
-      Nothing -> do
-         putStrLn "Test name not found"
-         return $ _multi s
 
 testProfiles :: IO Profiles
 testProfiles = do
@@ -234,46 +228,37 @@ condPartialFunction3 m = (length $ _rules $ firstGame m) == 4
 
 -- * Malicious codes
 
---an infinite loop: it should be interrupted by the watchdog
-gameLoop1 :: StateT Session IO ()
-gameLoop1 = submitR [cr|
-   ruleFunc $ do
-      let x :: Int; x = x
-      outputAll_ $ show x |]
 
-gameLoop1' :: StateT Session IO ()
-gameLoop1' = submitR [cr|
-   ruleFunc $ do
-      let x = x + 1
-      outputAll_ $ show x |]
 
-gameLoop1'' :: StateT Session IO ()
-gameLoop1'' = submitR [cr|
-   ruleFunc $ do
-      let x :: Int -> Int; x y = x 1
-      outputAll_ $ show (x 1) |]
+--infinite loops: they should be interrupted by the watchdog & resource limits
+loops, forbiddens :: [StateT Session IO ()]
+loops = [loop1, loop2, loop3, loop4, loop5, loop6, stackOverflow, outputLimit]
+forbiddens = [forbid1, forbid2, forbid3, forbid4, forbid5, forbid6]
 
---an infinite loop: it should be interrupted by the watchdog
-gameLoop2 :: StateT Session IO ()
-gameLoop2 = submitR [cr|ruleFunc $ outputAll_ $ show $ repeat 1|]
+loop1  = submitR [cr| let x :: Int; x = x                              in showRule x |]
+loop2  = submitR [cr| let f :: Int -> Int; f y = f 1                   in showRule (f 1) |]
+loop3  = submitR [cr| let x = x + 1                                    in showRule x |]
+loop4  = submitR [cr| let f :: Int -> Int; f x = f $! (x+1)            in showRule (f 0) |]
+--test stack overflow limits
+loop5  = submitR [cr| let x = 1 + x                                    in showRule x |]
+loop6  = submitR [cr| let x = array (0::Int, maxBound) [(1000000,'x')] in showRule x |]
 
---an infinite loop: it should be interrupted by the watchdog
-gameLoop3 :: StateT Session IO ()
-gameLoop3 = submitR [cr|
-   ruleFunc $ do
-      let a = array (0::Int, maxBound) [(1000000,'x')]
-      outputAll_ $ show a |]
 
---an infinite loop: it should be interrupted by the watchdog
-gameLoop4 :: StateT Session IO ()
-gameLoop4 = submitR [cr|ruleFunc $ outputAll_ $ show $ repeat 1|]
-
+-- forbidden codes
+forbid1 = submitR "ruleFunc $ runST (unsafeIOToST (readFile \"/etc/passwd\"))                     >>= outputAll_"
+forbid2 = submitR "ruleFunc $ unsafeCoerce (readFile \"/etc/passwd\")                             >>= outputAll_"
+forbid3 = submitR "ruleFunc $ Unsafe.unsafeCoerce (readFile \"/etc/passwd\")                      >>= outputAll_"
+forbid4 = submitR "ruleFunc $ Foreign.unsafePerformIO $ readFile \"/etc/passwd\"                  >>= outputAll_"
+forbid5 = submitR "ruleFunc $ Data.ByteString.Internal.inlinePerformIO (readFile \"/etc/passwd\") >>= outputAll_"
+forbid6 = submitR "ruleFunc $ unsafePerformIO (readFile \"/etc/passwd\")                          >>= outputAll_"
 
 --an expression very long to type check
 gameBadTypeCheck :: StateT Session IO ()
 gameBadTypeCheck = submitR
    "ruleFunc $ let {p x y f = f x y; f x = p x x} in f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f f)))))))))))))))))) f"
 
+stackOverflow  = submitR [cr| let fix f = let x = f x in x                     in showRule $ foldr (.) id (repeat read) $ fix show |]
+outputLimit  = submitR [cr| showRule $ repeat 1|]
 
 --the game created should be withdrawn
 condNoGame :: Multi -> Bool

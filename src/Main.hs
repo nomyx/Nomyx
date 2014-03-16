@@ -91,28 +91,27 @@ start flags = do
    -- source directory: Nomyx-Language files (used only for display in GUI, since this library is statically linked otherwise)
    let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
    let settings = Settings (Network host port) sendMail adminPass saveDir dataDir sourceDir
+   let mLoad = findLoadTest flags
    when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\ndata dir = " ++ dataDir ++ "\nsource dir = " ++ sourceDir
-   installHandler cpuTimeLimitExceeded (S.Catch $ putStrLn "SIGX caught!" >> ioError (userError "re-raised")) Nothing
-   if Test `elem` flags then runTests saveDir dataDir
+   installHandler cpuTimeLimitExceeded (S.Catch $ putStrLn "SIGX caught!") Nothing -- >> ioError (userError "re-raised")
+   if Test `elem` flags then runTests saveDir dataDir mLoad
    else if (DeleteSaveFile `elem` flags) then cleanFile saveDir dataDir
-   else mainLoop flags settings saveDir dataDir host port
+   else mainLoop settings saveDir dataDir host port
 
 
-mainLoop flags settings saveDir dataDir host port = do
-      serverCommandUsage
-      --start the haskell interpreter
-      sh <- protectHandlers $ startInterpreter saveDir
-      --creating game structures
-      multi <- case (findLoadTest flags) of
-         Just testName -> loadTestName settings testName sh
-         Nothing -> Main.loadMulti settings sh
-      --main loop
-      withAcid (Just $ dataDir </> profilesDir) $ \acid -> do
-         tvSession <- atomically $ newTVar (Session sh multi acid)
-         --start the web server
-         forkIO $ launchWebServer tvSession (Network host port)
-         forkIO $ launchTimeEvents tvSession
-         serverLoop tvSession
+mainLoop settings saveDir dataDir host port = do
+   serverCommandUsage
+   --start the haskell interpreter
+   sh <- protectHandlers $ startInterpreter saveDir
+   --creating game structures
+   multi <- Main.loadMulti settings sh
+   --main loop
+   withAcid (Just $ dataDir </> profilesDir) $ \acid -> do
+      tvSession <- atomically $ newTVar (Session sh multi acid)
+      --start the web server
+      forkIO $ launchWebServer tvSession (Network host port)
+      forkIO $ launchTimeEvents tvSession
+      serverLoop tvSession
 
 loadMulti :: Settings -> ServerHandle -> IO Multi
 loadMulti set sh = do
@@ -127,11 +126,11 @@ loadMulti set sh = do
          execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 sh) defMulti
    return multi
 
-runTests :: FilePath -> FilePath -> IO ()
-runTests saveDir dataDir = do
+runTests :: FilePath -> FilePath -> Maybe String -> IO ()
+runTests saveDir dataDir mTestName = do
    sh <- protectHandlers $ startInterpreter saveDir
    putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
-   ts <- playTests dataDir sh
+   ts <- playTests dataDir sh mTestName
    putStrLn $ "\nNomyx Game Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts)
    let pass = allTests && (all snd ts)
    putStrLn $ "All Tests Pass: " ++ (show $ pass)
@@ -186,11 +185,11 @@ options :: [OptDescr Flag]
 options =
      [ Option ['v'] ["verbose"]   (NoArg Verbose)                "chatty output on stderr"
      , Option ['V'] ["version"]   (NoArg Version)                "show version number"
-     , Option ['t'] ["tests"]     (NoArg Test)                   "perform routine check"
      , Option ['h'] ["host"]      (ReqArg HostName "Hostname")   "specify host name"
      , Option ['p'] ["port"]      (ReqArg Port "Port")           "specify port"
      , Option ['n'] ["delete"]    (NoArg DeleteSaveFile)         "delete all save files"
-     , Option ['l'] ["loadtest"]  (ReqArg LoadTest "TestName")   "specify name of test to load"
+     , Option ['t'] ["tests"]     (NoArg Test)                   "perform routine check"
+     , Option ['l'] ["loadtest"]  (ReqArg LoadTest "TestName")   "specify name of test to load (in combination with -t i.e. -t -l \"testName\")"
      , Option ['a'] ["adminPass"] (ReqArg AdminPass "AdminPass") "specify the admin password (default is NXPSD)"
      , Option ['m'] ["mails"]     (NoArg Mails)                  "send mails (default is no)"
      , Option ['?'] ["help"]      (NoArg Help)                   "display usage options (this screen)"
