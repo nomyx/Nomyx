@@ -7,6 +7,7 @@ Bugs:
 - online documentation not working with cabal install  --enable-documentation --haddock-hyperlink-source
 - limit width collumn table
 - fix facebook
+- line separation code of the rule table
 
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
@@ -37,6 +38,8 @@ Improvements:
 - a way to overwrite uploads (automatically or with admin intervention)
 - tag the save file with the version
 - use a test suite instead of ad-hoc tests
+- allow players to create one new game
+- separate visually multiplayer games from solo
 
 
 
