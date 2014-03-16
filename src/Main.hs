@@ -24,7 +24,7 @@ import Web.MainPage
 import Control.Concurrent
 import Interpret
 import Control.Concurrent.STM
-import Control.Monad.CatchIO (bracket)
+import Control.Monad.Catch (bracket)
 import Language.Nomyx.Engine.Test as LT
 import Data.Maybe
 import Safe

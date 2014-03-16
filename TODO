@@ -12,7 +12,6 @@ Bugs:
 Improvements:
 - make code instructions in the active rules table clickable to access haddock documentation
 - refresh web page when new event (currently, player needs to hit F5)
-- secure interpreter with mueval: memory limits...
 - add a name to events to be able to delete categories of them
 - use TH in addRuleParams
 - possibility to modify game details

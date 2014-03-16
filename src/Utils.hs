@@ -23,7 +23,7 @@ import System.IO.Temp
 import Codec.Archive.Tar as Tar
 import System.Directory
 import System.FilePath
-import Control.Monad.CatchIO as MC
+import Control.Monad.Catch as MC
 #ifndef WINDOWS
 import qualified System.Posix.Signals as S
 #endif
@@ -88,13 +88,13 @@ setMode file = setFileMode file (ownerModes + groupModes)
 #ifdef WINDOWS
 
 --no signals under windows
-protectHandlers :: MonadCatchIO m => m a -> m a
+protectHandlers :: IO a -> IO a
 protectHandlers = id
 
 #else
 
-installHandler' :: MonadCatchIO m => S.Handler -> S.Signal -> m S.Handler
-installHandler' handler signal = liftIO $ S.installHandler signal handler Nothing
+installHandler' :: S.Handler -> S.Signal -> IO S.Handler
+installHandler' handler signal = S.installHandler signal handler Nothing
 
 signals :: [S.Signal]
 signals = [ S.sigQUIT
@@ -103,14 +103,14 @@ signals = [ S.sigQUIT
           , S.sigTERM
           ]
 
-saveHandlers :: MonadCatchIO m => m [S.Handler]
+saveHandlers :: IO [S.Handler]
 saveHandlers = liftIO $ mapM (installHandler' S.Ignore) signals
 
-restoreHandlers :: MonadCatchIO m => [S.Handler] -> m [S.Handler]
+restoreHandlers :: [S.Handler] -> IO [S.Handler]
 restoreHandlers h  = liftIO . sequence $ zipWith installHandler' h signals
 
 
-protectHandlers :: MonadCatchIO m => m a -> m a
+protectHandlers :: IO a -> IO a
 protectHandlers a = MC.bracket saveHandlers restoreHandlers $ const a
 
 #endif
