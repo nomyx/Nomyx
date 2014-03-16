@@ -23,11 +23,14 @@ import System.IO.Temp
 import Codec.Archive.Tar as Tar
 import System.Directory
 import System.FilePath
-import Control.Monad.CatchIO
-import System.PosixCompat.Files (getFileStatus, isRegularFile, setFileMode, ownerModes, groupModes)
+import Control.Monad.CatchIO as MC
 #ifndef WINDOWS
 import qualified System.Posix.Signals as S
 #endif
+import Control.Concurrent
+import System.IO
+import System.IO.PlafCompat
+import Control.Exception
 
 saveFile, profilesDir, uploadDir, tarFile :: FilePath
 saveFile    = "Nomyx.save"
@@ -108,6 +111,35 @@ restoreHandlers h  = liftIO . sequence $ zipWith installHandler' h signals
 
 
 protectHandlers :: MonadCatchIO m => m a -> m a
-protectHandlers a = bracket saveHandlers restoreHandlers $ const a
+protectHandlers a = MC.bracket saveHandlers restoreHandlers $ const a
 
 #endif
+
+--Sets a watchdog to kill the evaluation thread if it doesn't finishes.
+-- The function starts both the evaluation thread and the watchdog thread, and blocks awaiting the result.
+-- Option 1: the evaluation thread finishes before the watchdog. The MVar is filled with the result,
+--  which unblocks the main thread. The watchdog then finishes latter, and fills the MVar with Nothing.
+-- Option 2: the watchdog finishes before the evaluation thread. The eval thread is killed, and the
+--  MVar is filled with Nothing, which unblocks the main thread. The watchdog finishes.
+evalWithWatchdog :: Show b => a -> (a -> IO b) -> IO (Maybe b)
+evalWithWatchdog s f = do
+   putStrLn "Starting watchdog eval"
+   mvar <- newEmptyMVar
+   hSetBuffering stdout NoBuffering
+   --start evaluation thread
+   id <- forkOS $ do
+      --setResourceLimit ResourceCPUTime (ResourceLimits (ResourceLimit 3) (ResourceLimit 4))
+      s' <- f s
+      s'' <- evaluate s'
+      writeFile nullFileName $ show s''
+      putMVar mvar (Just s'')
+   --start watchdog thread
+   forkIO $ watchDog 3 id mvar
+   takeMVar mvar
+
+-- | Fork off a thread which will sleep and then kill off the specified thread.
+watchDog :: Int -> ThreadId -> MVar (Maybe a) -> IO ()
+watchDog tout tid mvar = do
+   threadDelay (tout * 1000000)
+   killThread tid
+   putMVar mvar Nothing

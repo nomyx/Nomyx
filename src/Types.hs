@@ -86,6 +86,9 @@ data Session = Session { _sh :: ServerHandle,
                          _multi :: Multi,
                          _profiles  :: Profiles}
 
+instance Show Session where
+   show (Session _ m _) = show m
+
 $( makeLenses [''Multi, ''Settings, ''Network, ''PlayerSettings, ''Session, ''ProfileData] )
 
 

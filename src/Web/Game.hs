@@ -27,7 +27,7 @@ import Language.Nomyx.Engine
 import Text.Blaze.Html5                    (Html, div, (!), p, table, thead, td, tr, h2, h3, h4, h5, pre, toValue, br, toHtml, a, img)
 import Text.Blaze.Html5.Attributes as A    (src, title, width, style, id, onclick, disabled, placeholder, class_, href)
 import Text.Blaze.Internal                 (string, text)
-import Text.Reform.Blaze.String            (label, inputText, textarea, inputSubmit, inputCheckboxes, inputHidden)
+import Text.Reform.Blaze.String            (label, textarea, inputSubmit, inputCheckboxes, inputHidden)
 import qualified Text.Reform.Blaze.String as RB
 import Text.Reform.Happstack               (environment)
 import Text.Reform                         ((<++), (++>), viewForm, eitherForm)
