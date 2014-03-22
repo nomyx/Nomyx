@@ -57,11 +57,11 @@ postAuthenticate ts = do
          seeOther link (toResponse $ string "to settings page")
 
 
-authenticate :: (TVar Session) -> AuthProfileURL -> RoutedNomyxServer Response
-authenticate ts authProfileURL = do
+authenticate :: AuthProfileURL -> (TVar Session) -> RoutedNomyxServer Response
+authenticate authProfileURL ts = do
    (T.Session _ _ Profiles{..}) <- liftIO $ atomically $ readTVar ts
    postPickedURL <- showURL PostAuth
-   nestURL U_AuthProfile $ handleAuthProfile acidAuth acidProfile appTemplate (Just facebookAuth) Nothing postPickedURL authProfileURL
+   nestURL U_AuthProfile $ handleAuthProfile acidAuth acidProfile appTemplate Nothing Nothing postPickedURL authProfileURL
 
 facebookAuth =
     Credentials {appName = "Nomyx",
