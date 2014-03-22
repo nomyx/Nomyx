@@ -19,12 +19,7 @@
 module Test where
 
 import Prelude
-import Types
 import Control.Monad.State
-import Multi
-import Session
-import Utils
-import Profile
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Language.Nomyx hiding (getCurrentTime)
 import Language.Nomyx.Engine
@@ -33,7 +28,6 @@ import Control.Exception as E
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax as THS hiding (lift)
 import System.IO.Unsafe
-import Quotes
 import Data.Lens
 import Data.List
 import Data.Maybe
@@ -46,6 +40,12 @@ import Data.Time hiding (getCurrentTime)
 import System.IO.Temp
 import System.FilePath ((</>))
 import System.Directory (createDirectoryIfMissing)
+import Nomyx.Core.Types
+import Nomyx.Core.Multi
+import Nomyx.Core.Session
+import Nomyx.Core.Utils
+import Nomyx.Core.Profile
+import Nomyx.Core.Quotes
 
 playTests :: FilePath -> ServerHandle -> Maybe String -> IO [(String, Bool)]
 playTests dataDir sh mTestName = do
