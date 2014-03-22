@@ -11,7 +11,6 @@ import Control.Monad
 import Control.Monad.State
 import Control.Concurrent.STM
 import Control.Applicative
-import Control.Category hiding ((.))
 import Data.Monoid
 import Data.Maybe
 import Data.String
@@ -43,10 +42,11 @@ import Safe
 import Profile
 default (Integer, Double, Data.Text.Text)
 
-viewGame :: Game -> PlayerNumber -> (Maybe LastRule) -> Bool -> RoutedNomyxServer Html
-viewGame g pn mlr isAdmin = do
+viewGameInfo :: GameInfo -> PlayerNumber -> (Maybe LastRule) -> Bool -> RoutedNomyxServer Html
+viewGameInfo gi pn mlr isAdmin = do
+   let g = getGame gi
    let pi = Profile.getPlayerInfo g pn
-   let isGameAdmin = isAdmin || (if (isJust $ _simu g) then ((_ownedBy $ fromJust $ _simu g) == pn) else False)
+   let isGameAdmin = isAdmin || (maybe False (== pn) (_ownedBy gi))
    let playAs = if (isJust pi) then (_playAs $ fromJust pi) else Nothing
    rf <- viewRuleForm mlr (isJust pi) isAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
@@ -294,8 +294,8 @@ viewRuleForm mlr inGame isAdmin gn = do
          when (isJust msg) $ pre $ string $ fromJust msg
       else lf ! disabled ""
 
-newRule :: (TVar Session) -> GameName -> RoutedNomyxServer Response
-newRule ts gn = toResponse <$> do
+newRule :: GameName -> (TVar Session) -> RoutedNomyxServer Response
+newRule gn ts = toResponse <$> do
    methodM POST
    s@(T.Session sh _ _) <- liftIO $ readTVarIO ts
    admin <- getIsAdmin ts
@@ -309,8 +309,8 @@ newRule ts gn = toResponse <$> do
              s' <- readTVarIO ts  --TODO clean this
              gn <- getPlayersGame pn s
              gn' <- getPlayersGame pn s'
-             let rs = _rules $ _game $ fromJustNote "newRule" gn
-             let rs' = _rules $ _game $ fromJustNote "newRule" gn'
+             let rs = _rules $ _game $ _loggedGame $ fromJustNote "newRule" gn
+             let rs' = _rules $ _game $ _loggedGame $ fromJustNote "newRule" gn'
              when (length rs' > length rs) $ sendMailsNewRule s' sr pn
        Right (sr, Just _, Nothing) -> webCommand ts $ checkRule sr pn sh
        Right (sr, Nothing, Just _) -> webCommand ts $ adminSubmitRule sr pn gn sh
@@ -328,12 +328,12 @@ viewLog (Log _ t s) = tr $ do
    td $ string $ formatTime defaultTimeLocale "%Y/%m/%d_%H:%M" t
    td $ p $ string s
 
-newInput :: (TVar Session) -> EventNumber -> GameName -> RoutedNomyxServer Response
-newInput ts en gn = toResponse <$> do
+newInput :: EventNumber -> GameName -> (TVar Session) -> RoutedNomyxServer Response
+newInput en gn ts = toResponse <$> do
     pn <- getPlayerNumber ts
     s <- liftIO $ atomically $ readTVar ts
-    let g = find ((== gn) . getL (game >>> gameName)) (_games $ _multi s)
-    let eventHandler = getEventHandler en (fromJust g)
+    let g = find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s)
+    let eventHandler = getEventHandler en (_loggedGame $ fromJust g)
     methodM POST
     r <- liftRouteT $ eitherForm environment "user" (getNomyxForm eventHandler)
     link <- showURL MainPage
@@ -345,8 +345,8 @@ newInput ts en gn = toResponse <$> do
     seeOther (link `appendAnchor` inputAnchor) $ string "Redirecting..."
 
 
-newPlayAs :: (TVar Session) -> GameName -> RoutedNomyxServer Response
-newPlayAs ts gn = toResponse <$> do
+newPlayAs :: GameName -> (TVar Session) -> RoutedNomyxServer Response
+newPlayAs gn ts = toResponse <$> do
    methodM POST
    p <- liftRouteT $ eitherForm environment "user" $ playAsForm Nothing
    pn <- getPlayerNumber ts
@@ -378,35 +378,35 @@ showHideTitle id visible empty title rest = do
    div ! A.id (fromString $ printf "%sBody" id) ! style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
       if (empty) then (toHtml $ "No " ++ id) else rest
 
-joinGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
-joinGame ts gn = do
+joinGame :: GameName -> (TVar Session) -> RoutedNomyxServer Response
+joinGame gn ts = do
    pn <- getPlayerNumber ts
    webCommand ts (S.joinGame gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
-leaveGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
-leaveGame ts gn = do
+leaveGame :: GameName -> (TVar Session) -> RoutedNomyxServer Response
+leaveGame gn ts = do
    pn <- getPlayerNumber ts
    webCommand ts (S.leaveGame gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
-delGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
-delGame ts gn = do
+delGame :: GameName -> (TVar Session) -> RoutedNomyxServer Response
+delGame gn ts = do
    webCommand ts (S.delGame gn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
-forkGame :: (TVar Session) -> GameName -> RoutedNomyxServer Response
-forkGame ts gn = do
+forkGame :: GameName -> (TVar Session) -> RoutedNomyxServer Response
+forkGame gn ts = do
    pn <- getPlayerNumber ts
-   webCommand ts $ S.startSimulation gn pn
+   webCommand ts $ S.forkGame gn pn
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
-viewGamePlayer :: (TVar Session) -> GameName -> RoutedNomyxServer Response
-viewGamePlayer ts gn = do
+viewGamePlayer :: GameName -> (TVar Session) -> RoutedNomyxServer Response
+viewGamePlayer gn ts = do
    pn <- getPlayerNumber ts
    webCommand ts (S.viewGamePlayer gn pn)
    link <- showURL MainPage

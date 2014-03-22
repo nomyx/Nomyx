@@ -206,6 +206,12 @@ appendAnchor url a = url `append` "#" `append` a
 displayCode :: String -> Html
 displayCode s = preEscapedString $ hscolour defaultColourPrefs False s
 
+getGame :: GameInfo -> Game
+getGame = _game . _loggedGame
+
+numberOfGamesOwned :: [GameInfo] -> PlayerNumber -> Int
+numberOfGamesOwned gis pn = length $ filter (\gi -> maybe False (==pn) (_ownedBy gi)) gis
+
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]
     commonFormError = NomyxCFE

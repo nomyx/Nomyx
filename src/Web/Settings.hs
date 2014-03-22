@@ -19,13 +19,11 @@ import Web.Common
 import Control.Monad.State
 import Web.Routes.RouteT
 import Control.Concurrent.STM
-import Data.Maybe
 import Data.Text(Text)
 import Session as S
 import Utils
 import Web.Help as Help
 import Language.Nomyx
-import Language.Nomyx.Engine
 import Text.Blaze.Internal hiding (Text)
 import Safe
 import Paths_Nomyx as PN
@@ -259,10 +257,6 @@ newAdminPass ts = toResponse <$> do
       (Left errorForm) -> do
          settingsLink <- showURL SubmitAdminPass
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
-
-isSimulated :: Game -> [Game] -> Bool
-isSimulated g gs = (_gameName g) `elem` simuNames where
-   simuNames = map _ofGame $ catMaybes (map (\g -> _simu g) gs)
 
 saveFilePage :: (TVar Session) -> RoutedNomyxServer Response
 saveFilePage ts = toResponse <$> do

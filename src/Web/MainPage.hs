@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Web.MainPage (launchWebServer) where
 
@@ -31,11 +32,9 @@ import Web.Login
 import Data.List
 import Utils
 import Data.Text(Text, pack)
-import qualified Language.Nomyx.Engine as G
 import Happstack.Auth
 import Safe
 import Paths_Nomyx_Language
-import Data.Maybe
 import Profile
 import Control.Monad.Error
 import Control.Applicative
@@ -45,18 +44,22 @@ viewMulti :: PlayerNumber -> FilePath -> Session -> RoutedNomyxServer Html
 viewMulti pn saveDir s = do
    pfd <- getProfile s pn
    let isAdmin = _pIsAdmin $ fromJustNote "viewMulti" pfd
-   gns <- viewGamesTab (map G._game $ _games $ _multi s) isAdmin saveDir pn
-   mgn <- liftRouteT $ lift $ getPlayersGame pn s
-   vg <- case mgn of
-      Just g -> viewGame (G._game g) pn (_pLastRule $ fromJustNote "viewMulti" pfd) isAdmin
+   gns <- viewGamesTab (_gameInfos $ _multi s) isAdmin saveDir pn
+   mgi <- liftRouteT $ lift $ getPlayersGame pn s
+   vg <- case mgi of
+      Just gi -> viewGameInfo gi pn (_pLastRule $ fromJustNote "viewMulti" pfd) isAdmin
       Nothing -> ok $ h3 "Not viewing any game"
    ok $ do
       div ! A.id "gameList" $ gns
       div ! A.id "game" $ vg
 
-viewGamesTab :: [Game] -> Bool -> FilePath -> PlayerNumber -> RoutedNomyxServer Html
-viewGamesTab gs isAdmin saveDir pn = do
-   gns <- mapM (\g -> viewGameName isAdmin pn (isSimulated g gs) g) gs
+viewGamesTab :: [GameInfo] -> Bool -> FilePath -> PlayerNumber -> RoutedNomyxServer Html
+viewGamesTab gis isAdmin saveDir pn = do
+   let canCreateGame = isAdmin || numberOfGamesOwned gis pn < 1
+   let publicPrivate = partition ((== True) . _isPublic) gis
+   let vgi gi = viewGameName isAdmin canCreateGame pn gi
+   public <- mapM vgi (fst publicPrivate)
+   private <- mapM vgi (snd publicPrivate)
    newGameLink  <- showURL NewGame
    settingsLink <- showURL W.PlayerSettings
    advLink      <- showURL Advanced
@@ -64,12 +67,19 @@ viewGamesTab gs isAdmin saveDir pn = do
    fmods <- liftIO $ getUploadedModules saveDir
    ok $ do
       h3 "Main menu" >> br
-      "Active games:" >> br
-      table $ do
-         case gs of
-            [] -> tr $ td "No Games"
-            _ ->  sequence_ gns
-      when isAdmin $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
+      case public of
+         [] -> b "No public games"
+         p -> do
+            b "Public games:"
+            table $ sequence_ p
+      br
+      case private of
+         [] -> ""
+         p -> do
+            b "Private games:"
+            table $ sequence_ p
+      br
+      when canCreateGame $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
       br >> "Help files:" >> br
       H.a "Rules examples"    ! (href $ "/html/Language-Nomyx-Examples.html") ! (target "_blank") >> br
       H.a "Nomyx language"    ! (href $ "/html/Language-Nomyx.html") ! (target "_blank") >> br
@@ -82,26 +92,29 @@ viewGamesTab gs isAdmin saveDir pn = do
       H.a "Logout"          ! (href $ toValue logoutURL) >> br
 
 
-viewGameName :: Bool -> PlayerNumber -> Bool -> Game -> RoutedNomyxServer Html
-viewGameName isAdmin pn isForked g = do
-   let isGameAdmin = isAdmin || isOwnerOfGame g pn
+viewGameName :: Bool -> Bool -> PlayerNumber -> GameInfo -> RoutedNomyxServer Html
+viewGameName isAdmin canCreateGame pn gi = do
+   let g = getGame gi
+   let isGameAdmin = isAdmin || maybe False (==pn) (_ownedBy gi)
    let gn = _gameName g
-   let isForkable = isNothing $ _simu g
+   let canFork = canCreateGame
+   let canDel = isGameAdmin
+   let canView = isGameAdmin || _isPublic gi
    main  <- showURL (W.MainPage)
    join  <- showURL (W.JoinGame gn)
    leave <- showURL (W.LeaveGame gn)
    view  <- showURL (W.ViewGame gn)
    del   <- showURL (W.DelGame gn)
    fork  <- showURL (W.ForkGame gn)
-   if (isGameAdmin || (isNothing $ _simu g)) then
+   if canView then
     ok $ tr $ do
       let cancel = H.a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
       td ! A.id "gameName" $ string $ (gn ++ "   ")
       td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
       td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.join)
       td $ H.a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn)
-      when isGameAdmin $ td $ H.a "Del"   ! (href $ toValue del)
-      when (isForkable && not isForked) $ td $ H.a "Fork"  ! (href $ toValue $ "#openModalFork" ++ gn)
+      when canDel $ td $ H.a "Del"   ! (href $ toValue del)
+      when canFork $ td $ H.a "Fork"  ! (href $ toValue $ "#openModalFork" ++ gn)
       div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
             h2 "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n \
@@ -135,30 +148,30 @@ nomyxPage ts = do
             False
 
 nomyxSite :: (TVar Session) -> Site PlayerCommand (ServerPartT IO Response)
-nomyxSite tm = setDefault HomePage $ mkSitePI (runRouteT $ catchRouteError . routedNomyxCommands tm)
+nomyxSite tm = setDefault HomePage $ mkSitePI (runRouteT $ catchRouteError . flip routedNomyxCommands tm)
 
-routedNomyxCommands :: (TVar Session) -> PlayerCommand -> RoutedNomyxServer Response
-routedNomyxCommands ts (U_AuthProfile auth)  = authenticate      ts auth
-routedNomyxCommands ts PostAuth              = postAuthenticate  ts
-routedNomyxCommands ts HomePage              = homePage          ts
-routedNomyxCommands ts MainPage              = nomyxPage         ts
-routedNomyxCommands ts (W.JoinGame game)     = joinGame          ts game
-routedNomyxCommands ts (W.LeaveGame game)    = leaveGame         ts game
-routedNomyxCommands ts (ViewGame game)       = viewGamePlayer    ts game
-routedNomyxCommands ts (DelGame game)        = delGame           ts game
-routedNomyxCommands ts (ForkGame game)       = forkGame          ts game
-routedNomyxCommands ts (NewRule game)        = newRule           ts game
-routedNomyxCommands _  NewGame               = newGamePage
-routedNomyxCommands ts SubmitNewGame         = newGamePost       ts
-routedNomyxCommands ts (DoInput en game)     = newInput          ts en game
-routedNomyxCommands ts Upload                = newUpload         ts
-routedNomyxCommands ts W.PlayerSettings      = playerSettings    ts
-routedNomyxCommands ts SubmitPlayerSettings  = newPlayerSettings ts
-routedNomyxCommands ts Advanced              = advanced          ts
-routedNomyxCommands ts (SubmitPlayAs game)   = newPlayAs         ts game
-routedNomyxCommands ts SubmitAdminPass       = newAdminPass      ts
-routedNomyxCommands ts SubmitSettings        = newSettings       ts
-routedNomyxCommands ts SaveFilePage          = saveFilePage      ts
+routedNomyxCommands ::  PlayerCommand -> (TVar Session) ->RoutedNomyxServer Response
+routedNomyxCommands (U_AuthProfile auth)  = authenticate      auth
+routedNomyxCommands PostAuth              = postAuthenticate
+routedNomyxCommands HomePage              = homePage
+routedNomyxCommands MainPage              = nomyxPage
+routedNomyxCommands (W.JoinGame game)     = joinGame          game
+routedNomyxCommands (W.LeaveGame game)    = leaveGame         game
+routedNomyxCommands (ViewGame game)       = viewGamePlayer    game
+routedNomyxCommands (DelGame game)        = delGame           game
+routedNomyxCommands (ForkGame game)       = forkGame          game
+routedNomyxCommands (NewRule game)        = newRule           game
+routedNomyxCommands NewGame               = newGamePage
+routedNomyxCommands SubmitNewGame         = newGamePost
+routedNomyxCommands (DoInput en game)     = newInput          en game
+routedNomyxCommands Upload                = newUpload
+routedNomyxCommands W.PlayerSettings      = playerSettings
+routedNomyxCommands SubmitPlayerSettings  = newPlayerSettings
+routedNomyxCommands Advanced              = advanced
+routedNomyxCommands (SubmitPlayAs game)   = newPlayAs         game
+routedNomyxCommands SubmitAdminPass       = newAdminPass
+routedNomyxCommands SubmitSettings        = newSettings
+routedNomyxCommands SaveFilePage          = saveFilePage
 
 launchWebServer :: (TVar Session) -> Network -> IO ()
 launchWebServer tm net = do
@@ -193,9 +206,4 @@ getDocDir = do
    datadir <- getDataDir
    let (as, _:bs) = break (== "share") $ splitDirectories datadir
    return $ joinPath $ as ++ ["share", "doc"] ++ bs
-
-isOwnerOfGame :: Game -> PlayerNumber -> Bool
-isOwnerOfGame g pn = case _simu g of
-   Just (Simulation {_ownedBy = ob}) -> ob == pn
-   Nothing -> False
 
