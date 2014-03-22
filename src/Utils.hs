@@ -123,12 +123,10 @@ protectHandlers a = MC.bracket saveHandlers restoreHandlers $ const a
 --  MVar is filled with Nothing, which unblocks the main thread. The watchdog finishes.
 evalWithWatchdog :: Show b => a -> (a -> IO b) -> IO (Maybe b)
 evalWithWatchdog s f = do
-   putStrLn "Starting watchdog eval"
    mvar <- newEmptyMVar
    hSetBuffering stdout NoBuffering
    --start evaluation thread
    id <- forkOS $ do
-      --setResourceLimit ResourceCPUTime (ResourceLimits (ResourceLimit 3) (ResourceLimit 4))
       s' <- f s
       s'' <- evaluate s'
       writeFile nullFileName $ show s''

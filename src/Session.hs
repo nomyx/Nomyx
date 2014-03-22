@@ -30,30 +30,30 @@ newPlayer uid ms = do
    void $ A.update' (acidProfileData $ _profiles s) (NewProfileData uid ms)
 
 -- | starts a new game
-newGame :: GameName -> GameDesc -> PlayerNumber -> StateT Session IO ()
-newGame name desc pn = do
+newGame :: GameName -> GameDesc -> PlayerNumber -> Bool -> StateT Session IO ()
+newGame name desc pn isPublic = do
    sh <- access sh
-   focus multi $ newGame' name desc pn sh
+   focus multi $ newGame' name desc pn isPublic sh
 
-newGame' :: GameName -> GameDesc -> PlayerNumber -> ServerHandle -> StateT Multi IO ()
-newGame' name desc pn sh = do
-      gs <- access games
-      case null $ filter ((== name) . getL (game >>> gameName)) gs of
+newGame' :: GameName -> GameDesc -> PlayerNumber -> Bool -> ServerHandle -> StateT Multi IO ()
+newGame' name desc pn isPublic sh = do
+      gs <- access gameInfos
+      case null $ filter ((== name) . getL gameNameLens) gs of
          True -> do
             tracePN pn $ "Creating a new game of name: " ++ name
             t <- lift $ T.getCurrentTime
             -- create a game with zero players
-            lg <- lift $ initialLoggedGame name desc t sh
-            void $ games %= (lg : )
+            lg <- lift $ initialGameInfo name desc isPublic (Just pn) t sh
+            void $ gameInfos %= (lg : )
          False -> tracePN pn "this name is already used"
 
 -- | view a game.
 viewGamePlayer :: GameName -> PlayerNumber -> StateT Session IO ()
-viewGamePlayer game pn = do
-   mg <- focus multi $ getGameByName game
+viewGamePlayer gn pn = do
+   mg <- focus multi $ getGameByName gn
    case mg of
       Nothing -> tracePN pn "No game by that name"
-      Just _ -> modifyProfile pn (pViewingGame ^= Just game)
+      Just _ -> modifyProfile pn (pViewingGame ^= Just gn)
 
 -- | unview a game.
 unviewGamePlayer :: PlayerNumber -> StateT Session IO ()
@@ -61,15 +61,15 @@ unviewGamePlayer pn = modifyProfile pn (pViewingGame ^= Nothing)
 
 -- | join a game (also view it for conveniency)
 joinGame :: GameName -> PlayerNumber -> StateT Session IO ()
-joinGame game pn = do
+joinGame gn pn = do
    s <- get
    name <- lift $ Profile.getPlayerName pn s
-   inGameDo game $ G.execGameEvent $ JoinGame pn name
-   viewGamePlayer game pn
+   inGameDo gn $ G.execGameEvent $ JoinGame pn name
+   viewGamePlayer gn pn
 
 -- | delete a game.
 delGame :: GameName -> StateT Session IO ()
-delGame name = focus multi $ void $ games %= filter ((/= name) . getL (game >>> gameName))
+delGame name = focus multi $ void $ gameInfos %= filter ((/= name) . getL gameNameLens)
 
 
 -- | leave a game.
@@ -174,16 +174,20 @@ getNewPlayerNumber = do
    pfd <- A.query' (acidProfileData $ _profiles s) AskProfileDataNumber
    return $ pfd + 1
 
-startSimulation :: GameName -> PlayerNumber -> StateT Session IO ()
-startSimulation gn pn = focus multi $ do
-   gms <- access games
-   case filter ((== gn) . getL (game >>> gameName)) gms of
-      g:[] -> do
-         tracePN pn $ "Creating a simulation for game: " ++ gn
+forkGame :: GameName -> PlayerNumber -> StateT Session IO ()
+forkGame gn pn = focus multi $ do
+   gms <- access gameInfos
+   case filter ((== gn) . getL gameNameLens) gms of
+      gi:[] -> do
+         tracePN pn $ "Forking game: " ++ gn
          time <- liftIO $ T.getCurrentTime
-         let sim = Simulation gn pn time
-         let g' = ((game >>> gameName) ^= ("Fork of " ++ gn)) . ((game >>> simu) ^= Just sim) $ g
-         void $ games %= (g' : )
+         let gi' = GameInfo {
+            _loggedGame     = (game >>> gameName) `setL` ("Forked " ++ gn) $ (_loggedGame gi),
+            _ownedBy        = Just pn,
+            _forkedFromGame = Just gn,
+            _isPublic       = False,
+            _startedAt      = time}
+         void $ gameInfos %= (gi' : )
       _ -> tracePN pn $ "Creating a simulation game: no game by that name: " ++ gn
 
 
@@ -195,20 +199,20 @@ inPlayersGameDo pn action = do
    mg <- lift $ getPlayersGame pn s
    case mg of
       Nothing -> tracePN pn "You must be in a game" >> return Nothing
-      Just g -> do
-         (a, myg) <- lift $ runStateT action (setL (game >>> currentTime) t g)
-         focus multi $ modifyGame myg
+      Just gi -> do
+         (a, mylg) <- lift $ runStateT action (setL (game >>> currentTime) t (_loggedGame gi))
+         focus multi $ modifyGame (gi {_loggedGame = mylg})
          return (Just a)
 
 inGameDo :: GameName -> StateT LoggedGame IO  () -> StateT Session IO ()
 inGameDo gn action = focus multi $ do
-   (gs :: [LoggedGame]) <- access games
-   case find ((==gn) . getL (game >>> gameName)) gs of
+   (gs :: [GameInfo]) <- access gameInfos
+   case find ((==gn) . getL gameNameLens) gs of
       Nothing -> traceM "No game by that name"
-      Just (g::LoggedGame) -> do
+      Just (gi::GameInfo) -> do
          t <- lift $ T.getCurrentTime
-         myg <- lift $ execWithGame' t action g
-         modifyGame myg
+         mylg <- lift $ execWithGame' t action (_loggedGame gi)
+         modifyGame (gi {_loggedGame = mylg})
 
 -- update a session by executing a command.
 -- we set a watchdog in case the evaluation would not finish
@@ -226,5 +230,4 @@ evalSession sm s = do
    s' <- execStateT sm s
    writeFile nullFileName $ show $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
    return s'
-
 

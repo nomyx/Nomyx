@@ -127,13 +127,13 @@ getPlayerInGameName g pn = do
       Just pm -> _playerName pm
 
 -- | returns the game the player is in
-getPlayersGame :: PlayerNumber -> Session -> IO (Maybe LoggedGame)
+getPlayersGame :: PlayerNumber -> Session -> IO (Maybe GameInfo)
 getPlayersGame pn s = do
    pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
    let mgn = _pViewingGame $ fromJustNote "getPlayersGame" pfd
    return $ do
       gn <- mgn
-      find ((== gn) . getL (game >>> gameName)) (_games $ _multi s) --checks if any game by that name exists
+      find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s) --checks if any game by that name exists
 
 getAllProfiles :: Session -> IO [ProfileData]
 getAllProfiles s = A.query' (acidProfileData $ _profiles s) AskProfilesData

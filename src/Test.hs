@@ -119,7 +119,7 @@ printRule r = unsafePerformIO $ do
 onePlayerOneGame :: StateT Session IO ()
 onePlayerOneGame = do
    newPlayer 1 (PlayerSettings {_pPlayerName = "Player 1", _mail = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False})
-   newGame "test" (GameDesc "" "") 1
+   newGame "test" (GameDesc "" "") 1 True
    joinGame "test" 1
    viewGamePlayer "test" 1
 
@@ -203,8 +203,8 @@ gamePartialFunction2 :: StateT Session IO ()
 gamePartialFunction2 = do
    onePlayerOneGame
    submitR partialFunction2
-   gs <- (access $ multi >>> games)
-   let now = _currentTime $ G._game (head gs)
+   gs <- (access $ multi >>> gameInfos)
+   let now = _currentTime $ G._game $ _loggedGame $ (head gs)
    focus multi $ triggerTimeEvent (5 `addUTCTime` now)
 
 
@@ -262,7 +262,7 @@ outputLimit  = submitR [cr| showRule $ repeat 1|]
 
 --the game created should be withdrawn
 condNoGame :: Multi -> Bool
-condNoGame m = (length $ _games m) == 0
+condNoGame m = (length $ _gameInfos m) == 0
 
 
 -- ** File loading
@@ -309,21 +309,21 @@ testFileUnsafeIO = do
 
 --True if the string in parameter is among the outputs
 isOutput' :: String -> Multi -> Bool
-isOutput' s m = any ((isOutput s) . _game) (_games m)
+isOutput' s m = any ((isOutput s) . _game . _loggedGame) (_gameInfos m)
 
 -- select first choice for all radio buttons
 inputAllRadios :: Int -> PlayerNumber -> StateT Session IO ()
 inputAllRadios choice pn = do
    s <- get
-   let evs = evalState getChoiceEvents (_game $ head $ _games $ _multi s)
+   let evs = evalState getChoiceEvents (firstGame $ _multi s)
    mapM_ (\en -> inputResult pn en (URadioData choice) "test") evs
 
 -- input text for all text fields
 inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
 inputAllTexts a pn = do
    s <- get
-   let evs = evalState getTextEvents (_game $ head $ _games $ _multi s)
+   let evs = evalState getTextEvents (firstGame $ _multi s)
    mapM_ (\en -> inputResult pn en (UTextData a) "test") evs
 
 firstGame :: Multi -> Game
-firstGame = G._game . head . _games
+firstGame = G._game . _loggedGame . head . _gameInfos

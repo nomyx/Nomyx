@@ -14,6 +14,9 @@ import Happstack.Auth (ProfileState, AuthState)
 import Data.Data (Data)
 import Data.IxSet (inferIxSet, noCalcs)
 import Data.SafeCopy (base, deriveSafeCopy)
+import Data.Time
+import Data.Lens
+import Control.Category ((>>>))
 
 type PlayerPassword = String
 type Port = Int
@@ -51,9 +54,17 @@ data Settings = Settings { _net           :: Network,  -- URL where the server i
                            deriving (Eq, Show, Read, Typeable)
 
 --- | A structure to hold the active games and players
-data Multi = Multi { _games   :: [LoggedGame],
-                     _mSettings :: Settings}
+data Multi = Multi { _gameInfos :: [GameInfo],
+                     _mSettings  :: Settings}
                      deriving (Eq, Show, Typeable)
+
+data GameInfo = GameInfo { _loggedGame     :: LoggedGame,
+                           _ownedBy        :: Maybe PlayerNumber,
+                           _forkedFromGame :: Maybe GameName,
+                           _isPublic       :: Bool,
+                           _startedAt      :: UTCTime}
+                           deriving (Typeable, Show, Eq)
+
 
 -- | 'ProfileData' contains application specific
 data ProfileData =
@@ -89,6 +100,9 @@ data Session = Session { _sh :: ServerHandle,
 instance Show Session where
    show (Session _ m _) = show m
 
-$( makeLenses [''Multi, ''Settings, ''Network, ''PlayerSettings, ''Session, ''ProfileData] )
+$( makeLenses [''Multi, ''GameInfo, ''Settings, ''Network, ''PlayerSettings, ''Session, ''ProfileData] )
+
+gameNameLens :: Lens GameInfo GameName
+gameNameLens = loggedGame >>> game >>> gameName
 
 

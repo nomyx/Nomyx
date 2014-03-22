@@ -123,7 +123,7 @@ loadMulti set sh = do
             (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set))
       False -> do
          let defMulti = defaultMulti set
-         execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 sh) defMulti
+         execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 True sh) defMulti
    return multi
 
 runTests :: FilePath -> FilePath -> Maybe String -> IO ()

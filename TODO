@@ -39,7 +39,8 @@ Improvements:
 - use a test suite instead of ad-hoc tests
 - allow players to create one new game
 - separate visually multiplayer games from solo
-
+- add a game number
+- split Gui into a new library Nomyx-Web
 
 
 Futur Nomic:

@@ -3,7 +3,7 @@
 
 module Serialize where
 
-import Prelude hiding (log)
+import Prelude hiding (log, (.))
 import Language.Nomyx hiding (getCurrentTime)
 import Language.Nomyx.Engine
 import Language.Nomyx.Engine.GameEvents
@@ -16,6 +16,7 @@ import Utils
 import Data.Aeson.TH
 import Data.Aeson
 import Control.Applicative
+import Control.Category
 import Data.Time.Clock.POSIX
 import qualified Data.ByteString.Lazy.Char8 as BL
 
@@ -35,10 +36,15 @@ load fp = do
 loadMulti :: Settings -> ServerHandle -> IO Multi
 loadMulti set sh = do
    m <- load (getSaveFile set)
-   gs' <- mapM (updateLoggedGame $ getRuleFunc sh) $ _games m
-   let m' = games `setL` gs' $ m
+   gs' <- mapM (updateGameInfo $ getRuleFunc sh) $ _gameInfos m
+   let m' = gameInfos `setL` gs' $ m
    let m'' = mSettings `setL` set $ m'
    return m''
+
+updateGameInfo :: (RuleCode -> IO RuleFunc) -> GameInfo -> IO GameInfo
+updateGameInfo f gi = do
+   gi' <- updateLoggedGame f (_loggedGame gi)
+   return $ gi {_loggedGame = gi'}
 
 updateLoggedGame :: (RuleCode -> IO RuleFunc) -> LoggedGame -> IO LoggedGame
 updateLoggedGame f (LoggedGame g log) = getLoggedGame g f log
@@ -46,36 +52,34 @@ updateLoggedGame f (LoggedGame g log) = getLoggedGame g f log
 time0 = posixSecondsToUTCTime 0
 
 instance ToJSON Game where
-   toJSON (Game name desc _ _ _ _ _ _ _ _ simu) =
+   toJSON (Game name desc _ _ _ _ _ _ _ _) =
       object ["gameName" .= name,
-              "gameDesc" .= desc,
-              "simu"     .= simu]
+              "gameDesc" .= desc]
 
 instance FromJSON Game where
    parseJSON (Object v) = Game <$>
-                            v .: "gameName" <*>
-                            v .: "gameDesc" <*>
-                            pure [] <*>
-                            pure [] <*>
-                            pure [] <*>
-                            pure [] <*>
-                            pure [] <*>
-                            pure Nothing <*>
-                            pure [] <*>
-                            pure time0 <*>
-                            v .: "simu"
+      v .: "gameName" <*>
+      v .: "gameDesc" <*>
+      pure [] <*>
+      pure [] <*>
+      pure [] <*>
+      pure [] <*>
+      pure [] <*>
+      pure Nothing <*>
+      pure [] <*>
+      pure time0
    -- A non-Object value is of the wrong type, so fail.
-   parseJSON _          = mzero
+   parseJSON _ = mzero
 
 
 $(deriveJSON defaultOptions ''Multi)
 $(deriveJSON defaultOptions ''Settings)
 $(deriveJSON defaultOptions ''Network)
 $(deriveJSON defaultOptions ''LoggedGame)
+$(deriveJSON defaultOptions ''GameInfo)
 $(deriveJSON defaultOptions ''TimedEvent)
 $(deriveJSON defaultOptions ''GameEvent)
 $(deriveJSON defaultOptions ''UInputData)
 $(deriveJSON defaultOptions ''SubmitRule)
 $(deriveJSON defaultOptions ''GameDesc)
-$(deriveJSON defaultOptions ''Simulation)
 
