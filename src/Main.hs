@@ -20,28 +20,20 @@ module Main (main) where
 import Prelude hiding ((.))
 import System.Console.GetOpt 
 import System.Environment 
-import Web.MainPage
 import Control.Concurrent
-import Interpret
 import Control.Concurrent.STM
 import Control.Monad.Catch (bracket)
 import Language.Nomyx.Engine.Test as LT
 import Data.Maybe
 import Safe
 import Network.BSD
-import Types
-import Serialize
 import Paths_Nomyx as PN
 import Paths_Nomyx_Language as PNL
 import System.Directory (removeDirectoryRecursive, canonicalizePath, removeFile, doesFileExist)
 import Data.Time.Clock
 import Language.Nomyx.Engine
 import Control.Exception as E hiding (bracket)
-import Test
-import Utils
 import Data.Version (showVersion)
-import Session
-import Multi
 import Language.Haskell.Interpreter.Server hiding (start)
 import Data.Acid (openLocalStateFrom)
 import System.FilePath ((</>))
@@ -50,8 +42,16 @@ import Data.Acid.Local (createCheckpointAndClose)
 import Happstack.Auth.Core.Profile (initialProfileState)
 import Control.Monad.State
 import System.Exit
-import Profile
 import System.Posix.Signals as S
+import Nomyx.Web.MainPage
+import Nomyx.Core.Profile
+import Nomyx.Core.Session
+import Nomyx.Core.Multi as Multi
+import Nomyx.Core.Utils
+import Nomyx.Core.Types
+import Nomyx.Core.Serialize as Serialize
+import Nomyx.Core.Interpret
+import Test
 
 
 -- | Entry point of the program.

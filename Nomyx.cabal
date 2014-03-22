@@ -13,89 +13,48 @@ description: A Nomic game in Haskell, with a dedicated language to create new ru
 category: game
 Homepage: http://www.nomyx.net
 author: Corentin Dupont
-data-files: static/css/nomyx.css 
-            static/nomyx.js
-            static/pictures/*.jpg
-            test/*.hs
+data-files: test/*.hs
             test/more/*.hs
 data-dir: data
 extra-source-files: AUTHORS README TODO
  
 executable Nomyx
-    build-depends: Nomyx-Language         == 0.4.1,
+    build-depends: Nomyx-Core             == 0.4.1,
+                   Nomyx-Language         == 0.4.1, 
+                   Nomyx-Web              == 0.4.1,
                    DebugTraceHelpers      == 0.12.*,
-                   MissingH               == 1.2.*,
                    acid-state             == 0.12.*,
-                   aeson                  == 0.7.*,
                    base                   == 4.6.*,
-                   blaze-html             == 0.7.*,
-                   blaze-markup           == 0.6.*,
                    bytestring             == 0.10.*,
                    containers             == 0.5.*,
                    data-lens              == 2.10.*,
                    data-lens-template     == 2.1.*,
                    data-lens-fd           == 2.0.*,
                    directory              == 1.2.*,
-                   either-unwrap          == 1.1.*,
                    exceptions             == 0.3.*,
-                   fb                     == 0.15.*,
                    filepath               == 1.3.*,
                    happstack-authenticate == 0.10.*,
-                   happstack-server       == 7.3.*,
-                   hint                   == 0.4.*,
                    hint-server            == 1.3.*,
-                   hscolour               == 1.20.*,
-                   ixset                  == 1.0.*,
-                   mime-mail              == 0.4.*,
                    mtl                    == 2.1.*,
-                   mueval                 == 0.9.*,
                    network                == 2.4.*,
                    old-locale             == 1.0.*,
-                   reform                 == 0.2.*,
-                   reform-blaze           == 0.2.*,
-                   reform-happstack       == 0.2.*,
                    safe                   == 0.3.*,
-                   safecopy               == 0.8.*,
-                   split                  == 0.2.*,
                    stm                    == 2.4.*,
-                   tar                    == 0.4.*,
+                   template-haskell       == 2.8.*,                   
                    temporary              == 1.1.*,
-                   template-haskell       == 2.8.*,
                    text                   == 1.1.*,
                    time                   == 1.4.*,
-                   unix-compat            == 0.4.*,
-                   web-routes             == 0.27.*,
-                   web-routes-happstack   == 0.23.*,
-                   web-routes-regular     == 0.19.*,
-                   web-routes-th          == 0.22.*,
-                   deepseq                == 1.3.* 
-                  
+                   unix-compat            == 0.4.*
     if os(windows)
         Cpp-options: -DWINDOWS
     else
         build-depends: unix == 2.6.*
-
     main-is: Main.hs
     buildable: True
     extensions: CPP
     hs-source-dirs: src
-    other-modules: Types
-                   Profile
-                   Session
-                   Multi
-                   Serialize
-                   Interpret
-                   Quotes
-                   Mail
+    other-modules: Main 
                    Test
-                   Utils
-                   Web.Common
-                   Web.Help
-                   Web.NewGame
-                   Web.Game
-                   Web.Login
-                   Web.Settings
-                   Web.MainPage
     ghc-options: -W -threaded
  
 source-repository head
