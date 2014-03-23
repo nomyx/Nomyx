@@ -27,6 +27,7 @@ import Data.Maybe
 import Safe
 import Network.BSD
 import Paths_Nomyx as PN
+import Paths_Nomyx_Web as PNW
 import Paths_Nomyx_Language as PNL
 import System.Directory (removeDirectoryRecursive, canonicalizePath, removeFile, doesFileExist)
 import Data.Time.Clock
@@ -67,8 +68,9 @@ main = do
 
 start :: [Flag] -> IO ()
 start flags = do
-   defDataDir <- PN.getDataDir
+   defWebDir <- PNW.getDataDir
    defSourceDir <- PNL.getDataDir
+   let defSaveDir = PN.getDataDir
    hostName <- getHostName
    let port = read $ fromMaybe "8000" (findPort flags)
    let host = fromMaybe hostName (findHost flags)
@@ -79,27 +81,28 @@ start flags = do
       Just tarFile -> untar tarFile
       Nothing -> case (findSaveDir flags) of
          Just f -> canonicalizePath f
-         Nothing -> PN.getDataDir
+         Nothing -> defSaveDir
    -- data directory: web ressources and profiles
-   let dataDir = fromMaybe defDataDir (findDataDir flags)
+   let webDir = fromMaybe defWebDir (findWebDir flags)
    -- source directory: Nomyx-Language files (used only for display in GUI, since this library is statically linked otherwise)
    let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
-   let settings = Settings (Network host port) sendMail adminPass saveDir dataDir sourceDir
+   let settings = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir
    let mLoad = findLoadTest flags
-   when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\ndata dir = " ++ dataDir ++ "\nsource dir = " ++ sourceDir
-   if Test `elem` flags then runTests saveDir dataDir mLoad
-   else if (DeleteSaveFile `elem` flags) then cleanFile saveDir dataDir
-   else mainLoop settings saveDir dataDir host port
+   when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\nweb dir = " ++ webDir ++ "\nsource dir = " ++ sourceDir
+   if Test `elem` flags then runTests saveDir mLoad
+   else if (DeleteSaveFile `elem` flags) then cleanFile saveDir
+   else mainLoop settings saveDir host port
 
 
-mainLoop settings saveDir dataDir host port = do
+mainLoop :: Settings -> FilePath -> HostName -> Port -> IO ()
+mainLoop settings saveDir host port = do
    serverCommandUsage
    --start the haskell interpreter
    sh <- protectHandlers $ startInterpreter saveDir
    --creating game structures
    multi <- Main.loadMulti settings sh
    --main loop
-   withAcid (Just $ dataDir </> profilesDir) $ \acid -> do
+   withAcid (Just $ saveDir </> profilesDir) $ \acid -> do
       tvSession <- atomically $ newTVar (Session sh multi acid)
       --start the web server
       forkIO $ launchWebServer tvSession (Network host port)
@@ -119,21 +122,21 @@ loadMulti set sh = do
          execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 True sh) defMulti
    return multi
 
-runTests :: FilePath -> FilePath -> Maybe String -> IO ()
-runTests saveDir dataDir mTestName = do
+runTests :: FilePath -> Maybe String -> IO ()
+runTests saveDir mTestName = do
    sh <- protectHandlers $ startInterpreter saveDir
    putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
-   ts <- playTests dataDir sh mTestName
+   ts <- playTests saveDir sh mTestName
    putStrLn $ "\nNomyx Game Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts)
    let pass = allTests && (all snd ts)
    putStrLn $ "All Tests Pass: " ++ (show $ pass)
    if pass then exitSuccess else exitFailure
 
-cleanFile :: FilePath -> FilePath -> IO ()
-cleanFile saveDir dataDir = do
+cleanFile :: FilePath -> IO ()
+cleanFile saveDir = do
    putStrLn "Deleting save files"
    let catchExp io = io `catch` (\(e::SomeException)-> putStrLn $ show e)
-   catchExp $ removeDirectoryRecursive $ dataDir </> profilesDir
+   catchExp $ removeDirectoryRecursive $ saveDir </> profilesDir
    catchExp $ removeDirectoryRecursive $ saveDir </> uploadDir
    catchExp $ removeFile               $ saveDir </> saveFile
 
@@ -168,7 +171,7 @@ data Flag = Verbose
           | Mails
           | Help
           | SaveDir FilePath
-          | DataDir FilePath
+          | WebDir FilePath
           | SourceDir FilePath
           | TarFile FilePath
        deriving (Show, Eq)
@@ -187,7 +190,7 @@ options =
      , Option ['m'] ["mails"]     (NoArg Mails)                  "send mails (default is no)"
      , Option ['?'] ["help"]      (NoArg Help)                   "display usage options (this screen)"
      , Option ['r'] ["saveDir"]   (ReqArg SaveDir "SaveDir")     "specify save directory (for Nomyx.save and uploads)"
-     , Option ['f'] ["dataDir"]   (ReqArg DataDir "DataDir")     "specify data directory (for profiles and website files)"
+     , Option ['f'] ["dataDir"]   (ReqArg WebDir "WebDir")       "specify data directory (for profiles and website files)"
      , Option ['s'] ["sourceDir"] (ReqArg SourceDir "SourceDir") "specify source directory (for Nomyx-Language files)"
      , Option ['T'] ["tar"]       (ReqArg TarFile "TarFile")     "specify tar file (containing Nomyx.save and uploads)"
      ]
@@ -226,10 +229,10 @@ findAdminPass fs = headMay $ catMaybes $ map isAdminPass fs where
     isAdminPass (AdminPass a) = Just a
     isAdminPass _ = Nothing
 
-findDataDir :: [Flag] -> Maybe String
-findDataDir fs = headMay $ catMaybes $ map isDataDir fs where
-    isDataDir (DataDir a) = Just a
-    isDataDir _ = Nothing
+findWebDir :: [Flag] -> Maybe String
+findWebDir fs = headMay $ catMaybes $ map isWebDir fs where
+    isWebDir (WebDir a) = Just a
+    isWebDir _ = Nothing
 
 findSourceDir :: [Flag] -> Maybe String
 findSourceDir fs = headMay $ catMaybes $ map isSourceDir fs where
