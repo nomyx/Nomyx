@@ -22,7 +22,6 @@ import System.Console.GetOpt
 import System.Environment 
 import Control.Concurrent
 import Control.Concurrent.STM
-import Control.Monad.Catch (bracket)
 import Language.Nomyx.Engine.Test as LT
 import Data.Maybe
 import Safe
@@ -35,14 +34,9 @@ import Language.Nomyx.Engine
 import Control.Exception as E hiding (bracket)
 import Data.Version (showVersion)
 import Language.Haskell.Interpreter.Server hiding (start)
-import Data.Acid (openLocalStateFrom)
 import System.FilePath ((</>))
-import Happstack.Auth.Core.Auth (initialAuthState)
-import Data.Acid.Local (createCheckpointAndClose)
-import Happstack.Auth.Core.Profile (initialProfileState)
 import Control.Monad.State
 import System.Exit
-import System.Posix.Signals as S
 import Nomyx.Web.MainPage
 import Nomyx.Core.Profile
 import Nomyx.Core.Session
@@ -51,7 +45,7 @@ import Nomyx.Core.Utils
 import Nomyx.Core.Types
 import Nomyx.Core.Serialize as Serialize
 import Nomyx.Core.Interpret
-import Test
+import Nomyx.Core.Test
 
 
 -- | Entry point of the program.
@@ -93,7 +87,6 @@ start flags = do
    let settings = Settings (Network host port) sendMail adminPass saveDir dataDir sourceDir
    let mLoad = findLoadTest flags
    when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\ndata dir = " ++ dataDir ++ "\nsource dir = " ++ sourceDir
-   installHandler cpuTimeLimitExceeded (S.Catch $ putStrLn "SIGX caught!") Nothing -- >> ioError (userError "re-raised")
    if Test `elem` flags then runTests saveDir dataDir mLoad
    else if (DeleteSaveFile `elem` flags) then cleanFile saveDir dataDir
    else mainLoop settings saveDir dataDir host port
@@ -256,7 +249,6 @@ triggerTimeEvent tm t = do
     atomically $ writeTVar tm (Session sh m' a)
     save m'
 
-
 launchTimeEvents :: TVar Session -> IO()
 launchTimeEvents tm = do
     now <- getCurrentTime
@@ -268,14 +260,4 @@ launchTimeEvents tm = do
     --sleep 1 second roughly
     threadDelay 1000000
     launchTimeEvents tm
-
-withAcid :: Maybe FilePath -- ^ state directory
-         -> (Profiles -> IO a) -- ^ action
-         -> IO a
-withAcid mBasePath f =
-    let basePath = fromMaybe "_state" mBasePath in
-    bracket (openLocalStateFrom (basePath </> "auth")        initialAuthState)        (createCheckpointAndClose) $ \auth ->
-    bracket (openLocalStateFrom (basePath </> "profile")     initialProfileState)     (createCheckpointAndClose) $ \profile ->
-    bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState) (createCheckpointAndClose) $ \profileData ->
-        f (Profiles auth profile profileData)
 

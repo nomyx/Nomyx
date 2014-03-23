@@ -33,14 +33,11 @@ Improvements:
 - parameterize the mail sender
 - variable creation: use the definition (V...) ?
 - put a scroll on long IOs
-- put settings at session level, not multi level
 - a way to overwrite uploads (automatically or with admin intervention)
 - tag the save file with the version
 - use a test suite instead of ad-hoc tests
-- allow players to create one new game
-- separate visually multiplayer games from solo
 - add a game number
-- split Gui into a new library Nomyx-Web
+
 
 
 Futur Nomic:
