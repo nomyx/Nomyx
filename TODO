@@ -15,8 +15,6 @@ Improvements:
 - add a name to events to be able to delete categories of them
 - use TH in addRuleParams
 - possibility to modify game details
-- hide when no information
-- cut rules too long
 - add examples with a game master, a castle..
 - vote: include new players, delete leaving players 
 - make settings file with start up rules (?)
@@ -37,7 +35,9 @@ Improvements:
 - tag the save file with the version
 - use a test suite instead of ad-hoc tests
 - add a game number
-
+- login with guest account
+- clean after testing
+- use deepseq
 
 
 Futur Nomic:

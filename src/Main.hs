@@ -54,10 +54,10 @@ main :: IO Bool
 main = do
    args <- getArgs 
    (flags, _) <- nomyxOpts args
-   if (Version `elem` flags) then do
+   if Version `elem` flags then do
       putStrLn $ "Nomyx " ++ showVersion PN.version
       return True
-   else if (Help `elem` flags) then do
+   else if Help `elem` flags then do
       putStrLn $ usageInfo header options
       return True
    else do
@@ -77,9 +77,9 @@ start flags = do
    let adminPass = fromMaybe "NXPSD" (findAdminPass flags)
    let sendMail = Mails `elem` flags
    -- save directory: Nomyx.save and uploaded files
-   saveDir <- case (findTarFile flags) of
+   saveDir <- case findTarFile flags of
       Just tarFile -> untar tarFile
-      Nothing -> case (findSaveDir flags) of
+      Nothing -> case findSaveDir flags of
          Just f -> canonicalizePath f
          Nothing -> defSaveDir
    -- data directory: web ressources and profiles
@@ -90,7 +90,7 @@ start flags = do
    let mLoad = findLoadTest flags
    when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\nweb dir = " ++ webDir ++ "\nsource dir = " ++ sourceDir
    if Test `elem` flags then runTests saveDir mLoad
-   else if (DeleteSaveFile `elem` flags) then cleanFile saveDir
+   else if DeleteSaveFile `elem` flags then cleanFile saveDir
    else mainLoop settings saveDir host port
 
 
@@ -112,30 +112,28 @@ mainLoop settings saveDir host port = do
 loadMulti :: Settings -> ServerHandle -> IO Multi
 loadMulti set sh = do
    fileExists <- doesFileExist $ getSaveFile set
-   multi <- case fileExists of
-      True -> do
-         putStrLn $ "Loading game: " ++ (getSaveFile set)
-         Serialize.loadMulti set sh `E.catch`
-            (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set))
-      False -> do
-         let defMulti = defaultMulti set
-         execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 True sh) defMulti
-   return multi
+   if fileExists then do
+      putStrLn $ "Loading game: " ++ getSaveFile set
+      Serialize.loadMulti set sh `E.catch` (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set))
+   else do
+      let defMulti = defaultMulti set
+      execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 True sh) defMulti
+
 
 runTests :: FilePath -> Maybe String -> IO ()
 runTests saveDir mTestName = do
    sh <- protectHandlers $ startInterpreter saveDir
-   putStrLn $ "\nNomyx Language Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests)
+   putStrLn $ "\nNomyx Language Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests
    ts <- playTests saveDir sh mTestName
-   putStrLn $ "\nNomyx Game Tests results:\n" ++ (concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts)
-   let pass = allTests && (all snd ts)
-   putStrLn $ "All Tests Pass: " ++ (show $ pass)
+   putStrLn $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts
+   let pass = allTests && all snd ts
+   putStrLn $ "All Tests Pass: " ++ show pass
    if pass then exitSuccess else exitFailure
 
 cleanFile :: FilePath -> IO ()
 cleanFile saveDir = do
    putStrLn "Deleting save files"
-   let catchExp io = io `catch` (\(e::SomeException)-> putStrLn $ show e)
+   let catchExp io = io `catch` (\(e::SomeException)-> print e)
    catchExp $ removeDirectoryRecursive $ saveDir </> profilesDir
    catchExp $ removeDirectoryRecursive $ saveDir </> uploadDir
    catchExp $ removeFile               $ saveDir </> saveFile
@@ -147,9 +145,9 @@ serverLoop ts = do
    case s of
       "d" -> do
          s <- atomically $ readTVar ts
-         putStrLn $ show $ _multi s
+         print $ _multi s
          pfs <- getAllProfiles s
-         putStrLn $ show pfs
+         print pfs
       _ -> putStrLn "command not recognized"
    serverLoop ts
 
@@ -205,42 +203,42 @@ header :: String
 header = "Usage: Nomyx [OPTION...]"
 
 findPort :: [Flag] -> Maybe String
-findPort fs = headMay $ catMaybes $ map isPort fs where
+findPort fs = headMay $ mapMaybe isPort fs where
     isPort (Port a) = Just a
     isPort _ = Nothing
 
 findHost :: [Flag] -> Maybe String
-findHost fs = headMay $ catMaybes $ map isHost fs where
+findHost fs = headMay $ mapMaybe isHost fs where
     isHost (HostName a) = Just a
     isHost _ = Nothing
 
 findLoadTest :: [Flag] -> Maybe String
-findLoadTest fs = headMay $ catMaybes $ map isLoadTest fs where
+findLoadTest fs = headMay $ mapMaybe isLoadTest fs where
     isLoadTest (LoadTest a) = Just a
     isLoadTest _ = Nothing
 
 findSaveDir :: [Flag] -> Maybe FilePath
-findSaveDir fs = headMay $ catMaybes $ map isSaveDir fs where
+findSaveDir fs = headMay $ mapMaybe isSaveDir fs where
     isSaveDir (SaveDir a) = Just a
     isSaveDir _ = Nothing
 
 findAdminPass :: [Flag] -> Maybe String
-findAdminPass fs = headMay $ catMaybes $ map isAdminPass fs where
+findAdminPass fs = headMay $ mapMaybe isAdminPass fs where
     isAdminPass (AdminPass a) = Just a
     isAdminPass _ = Nothing
 
 findWebDir :: [Flag] -> Maybe String
-findWebDir fs = headMay $ catMaybes $ map isWebDir fs where
+findWebDir fs = headMay $ mapMaybe isWebDir fs where
     isWebDir (WebDir a) = Just a
     isWebDir _ = Nothing
 
 findSourceDir :: [Flag] -> Maybe String
-findSourceDir fs = headMay $ catMaybes $ map isSourceDir fs where
+findSourceDir fs = headMay $ mapMaybe isSourceDir fs where
     isSourceDir (SourceDir a) = Just a
     isSourceDir _ = Nothing
 
 findTarFile :: [Flag] -> Maybe String
-findTarFile fs = headMay $ catMaybes $ map isTarFile fs where
+findTarFile fs = headMay $ mapMaybe isTarFile fs where
     isTarFile (TarFile a) = Just a
     isTarFile _ = Nothing
 
@@ -258,7 +256,7 @@ launchTimeEvents tm = do
     --putStrLn $ "tick " ++ (show now)
     (Session _ m _) <- atomically $ readTVar tm
     timeEvents <- getTimeEvents now m
-    when (length timeEvents /= 0) $ putStrLn "found time event(s)"
+    when (not $ null timeEvents) $ putStrLn "found time event(s)"
     mapM_ (Main.triggerTimeEvent tm) timeEvents
     --sleep 1 second roughly
     threadDelay 1000000
