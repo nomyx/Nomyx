@@ -10,4 +10,3 @@ install:
   - git clone https://github.com/cdupont/Nomyx-Web.git
   - cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Core/ Nomyx-Web/ Nomyx/
 script: Nomyx/tests.sh
-
