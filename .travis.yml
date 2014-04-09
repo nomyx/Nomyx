@@ -3,10 +3,5 @@ ghc: 7.6.3
 notifications:
   email:
     recipients: corentin.dupont@gmail.com
-install: 
-  - cd ..
-  - git clone https://github.com/cdupont/Nomyx-Language.git
-  - git clone https://github.com/cdupont/Nomyx-Core.git
-  - git clone https://github.com/cdupont/Nomyx-Web.git
-  - cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Core/ Nomyx-Web/ Nomyx/
+install: cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Core/ Nomyx-Web/ Nomyx/
 script: Nomyx/tests.sh
