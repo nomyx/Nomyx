@@ -33,7 +33,7 @@ import qualified Text.Reform.Generalized as G
 import           Language.Haskell.HsColour.HTML      (hscolour)
 import           Language.Haskell.HsColour.Colourise (defaultColourPrefs)
 import           Language.Nomyx
-import           Language.Nomyx.Engine
+import           Nomyx.Core.Engine
 import           Nomyx.Core.Session
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Types as T

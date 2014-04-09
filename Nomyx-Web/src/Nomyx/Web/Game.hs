@@ -22,7 +22,6 @@ import Data.Lens
 import Text.Printf
 import System.Locale
 import Language.Nomyx
-import Language.Nomyx.Engine
 import Text.Blaze.Html5                    (Html, div, (!), p, table, thead, td, tr, h2, h3, h4, h5, pre, toValue, br, toHtml, a, img)
 import Text.Blaze.Html5.Attributes as A    (src, title, width, style, id, onclick, disabled, placeholder, class_, href)
 import Text.Blaze.Internal                 (string, text)
@@ -39,6 +38,7 @@ import Nomyx.Web.Common
 import Nomyx.Core.Types as T
 import Nomyx.Core.Mail
 import Nomyx.Core.Utils
+import Nomyx.Core.Engine
 import Nomyx.Core.Session as S
 import Nomyx.Core.Profile as Profile
 default (Integer, Double, Data.Text.Text)

@@ -19,7 +19,6 @@ import Control.Monad.State
 import Data.Monoid
 import Control.Concurrent.STM
 import Language.Nomyx
-import Language.Nomyx.Engine
 import Happstack.Server as HS
 import System.FilePath
 import qualified Nomyx.Web.Help as Help
@@ -38,6 +37,7 @@ import Safe
 import Nomyx.Core.Profile as Profile
 import Nomyx.Core.Utils
 import Nomyx.Core.Types as T
+import Nomyx.Core.Engine
 
 default (Integer, Double, Data.Text.Text)
 

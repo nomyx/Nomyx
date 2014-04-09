@@ -22,7 +22,6 @@ import System.Console.GetOpt
 import System.Environment 
 import Control.Concurrent
 import Control.Concurrent.STM
-import Language.Nomyx.Engine.Test as LT
 import Data.Maybe
 import Safe
 import Network.BSD
@@ -31,7 +30,6 @@ import Paths_Nomyx_Web as PNW
 import Paths_Nomyx_Language as PNL
 import System.Directory (removeDirectoryRecursive, canonicalizePath, removeFile, doesFileExist)
 import Data.Time.Clock
-import Language.Nomyx.Engine
 import Control.Exception as E hiding (bracket)
 import Data.Version (showVersion)
 import Language.Haskell.Interpreter.Server hiding (start)
@@ -47,6 +45,8 @@ import Nomyx.Core.Types
 import Nomyx.Core.Serialize as Serialize
 import Nomyx.Core.Interpret
 import Nomyx.Core.Test
+import Nomyx.Core.Engine
+import Nomyx.Core.Engine.Test as LT
 
 
 -- | Entry point of the program.

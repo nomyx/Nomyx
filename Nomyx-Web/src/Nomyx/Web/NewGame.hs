@@ -16,7 +16,7 @@ import Control.Concurrent.STM
 import Happstack.Server
 import Web.Routes.RouteT
 import Data.Text(Text)
-import Language.Nomyx.Engine
+import Nomyx.Core.Engine
 import Nomyx.Web.Common
 import Nomyx.Core.Session
 import Nomyx.Core.Types
