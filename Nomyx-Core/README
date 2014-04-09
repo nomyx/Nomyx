@@ -1,0 +1,8 @@
+[![Build Status](https://travis-ci.org/cdupont/Nomyx-Core.png?branch=master)](https://travis-ci.org/cdupont/Nomyx-Core)
+[![Hackage](https://budueba.com/hackage/Nomyx-Core)](https://hackage.haskell.org/package/Nomyx-Core)
+
+Nomyx-Core
+=========
+
+Library holding the core processes of Nomyx.
+
