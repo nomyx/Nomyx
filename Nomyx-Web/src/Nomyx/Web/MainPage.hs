@@ -17,6 +17,7 @@ import Text.Blaze.Internal
 import Control.Monad
 import Control.Monad.State
 import Data.Monoid
+import Data.Maybe
 import Control.Concurrent.STM
 import Language.Nomyx
 import Happstack.Server as HS
@@ -41,30 +42,37 @@ import Nomyx.Core.Engine
 
 default (Integer, Double, Data.Text.Text)
 
-viewMulti :: PlayerNumber -> FilePath -> Session -> RoutedNomyxServer Html
-viewMulti pn saveDir s = do
-   pfd <- getProfile s pn
-   let isAdmin = _pIsAdmin $ fromJustNote "viewMulti" pfd
-   gns <- viewGamesTab (_gameInfos $ _multi s) isAdmin saveDir pn
-   mgi <- liftRouteT $ lift $ getPlayersGame pn s
+viewMulti :: (Maybe PlayerNumber) -> FilePath -> Session -> RoutedNomyxServer Html
+viewMulti mpn saveDir s = do
+   (isAdmin, mgi, lr) <- case mpn of
+      Just pn -> do
+         pfd <- getProfile s pn
+         let isAdmin = _pIsAdmin $ fromJustNote "viewMulti" pfd
+         mgi <- liftRouteT $ lift $ getPlayersGame pn s
+         let lr = _pLastRule $ fromJustNote "viewMulti" pfd
+         return (isAdmin, mgi, lr)
+      Nothing -> return (False, getFirstGame s, Nothing)
+   gns <- viewGamesTab (_gameInfos $ _multi s) isAdmin saveDir mpn
    vg <- case mgi of
-      Just gi -> viewGameInfo gi pn (_pLastRule $ fromJustNote "viewMulti" pfd) isAdmin
-      Nothing -> ok $ h3 "Not viewing any game"
+            Just gi -> viewGameInfo gi mpn lr isAdmin
+            Nothing -> ok $ h3 "Not viewing any game"
    ok $ do
       div ! A.id "gameList" $ gns
       div ! A.id "game" $ vg
 
-viewGamesTab :: [GameInfo] -> Bool -> FilePath -> PlayerNumber -> RoutedNomyxServer Html
-viewGamesTab gis isAdmin saveDir pn = do
-   let canCreateGame = isAdmin || numberOfGamesOwned gis pn < 1
+viewGamesTab :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNomyxServer Html
+viewGamesTab gis isAdmin saveDir mpn = do
+   let canCreateGame = maybe False (\pn -> isAdmin || numberOfGamesOwned gis pn < 1) mpn
    let publicPrivate = partition ((== True) . _isPublic) gis
-   let vgi = viewGameName isAdmin canCreateGame pn
+   let vgi = viewGameName isAdmin canCreateGame mpn
+   let defLink a = if (isJust mpn) then showURL a else showURL (Auth $ AuthURL A_Login)
    public <- mapM vgi (fst publicPrivate)
    private <- mapM vgi (snd publicPrivate)
-   newGameLink  <- showURL NewGame
-   settingsLink <- showURL W.PlayerSettings
-   advLink      <- showURL Advanced
-   logoutURL    <- showURL (Auth $ AuthURL A_Logout)
+   newGameLink  <- defLink NewGame
+   settingsLink <- defLink W.PlayerSettings
+   advLink      <- defLink Advanced
+   logoutURL    <- defLink (Auth $ AuthURL A_Logout)
+   loginURL     <- showURL (Auth $ AuthURL A_Login)
    fmods <- liftIO $ getUploadedModules saveDir
    ok $ do
       h3 "Main menu" >> br
@@ -91,22 +99,24 @@ viewGamesTab gis isAdmin saveDir pn = do
       H.a "Player settings" ! (href $ toValue settingsLink) >> br
       H.a "Advanced"        ! (href $ toValue advLink) >> br
       H.a "Logout"          ! (href $ toValue logoutURL) >> br
+      H.a "Login"           ! (href $ toValue loginURL) >> br
 
 
-viewGameName :: Bool -> Bool -> PlayerNumber -> GameInfo -> RoutedNomyxServer Html
-viewGameName isAdmin canCreateGame pn gi = do
+viewGameName :: Bool -> Bool -> (Maybe PlayerNumber) -> GameInfo -> RoutedNomyxServer Html
+viewGameName isAdmin canCreateGame mpn gi = do
    let g = getGame gi
-   let isGameAdmin = isAdmin || maybe False (==pn) (_ownedBy gi)
+   let isGameAdmin = isAdmin || maybe False (==mpn) (Just $ _ownedBy gi)
    let gn = _gameName g
    let canFork = canCreateGame
    let canDel = isGameAdmin
    let canView = isGameAdmin || _isPublic gi
+   let link a = if (isJust mpn) then showURL a else showURL (Auth $ AuthURL A_Login)
    main  <- showURL W.MainPage
-   join  <- showURL (W.JoinGame gn)
-   leave <- showURL (W.LeaveGame gn)
-   view  <- showURL (W.ViewGame gn)
-   del   <- showURL (W.DelGame gn)
-   fork  <- showURL (W.ForkGame gn)
+   join  <- link (W.JoinGame gn)
+   leave <- link (W.LeaveGame gn)
+   view  <- link (W.ViewGame gn)
+   del   <- link (W.DelGame gn)
+   fork  <- link (W.ForkGame gn)
    ok $ if canView then tr $ do
       let cancel = H.a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
       td ! A.id "gameName" $ string (gn ++ "   ")
@@ -136,12 +146,13 @@ viewGameName isAdmin canCreateGame pn gi = do
 
 nomyxPage :: TVar Session -> RoutedNomyxServer Response
 nomyxPage ts = do
-   pn <- getPlayerNumber ts
+   mpn <- getPlayerNumber ts
    s <- liftIO $ atomically $ readTVar ts
    let saveDir = _saveDir $ _mSettings $ _multi s
-   name <- liftIO $ Profile.getPlayerName pn s
-   pn <- getPlayerNumber ts
-   m <- viewMulti pn saveDir s
+   name <- case mpn of
+      Just pn -> liftIO $ Profile.getPlayerName pn s
+      Nothing -> return "guest"
+   m <- viewMulti mpn saveDir s
    mainPage' "Welcome to Nomyx!"
             (string $ "Welcome to Nomyx, " ++ name ++ "! ")
             (H.div ! A.id "multi" $ m)

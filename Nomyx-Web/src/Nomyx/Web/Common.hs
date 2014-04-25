@@ -20,6 +20,7 @@ import           Web.Routes.Happstack()
 import           Control.Monad.State
 import           Control.Monad.Error
 import           Control.Concurrent.STM
+import           Control.Applicative
 import           Happstack.Server as HS
 import           Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
 import qualified Data.ByteString.Char8 as C
@@ -166,13 +167,13 @@ appTemplate ::
 appTemplate title headers body = return $ toResponse $ appTemplate' title headers body True Nothing
 
 -- | return the player number (user ID) based on the session cookie.
-getPlayerNumber :: TVar Session -> RoutedNomyxServer PlayerNumber
+getPlayerNumber :: TVar Session -> RoutedNomyxServer (Maybe PlayerNumber)
 getPlayerNumber ts = do
    (T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftIO $ readTVarIO ts
    uid <- getUserId acidAuth acidProfile
    case uid of
-      Nothing -> throwError $ userError "not logged in."
-      (Just (UserId userID)) -> return $ fromInteger userID
+      Nothing -> return Nothing
+      (Just (UserId userID)) -> return $ Just $ fromInteger userID
 
 --update the session using the command and saves it
 webCommand :: TVar Session -> StateT Session IO () -> RoutedNomyxServer ()
@@ -180,12 +181,14 @@ webCommand ts ss = liftIO $ updateSession ts ss
 
 getIsAdmin :: TVar Session -> RoutedNomyxServer Bool
 getIsAdmin ts = do
-   pn <- getPlayerNumber ts
-   mpf <- getProfile' ts pn
-   case mpf of
-      Just pf -> return $ _pIsAdmin pf
-      Nothing -> throwError $ userError "not logged in."
-
+   mpn <- getPlayerNumber ts
+   case mpn of
+      Just pn -> do
+         mpf <- getProfile' ts pn
+         case mpf of
+            Just pf -> return $ _pIsAdmin pf
+            Nothing -> return False
+      Nothing -> return False
 
 fieldRequired :: NomyxError -> String -> Either NomyxError String
 fieldRequired a []  = Left a

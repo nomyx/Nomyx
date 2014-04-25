@@ -16,6 +16,7 @@ import Control.Concurrent.STM
 import Happstack.Server
 import Web.Routes.RouteT
 import Data.Text(Text)
+import Data.Maybe
 import Nomyx.Core.Engine
 import Nomyx.Web.Common
 import Nomyx.Core.Session
@@ -55,7 +56,7 @@ newGamePost ts = toResponse <$> do
    r <- liftRouteT $ eitherForm environment "user" (newGameForm admin)
    link <- showURL MainPage
    newGameLink <- showURL SubmitNewGame
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    case r of
       Left errorForm -> mainPage  "New game" "New game" (blazeForm errorForm newGameLink) False True
       Right (NewGameForm name desc isPublic) -> do

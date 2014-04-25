@@ -20,6 +20,7 @@ import Control.Concurrent.STM
 import Safe
 import Data.Text(Text)
 import Data.Version (showVersion)
+import Data.Maybe
 import System.FilePath
 import Paths_Nomyx_Web as PNW
 import Language.Nomyx
@@ -68,7 +69,7 @@ settingsPage ps names emails = do
 
 playerSettings :: TVar Session -> RoutedNomyxServer Response
 playerSettings ts  = toResponse <$> do
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    pfd <- getProfile' ts pn
    names <- liftIO $ forbiddenNames ts pn
    emails <- liftIO $ forbiddenEmails ts pn
@@ -77,7 +78,7 @@ playerSettings ts  = toResponse <$> do
 newPlayerSettings :: TVar Session -> RoutedNomyxServer Response
 newPlayerSettings ts = toResponse <$> do
    methodM POST
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    names <- liftIO $ forbiddenNames ts pn
    emails <- liftIO $ forbiddenEmails ts pn
    p <- liftRouteT $ eitherForm environment "user" $ playerSettingsForm Nothing names emails
@@ -108,7 +109,7 @@ forbiddenEmails ts pn = liftIO $ do
 advanced :: TVar Session -> RoutedNomyxServer Response
 advanced ts = toResponse <$> do
    session <- liftIO $ atomically $ readTVar ts
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    pfd <- getProfile session pn
    pfds <- liftIO $ getAllProfiles session
    session <- liftIO $ atomically $ readTVar ts
@@ -219,7 +220,7 @@ uploadForm = RB.inputFile
 newUpload :: TVar Session -> RoutedNomyxServer Response
 newUpload ts = toResponse <$> do
     methodM POST
-    pn <- getPlayerNumber ts
+    pn <- fromJust <$> getPlayerNumber ts
     r <- liftRouteT $ eitherForm environment "user" uploadForm
     link <- showURL Advanced
     (Types.Session sh _ _) <- liftIO $ readTVarIO ts
@@ -233,7 +234,7 @@ newAdminPass :: TVar Session -> RoutedNomyxServer Response
 newAdminPass ts = toResponse <$> do
    methodM POST
    p <- liftRouteT $ eitherForm environment "user" adminPassForm
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    case p of
       Right ps -> do
          webCommand ts $ adminPass ps pn

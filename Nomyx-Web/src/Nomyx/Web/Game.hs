@@ -43,12 +43,16 @@ import Nomyx.Core.Session as S
 import Nomyx.Core.Profile as Profile
 default (Integer, Double, Data.Text.Text)
 
-viewGameInfo :: GameInfo -> PlayerNumber -> Maybe LastRule -> Bool -> RoutedNomyxServer Html
-viewGameInfo gi pn mlr isAdmin = do
+viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> RoutedNomyxServer Html
+viewGameInfo gi mpn mlr isAdmin = do
    let g = getGame gi
-   let pi = Profile.getPlayerInfo g pn
-   let isGameAdmin = isAdmin || maybe False (== pn) (_ownedBy gi)
-   let playAs = maybe Nothing _playAs pi
+   (pi, isGameAdmin, playAs, pn) <- case mpn of
+      Just pn -> do
+         let pi = Profile.getPlayerInfo g pn
+         let isGameAdmin = isAdmin || maybe False (== pn) (_ownedBy gi)
+         let playAs = maybe Nothing _playAs pi
+         return (pi, isGameAdmin, playAs, pn)
+      Nothing -> return (Nothing, False, Nothing, 0)
    rf <- viewRuleForm mlr (isJust pi) isAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g playAs isGameAdmin
@@ -298,7 +302,7 @@ newRule gn ts = toResponse <$> do
    admin <- getIsAdmin ts
    r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing admin)
    link <- showURL MainPage
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    case r of
        Right (sr, Nothing, Nothing) -> do
           webCommand ts $ submitRule sr pn gn sh
@@ -327,7 +331,7 @@ viewLog (Log _ t s) = tr $ do
 
 newInput :: EventNumber -> GameName -> TVar Session -> RoutedNomyxServer Response
 newInput en gn ts = toResponse <$> do
-    pn <- getPlayerNumber ts
+    pn <- fromJust <$> getPlayerNumber ts
     s <- liftIO $ atomically $ readTVar ts
     let g = find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s)
     let eventHandler = getEventHandler en (_loggedGame $ fromJust g)
@@ -344,7 +348,7 @@ newPlayAs :: GameName -> TVar Session -> RoutedNomyxServer Response
 newPlayAs gn ts = toResponse <$> do
    methodM POST
    p <- liftRouteT $ eitherForm environment "user" $ playAsForm Nothing
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    case p of
       Right playAs -> do
          webCommand ts $ S.playAs (read playAs) pn gn
@@ -375,14 +379,14 @@ showHideTitle id visible empty title rest = do
 
 joinGame :: GameName -> TVar Session -> RoutedNomyxServer Response
 joinGame gn ts = do
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    webCommand ts (S.joinGame gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
 leaveGame :: GameName -> TVar Session -> RoutedNomyxServer Response
 leaveGame gn ts = do
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    webCommand ts (S.leaveGame gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
@@ -395,14 +399,14 @@ delGame gn ts = do
 
 forkGame :: GameName -> TVar Session -> RoutedNomyxServer Response
 forkGame gn ts = do
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    webCommand ts $ S.forkGame gn pn
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
 viewGamePlayer :: GameName -> TVar Session -> RoutedNomyxServer Response
 viewGamePlayer gn ts = do
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    webCommand ts (S.viewGamePlayer gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."

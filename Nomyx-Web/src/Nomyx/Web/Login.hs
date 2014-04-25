@@ -8,13 +8,15 @@ import Prelude hiding (div)
 import Text.Blaze.Html5 hiding (map, label, br)
 import Text.Blaze.Html5.Attributes hiding (dir, label)
 import qualified Text.Blaze.Html5 as H
-import Web.Routes.RouteT
 import Text.Blaze.Internal
 import Control.Monad.State
 import Control.Concurrent.STM
+import Control.Applicative
 import Happstack.Server
 import Web.Routes.Happstack()
+import Web.Routes.RouteT
 import Data.Text hiding (map, zip, concatMap)
+import Data.Maybe
 import Happstack.Auth (AuthProfileURL(..), AuthURL(..), handleAuthProfile)
 import Happstack.Auth.Core.Profile
 import Facebook (Credentials(..))
@@ -46,7 +48,7 @@ notLogged ts = do
 -- | add a new player if not existing
 postAuthenticate :: TVar Session -> RoutedNomyxServer Response
 postAuthenticate ts = do
-   pn <- getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber ts
    pf <- getProfile' ts pn
    case pf of
       Just _ -> do
