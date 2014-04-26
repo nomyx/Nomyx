@@ -8,7 +8,6 @@ import Prelude hiding (div)
 import Text.Blaze.Html5 hiding (map, label, br)
 import Text.Blaze.Html5.Attributes hiding (dir, label)
 import qualified Text.Blaze.Html5 as H
-import Text.Blaze.Internal
 import Control.Monad.State
 import Control.Concurrent.STM
 import Control.Applicative
@@ -43,7 +42,7 @@ notLogged ts = do
                          True
          (Just _) -> do
             link <- showURL MainPage
-            seeOther link (toResponse $ string "to game page")
+            seeOther link $ toResponse $ ("to game page"::String)
 
 -- | add a new player if not existing
 postAuthenticate :: TVar Session -> RoutedNomyxServer Response
@@ -53,11 +52,11 @@ postAuthenticate ts = do
    case pf of
       Just _ -> do
          link <- showURL MainPage
-         seeOther link (toResponse $ string "to main page")
+         seeOther link $ toResponse ("to main page" :: String)
       Nothing -> do
          webCommand ts $ S.newPlayer pn defaultPlayerSettings
          link <- showURL PlayerSettings
-         seeOther link (toResponse $ string "to settings page")
+         seeOther link $ toResponse ("to settings page" :: String)
 
 
 authenticate :: AuthProfileURL -> TVar Session -> RoutedNomyxServer Response

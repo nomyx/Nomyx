@@ -138,10 +138,6 @@ getPlayersGame pn s = do
       gn <- mgn
       find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s) --checks if any game by that name exists
 
--- | returns the game the player is in
-getFirstGame :: Session -> Maybe GameInfo
-getFirstGame = headMay . _gameInfos . _multi
-
 getAllProfiles :: Session -> IO [ProfileData]
 getAllProfiles s = A.query' (acidProfileData $ _profiles s) AskProfilesData
 

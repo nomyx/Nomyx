@@ -13,11 +13,11 @@ import Web.Routes.Site
 import Web.Routes.PathInfo
 import Web.Routes.Happstack
 import Web.Routes.RouteT
-import Text.Blaze.Internal
 import Control.Monad
 import Control.Monad.State
 import Data.Monoid
 import Data.Maybe
+import Data.String
 import Control.Concurrent.STM
 import Language.Nomyx
 import Happstack.Server as HS
@@ -119,7 +119,7 @@ viewGameName isAdmin canCreateGame mpn gi = do
    fork  <- link (W.ForkGame gn)
    ok $ if canView then tr $ do
       let cancel = H.a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
-      td ! A.id "gameName" $ string (gn ++ "   ")
+      td ! A.id "gameName" $ fromString (gn ++ "   ")
       td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
       td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.join)
       td $ H.a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn)
@@ -127,7 +127,7 @@ viewGameName isAdmin canCreateGame mpn gi = do
       when canFork $ td $ H.a "Fork"  ! (href $ toValue $ "#openModalFork" ++ gn)
       div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
-            h2 $ string $ "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n" ++
+            h2 $ fromString $ "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n" ++
                "If you do not wich to play, you can just view the game."
             cancel
             H.a "Join" ! (href $ toValue join) ! A.class_ "modalButton" ! (A.title $ toValue Help.join)
@@ -138,7 +138,7 @@ viewGameName isAdmin canCreateGame mpn gi = do
             H.a "Leave" ! (href $ toValue leave) ! A.class_ "modalButton"
       div ! A.id (toValue $ "openModalFork" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
-            h2 $ string $ "Fork game \"" ++ gn ++ "\"? This will create a new game based on the previous one. You will be able to test \n" ++
+            h2 $ fromString $ "Fork game \"" ++ gn ++ "\"? This will create a new game based on the previous one. You will be able to test \n" ++
                "your new rules independently of the original game. The new game is completely private: you will be alone. Please delete it when finished."
             cancel
             H.a "Fork" ! (href $ toValue fork) ! A.class_ "modalButton"
@@ -154,7 +154,7 @@ nomyxPage ts = do
       Nothing -> return "guest"
    m <- viewMulti mpn saveDir s
    mainPage' "Welcome to Nomyx!"
-            (string $ "Welcome to Nomyx, " ++ name ++ "! ")
+            (fromString $ "Welcome to Nomyx, " ++ name ++ "! ")
             (H.div ! A.id "multi" $ m)
             False
 
@@ -210,7 +210,7 @@ catchRouteError page = page `catchError` const backToLogin where
 backToLogin :: RoutedNomyxServer Response
 backToLogin = toResponse <$> do
    link <- showURL NotLogged
-   seeOther link $ string "Redirecting..."
+   seeOther link ("Redirecting..." :: String)
 
 getDocDir :: IO FilePath
 getDocDir = do

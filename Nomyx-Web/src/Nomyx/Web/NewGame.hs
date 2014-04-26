@@ -6,7 +6,6 @@ module Nomyx.Web.NewGame where
 import Prelude hiding (div)
 import Text.Reform
 import Text.Blaze.Html5.Attributes hiding (label)
-import Text.Blaze.Internal(string)
 import Text.Reform.Blaze.String as RB hiding (form)
 import Text.Reform.Happstack
 import qualified Text.Reform.Blaze.Common as RBC
@@ -17,6 +16,7 @@ import Happstack.Server
 import Web.Routes.RouteT
 import Data.Text(Text)
 import Data.Maybe
+import Data.String
 import Nomyx.Core.Engine
 import Nomyx.Web.Common
 import Nomyx.Core.Session
@@ -61,4 +61,4 @@ newGamePost ts = toResponse <$> do
       Left errorForm -> mainPage  "New game" "New game" (blazeForm errorForm newGameLink) False True
       Right (NewGameForm name desc isPublic) -> do
          webCommand ts $ newGame name desc pn isPublic
-         seeOther link $ string "Redirecting..."
+         seeOther link "Redirecting..."

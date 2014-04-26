@@ -8,6 +8,7 @@ module Nomyx.Web.Common where
 
 
 import           Prelude hiding (div)
+import           Safe
 import           Text.Blaze.Html5 hiding (map, output, base)
 import           Text.Blaze.Html5.Attributes hiding (dir, id)
 import qualified Text.Blaze.Html5 as H
@@ -18,18 +19,16 @@ import           Web.Routes.RouteT
 import           Web.Routes.TH (derivePathInfo)
 import           Web.Routes.Happstack()
 import           Control.Monad.State
-import           Control.Monad.Error
 import           Control.Concurrent.STM
-import           Control.Applicative
 import           Happstack.Server as HS
 import           Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
 import qualified Data.ByteString.Char8 as C
 import           Data.Maybe
 import           Data.Text (unpack, append, Text, pack)
+import           Data.String
 import           Text.Reform.Happstack()
 import           Text.Reform
 import           Text.Reform.Blaze.String()
-import           Text.Blaze.Internal
 import qualified Text.Reform.Generalized as G
 import           Language.Haskell.HsColour.HTML      (hscolour)
 import           Language.Haskell.HsColour.Colourise (defaultColourPrefs)
@@ -146,7 +145,7 @@ appTemplate' ::
     -> Html
 appTemplate' title headers body footer link = do
    H.head $ do
-      H.title (string title)
+      H.title (fromString title)
       H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"
       H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
       H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
@@ -198,13 +197,16 @@ appendAnchor :: Text -> Text -> Text
 appendAnchor url a = url `append` "#" `append` a
 
 displayCode :: String -> Html
-displayCode s = preEscapedString $ hscolour defaultColourPrefs False s
+displayCode s = preEscapedToHtml $ hscolour defaultColourPrefs False s
 
 getGame :: GameInfo -> Game
 getGame = _game . _loggedGame
 
 numberOfGamesOwned :: [GameInfo] -> PlayerNumber -> Int
 numberOfGamesOwned gis pn = length $ filter (maybe False (==pn) . _ownedBy) gis
+
+getFirstGame :: Session -> Maybe GameInfo
+getFirstGame = headMay . _gameInfos . _multi
 
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]
@@ -215,6 +217,6 @@ instance ToMarkup NomyxError where
     toMarkup GameNameRequired   = "Game Name is required"
     toMarkup UniqueName         = "Name already taken"
     toMarkup UniqueEmail        = "Email already taken"
-    toMarkup (FieldTooLong l)   = string $ "Field max length: " ++ show l
+    toMarkup (FieldTooLong l)   = fromString $ "Field max length: " ++ show l
     toMarkup (NomyxCFE e)       = toHtml e
 

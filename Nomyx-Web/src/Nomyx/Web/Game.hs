@@ -24,7 +24,6 @@ import System.Locale
 import Language.Nomyx
 import Text.Blaze.Html5                    (Html, div, (!), p, table, thead, td, tr, h2, h3, h4, h5, pre, toValue, br, toHtml, a, img)
 import Text.Blaze.Html5.Attributes as A    (src, title, width, style, id, onclick, disabled, placeholder, class_, href)
-import Text.Blaze.Internal                 (string, text)
 import Text.Reform.Blaze.String            (label, textarea, inputSubmit, inputCheckboxes, inputHidden)
 import qualified Text.Reform.Blaze.String as RB
 import Text.Reform.Happstack               (environment)
@@ -68,11 +67,11 @@ viewGameDesc g playAs gameAdmin = do
    vp <- viewPlayers (_players g) (_gameName g) gameAdmin
    ok $ do
       p $ do
-        h3 $ string $ "Viewing game: " ++ _gameName g
-        when (isJust playAs) $ h4 $ string $ "You are playing as player " ++ (show $ fromJust playAs)
+        h3 $ fromString $ "Viewing game: " ++ _gameName g
+        when (isJust playAs) $ h4 $ fromString $ "You are playing as player " ++ (show $ fromJust playAs)
       p $ do
          h4 "Description:"
-         string (_desc $ _gameDesc g)
+         fromString (_desc $ _gameDesc g)
       p $ h4 $ "This game is discussed in the " >> a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g)) >> "."
       p $ h4 "Players in game:"
       when gameAdmin "(click on the player's name to \"play as\" this player)"
@@ -92,7 +91,7 @@ viewPlayer :: GameName -> Bool -> PlayerInfo -> RoutedNomyxServer Html
 viewPlayer gn gameAdmin (PlayerInfo pn name _) = do
    pad <- playAsDiv pn gn
    ok $ tr $ do
-    let inf = string (show pn ++ "\t" ++ name)
+    let inf = fromString (show pn ++ "\t" ++ name)
     pad
     td $ if gameAdmin
        then a inf ! (href $ toValue $ "#openModalPlayAs" ++ show pn)
@@ -107,9 +106,9 @@ playAsDiv pn gn = do
       let cancel = a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
       div ! A.id (toValue $ "openModalPlayAs" ++ show pn) ! A.class_ "modalWindow" $ do
          div $ do
-            h2 $ string $ "When you are in a private game, you can play instead of any players. This allows you to test " ++
+            h2 $ fromString $ "When you are in a private game, you can play instead of any players. This allows you to test " ++
                "the result of their actions."
-            blazeForm (h2 (string $ "Play as player " ++ show pn ++ "?  ") >> paf) submitPlayAs
+            blazeForm (h2 (fromString $ "Play as player " ++ show pn ++ "?  ") >> paf) submitPlayAs
             br
             cancel
 
@@ -122,8 +121,8 @@ viewVictory g = do
     let vs = _playerName <$> mapMaybe (Profile.getPlayerInfo g) (getVictorious g)
     case vs of
         []   -> br
-        a:[] -> h3 $ string $ "Player " ++ show a ++ " won the game!"
-        a:bs -> h3 $ string $ "Players " ++ intercalate ", " bs ++ " and " ++ a ++ " won the game!"
+        a:[] -> h3 $ fromString $ "Player " ++ show a ++ " won the game!"
+        a:bs -> h3 $ fromString $ "Players " ++ intercalate ", " bs ++ " and " ++ a ++ " won the game!"
 
 viewAllRules :: Game -> Html
 viewAllRules g = do
@@ -135,23 +134,23 @@ viewAllRules g = do
 viewRules :: [RuleInfo] -> String -> Bool -> Game -> Html
 viewRules nrs title visible g = showHideTitle title visible (null nrs) (h4 $ toHtml (title ++ ":") ) $ table ! class_ "table" $ do
    thead $ do
-      td ! class_ "td" $ text "#"
-      td ! class_ "td" $ text "Name"
-      td ! class_ "td" $ text "Description"
-      td ! class_ "td" $ text "Proposed by"
-      td ! class_ "td" $ text "Code of the rule"
-      td ! class_ "td" $ text "Assessed by"
+      td ! class_ "td" $ "#"
+      td ! class_ "td" $ "Name"
+      td ! class_ "td" $ "Description"
+      td ! class_ "td" $ "Proposed by"
+      td ! class_ "td" $ "Code of the rule"
+      td ! class_ "td" $ "Assessed by"
    forM_ nrs (viewRule g)
 
 viewRule :: Game -> RuleInfo -> Html
 viewRule g nr = tr $ do
    let pl = fromMaybe ("Player " ++ (show $ _rProposedBy nr)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy nr))
-   td ! class_ "td" $ string . show $ _rNumber nr
-   td ! class_ "td" $ string $ _rName nr
-   td ! class_ "td" $ string $ _rDescription nr
-   td ! class_ "td" $ string $ if _rProposedBy nr == 0 then "System" else pl
+   td ! class_ "td" $ fromString . show $ _rNumber nr
+   td ! class_ "td" $ fromString $ _rName nr
+   td ! class_ "td" $ fromString $ _rDescription nr
+   td ! class_ "td" $ fromString $ if _rProposedBy nr == 0 then "System" else pl
    td ! class_ "codetd" $ viewRuleFunc nr
-   td ! class_ "td" $ string $ case _rAssessedBy nr of
+   td ! class_ "td" $ fromString $ case _rAssessedBy nr of
       Nothing -> "Not assessed"
       Just 0  -> "System"
       Just a  -> "Rule " ++ show a
@@ -181,18 +180,18 @@ viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
 viewEvents :: [EventHandler] -> Html
 viewEvents ehs = table ! class_ "table" $ do
          thead $ do
-            td ! class_ "td" $ text "Event Number"
-            td ! class_ "td" $ text "By Rule"
-            td ! class_ "td" $ text "Event"
+            td ! class_ "td" $ "Event Number"
+            td ! class_ "td" $ "By Rule"
+            td ! class_ "td" $ "Event"
          mapM_ viewEvent $ sort ehs
 
 
 viewEvent :: EventHandler -> Html
 viewEvent (EH eventNumber ruleNumber event _ status) = if status == SActive then disp else disp ! style "background:gray;" where
    disp = tr $ do
-      td ! class_ "td" $ string . show $ eventNumber
-      td ! class_ "td" $ string . show $ ruleNumber
-      td ! class_ "td" $ string . show $ event
+      td ! class_ "td" $ fromString . show $ eventNumber
+      td ! class_ "td" $ fromString . show $ ruleNumber
+      td ! class_ "td" $ fromString . show $ event
 
 viewIOs :: PlayerNumber -> Game -> RoutedNomyxServer Html
 viewIOs pn g = do
@@ -206,7 +205,7 @@ viewIORule :: PlayerNumber -> Game -> RuleInfo -> RoutedNomyxServer Html
 viewIORule pn g r = do
    vior <- viewIORuleM pn (_rNumber r) g
    ok $ when (isJust vior) $ div ! A.id "IORule" $ do
-      div ! A.id "IORuleTitle" $ h4 $ string $ "IO for Rule \"" ++ _rName r ++ "\" (#" ++ (show $ _rNumber r) ++ "):"
+      div ! A.id "IORuleTitle" $ h4 $ fromString $ "IO for Rule \"" ++ _rName r ++ "\" (#" ++ (show $ _rNumber r) ++ "):"
       fromJust vior
 
 
@@ -246,27 +245,27 @@ viewInput me gn (EH eventNumber _ (InputEv (Input pn title iForm)) _ SActive) | 
     link <- showURL (DoInput eventNumber gn)
     lf  <- lift $ viewForm "user" $ inputForm iForm
     return $ Just $ tr $ td $ do
-       string title
-       string " "
+       fromString title
+       fromString " "
        blazeForm lf link ! A.id "InputForm"
 viewInput _ _ _ = return Nothing
 
 viewOutput :: Game -> Output -> Html
-viewOutput g o = pre $ string (evalOutput g o) >> br
+viewOutput g o = pre $ fromString (evalOutput g o) >> br
 
 viewVars :: [Var] -> Html
 viewVars vs = table ! class_ "table" $ do
       thead $ do
-         td ! class_ "td" $ text "Rule number"
-         td ! class_ "td" $ text "Name"
-         td ! class_ "td" $ text "Value"
+         td ! class_ "td" $ "Rule number"
+         td ! class_ "td" $ "Name"
+         td ! class_ "td" $ "Value"
       mapM_ viewVar vs
 
 viewVar :: Var -> Html
 viewVar (Var vRuleNumber vName vData) = tr $ do
-   td ! class_ "td" $ string . show $ vRuleNumber
-   td ! class_ "td" $ string . show $ vName
-   td ! class_ "td" $ string . show $ vData
+   td ! class_ "td" $ fromString . show $ vRuleNumber
+   td ! class_ "td" $ fromString . show $ vName
+   td ! class_ "td" $ fromString . show $ vData
 
 
 newRuleForm :: Maybe SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
@@ -292,7 +291,7 @@ viewRuleForm mlr inGame isAdmin gn = do
       if inGame then do
          blazeForm lf link
          let msg = snd <$> mlr
-         when (isJust msg) $ pre $ string $ fromJust msg
+         when (isJust msg) $ pre $ fromString $ fromJust msg
       else lf ! disabled ""
 
 newRule :: GameName -> TVar Session -> RoutedNomyxServer Response
@@ -317,7 +316,7 @@ newRule gn ts = toResponse <$> do
        Right (sr, Nothing, Just _) -> webCommand ts $ adminSubmitRule sr pn gn sh
        Right (_,  Just _, Just _)  -> error "Impossible new rule form result"
        (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
-   seeOther (link `appendAnchor` ruleFormAnchor) $ string "Redirecting..."
+   seeOther (link `appendAnchor` ruleFormAnchor) $ "Redirecting..."
 
 viewLogs :: [Log] -> PlayerNumber -> Html
 viewLogs log pn = do
@@ -326,8 +325,8 @@ viewLogs log pn = do
 
 viewLog :: Log -> Html
 viewLog (Log _ t s) = tr $ do
-   td $ string $ formatTime defaultTimeLocale "%Y/%m/%d_%H:%M" t
-   td $ p $ string s
+   td $ fromString $ formatTime defaultTimeLocale "%Y/%m/%d_%H:%M" t
+   td $ p $ fromString s
 
 newInput :: EventNumber -> GameName -> TVar Session -> RoutedNomyxServer Response
 newInput en gn ts = toResponse <$> do
@@ -341,7 +340,7 @@ newInput en gn ts = toResponse <$> do
     case r of
        (Right c) -> webCommand ts $ S.inputResult pn en c gn
        (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
-    seeOther (link `appendAnchor` inputAnchor) $ string "Redirecting..."
+    seeOther (link `appendAnchor` inputAnchor) "Redirecting..."
 
 
 newPlayAs :: GameName -> TVar Session -> RoutedNomyxServer Response
@@ -353,7 +352,7 @@ newPlayAs gn ts = toResponse <$> do
       Right playAs -> do
          webCommand ts $ S.playAs (read playAs) pn gn
          link <- showURL MainPage
-         seeOther link $ string "Redirecting..."
+         seeOther link "Redirecting..."
       (Left errorForm) -> do
          settingsLink <- showURL $ SubmitPlayAs gn
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True

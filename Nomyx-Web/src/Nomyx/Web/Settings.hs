@@ -10,7 +10,6 @@ import Text.Reform
 import Text.Reform.Happstack
 import Text.Reform.Blaze.String as RB hiding (form)
 import Text.Blaze.Html5.Attributes as A hiding (dir, label)
-import Text.Blaze.Internal hiding (Text)
 import qualified Text.Blaze.Html5 as H
 import Happstack.Server
 import Web.Routes.RouteT
@@ -21,6 +20,7 @@ import Safe
 import Data.Text(Text)
 import Data.Version (showVersion)
 import Data.Maybe
+import Data.String
 import System.FilePath
 import Paths_Nomyx_Web as PNW
 import Language.Nomyx
@@ -86,7 +86,7 @@ newPlayerSettings ts = toResponse <$> do
       Right ps -> do
          webCommand ts $ S.playerSettings ps pn
          link <- showURL MainPage
-         seeOther link $ string "Redirecting..."
+         seeOther link $ fromString "Redirecting..."
       (Left errorForm) -> do
          settingsLink <- showURL SubmitPlayerSettings
          mainPage  "Player settings" "Player settings" (blazeForm errorForm settingsLink) False True
@@ -133,16 +133,16 @@ advancedPage mlu isAdmin settings pfds = do
    let uploadExample =  pathSeparator : testDir </> "SimpleModule.hs"
    ok $ do
       p $ do
-         string "Version:"
-         pre $ string $ "Nomyx " ++ showVersion PNW.version ++ "\n"
+         fromString "Version:"
+         pre $ fromString $ "Nomyx " ++ showVersion PNW.version ++ "\n"
       hr
       p $ do
-         pre $ string Help.getSaveFile
+         pre $ fromString Help.getSaveFile
          H.a "get save file" ! (href $ toValue getSaveFile)
       H.br
       hr
       p $ do
-         pre $ string Help.upload
+         pre $ fromString Help.upload
          H.a "example upload file" ! (href $ toValue uploadExample)
          H.br >> H.br
          "Upload new rules file:" >> H.br
@@ -150,7 +150,7 @@ advancedPage mlu isAdmin settings pfds = do
          case mlu of
             UploadFailure (_, error) -> do
                h5 "Error in submitted file: "
-               pre $ string error
+               pre $ fromString error
             UploadSuccess -> h5 "File uploaded successfully!"
             NoUpload -> p ""
       hr
@@ -163,7 +163,7 @@ advancedPage mlu isAdmin settings pfds = do
          p $ do
             h5 "Send mails:"
             blazeForm set submitSettings
-            h5 $ string $ if _sendMails settings then "mails will be sent " else "mails will NOT be sent "
+            h5 $ fromString $ if _sendMails settings then "mails will be sent " else "mails will NOT be sent "
          hr
          p $ do
             h5 "Players:"
@@ -184,14 +184,14 @@ advancedPage mlu isAdmin settings pfds = do
 viewProfile :: ProfileData -> Html
 viewProfile (ProfileData pn (Types.PlayerSettings playerName mail _ mailNewRule _ _) viewingGame lastRule lastUpload isAdmin) =
    tr $ do
-      td ! A.class_ "td" $ string $ show pn
-      td ! A.class_ "td" $ string playerName
-      td ! A.class_ "td" $ string mail
-      td ! A.class_ "td" $ string $ show mailNewRule
-      td ! A.class_ "td" $ string $ show viewingGame
-      td ! A.class_ "td" $ string $ show lastRule
-      td ! A.class_ "td" $ string $ show lastUpload
-      td ! A.class_ "td" $ string $ show isAdmin
+      td ! A.class_ "td" $ fromString $ show pn
+      td ! A.class_ "td" $ fromString playerName
+      td ! A.class_ "td" $ fromString mail
+      td ! A.class_ "td" $ fromString $ show mailNewRule
+      td ! A.class_ "td" $ fromString $ show viewingGame
+      td ! A.class_ "td" $ fromString $ show lastRule
+      td ! A.class_ "td" $ fromString $ show lastUpload
+      td ! A.class_ "td" $ fromString $ show isAdmin
 
 
 adminPassForm :: NomyxForm String
@@ -208,7 +208,7 @@ newSettings ts = toResponse <$> do
       Right ps -> do
          webCommand ts $ globalSettings ps
          link <- showURL Advanced
-         seeOther link $ string "Redirecting..."
+         seeOther link "Redirecting..."
       (Left errorForm) -> do
          settingsLink <- showURL SubmitSettings
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
@@ -227,7 +227,7 @@ newUpload ts = toResponse <$> do
     case r of
        (Right (temp,name,_)) -> webCommand ts $ void $ S.inputUpload pn temp name sh
        (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
-    seeOther link $ string "Redirecting..."
+    seeOther link "Redirecting..."
 
 
 newAdminPass :: TVar Session -> RoutedNomyxServer Response
@@ -239,7 +239,7 @@ newAdminPass ts = toResponse <$> do
       Right ps -> do
          webCommand ts $ adminPass ps pn
          link <- showURL Advanced
-         seeOther link $ string "Redirecting..."
+         seeOther link "Redirecting..."
       (Left errorForm) -> do
          settingsLink <- showURL SubmitAdminPass
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
@@ -248,4 +248,4 @@ saveFilePage :: TVar Session -> RoutedNomyxServer Response
 saveFilePage ts = toResponse <$> do
    session <- liftIO $ atomically $ readTVar ts
    liftIO $ makeTar (_saveDir $ _mSettings $ _multi session)
-   seeOther (pathSeparator : tarFile) $ string "Redirecting..."
+   seeOther (pathSeparator : tarFile) "Redirecting..."
