@@ -16,7 +16,6 @@ import Happstack.Server
 import Web.Routes.RouteT
 import Data.Text(Text)
 import Data.Maybe
-import Data.String
 import Nomyx.Core.Engine
 import Nomyx.Web.Common
 import Nomyx.Core.Session

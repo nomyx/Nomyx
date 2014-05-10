@@ -29,7 +29,6 @@ type EventName = String
 type VarName = String
 type Code = String
 type OutputNumber = Int
-type MsgName = String
 
 -- * Nomyx Expression
 
@@ -129,31 +128,31 @@ data V a = V {varName :: String} deriving Typeable
 
 -- | events types
 data Event a where
-   InputEv :: (Typeable a, Show a, Eq a) => PlayerNumber -> String -> (InputForm a) -> Event a
-   Player  :: Player -> Event PlayerInfo
-   RuleEv  :: RuleEvent -> Event RuleInfo
-   Time    :: UTCTime -> Event UTCTime
-   Message :: (Typeable a) => Msg a -> Event a
-   Victory :: Event VictoryCond
+   InputEv :: PlayerNumber -> String -> (InputForm a) -> Event a
+   Player  :: Player                                  -> Event PlayerInfo
+   RuleEv  :: RuleEvent                               -> Event RuleInfo
+   Time    :: UTCTime                                 -> Event UTCTime
+   Message :: Msg a                                   -> Event a
+   Victory ::                                            Event VictoryCond
    deriving (Typeable)
    
-data Player = Arrive | Leave deriving (Typeable, Show, Eq)
+data Player    = Arrive | Leave deriving (Typeable, Show, Eq)
 data RuleEvent = Proposed | Activated | Rejected | Added | Modified | Deleted deriving (Typeable, Show, Eq)
-data Msg m = Msg {msgName :: String}     deriving (Typeable, Show)
+data Msg m     = Msg String deriving (Typeable, Show)
 --
 data InputForm a where
-   Radio    :: (Typeable a, Show a, Eq a) => [(a, String)] -> InputForm a
-   Text     :: InputForm String
-   TextArea :: InputForm String
-   Button   :: InputForm ()
-   Checkbox :: (Typeable a, Show a, Eq a) => [(a, String)] -> InputForm [a]
+   Text     ::                                    InputForm String
+   TextArea ::                                    InputForm String
+   Button   ::                                    InputForm ()
+   Radio    :: (Show a, Eq a) => [(a, String)] -> InputForm a
+   Checkbox :: (Show a, Eq a) => [(a, String)] -> InputForm [a]
    deriving Typeable
 
-deriving instance             Show (Event a)
-deriving instance (Show a) => Show (InputForm a)
-deriving instance             Eq   (Event e)
-deriving instance (Eq e) =>   Eq   (InputForm e)
-deriving instance             Eq   (Msg e)
+deriving instance Show (Event a)
+deriving instance Show (InputForm a)
+deriving instance Eq   (Event e)
+deriving instance Eq   (InputForm e)
+deriving instance Eq   (Msg e)
 
 -- * Rule
 
