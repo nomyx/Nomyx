@@ -241,7 +241,7 @@ isPn _ (Output _ _ Nothing _ SActive) = True
 isPn _ _ = False
 
 viewInput :: PlayerNumber -> GameName -> EventHandler -> RoutedNomyxServer (Maybe Html)
-viewInput me gn (EH eventNumber _ (InputEv (Input pn title iForm)) _ SActive) | me == pn = do
+viewInput me gn (EH eventNumber _ (InputEv pn title iForm) _ SActive) | me == pn = do
     link <- showURL (DoInput eventNumber gn)
     lf  <- lift $ viewForm "user" $ inputForm iForm
     return $ Just $ tr $ td $ do
@@ -358,7 +358,7 @@ newPlayAs gn ts = toResponse <$> do
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
 
 getNomyxForm :: EventHandler -> NomyxForm UInputData
-getNomyxForm (EH _ _ (InputEv (Input _ _ iForm)) _ _) = inputForm iForm
+getNomyxForm (EH _ _ (InputEv _ _ iForm) _ _) = inputForm iForm
 getNomyxForm _ = error "Not an Input Event"
 
 inputForm :: (Typeable a) => InputForm a -> NomyxForm UInputData

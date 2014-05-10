@@ -72,7 +72,7 @@ voteWith :: (Votable a) => VoteResult a         -- ^ the function used to count 
 voteWith countVotes assessors toVote als = do
     pns <- liftEffect getAllPlayerNumbers
     let toVoteName = name toVote
-    let msgEnd = Message ("Result of votes for " ++ toVoteName) :: Msg [Alts a]
+    let msgEnd = Msg ("Result of votes for " ++ toVoteName) :: Msg [Alts a]
     --create an array variable to store the votes
     (voteVar :: ArrayVar PlayerNumber (Alts a)) <- newArrayVar_ ("Votes for " ++ toVoteName) pns
     --create the voting buttons
@@ -244,16 +244,16 @@ showVote (pn, v) = do
    return (name, showChoice v)
                                               
 displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex OutputNumber
-displayVoteResult toVoteName (VoteData msgEnd voteVar _ _ _) = onMessage msgEnd $ \(MessageData result) -> do
+displayVoteResult toVoteName (VoteData msgEnd voteVar _ _ _) = onMessage msgEnd $ \result -> do
    vs <- getMsgVarData_ voteVar
    votes <- liftEffect $ showFinishedVote vs
    void $ outputAll_ $ "Vote result for " ++ toVoteName ++ ": " ++ showChoices result ++ " (" ++ votes ++ ")"
 
 -- | any new rule will be activate if the rule in parameter returns For
 onRuleProposed :: (RuleInfo -> Nomex (Msg [ForAgainst]) ) -> Rule
-onRuleProposed f = void $ onEvent_ (RuleEv Proposed) $ \(RuleData rule) -> do
+onRuleProposed f = void $ onEvent_ (RuleEv Proposed) $ \rule -> do
     resp <- f rule
-    void $ onMessageOnce resp $ (activateOrReject rule) . (== [For]) . messageData
+    void $ onMessageOnce resp $ (activateOrReject rule) . (== [For])
 
 -- * Referendum & elections
 
@@ -269,12 +269,12 @@ referendum :: String -> Nomex () -> Rule
 referendum name action = do
    msg <- voteWith_ (majority `withQuorum` 2) (assessOnEveryVote >> assessOnTimeDelay oneDay) (Referendum name)
    void $ onMessageOnce msg resolution where
-      resolution (MessageData [Yes]) = do
+      resolution [Yes] = do
             outputAll_ "Positive result of referendum"
             action
-      resolution (MessageData [No]) = void $ outputAll_ "Negative result of referendum"
-      resolution (MessageData [])   = void $ outputAll_ "No result for referendum"
-      resolution (MessageData _)    = throwError "Impossible result for referendum"
+      resolution [No] = void $ outputAll_ "Negative result of referendum"
+      resolution []   = void $ outputAll_ "No result for referendum"
+      resolution _    = throwError "Impossible result for referendum"
 
 
 data Election = Election String deriving (Typeable)
@@ -297,8 +297,8 @@ elections :: String -> [PlayerInfo] -> (PlayerNumber -> Nomex ()) -> Nomex ()
 elections name pns action = do
    msg <- voteWith majority (assessOnTimeDelay oneDay) (Election name) (Candidate <$> pns)
    void $ onMessageOnce msg resolution where
-      resolution (MessageData [Candidate pi]) = do
+      resolution [Candidate pi] = do
          outputAll_ $ "Result of elections: player(s) " ++ (show $ _playerName pi) ++ " won!"
          action $ _playerNumber pi
-      resolution (MessageData []) = void $ outputAll_ "Result of elections: nobody won!"
-      resolution (MessageData _)  = throwError "Impossible result for elections"
+      resolution [] = void $ outputAll_ "Result of elections: nobody won!"
+      resolution _  = throwError "Impossible result for elections"

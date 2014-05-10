@@ -29,6 +29,7 @@ type EventName = String
 type VarName = String
 type Code = String
 type OutputNumber = Int
+type MsgName = String
 
 -- * Nomyx Expression
 
@@ -51,10 +52,10 @@ data Exp :: Eff -> * -> *   where
    WriteVar       :: (Typeable a, Show a) => V a -> a -> Nomex Bool
    DelVar         :: (V a) -> Nomex Bool
    --Events management
-   OnEvent        :: Typeable e => Event e -> ((EventNumber, EventData e) -> Nomex ()) -> Nomex EventNumber
+   OnEvent        :: Typeable e => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
    DelEvent       :: EventNumber -> Nomex Bool
    DelAllEvents   :: Typeable e => Event e -> Nomex ()
-   SendMessage    :: (Typeable a, Show a) => Event (Message a) -> a -> Nomex ()
+   SendMessage    :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
    --Rules management
    ProposeRule    :: RuleInfo -> Nomex Bool
    ActivateRule   :: RuleNumber -> Nomex Bool
@@ -127,67 +128,32 @@ data V a = V {varName :: String} deriving Typeable
 -- * Events
 
 -- | events types
+data Event a where
+   InputEv :: (Typeable a, Show a, Eq a) => PlayerNumber -> String -> (InputForm a) -> Event a
+   Player  :: Player -> Event PlayerInfo
+   RuleEv  :: RuleEvent -> Event RuleInfo
+   Time    :: UTCTime -> Event UTCTime
+   Message :: (Typeable a) => Msg a -> Event a
+   Victory :: Event VictoryCond
+   deriving (Typeable)
+   
 data Player = Arrive | Leave deriving (Typeable, Show, Eq)
 data RuleEvent = Proposed | Activated | Rejected | Added | Modified | Deleted deriving (Typeable, Show, Eq)
-data Time           deriving Typeable
-data EvRule         deriving Typeable
-data Message m      deriving Typeable
-data Victory        deriving Typeable
-data Input a = Input PlayerNumber String (InputForm a) deriving Typeable
-data InputForm a = Radio [(a, String)]
-                 | Text
-                 | TextArea
-                 | Button
-                 | Checkbox [(a, String)]
-                 deriving Typeable
+data Msg m = Msg {msgName :: String}     deriving (Typeable, Show)
+--
+data InputForm a where
+   Radio    :: (Typeable a, Show a, Eq a) => [(a, String)] -> InputForm a
+   Text     :: InputForm String
+   TextArea :: InputForm String
+   Button   :: InputForm ()
+   Checkbox :: (Typeable a, Show a, Eq a) => [(a, String)] -> InputForm [a]
+   deriving Typeable
 
--- | events names
-data Event a where
-    Player      :: Player ->                     Event Player
-    RuleEv      :: RuleEvent ->                  Event RuleEvent
-    Time        :: UTCTime ->                    Event Time
-    Message     :: String ->                     Event (Message m)
-    InputEv     :: (Typeable a, Show a, Eq a) => Input a -> Event (Input a)
-    Victory     ::                               Event Victory
-    deriving (Typeable)
-
--- data sent back by inputs
-data InputData a = RadioData a
-                 | CheckboxData [a]
-                 | TextData String
-                 | TextAreaData String
-                 | ButtonData
-
-                  
--- | data associated with each events
-data EventData a where
-    PlayerData  ::             {playerData :: PlayerInfo}    -> EventData Player
-    RuleData    ::             {ruleData :: RuleInfo}        -> EventData RuleEvent
-    TimeData    ::             {timeData :: UTCTime}         -> EventData Time
-    MessageData :: (Show m) => {messageData :: m}            -> EventData (Message m)
-    InputData   :: (Show a) => {inputData :: InputData a}    -> EventData (Input a)
-    VictoryData ::             {victoryData :: VictoryCond}  -> EventData Victory
-    deriving (Typeable)
-
-deriving instance             Show      (Event a)
-deriving instance (Show a) => Show      (InputForm a)
-deriving instance (Show a) => Show      (Input a)
-deriving instance             Show      (EventData a)
-deriving instance (Show a) => Show      (InputData a)
-deriving instance (Show a) => Show      (Message a)
-deriving instance             Show      Victory
-deriving instance             Show      Time
-deriving instance             Eq        Time
-deriving instance             Eq        Victory
-deriving instance             Eq        EvRule
-deriving instance             Eq        (Message m)
-deriving instance             Eq        (Event e)
-deriving instance (Eq e) =>   Eq        (Input e)
-deriving instance (Eq e) =>   Eq        (InputForm e)
-
-
-type Msg a = Event (Message a)
-type MsgData a = EventData (Message a)
+deriving instance             Show (Event a)
+deriving instance (Show a) => Show (InputForm a)
+deriving instance             Eq   (Event e)
+deriving instance (Eq e) =>   Eq   (InputForm e)
+deriving instance             Eq   (Msg e)
 
 -- * Rule
 

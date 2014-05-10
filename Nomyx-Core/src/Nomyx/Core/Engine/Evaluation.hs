@@ -73,7 +73,7 @@ evalNomex (DelAllEvents e) _ = do
    let filtered = filter (\EH {event} -> event === e) evs
    mapM_ evDelEvent (_eventNumber <$> filtered)
 
-evalNomex (SendMessage (Message id) myData) _ = triggerEvent_ (Message id) (MessageData myData)
+evalNomex (SendMessage (Msg id) myData) _ = triggerEvent_ (Message (Msg id)) myData
 
 evalNomex (NewOutput pn s)      rn = evNewOutput pn rn s
 evalNomex (UpdateOutput on s)   _  = evUpdateOutput on s
@@ -92,7 +92,7 @@ evalNomex (ThrowError s)        _  = throwError s
 evalNomex (CatchError n h)      rn = catchError (evalNomex n rn) (\a -> evalNomex (h a) rn)
 evalNomex (SetVictory ps)       rn = do
    void $ victory ~= (Just $ VictoryCond rn ps)
-   triggerEvent_ Victory (VictoryData $ VictoryCond rn ps)
+   triggerEvent_ Victory (VictoryCond rn ps)
 
 evalNomex (Return a)            _  = return a
 evalNomex (Bind exp f) rn = do
@@ -143,7 +143,7 @@ isOutput :: String -> Game -> Bool
 isOutput s g = s `elem` allOutputs g
 
 --execute all the handlers of the specified event with the given data
-triggerEvent :: (Typeable e) => Event e -> EventData e -> Evaluate Bool
+triggerEvent :: (Typeable e) => Event e -> e -> Evaluate Bool
 triggerEvent e dat = do
    evs <- access events
    let filtered = filter (\(EH {event, _evStatus}) -> e === event && _evStatus == SActive) (reverse evs)
@@ -154,14 +154,14 @@ triggerEvent e dat = do
          return True
 
 
-triggerHandler :: (Typeable e) => EventData e -> EventHandler -> Evaluate ()
+triggerHandler :: (Typeable e) => e -> EventHandler -> Evaluate ()
 triggerHandler dat (EH {_ruleNumber, _eventNumber, handler}) = case cast handler of
     Just castedH -> do
        let (exp :: Nomex ()) = castedH (_eventNumber, dat)
        (evalNomex exp _ruleNumber) `catchError` (errorHandler _ruleNumber _eventNumber)
     Nothing -> logAll ("failed " ++ (show $ typeOf handler))
 
-triggerEvent_ :: (Typeable e) => Event e -> EventData e -> Evaluate ()
+triggerEvent_ :: (Typeable e) => Event e -> e -> Evaluate ()
 triggerEvent_ e ed = void $ triggerEvent e ed
 
 errorHandler :: RuleNumber -> EventNumber -> String -> Evaluate ()
@@ -177,11 +177,11 @@ triggerInput en ir = do
 
 -- execute the event handler using the data received from user
 execInputHandler :: UInputData -> EventHandler -> Evaluate ()
-execInputHandler (UTextData s)      (EH en rn (InputEv (Input _ _ Text))          h SActive) = evalNomex (h (en, InputData $ TextData s)) rn
-execInputHandler (UTextAreaData s)  (EH en rn (InputEv (Input _ _ TextArea))      h SActive) = evalNomex (h (en, InputData $ TextAreaData s)) rn
-execInputHandler (UButtonData)      (EH en rn (InputEv (Input _ _ Button))        h SActive) = evalNomex (h (en, InputData $ ButtonData)) rn
-execInputHandler (URadioData i)     (EH en rn (InputEv (Input _ _ (Radio cs)))    h SActive) = evalNomex (h (en, InputData $ RadioData $ fst $ cs!!i)) rn
-execInputHandler (UCheckboxData is) (EH en rn (InputEv (Input _ _ (Checkbox cs))) h SActive) = evalNomex (h (en, InputData $ CheckboxData $ fst <$> cs `sel` is)) rn
+execInputHandler (UTextData s)      (EH en rn (InputEv _ _ Text)          h SActive) = evalNomex (h (en, s)) rn
+execInputHandler (UTextAreaData s)  (EH en rn (InputEv _ _ TextArea)      h SActive) = evalNomex (h (en, s)) rn
+execInputHandler (UButtonData)      (EH en rn (InputEv _ _ Button)        h SActive) = evalNomex (h (en, ())) rn
+execInputHandler (URadioData i)     (EH en rn (InputEv _ _ (Radio cs))    h SActive) = evalNomex (h (en, fst $ cs!!i)) rn
+execInputHandler (UCheckboxData is) (EH en rn (InputEv _ _ (Checkbox cs)) h SActive) = evalNomex (h (en, fst <$> cs `sel` is)) rn
 execInputHandler _ _ = return ()
 
 findEvent :: EventNumber -> [EventHandler] -> Maybe EventHandler
@@ -192,7 +192,7 @@ getChoiceEvents :: State Game [EventNumber]
 getChoiceEvents = do
    evs <- access events
    return $ map _eventNumber $ filter choiceEvent evs
-   where choiceEvent (EH _ _ (InputEv (Input _ _ (Radio _))) _ _) = True
+   where choiceEvent (EH _ _ (InputEv _ _ (Radio _)) _ _) = True
          choiceEvent _ = False
 
 --Get all event numbers of type text (text field)
@@ -200,7 +200,7 @@ getTextEvents :: State Game [EventNumber]
 getTextEvents = do
    evs <- access events
    return $ map _eventNumber $ filter choiceEvent evs
-   where choiceEvent (EH _ _ (InputEv (Input _ _ Text)) _ _) = True
+   where choiceEvent (EH _ _ (InputEv _ _ Text) _ _) = True
          choiceEvent _ = False
 
 evProposeRule :: RuleInfo -> Evaluate Bool
@@ -209,7 +209,7 @@ evProposeRule rule = do
    case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
       Nothing -> do
          rules %= (rule:)
-         triggerEvent_ (RuleEv Proposed) (RuleData rule)
+         triggerEvent_ (RuleEv Proposed) rule
          return True
       Just _ -> return False
 
@@ -224,7 +224,7 @@ evActivateRule rn by = do
          rules ~= newrules
          --execute the rule
          evalNomex (_rRule r) rn
-         triggerEvent_ (RuleEv Activated) (RuleData r)
+         triggerEvent_ (RuleEv Activated) r
          return True
 
 evRejectRule :: RuleNumber -> RuleNumber -> Evaluate Bool
@@ -235,7 +235,7 @@ evRejectRule rn by = do
       Just r -> do
          let newrules = replaceWith ((== rn) . getL rNumber) r{_rStatus = Reject, _rAssessedBy = Just by} rs
          rules ~= newrules
-         triggerEvent_ (RuleEv Rejected) (RuleData r)
+         triggerEvent_ (RuleEv Rejected) r
          delVarsRule rn
          delEventsRule rn
          delOutputsRule rn
@@ -247,7 +247,7 @@ evAddRule rule = do
    case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
       Nothing -> do
          rules %= (rule:)
-         triggerEvent_ (RuleEv Added) (RuleData rule)
+         triggerEvent_ (RuleEv Added) rule
          return True
       Just _ -> return False
 
@@ -261,7 +261,7 @@ evModifyRule mod rule = do
       Nothing -> return False
       Just r ->  do
          rules ~= newRules
-         triggerEvent_ (RuleEv Modified) (RuleData r)
+         triggerEvent_ (RuleEv Modified) r
          return True
 
 addPlayer :: PlayerInfo -> Evaluate Bool
@@ -270,7 +270,7 @@ addPlayer pi = do
    let exists = any (((==) `on` _playerNumber) pi) pls
    unless exists $ do
        players %= (pi:)
-       triggerEvent_ (Player Arrive) (PlayerData pi)
+       triggerEvent_ (Player Arrive) pi
    return $ not exists
 
 evDelPlayer :: PlayerNumber -> Evaluate Bool
@@ -282,7 +282,7 @@ evDelPlayer pn = do
          return False
       Just pi -> do
          players %= filter ((/= pn) . getL playerNumber)
-         triggerEvent_ (Player Leave) (PlayerData pi)
+         triggerEvent_ (Player Leave) pi
          tracePN pn $ "leaving the game: " ++ _gameName g
          return True
 
@@ -309,7 +309,7 @@ evDelEvent en = do
 
 
 evTriggerTime :: UTCTime -> Evaluate Bool
-evTriggerTime t = triggerEvent (Time t) (TimeData t)
+evTriggerTime t = triggerEvent (Time t) t
 
 
 --delete all variables of a rule

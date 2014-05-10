@@ -108,7 +108,7 @@ joinGame name pn = do
          tracePN pn $ "Joining game: " ++ _gameName g
          let player = PlayerInfo { _playerNumber = pn, _playerName = name, _playAs = Nothing}
          players %= (player : )
-         runEvalError (Just pn) $ triggerEvent_ (Player Arrive) (PlayerData player)
+         runEvalError (Just pn) $ triggerEvent_ (Player Arrive) player
 
 
 -- | leave the game.

@@ -6,7 +6,6 @@
 --    void $ onInputButton_ "Click here:" (const $ outputAll_ "Bravo!") 1
 
 module Language.Nomyx.Inputs (
-   Input(..),
    InputForm(..),
    onInputRadio,    onInputRadio_,    onInputRadioOnce,
    onInputText,     onInputText_,     onInputTextOnce,
@@ -28,97 +27,77 @@ import Control.Applicative
 
 -- | triggers a choice input to the user. The result will be sent to the callback
 onInputRadio :: (Typeable a, Eq a,  Show a) => String -> [a] -> (EventNumber -> a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputRadio title choices handler pn = onEvent (inputRadioHead pn title choices) (\(en, InputData (RadioData a)) -> handler en a)
+onInputRadio title choices handler pn = onEvent (inputRadioHead pn title choices) (\(en, a) -> handler en a)
 
 -- | the same, disregard the event number
 onInputRadio_ :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputRadio_ title choices handler pn = onEvent_ (inputRadioHead pn title choices) (handler . inputRadioData)
+onInputRadio_ title choices handler pn = onEvent_ (inputRadioHead pn title choices) handler
 
 -- | the same, suppress the event after first trigger
 onInputRadioOnce :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputRadioOnce title choices handler pn = onEventOnce (inputRadioHead pn title choices) (handler . inputRadioData)
+onInputRadioOnce title choices handler pn = onEventOnce (inputRadioHead pn title choices) handler
 
-inputRadio :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> c -> Event (Input c)
-inputRadio pn title cs _ = InputEv (Input pn title (Radio (zip cs (show <$> cs))))
+inputRadio :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> c -> Event c
+inputRadio pn title cs _ = InputEv pn title (Radio (zip cs (show <$> cs)))
 
-inputRadioHead :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> Event (Input c)
+inputRadioHead :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> Event c
 inputRadioHead pn title choices = inputRadio pn title choices (head choices)
 
-inputRadioData :: (Show c) => EventData (Input c) -> c
-inputRadioData (InputData (RadioData a)) = a
-inputRadioData a = error $ "Not a Radio Data: " ++ show a
 -- ** Text inputs
 
 -- | triggers a string input to the user. The result will be sent to the callback
 onInputText :: String -> (EventNumber -> String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputText title handler pn = onEvent (inputText pn title) (\(en, a) -> handler en (inputTextData a))
+onInputText title handler pn = onEvent (inputText pn title) (\(en, a) -> handler en a)
 
 -- | asks the player pn to answer a question, and feed the callback with this data.
 onInputText_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputText_ title handler pn = onEvent_ (inputText pn title) (handler . inputTextData)
+onInputText_ title handler pn = onEvent_ (inputText pn title) handler
 
 -- | asks the player pn to answer a question, and feed the callback with this data.
 onInputTextOnce :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputTextOnce title handler pn = onEventOnce (inputText pn title) (handler . inputTextData)
+onInputTextOnce title handler pn = onEventOnce (inputText pn title) handler
 
-inputText :: PlayerNumber -> String -> Event (Input String)
-inputText pn title = InputEv (Input pn title Text)
-
-inputTextData :: EventData (Input String) -> String
-inputTextData (InputData (TextData a)) = a
-inputTextData a = error $ "Not a Text Data: " ++ (show a)
-
+inputText :: PlayerNumber -> String -> Event String
+inputText pn title = InputEv pn title Text
 
 -- ** Checkbox inputs
 
 onInputCheckbox :: (Typeable a, Eq a,  Show a) => String -> [(a, String)] -> (EventNumber -> [a] -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputCheckbox title choices handler pn = onEvent (inputCheckbox pn title choices) (\(en, InputData (CheckboxData a)) -> handler en a)
+onInputCheckbox title choices handler pn = onEvent (inputCheckbox pn title choices) (\(en, a) -> handler en a)
 
 onInputCheckbox_ :: (Typeable a, Eq a,  Show a) => String -> [(a, String)] -> ([a] -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputCheckbox_ title choices handler pn = onEvent_ (inputCheckbox pn title choices) (handler . inputCheckboxData)
+onInputCheckbox_ title choices handler pn = onEvent_ (inputCheckbox pn title choices) handler
 
 onInputCheckboxOnce :: (Typeable a, Eq a,  Show a) => String -> [(a, String)] -> ([a] -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn title choices) (handler . inputCheckboxData)
+onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn title choices) handler
 
-inputCheckboxData :: (Show c) => EventData (Input c) -> [c]
-inputCheckboxData (InputData (CheckboxData a)) = a
-inputCheckboxData a = error $ "Not a Checkbox Data: " ++ show a
-
-inputCheckbox :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Event (Input c)
-inputCheckbox pn title cs = InputEv (Input pn title (Checkbox cs))
+inputCheckbox :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Event [c]
+inputCheckbox pn title cs = InputEv pn title (Checkbox cs)
 
 -- ** Button inputs
 
 onInputButton :: String -> (EventNumber -> () -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputButton title handler pn = onEvent (inputButton pn title) (\(en, InputData ButtonData) -> handler en ())
+onInputButton title handler pn = onEvent (inputButton pn title) (\(en, ()) -> handler en ())
 
 onInputButton_ :: String -> (() -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputButton_ title handler pn = onEvent_ (inputButton pn title) (handler . inputButtonData)
+onInputButton_ title handler pn = onEvent_ (inputButton pn title) handler
 
 onInputButtonOnce :: String -> (() -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputButtonOnce title handler pn = onEventOnce (inputButton pn title) (handler . inputButtonData)
+onInputButtonOnce title handler pn = onEventOnce (inputButton pn title) handler
 
-inputButtonData :: EventData (Input ()) -> ()
-inputButtonData (InputData ButtonData) = ()
-inputButtonData a = error $ "Not a Button Data: " ++ show a
-
-inputButton :: PlayerNumber -> String -> Event (Input ())
-inputButton pn title = InputEv (Input pn title Button)
+inputButton :: PlayerNumber -> String -> Event ()
+inputButton pn title = InputEv pn title Button
 
 -- ** Textarea inputs
 
-inputTextarea :: PlayerNumber -> String -> Event (Input String)
-inputTextarea pn title = InputEv (Input pn title TextArea)
+inputTextarea :: PlayerNumber -> String -> Event String
+inputTextarea pn title = InputEv pn title TextArea
 
 onInputTextarea :: String -> (EventNumber -> String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputTextarea title handler pn = onEvent (inputTextarea pn title) (\(en, a) -> handler en (inputTextareaData a))
+onInputTextarea title handler pn = onEvent (inputTextarea pn title) (\(en, a) -> handler en a)
 
 onInputTextarea_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputTextarea_ title handler pn = onEvent_ (inputTextarea pn title) (handler . inputTextareaData)
+onInputTextarea_ title handler pn = onEvent_ (inputTextarea pn title) handler
 
 onInputTextareaOnce :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputTextareaOnce title handler pn = onEventOnce (inputTextarea pn title) (handler . inputTextareaData)
-
-inputTextareaData :: EventData (Input String) -> String
-inputTextareaData (InputData (TextAreaData a)) = a
-inputTextareaData a = error $ "Not a Textarea Data: " ++ show a
+onInputTextareaOnce title handler pn = onEventOnce (inputTextarea pn title) handler

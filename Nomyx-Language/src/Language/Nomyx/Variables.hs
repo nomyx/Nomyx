@@ -73,12 +73,12 @@ data VEvent a = VUpdated a | VDeleted deriving (Typeable, Show, Eq)
 data MsgVar a = MsgVar {message :: Msg (VEvent a), variable :: V a }
 
 msgVar :: String -> MsgVar a
-msgVar a = MsgVar (Message a) (V a)
+msgVar a = MsgVar (Msg a) (V a)
 
 newMsgVar :: (Typeable a, Show a) => VarName -> a -> Nomex (Maybe (MsgVar a))
 newMsgVar name a = do
     mv <- newVar name a
-    return $ mv >>= Just . MsgVar (Message name)
+    return $ mv >>= Just . MsgVar (Msg name)
 
 newMsgVar_ :: (Typeable a, Show a) => VarName -> a -> Nomex (MsgVar a)
 newMsgVar_ name a = partial "newMsgVar_: Variable existing" (newMsgVar name a)
@@ -87,12 +87,12 @@ newMsgVar' :: (Typeable a, Show a) => MsgVar a -> a -> Nomex Bool
 newMsgVar' v a = maybe False (const True) <$> (newMsgVar (getMsgVarName v) a)
 
 -- | create a new MsgVar and register callback in case of change (update, delete)
-newMsgVarOnEvent :: (Typeable a, Show a) => VarName -> a -> (VEvent a -> Nomex ()) -> Nomex (Maybe (MsgVar a))
+newMsgVarOnEvent :: (Typeable a, Show a, Eq a) => VarName -> a -> (VEvent a -> Nomex ()) -> Nomex (Maybe (MsgVar a))
 newMsgVarOnEvent name a f = do
     mv <- newMsgVar name a
     case mv of
        Just (MsgVar m _) -> do
-          onMessage m $ f . messageData
+          onMessage m f
           return mv
        Nothing -> return Nothing
 
@@ -114,16 +114,16 @@ modifyMsgVar mv f = writeMsgVar mv . f =<< readMsgVar_ mv
 delMsgVar :: (Typeable a, Show a) => MsgVar a -> Nomex Bool
 delMsgVar (MsgVar m v) = do
    sendMessage m VDeleted
-   delAllEvents m
+   delAllEvents (Message m)
    delVar v
 
 onMsgVarEvent :: (Typeable a, Show a) => MsgVar a -> (VEvent a -> Nomex ()) -> Nomex EventNumber
 onMsgVarEvent mv f = do
    m <- liftEffect $ getMsgVarMessage mv
-   onMessage m $ \(MessageData v) -> f v
+   onMessage m f
 
 -- | adds a callback for each of the MsgVar events: Create, Update, Delete
-onMsgVarChange :: (Typeable a, Show a)
+onMsgVarChange :: (Typeable a, Show a, Eq a)
                => MsgVar a             -- ^ the MsgVar
                -> (a -> Nomex b)       -- ^ callback on creation (called immediatly)
                -> (a -> b -> Nomex ()) -- ^ callback on update
@@ -171,7 +171,7 @@ newArrayVar_ :: (Typeable a, Show a, Typeable i, Show i) => VarName -> [i] -> No
 newArrayVar_ name l = partial "newArrayVar_: Variable existing" (newArrayVar name l)
 
 -- | initialize an empty ArrayVar, registering a callback that will be triggered at every change
-newArrayVar' :: (Typeable a, Show a, Typeable i, Show i) => VarName -> [i] -> (VEvent [(i,Maybe a)] -> Nomex ()) -> Nomex (Maybe (ArrayVar i a))
+newArrayVar' :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i) => VarName -> [i] -> (VEvent [(i,Maybe a)] -> Nomex ()) -> Nomex (Maybe (ArrayVar i a))
 newArrayVar' name l f = do
     let list = map (\i -> (i, Nothing)) l
     newMsgVarOnEvent name list f

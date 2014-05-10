@@ -70,7 +70,7 @@ data EventHandler where
         {_eventNumber :: EventNumber,
          _ruleNumber  :: RuleNumber,
          event        :: Event e,
-         handler      :: (EventNumber, EventData e) -> Nomex (),
+         handler      :: (EventNumber, e) -> Nomex (),
          _evStatus    :: Status} -> EventHandler
 
 data Status = SActive | SDeleted deriving (Eq, Show)

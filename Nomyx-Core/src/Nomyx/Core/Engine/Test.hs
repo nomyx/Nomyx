@@ -152,36 +152,36 @@ testSingleInput = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, S
    h a = void $ newOutput (Just 1) (return $ "voted for " ++ show a)
 
 testSingleInputEx = isOutput "voted for Holland" g where
-   g = execRuleFuncEvent testSingleInput (inputRadio 1 "Vote for Holland or Sarkozy" [Holland, Sarkozy] Holland) (InputData (RadioData Holland))
+   g = execRuleFuncEvent testSingleInput (inputRadio 1 "Vote for Holland or Sarkozy" [Holland, Sarkozy] Holland) Holland
 
 testMultipleInputs :: Rule
 testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
    h a = void $ newOutput (Just 1) (return $ "voted for " ++ show a)
 
 testMultipleInputsEx = isOutput "voted for [Holland,Sarkozy]" g where
-   g = execRuleFuncEvent testMultipleInputs (inputCheckbox 1 "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) (InputData (CheckboxData [Holland, Sarkozy]))
+   g = execRuleFuncEvent testMultipleInputs (inputCheckbox 1 "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) [Holland, Sarkozy]
 
 testInputString :: Rule
 testInputString = void $ onInputText_ "Enter a number:" h 1 where
    h a = void $ newOutput (Just 1) (return $ "You entered: " ++ a)
 
 testInputStringEx = isOutput "You entered: 1" g where
-   g = execRuleFuncEvent testInputString (inputText 1 "Enter a number:") (InputData (TextData "1"))
+   g = execRuleFuncEvent testInputString (inputText 1 "Enter a number:") "1"
 
 -- Test message
 testSendMessage :: Rule
 testSendMessage = do
-    let msg = Message "msg" :: Event(Message String)
-    onEvent_ msg f
+    let msg = Msg "msg" :: Msg String
+    onEvent_ (Message $ msg) f
     sendMessage msg "toto" where
-        f (MessageData a :: EventData(Message String)) = void $ newOutput (Just 1) (return a)
+        f (a :: String) = void $ newOutput (Just 1) (return a)
 
 testSendMessageEx = isOutput "toto" (execRuleFunc testSendMessage)
 
 testSendMessage2 :: Rule
 testSendMessage2 = do
-    onEvent_ (Message "msg":: Event(Message ())) $ const $ void $ newOutput (Just 1) (return "Received")
-    sendMessage_ (Message "msg")
+    onEvent_ (Message (Msg "msg" :: Msg ())) $ const $ void $ newOutput (Just 1) (return "Received")
+    sendMessage_ "msg"
 
 
 testSendMessageEx2 = isOutput "Received" (execRuleFunc testSendMessage2)
@@ -192,13 +192,13 @@ data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 testUserInputWrite :: Rule
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
-    onEvent_ (Message "voted" :: Event (Message ())) h2
-    void $ onEvent_ (InputEv (Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")]))) h1 where
-        h1 (InputData (RadioData a) :: EventData (Input Choice2)) = do
+    onEvent_ (Message (Msg "voted" :: Msg ())) h2
+    void $ onEvent_ (InputEv 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
+        h1 (a :: Choice2) = do
             writeVar (V "vote") (Just a)
-            SendMessage (Message "voted") ()
+            SendMessage (Msg "voted") ()
         h1 _ = undefined
-        h2 (MessageData _) = do
+        h2 _ = do
             a <- liftEffect $ readVar (V "vote")
             void $ case a of
                 Just (Just Me) -> newOutput (Just 1) (return "voted Me")
@@ -206,7 +206,7 @@ testUserInputWrite = do
         h2 _ = undefined
 
 testUserInputWriteEx = isOutput "voted Me" g where
-   g = execRuleFuncEvent testUserInputWrite (InputEv (Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")]))) (InputData (RadioData Me))
+   g = execRuleFuncEvent testUserInputWrite (InputEv 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
 
 -- Test rule activation
 testActivateRule :: Rule
@@ -217,7 +217,7 @@ testActivateRule = do
 
 testActivateRuleEx = _rStatus (head $ _rules (execRuleFuncGame testActivateRule testGame {_rules=[testRule]}))  == Active
 
-testAutoActivateEx = _rStatus (head $ _rules (execRuleFuncEventGame autoActivate (RuleEv Proposed) (RuleData testRule) (testGame {_rules=[testRule]})))  == Active
+testAutoActivateEx = _rStatus (head $ _rules (execRuleFuncEventGame autoActivate (RuleEv Proposed) testRule (testGame {_rules=[testRule]})))  == Active
 
 --Time tests
 
@@ -226,7 +226,7 @@ testTimeEvent = void $ onEvent_ (Time date1) f where
    f _ = outputAll_ $ show date1
 
 testTimeEventEx = isOutput (show date1) g where
-   g = execRuleFuncEvent testTimeEvent (Time date1) (TimeData date1)
+   g = execRuleFuncEvent testTimeEvent (Time date1) date1
 
 testTimeEvent2 :: Nomex ()
 testTimeEvent2 = schedule' [date1, date2] (outputAll_ . show)
@@ -241,7 +241,7 @@ testTimeEventEx2 = isOutput (show date1) g && isOutput (show date2) g where
 testDeleteRule :: Rule
 testDeleteRule = do
     newVar_ "toto" (1::Int)
-    onMessage (Message "msg":: Event(Message ())) (const $ return ())
+    onMessage (Msg "msg" :: Msg ()) (const $ return ())
     void $ newOutput (Just 1) (return "toto")
 
 testDeleteGame :: Game

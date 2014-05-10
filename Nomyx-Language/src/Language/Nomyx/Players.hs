@@ -88,8 +88,8 @@ forEachPlayer :: (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> (Pl
 forEachPlayer action actionWhenArrive actionWhenLeave = do
     pns <- liftEffect getAllPlayerNumbers
     mapM_ action pns
-    an <- onEvent_ (Player Arrive) $ \(PlayerData p) -> actionWhenArrive $ _playerNumber p
-    ln <- onEvent_ (Player Leave)  $ \(PlayerData p) -> actionWhenLeave  $ _playerNumber p
+    an <- onEvent_ (Player Arrive) $ actionWhenArrive . _playerNumber
+    ln <- onEvent_ (Player Leave)  $ actionWhenLeave  . _playerNumber
     return (an, ln)
 
 -- | perform the same action for each players, including new players
