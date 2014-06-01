@@ -246,7 +246,7 @@ viewInput me gn (EventInfo en _ ev _ SActive env) = do
 viewInput _ _ _ = return Nothing
 
 dispInput :: PlayerNumber -> GameName -> EventNumber -> SomeField -> RoutedNomyxServer (Maybe Html)
-dispInput me gn en ev@(SomeField (InputEv inputNumber pn title _)) | me == pn = do
+dispInput me gn en ev@(SomeField (Input inputNumber pn title _)) | me == pn = do
   lf  <- lift $ viewForm "user" $ inputForm ev
   link <- showURL (DoInput en (fromJust inputNumber) gn)
   return $ Just $ tr $ td $ do
@@ -366,11 +366,11 @@ newPlayAs gn ts = toResponse <$> do
 
 
 inputForm :: SomeField -> NomyxForm UInputData
-inputForm (SomeField (InputEv _ _ _ (Radio choices)))    = URadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
-inputForm (SomeField (InputEv _ _ _ Text))               = UTextData     <$> RB.inputText "" <++ label " "
-inputForm (SomeField (InputEv _ _ _ TextArea))           = UTextAreaData <$> textarea 50 5  "" <++ label " "
-inputForm (SomeField (InputEv _ _ _ Button))             = pure UButtonData
-inputForm (SomeField (InputEv _ _ _ (Checkbox choices))) = UCheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label " "
+inputForm (SomeField (Input _ _ _ (Radio choices)))    = URadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
+inputForm (SomeField (Input _ _ _ Text))               = UTextData     <$> RB.inputText "" <++ label " "
+inputForm (SomeField (Input _ _ _ TextArea))           = UTextAreaData <$> textarea 50 5  "" <++ label " "
+inputForm (SomeField (Input _ _ _ Button))             = pure UButtonData
+inputForm (SomeField (Input _ _ _ (Checkbox choices))) = UCheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label " "
 inputForm _ = error "Not an input form"
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html

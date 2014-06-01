@@ -171,11 +171,11 @@ eqSomeField :: SomeField -> SomeField -> Bool
 eqSomeField (SomeField e1) (SomeField e2) = e1 === e2
 
 getEventEither :: Event a -> [EventEnv] -> BEither [SomeField] a
-getEventEither (PureEvent a)      _   = BE (Right a)
-getEventEither EmptyEvent         _   = BE (Left [])
-getEventEither (SumEvent a b)     ers = (getEventEither a ers) <|> (getEventEither b ers)
-getEventEither (ProductEvent f b) ers = (getEventEither f ers) <*> (getEventEither b ers)
-getEventEither (BaseEvent a)      ers = case lookupField a ers of
+getEventEither (PureEvent a)   _   = BE (Right a)
+getEventEither EmptyEvent      _   = BE (Left [])
+getEventEither (SumEvent a b)  ers = (getEventEither a ers) <|> (getEventEither b ers)
+getEventEither (AppEvent f b) ers = (getEventEither f ers) <*> (getEventEither b ers)
+getEventEither (BaseEvent a)   ers = case lookupField a ers of
    Just r  -> BE (Right r)
    Nothing -> BE (Left [SomeField a])
 
@@ -213,16 +213,16 @@ execInputHandler' ir inn eh = do
 
 getInput :: EventInfo -> InputNumber -> Maybe SomeField
 getInput (EventInfo _ _ ev _ _ env) inn = headMay $ filter isInput (getEventFields ev env) where
-      isInput (SomeField (InputEv (Just n) _ _ _)) | n == inn = True
+      isInput (SomeField (Input (Just n) _ _ _)) | n == inn = True
       isInput _ = False
 
 -- execute the event handler using the data received from user
 execInputHandler :: UInputData -> SomeField -> Evaluate ()
-execInputHandler (UTextData s)      (SomeField e@(InputEv _ _ _ (Text)))        = triggerEvent e s
-execInputHandler (UTextAreaData s)  (SomeField e@(InputEv _ _ _ (TextArea)))    = triggerEvent e s
-execInputHandler (UButtonData)      (SomeField e@(InputEv _ _ _ (Button)))      = triggerEvent e ()
-execInputHandler (URadioData i)     (SomeField e@(InputEv _ _ _ (Radio cs)))    = triggerEvent e (fst $ cs!!i)
-execInputHandler (UCheckboxData is) (SomeField e@(InputEv _ _ _ (Checkbox cs))) = triggerEvent e (fst <$> cs `sel` is)
+execInputHandler (UTextData s)      (SomeField e@(Input _ _ _ (Text)))        = triggerEvent e s
+execInputHandler (UTextAreaData s)  (SomeField e@(Input _ _ _ (TextArea)))    = triggerEvent e s
+execInputHandler (UButtonData)      (SomeField e@(Input _ _ _ (Button)))      = triggerEvent e ()
+execInputHandler (URadioData i)     (SomeField e@(Input _ _ _ (Radio cs)))    = triggerEvent e (fst $ cs!!i)
+execInputHandler (UCheckboxData is) (SomeField e@(Input _ _ _ (Checkbox cs))) = triggerEvent e (fst <$> cs `sel` is)
 execInputHandler _ _ = return ()
 
 findEvent :: EventNumber -> [EventInfo] -> Maybe EventInfo
@@ -418,14 +418,14 @@ indexInputs :: Event a -> Event a
 indexInputs e = fst $ indexInputs' 0 e
 
 indexInputs' :: Int -> Event a -> (Event a, Int)
-indexInputs' n (BaseEvent (InputEv _ pn s ifo)) = (BaseEvent (InputEv (Just n) pn s ifo), n+1)
-indexInputs' n (BaseEvent a) = (BaseEvent a, n)
-indexInputs' n (PureEvent a) = (PureEvent a, n)
-indexInputs' n EmptyEvent = (EmptyEvent, n)
+indexInputs' n (BaseEvent (Input _ pn s ifo)) = (BaseEvent (Input (Just n) pn s ifo), n+1)
+indexInputs' n (BaseEvent a)  = (BaseEvent a, n)
+indexInputs' n (PureEvent a)  = (PureEvent a, n)
+indexInputs' n EmptyEvent     = (EmptyEvent, n)
 indexInputs' n (SumEvent a b) = (SumEvent e1 e2, n2) where
    (e1, n1) = indexInputs' n a
    (e2, n2) = indexInputs' n1 b
-indexInputs' n (ProductEvent a b) = (ProductEvent e1 e2, n2) where
+indexInputs' n (AppEvent a b) = (AppEvent e1 e2, n2) where
    (e1, n1) = indexInputs' n a
    (e2, n2) = indexInputs' n1 b
 

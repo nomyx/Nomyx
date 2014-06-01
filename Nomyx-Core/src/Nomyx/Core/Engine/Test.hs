@@ -153,21 +153,21 @@ testSingleInput = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, S
    h a = void $ newOutput (Just 1) (return $ "voted for " ++ show a)
 
 testSingleInputEx = isOutput "voted for Holland" g where
-   g = execRuleFuncEvent testSingleInput (InputEv (Just 0) 1 "Vote for Holland or Sarkozy" (Radio [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) Holland
+   g = execRuleFuncEvent testSingleInput (Input (Just 0) 1 "Vote for Holland or Sarkozy" (Radio [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) Holland
 
 testMultipleInputs :: Rule
 testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
    h a = void $ newOutput (Just 1) (return $ "voted for " ++ show a)
 
 testMultipleInputsEx = isOutput "voted for [Holland,Sarkozy]" g where
-   g = execRuleFuncEvent testMultipleInputs (InputEv (Just 0) 1 "Vote for Holland and Sarkozy" (Checkbox [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) [Holland, Sarkozy]
+   g = execRuleFuncEvent testMultipleInputs (Input (Just 0) 1 "Vote for Holland and Sarkozy" (Checkbox [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) [Holland, Sarkozy]
 
 testInputString :: Rule
 testInputString = void $ onInputText_ "Enter a number:" h 1 where
    h a = void $ newOutput (Just 1) (return $ "You entered: " ++ a)
 
 testInputStringEx = isOutput "You entered: 1" g where
-   g = execRuleFuncEvent testInputString (InputEv (Just 0) 1 "Enter a number:" Text) "1"
+   g = execRuleFuncEvent testInputString (Input (Just 0) 1 "Enter a number:" Text) "1"
 
 -- Test message
 testSendMessage :: Rule
@@ -194,7 +194,7 @@ testUserInputWrite :: Rule
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (messageEvent (Msg "voted" :: Msg ())) h2
-    void $ onEvent_ (BaseEvent $ InputEv Nothing 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
+    void $ onEvent_ (BaseEvent $ Input Nothing 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
         h1 (a :: Choice2) = do
             writeVar (V "vote") (Just a)
             SendMessage (Msg "voted") ()
@@ -207,7 +207,7 @@ testUserInputWrite = do
         h2 _ = undefined
 
 testUserInputWriteEx = isOutput "voted Me" g where
-   g = execRuleFuncEvent testUserInputWrite (InputEv (Just 0) 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
+   g = execRuleFuncEvent testUserInputWrite (Input (Just 0) 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
 
 -- Test rule activation
 testActivateRule :: Rule
@@ -319,7 +319,7 @@ getChoiceEvents :: State Game [EventNumber]
 getChoiceEvents = do
    evs <- access events
    return $ map _eventNumber $ filter choiceEvent evs
-   where choiceEvent (EventInfo _ _ (BaseEvent (InputEv _ _ _ (Radio _))) _ _ _) = True
+   where choiceEvent (EventInfo _ _ (BaseEvent (Input _ _ _ (Radio _))) _ _ _) = True
          choiceEvent _ = False
 
 --Get all event numbers of type text (text field)
@@ -327,6 +327,6 @@ getTextEvents :: State Game [EventNumber]
 getTextEvents = do
    evs <- access events
    return $ map _eventNumber $ filter choiceEvent evs
-   where choiceEvent (EventInfo _ _ (BaseEvent (InputEv _ _ _ Text)) _ _ _) = True
+   where choiceEvent (EventInfo _ _ (BaseEvent (Input _ _ _ Text)) _ _ _) = True
          choiceEvent _ = False
 

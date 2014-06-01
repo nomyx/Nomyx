@@ -119,4 +119,4 @@ ruleEvent :: RuleEvent -> Event RuleInfo
 ruleEvent re = BaseEvent $ RuleEv re
 
 baseInputEvent :: (Typeable a) => PlayerNumber -> String -> (InputForm a) -> Field a
-baseInputEvent pn s iform = InputEv Nothing pn s iform
+baseInputEvent pn s iform = Input Nothing pn s iform
