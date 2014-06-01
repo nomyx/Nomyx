@@ -13,6 +13,7 @@ module Language.Nomyx.Inputs (
    onInputButton,   onInputButton_,   onInputButtonOnce,
    onInputTextarea, onInputTextarea_, onInputTextareaOnce,
    -- Internals
+   baseInputRadio, baseInputText, baseInputCheckbox, baseInputButton, baseInputTextarea,
    inputRadio, inputText, inputCheckbox, inputButton, inputTextarea
    ) where
 
@@ -37,11 +38,14 @@ onInputRadio_ title choices handler pn = onEvent_ (inputRadioHead pn title choic
 onInputRadioOnce :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
 onInputRadioOnce title choices handler pn = onEventOnce (inputRadioHead pn title choices) handler
 
-inputRadio :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> c -> Event c
-inputRadio pn title cs _ = InputEv pn title (Radio (zip cs (show <$> cs)))
-
 inputRadioHead :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> Event c
 inputRadioHead pn title choices = inputRadio pn title choices (head choices)
+
+inputRadio :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> c -> Event c
+inputRadio pn title cs _ = baseEvent $ baseInputRadio pn title (zip cs (show <$> cs))
+
+baseInputRadio :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Field c
+baseInputRadio pn title cs = baseInputEvent pn title (Radio cs)
 
 -- ** Text inputs
 
@@ -58,7 +62,10 @@ onInputTextOnce :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex Event
 onInputTextOnce title handler pn = onEventOnce (inputText pn title) handler
 
 inputText :: PlayerNumber -> String -> Event String
-inputText pn title = InputEv pn title Text
+inputText pn title = baseEvent $ baseInputText pn title
+
+baseInputText :: PlayerNumber -> String -> Field String
+baseInputText pn title = baseInputEvent pn title Text
 
 -- ** Checkbox inputs
 
@@ -72,7 +79,10 @@ onInputCheckboxOnce :: (Typeable a, Eq a,  Show a) => String -> [(a, String)] ->
 onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn title choices) handler
 
 inputCheckbox :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Event [c]
-inputCheckbox pn title cs = InputEv pn title (Checkbox cs)
+inputCheckbox pn title cs = baseEvent $ baseInputCheckbox pn title cs
+
+baseInputCheckbox :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Field [c]
+baseInputCheckbox pn title cs = baseInputEvent pn title (Checkbox cs)
 
 -- ** Button inputs
 
@@ -86,12 +96,12 @@ onInputButtonOnce :: String -> (() -> Nomex ()) -> PlayerNumber -> Nomex EventNu
 onInputButtonOnce title handler pn = onEventOnce (inputButton pn title) handler
 
 inputButton :: PlayerNumber -> String -> Event ()
-inputButton pn title = InputEv pn title Button
+inputButton pn title = baseEvent $ baseInputButton pn title
+
+baseInputButton :: PlayerNumber -> String -> Field ()
+baseInputButton pn title = baseInputEvent pn title Button
 
 -- ** Textarea inputs
-
-inputTextarea :: PlayerNumber -> String -> Event String
-inputTextarea pn title = InputEv pn title TextArea
 
 onInputTextarea :: String -> (EventNumber -> String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
 onInputTextarea title handler pn = onEvent (inputTextarea pn title) (\(en, a) -> handler en a)
@@ -101,3 +111,9 @@ onInputTextarea_ title handler pn = onEvent_ (inputTextarea pn title) handler
 
 onInputTextareaOnce :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
 onInputTextareaOnce title handler pn = onEventOnce (inputTextarea pn title) handler
+
+inputTextarea :: PlayerNumber -> String -> Event String
+inputTextarea pn title = baseEvent $ baseInputTextarea pn title
+
+baseInputTextarea :: PlayerNumber -> String -> Field String
+baseInputTextarea pn title = baseInputEvent pn title TextArea

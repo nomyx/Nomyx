@@ -28,6 +28,7 @@ import qualified Data.Map as M
 import Control.Monad.Error (MonadError(..))
 
 
+
 data VoteType a = ExclusiveVote (Maybe (Alts a))
                 | NonExclusiveVote [Alts a]
 
@@ -109,7 +110,7 @@ assessOnTimeLimit :: (Votable a) => UTCTime -> Assessor a
 assessOnTimeLimit time = do
    (VoteData msgEnd voteVar i assess _) <- get
    put (VoteData msgEnd voteVar i assess (Just time))
-   lift $ void $ onEvent_ (Time time) $ \_ -> do
+   lift $ void $ onEvent_ (timeEvent time) $ \_ -> do
       votes <- getMsgVarData_ voteVar
       sendMessage msgEnd (assess $ getVoteStats votes True)
 
@@ -251,7 +252,7 @@ displayVoteResult toVoteName (VoteData msgEnd voteVar _ _ _) = onMessage msgEnd 
 
 -- | any new rule will be activate if the rule in parameter returns For
 onRuleProposed :: (RuleInfo -> Nomex (Msg [ForAgainst]) ) -> Rule
-onRuleProposed f = void $ onEvent_ (RuleEv Proposed) $ \rule -> do
+onRuleProposed f = void $ onEvent_ (ruleEvent Proposed) $ \rule -> do
     resp <- f rule
     void $ onMessageOnce resp $ (activateOrReject rule) . (== [For])
 

@@ -12,6 +12,7 @@ module Language.Nomyx.Players (
    PlayerName,
    PlayerInfo(..),
    Player(..),
+   playerEvent,
    playerNumber, playerName,
    getPlayers, getPlayer, getPlayerName,
    setPlayerName,
@@ -88,8 +89,8 @@ forEachPlayer :: (PlayerNumber -> Nomex ()) -> (PlayerNumber -> Nomex ()) -> (Pl
 forEachPlayer action actionWhenArrive actionWhenLeave = do
     pns <- liftEffect getAllPlayerNumbers
     mapM_ action pns
-    an <- onEvent_ (Player Arrive) $ actionWhenArrive . _playerNumber
-    ln <- onEvent_ (Player Leave)  $ actionWhenLeave  . _playerNumber
+    an <- onEvent_ (playerEvent Arrive) $ actionWhenArrive . _playerNumber
+    ln <- onEvent_ (playerEvent Leave)  $ actionWhenLeave  . _playerNumber
     return (an, ln)
 
 -- | perform the same action for each players, including new players

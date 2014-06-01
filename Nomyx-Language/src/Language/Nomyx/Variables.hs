@@ -114,7 +114,7 @@ modifyMsgVar mv f = writeMsgVar mv . f =<< readMsgVar_ mv
 delMsgVar :: (Typeable a, Show a) => MsgVar a -> Nomex Bool
 delMsgVar (MsgVar m v) = do
    sendMessage m VDeleted
-   delAllEvents (Message m)
+   --delAllEvents (messageEvent m)
    delVar v
 
 onMsgVarEvent :: (Typeable a, Show a) => MsgVar a -> (VEvent a -> Nomex ()) -> Nomex EventNumber

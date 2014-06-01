@@ -7,6 +7,7 @@
 {-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 -- | This module containt the type definitions necessary to build a Nomic rule. 
 module Language.Nomyx.Expression where
@@ -29,6 +30,7 @@ type EventName = String
 type VarName = String
 type Code = String
 type OutputNumber = Int
+type InputNumber = Int
 
 -- * Nomyx Expression
 
@@ -47,13 +49,12 @@ type NomexNE = Exp NoEffect
 data Exp :: Eff -> * -> *   where
    --Variables management
    NewVar         :: (Typeable a, Show a) => VarName -> a -> Nomex (Maybe (V a))
-   ReadVar        :: (Typeable a, Show a) => V a -> Exp NoEffect (Maybe a)
+   ReadVar        :: (Typeable a, Show a) => V a -> NomexNE (Maybe a)
    WriteVar       :: (Typeable a, Show a) => V a -> a -> Nomex Bool
    DelVar         :: (V a) -> Nomex Bool
    --Events management
-   OnEvent        :: Typeable e => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
+   OnEvent        :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
    DelEvent       :: EventNumber -> Nomex Bool
-   DelAllEvents   :: Typeable e => Event e -> Nomex ()
    SendMessage    :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
    --Rules management
    ProposeRule    :: RuleInfo -> Nomex Bool
@@ -126,20 +127,34 @@ data V a = V {varName :: String} deriving Typeable
 
 -- * Events
 
--- | events types
+-- | Composable events
 data Event a where
-   InputEv :: PlayerNumber -> String -> (InputForm a) -> Event a
-   Player  :: Player                                  -> Event PlayerInfo
-   RuleEv  :: RuleEvent                               -> Event RuleInfo
-   Time    :: UTCTime                                 -> Event UTCTime
-   Message :: Msg a                                   -> Event a
-   Victory ::                                            Event VictoryCond
-   deriving (Typeable)
-   
+   SumEvent     :: Event a -> Event a -> Event a        -- The first event to fire will be returned
+   ProductEvent :: Event (a -> b) -> Event a -> Event b -- Both events should fire, and then the result is returned
+   PureEvent    :: a -> Event a                         -- Create a fake event. The result is useable with no delay.
+   EmptyEvent   :: Event a                              -- An event that is never fired.
+   BaseEvent    :: (Typeable a) => Field a -> Event a   -- Embed a base event
+   deriving Typeable
+
+-- | Base events
+data Field a where
+   InputEv :: Maybe InputNumber -> PlayerNumber -> String -> (InputForm a) -> Field a
+   Player  :: Player    -> Field PlayerInfo
+   RuleEv  :: RuleEvent -> Field RuleInfo
+   Time    :: UTCTime   -> Field UTCTime
+   Message :: Msg a     -> Field a
+   Victory ::              Field VictoryCond
+   deriving Typeable
+
+-- | Type agnostic base event
+data SomeField = forall a. (Typeable a) => SomeField (Field a)
+
+-- | Events parameters
 data Player    = Arrive | Leave deriving (Typeable, Show, Eq)
 data RuleEvent = Proposed | Activated | Rejected | Added | Modified | Deleted deriving (Typeable, Show, Eq)
 data Msg m     = Msg String deriving (Typeable, Show)
---
+
+-- | Input forms
 data InputForm a where
    Text     ::                                    InputForm String
    TextArea ::                                    InputForm String
@@ -148,11 +163,23 @@ data InputForm a where
    Checkbox :: (Show a, Eq a) => [(a, String)] -> InputForm [a]
    deriving Typeable
 
-deriving instance Show (Event a)
 deriving instance Show (InputForm a)
-deriving instance Eq   (Event e)
-deriving instance Eq   (InputForm e)
-deriving instance Eq   (Msg e)
+deriving instance Show (Field a)
+deriving instance Show SomeField
+deriving instance Eq (Field e)
+deriving instance Eq (InputForm e)
+deriving instance Eq (Msg e)
+
+instance Functor Event where
+   fmap f a = pure f <*> a
+
+instance Applicative Event where
+   pure = PureEvent
+   (<*>) = ProductEvent
+
+instance Alternative Event where
+   (<|>) = SumEvent
+   empty = EmptyEvent
 
 -- * Rule
 

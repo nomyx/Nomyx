@@ -78,7 +78,7 @@ winXEcuPerDay x = schedule_ (recur daily) $ modifyAllValues accounts (+x)
 
 -- | a player wins X Ecu if a rule proposed is accepted
 winXEcuOnRuleAccepted :: Int -> Rule
-winXEcuOnRuleAccepted x = void $ onEvent_ (RuleEv Activated) $ \rule -> void $ modifyValueOfPlayer (_rProposedBy rule) accounts (+x)
+winXEcuOnRuleAccepted x = void $ onEvent_ (ruleEvent Activated) $ \rule -> void $ modifyValueOfPlayer (_rProposedBy rule) accounts (+x)
 
 -- | a player can transfer money to another player
 -- it does not accept new players or check if balance is positive, to keep the example simple
@@ -110,7 +110,7 @@ king = msgVar "King"
 
 -- | Monarchy: only the king decides which rules to accept or reject
 monarchy :: Rule
-monarchy = void $ onEvent_ (RuleEv Proposed) $ \rule -> do
+monarchy = void $ onEvent_ (ruleEvent Proposed) $ \rule -> do
     k <- readMsgVar_ king
     void $ onInputRadioOnce ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") [True, False] (activateOrReject rule) k
 
@@ -174,7 +174,7 @@ returnToDemocracy rs = do
 banPlayer :: PlayerNumber -> Rule
 banPlayer pn = do
    delPlayer pn
-   void $ onEvent_ (Player Arrive) $ const $ void $ delPlayer pn
+   void $ onEvent_ (playerEvent Arrive) $ const $ void $ delPlayer pn
 
 -- * Referendum & elections
 

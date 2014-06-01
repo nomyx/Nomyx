@@ -141,7 +141,7 @@ eraseAllRules p = do
 
 -- | This rule will activate automatically any new rule.
 autoActivate :: Nomex ()
-autoActivate = void $ onEvent_ (RuleEv Proposed) (activateRule_ . _rNumber)
+autoActivate = void $ onEvent_ (ruleEvent Proposed) (activateRule_ . _rNumber)
 
 -- * Meta Rules
 
