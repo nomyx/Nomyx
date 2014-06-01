@@ -70,7 +70,7 @@ data PlayerCommand = NotLogged
                    | LeaveGame GameName
                    | DelGame   GameName
                    | ForkGame  GameName
-                   | DoInput   EventNumber GameName
+                   | DoInput   EventNumber InputNumber GameName
                    | NewRule   GameName
                    | NewGame
                    | SubmitNewGame

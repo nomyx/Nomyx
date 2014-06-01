@@ -16,7 +16,6 @@ import Data.Maybe
 import Data.String
 import Data.List
 import Data.Text (Text)
-import Data.Typeable
 import Data.Time
 import Data.Lens
 import Text.Printf
@@ -187,11 +186,11 @@ viewEvents ehs = table ! class_ "table" $ do
 
 
 viewEvent :: EventHandler -> Html
-viewEvent (EH eventNumber ruleNumber event _ status) = if status == SActive then disp else disp ! style "background:gray;" where
+viewEvent (EH eventNumber ruleNumber event _ status env) = if status == SActive then disp else disp ! style "background:gray;" where
    disp = tr $ do
       td ! class_ "td" $ fromString . show $ eventNumber
       td ! class_ "td" $ fromString . show $ ruleNumber
-      td ! class_ "td" $ fromString . show $ event
+      td ! class_ "td" $ fromString . show $ getEventFields event env
 
 viewIOs :: PlayerNumber -> Game -> RoutedNomyxServer Html
 viewIOs pn g = do
@@ -240,15 +239,31 @@ isPn pn (Output _ _ (Just mypn) _ SActive) = mypn == pn
 isPn _ (Output _ _ Nothing _ SActive) = True
 isPn _ _ = False
 
+--viewInput :: PlayerNumber -> GameName -> EventHandler -> RoutedNomyxServer (Maybe Html)
+--viewInput me gn (EH eventNumber _ (InputEv pn title iForm) _ SActive) | me == pn = do
+--    link <- showURL (DoInput eventNumber gn)
+--    lf  <- lift $ viewForm "user" $ inputForm iForm
+--    return $ Just $ tr $ td $ do
+--       fromString title
+--       fromString " "
+--       blazeForm lf link ! A.id "InputForm"
+--viewInput _ _ _ = return Nothing
+
 viewInput :: PlayerNumber -> GameName -> EventHandler -> RoutedNomyxServer (Maybe Html)
-viewInput me gn (EH eventNumber _ (InputEv pn title iForm) _ SActive) | me == pn = do
-    link <- showURL (DoInput eventNumber gn)
-    lf  <- lift $ viewForm "user" $ inputForm iForm
-    return $ Just $ tr $ td $ do
-       fromString title
-       fromString " "
-       blazeForm lf link ! A.id "InputForm"
+viewInput me gn (EH en _ ev _ SActive env) = do
+          ds <-  mapMaybeM (dispInput me gn en) (getEventFields ev env)
+          return $ Just $ sequence_ ds
 viewInput _ _ _ = return Nothing
+
+dispInput :: PlayerNumber -> GameName -> EventNumber -> SomeField -> RoutedNomyxServer (Maybe Html)
+dispInput me gn en ev@(SomeField (InputEv inputNumber pn title _)) | me == pn = do
+  lf  <- lift $ viewForm "user" $ inputForm ev
+  link <- showURL (DoInput en (fromJust inputNumber) gn)
+  return $ Just $ tr $ td $ do
+     fromString title
+     fromString " "
+     blazeForm lf link ! A.id "InputForm"
+dispInput _ _ _ _ = return Nothing
 
 viewOutput :: Game -> Output -> Html
 viewOutput g o = pre $ fromString (evalOutput g o) >> br
@@ -328,20 +343,22 @@ viewLog (Log _ t s) = tr $ do
    td $ fromString $ formatTime defaultTimeLocale "%Y/%m/%d_%H:%M" t
    td $ p $ fromString s
 
-newInput :: EventNumber -> GameName -> TVar Session -> RoutedNomyxServer Response
-newInput en gn ts = toResponse <$> do
+newInput :: EventNumber -> InputNumber -> GameName -> TVar Session -> RoutedNomyxServer Response
+newInput en inum gn ts = toResponse <$> do
     pn <- fromJust <$> getPlayerNumber ts
     s <- liftIO $ atomically $ readTVar ts
     let g = find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s)
-    let eventHandler = getEventHandler en (_loggedGame $ fromJust g)
+    let eh = getEventHandler en (_loggedGame $ fromJust g)
     methodM POST
-    r <- liftRouteT $ eitherForm environment "user" (getNomyxForm eventHandler)
-    link <- showURL MainPage
-    case r of
-       (Right c) -> webCommand ts $ S.inputResult pn en c gn
-       (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
-    seeOther (link `appendAnchor` inputAnchor) "Redirecting..."
-
+    case (getInput eh inum) of
+       Nothing -> error "Input not found"
+       Just bs -> do
+          r <- liftRouteT $ eitherForm environment "user" (inputForm bs)
+          link <- showURL MainPage
+          case r of
+             (Right c) -> webCommand ts $ S.inputResult pn en inum c gn
+             (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
+          seeOther (link `appendAnchor` inputAnchor) "Redirecting..."
 
 newPlayAs :: GameName -> TVar Session -> RoutedNomyxServer Response
 newPlayAs gn ts = toResponse <$> do
@@ -357,16 +374,14 @@ newPlayAs gn ts = toResponse <$> do
          settingsLink <- showURL $ SubmitPlayAs gn
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
 
-getNomyxForm :: EventHandler -> NomyxForm UInputData
-getNomyxForm (EH _ _ (InputEv _ _ iForm) _ _) = inputForm iForm
-getNomyxForm _ = error "Not an Input Event"
 
-inputForm :: (Typeable a) => InputForm a -> NomyxForm UInputData
-inputForm (Radio choices)    = URadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
-inputForm Text               = UTextData     <$> RB.inputText "" <++ label " "
-inputForm TextArea           = UTextAreaData <$> textarea 50 5  "" <++ label " "
-inputForm Button             = pure UButtonData
-inputForm (Checkbox choices) = UCheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label " "
+inputForm :: SomeField -> NomyxForm UInputData
+inputForm (SomeField (InputEv _ _ _ (Radio choices)))    = URadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
+inputForm (SomeField (InputEv _ _ _ Text))               = UTextData     <$> RB.inputText "" <++ label " "
+inputForm (SomeField (InputEv _ _ _ TextArea))           = UTextAreaData <$> textarea 50 5  "" <++ label " "
+inputForm (SomeField (InputEv _ _ _ Button))             = pure UButtonData
+inputForm (SomeField (InputEv _ _ _ (Checkbox choices))) = UCheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label " "
+
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do

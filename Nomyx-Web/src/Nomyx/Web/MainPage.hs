@@ -151,7 +151,7 @@ nomyxPage ts = do
    let saveDir = _saveDir $ _mSettings $ _multi s
    name <- case mpn of
       Just pn -> liftIO $ Profile.getPlayerName pn s
-      Nothing -> return "guest"
+      Nothing -> return "Guest"
    m <- viewMulti mpn saveDir s
    mainPage' "Welcome to Nomyx!"
             (fromString $ "Welcome to Nomyx, " ++ name ++ "! ")
@@ -174,7 +174,7 @@ routedNomyxCommands (ForkGame game)       = forkGame          game
 routedNomyxCommands (NewRule game)        = newRule           game
 routedNomyxCommands NewGame               = newGamePage
 routedNomyxCommands SubmitNewGame         = newGamePost
-routedNomyxCommands (DoInput en game)     = newInput          en game
+routedNomyxCommands (DoInput en inn game) = newInput      en inn game
 routedNomyxCommands Upload                = newUpload
 routedNomyxCommands W.PlayerSettings      = playerSettings
 routedNomyxCommands SubmitPlayerSettings  = newPlayerSettings
