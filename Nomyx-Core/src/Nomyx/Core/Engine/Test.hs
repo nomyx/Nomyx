@@ -319,7 +319,7 @@ getChoiceEvents :: State Game [EventNumber]
 getChoiceEvents = do
    evs <- access events
    return $ map _eventNumber $ filter choiceEvent evs
-   where choiceEvent (EH _ _ (BaseEvent (InputEv _ _ _ (Radio _))) _ _ _) = True
+   where choiceEvent (EventInfo _ _ (BaseEvent (InputEv _ _ _ (Radio _))) _ _ _) = True
          choiceEvent _ = False
 
 --Get all event numbers of type text (text field)
@@ -327,6 +327,6 @@ getTextEvents :: State Game [EventNumber]
 getTextEvents = do
    evs <- access events
    return $ map _eventNumber $ filter choiceEvent evs
-   where choiceEvent (EH _ _ (BaseEvent (InputEv _ _ _ Text)) _ _ _) = True
+   where choiceEvent (EventInfo _ _ (BaseEvent (InputEv _ _ _ Text)) _ _ _) = True
          choiceEvent _ = False
 

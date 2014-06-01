@@ -141,13 +141,12 @@ inputResult pn en inn ir = do
    tracePN pn $ "input result: EventNumber " ++ show en ++ ", InputNumber " ++ show inn ++ ", choice " ++ show ir
    runEvalError (Just pn) $ triggerInput en inn ir
 
+getEventInfo :: EventNumber -> LoggedGame -> EventInfo
+getEventInfo en g = fromJust $ findEvent en (_events $ _game g)
 
-getEventHandler :: EventNumber -> LoggedGame -> EventHandler
-getEventHandler en g = fromJust $ findEvent en (_events $ _game g)
-
-
-getTimes :: EventHandler -> Maybe UTCTime
-getTimes (EH _ _ (BaseEvent (Time t)) _ SActive _) = Just t
+-- TODO repair
+getTimes :: EventInfo -> Maybe UTCTime
+getTimes (EventInfo _ _ (BaseEvent (Time t)) _ SActive _) = Just t
 getTimes _ = Nothing
 
 -- | A helper function to use the state transformer GameState.

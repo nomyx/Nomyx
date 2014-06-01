@@ -27,9 +27,10 @@ module Nomyx.Core.Engine(
    activeRules, pendingRules, rejectedRules,
 
    -- * Events management
-   EventHandler(..),
+   EventInfo(..),
+   EventHandler,
    Status(..),
-   getEventHandler,
+   getEventInfo,
    events,
    getEventFields,
    getInput,

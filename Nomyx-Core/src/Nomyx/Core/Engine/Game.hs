@@ -25,7 +25,7 @@ data Game = Game { _gameName    :: GameName,
                    _rules       :: [RuleInfo],
                    _players     :: [PlayerInfo],
                    _variables   :: [Var],
-                   _events      :: [EventHandler],
+                   _events      :: [EventInfo],
                    _outputs     :: [Output],
                    _victory     :: Maybe VictoryCond,
                    _logs        :: [Log],
@@ -66,28 +66,30 @@ instance Show Var where
 
 -- * Events
 
-data EventHandler = forall e. (Typeable e, Show e) => EH
-        {_eventNumber :: EventNumber,
-         _ruleNumber  :: RuleNumber,
-         event        :: Event e,
-         handler      :: (EventNumber, e) -> Nomex (),
-         _evStatus    :: Status,
-         _env         :: [EventRes]}
+type EventHandler e = (EventNumber, e) -> Nomex ()
 
-data EventRes = forall e. (Typeable e, Show e) => EventRes
-       {bev :: Field e,
-        res :: e}
+data EventInfo = forall e. (Typeable e, Show e) =>
+   EventInfo {_eventNumber :: EventNumber,
+              _ruleNumber  :: RuleNumber,
+              event        :: Event e,
+              handler      :: EventHandler e,
+              _evStatus    :: Status,
+              _env         :: [EventRes]}
+
+data EventRes = forall e. (Typeable e, Show e) =>
+   EventRes {bev :: Field e,
+             res :: e}
 
 deriving instance Show EventRes
 
 data Status = SActive | SDeleted deriving (Eq, Show)
 
 
-instance Eq EventHandler where
-    (EH {_eventNumber=e1}) == (EH {_eventNumber=e2}) = e1 == e2
+instance Eq EventInfo where
+    (EventInfo {_eventNumber=e1}) == (EventInfo {_eventNumber=e2}) = e1 == e2
 
-instance Ord EventHandler where
-    (EH {_eventNumber=e1}) <= (EH {_eventNumber=e2}) = e1 <= e2
+instance Ord EventInfo where
+    (EventInfo {_eventNumber=e1}) <= (EventInfo {_eventNumber=e2}) = e1 <= e2
 
 
 -- * Outputs
@@ -111,7 +113,7 @@ data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
 data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
 
 
-$( makeLenses [''Game, ''GameDesc, ''EventHandler, ''Var, ''Output] )
+$( makeLenses [''Game, ''GameDesc, ''EventInfo, ''Var, ''Output] )
 
 
 

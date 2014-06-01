@@ -65,7 +65,7 @@ evalNomex (WriteVar (V name) val) _ = do
 evalNomex (OnEvent event handler) rn = do
    evs <- access events
    let en = getFreeNumber (map _eventNumber evs)
-   events %= (EH en rn (indexInputs event) handler SActive [] : )
+   events %= (EventInfo en rn (indexInputs event) handler SActive [] : )
    return en
 
 evalNomex (DelEvent en) _ = evDelEvent en
@@ -149,17 +149,17 @@ triggerEvent e dat = do
    return ()
 
 -- update the Event handlers
-updateEH :: (Typeable a, Show a) => Field a -> a -> EventHandler -> (EventHandler, Maybe SomeRes)
-updateEH e dat eh@(EH en rn ev h st env) = case getEventEither ev (EventRes e dat : env)  of
-   BE (Left fs) -> if isJust $ find (eqSomeField (SomeField e)) fs
-      then (EH en rn ev h st (EventRes e dat : env), Nothing)
+updateEH :: (Typeable a, Show a) => Field a -> a -> EventInfo -> (EventInfo, Maybe SomeRes)
+updateEH f dat eh@(EventInfo en rn ev h st env) = case getEventEither ev (EventRes f dat : env)  of
+   BE (Left fs) -> if isJust $ find (eqSomeField (SomeField f)) fs
+      then (EventInfo en rn ev h st (EventRes f dat : env), Nothing)
       else (eh, Nothing)
-   BE (Right a) -> (EH en rn ev h st [], Just $ SomeRes a)
+   BE (Right a) -> (EventInfo en rn ev h st [], Just $ SomeRes a)
 
 data SomeRes = forall e. (Typeable e, Show e) => SomeRes e
 
-triggerIfComplete :: (EventHandler, Maybe SomeRes) -> Evaluate ()
-triggerIfComplete (EH en rn _ h SActive _, Just (SomeRes val)) = do
+triggerIfComplete :: (EventInfo, Maybe SomeRes) -> Evaluate ()
+triggerIfComplete (EventInfo en rn _ h SActive _, Just (SomeRes val)) = do
    case (cast val) of
       Just a -> do
          let exp = h (en, a)
@@ -205,14 +205,14 @@ triggerInput en inn ir = do
    let filtered = filter ((== en) . getL eventNumber) evs
    mapM_ (execInputHandler' ir inn) filtered
 
-execInputHandler' :: UInputData -> InputNumber -> EventHandler -> Evaluate ()
+execInputHandler' :: UInputData -> InputNumber -> EventInfo -> Evaluate ()
 execInputHandler' ir inn eh = do
     case (getInput eh inn) of
        Just sf -> execInputHandler ir sf
        Nothing -> error "Input not found"
 
-getInput :: EventHandler -> InputNumber -> Maybe SomeField
-getInput (EH _ _ ev _ _ env) inn = headMay $ filter isInput (getEventFields ev env) where
+getInput :: EventInfo -> InputNumber -> Maybe SomeField
+getInput (EventInfo _ _ ev _ _ env) inn = headMay $ filter isInput (getEventFields ev env) where
       isInput (SomeField (InputEv (Just n) _ _ _)) | n == inn = True
       isInput _ = False
 
@@ -225,7 +225,7 @@ execInputHandler (URadioData i)     (SomeField e@(InputEv _ _ _ (Radio cs)))    
 execInputHandler (UCheckboxData is) (SomeField e@(InputEv _ _ _ (Checkbox cs))) = triggerEvent e (fst <$> cs `sel` is)
 execInputHandler _ _ = return ()
 
-findEvent :: EventNumber -> [EventHandler] -> Maybe EventHandler
+findEvent :: EventNumber -> [EventInfo] -> Maybe EventInfo
 findEvent en = find ((== en) . getL eventNumber)
 
 evProposeRule :: RuleInfo -> Evaluate Bool
@@ -430,7 +430,7 @@ indexInputs' n (ProductEvent a b) = (ProductEvent e1 e2, n2) where
    (e2, n2) = indexInputs' n1 b
 
 newtype BEither a b = BE (Either a b) deriving (Show, Eq, Typeable)
-bLeft = BE . Left
+bLeft  = BE . Left
 bRight = BE . Right
 
 instance Alternative (BEither [a]) where
@@ -446,26 +446,27 @@ instance Applicative (BEither [a]) where
    BE (Right f)  <*>  r  =  fmap f r
 
 instance Functor (BEither a) where
-    fmap _ (BE (Left x))  = BE (Left x)
-    fmap f (BE (Right y)) = BE (Right (f y))
+   fmap _ (BE (Left x))  = BE (Left x)
+   fmap f (BE (Right y)) = BE (Right (f y))
 
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
 instance Show Game where
    show g@(Game { _gameName, _rules, _players, _variables, _events, _victory, _currentTime}) =
-        "Game Name = "      ++ show _gameName ++
-        "\n Rules = "       ++ (intercalate "\n " $ map show _rules) ++
-        "\n Players = "     ++ show _players ++
-        "\n Variables = "   ++ show _variables ++
-        "\n Events = "      ++ (intercalate "\n " $ map show _events) ++
-        "\n Outputs = "     ++ show (allOutputs g) ++
-        "\n Victory = "     ++ show (getVictorious g) ++
-        "\n currentTime = " ++ show _currentTime ++ "\n"
+      "Game Name = "      ++ show _gameName ++
+      "\n Rules = "       ++ (intercalate "\n " $ map show _rules) ++
+      "\n Players = "     ++ show _players ++
+      "\n Variables = "   ++ show _variables ++
+      "\n Events = "      ++ (intercalate "\n " $ map show _events) ++
+      "\n Outputs = "     ++ show (allOutputs g) ++
+      "\n Victory = "     ++ show (getVictorious g) ++
+      "\n currentTime = " ++ show _currentTime ++ "\n"
 
 
-instance Show EventHandler where
-   show (EH en rn e _ s env) = "event num: " ++ (show en) ++
-                               ", rule num: " ++ (show rn) ++
-                               ", event fields: " ++ (show $ getEventFields e env) ++
-                               ", envs: " ++ (show env) ++
-                               ", status: " ++ (show s)
+instance Show EventInfo where
+   show (EventInfo en rn e _ s env) =
+      "event num: " ++ (show en) ++
+      ", rule num: " ++ (show rn) ++
+      ", event fields: " ++ (show $ getEventFields e env) ++
+      ", envs: " ++ (show env) ++
+      ", status: " ++ (show s)
