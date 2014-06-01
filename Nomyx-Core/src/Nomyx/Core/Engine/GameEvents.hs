@@ -1,6 +1,5 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DoAndIfThenElse #-}
 
 -- | This module implements the events that can affect a game.
 module Nomyx.Core.Engine.GameEvents where
@@ -16,16 +15,15 @@ import Data.Lens
 import Control.Category ((>>>))
 import Data.Lens.Template
 import Control.Exception as E
-import Data.Maybe
 import Data.Time
-
+import Data.Maybe
 
 -- | a list of possible events affecting a game
 data GameEvent = GameSettings      GameName GameDesc UTCTime
                | JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     PlayerNumber SubmitRule
-               | InputResult       PlayerNumber EventNumber UInputData
+               | InputResult       PlayerNumber EventNumber InputNumber UInputData
                | GLog              (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
                | SystemAddRule     SubmitRule
@@ -52,9 +50,9 @@ enactEvent (GameSettings name desc date) _    = mapStateIO $ gameSettings name d
 enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
 enactEvent (LeaveGame pn) _                   = mapStateIO $ leaveGame pn
 enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
-enactEvent (InputResult pn en ir) _           = mapStateIO $ inputResult pn en ir
+enactEvent (InputResult pn en inn ir) _       = mapStateIO $ inputResult pn en inn ir
 enactEvent (GLog mpn s) _                     = mapStateIO $ logGame s mpn
-enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError Nothing $ void $ evTriggerTime t
+enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError Nothing $ evTriggerTime t
 enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
 enactEvent (ProposeRuleEv _ _) Nothing        = error "ProposeRuleEv: interpreter function needed"
 enactEvent (SystemAddRule _) Nothing          = error "SystemAddRule: interpreter function needed"
@@ -88,7 +86,6 @@ getLoggedGame g mInter tes = do
    g' <- execStateT a g
    return $ LoggedGame g' tes
 
-
 -- | initialize the game.
 gameSettings :: GameName -> GameDesc -> UTCTime -> State Game ()
 gameSettings name desc date = do
@@ -96,7 +93,6 @@ gameSettings name desc date = do
    gameDesc ~= desc
    currentTime ~= date
    return ()
-
 
 -- | join the game.
 joinGame :: PlayerName -> PlayerNumber -> State Game ()
@@ -108,7 +104,7 @@ joinGame name pn = do
          tracePN pn $ "Joining game: " ++ _gameName g
          let player = PlayerInfo { _playerNumber = pn, _playerName = name, _playAs = Nothing}
          players %= (player : )
-         runEvalError (Just pn) $ triggerEvent_ (Player Arrive) player
+         runEvalError (Just pn) $ triggerEvent (Player Arrive) player
 
 
 -- | leave the game.
@@ -140,10 +136,10 @@ logGame s mpn = do
 
 -- | the user has provided an input result
 -- TODO: this is relying on the EventNumber, which may change at all time
-inputResult :: PlayerNumber -> EventNumber -> UInputData -> State Game ()
-inputResult pn en ir = do
-   tracePN pn $ "input result: Event " ++ show en ++ ", choice " ++ show ir
-   runEvalError (Just pn) $ triggerInput en ir
+inputResult :: PlayerNumber -> EventNumber -> InputNumber -> UInputData -> State Game ()
+inputResult pn en inn ir = do
+   tracePN pn $ "input result: EventNumber " ++ show en ++ ", InputNumber " ++ show inn ++ ", choice " ++ show ir
+   runEvalError (Just pn) $ triggerInput en inn ir
 
 
 getEventHandler :: EventNumber -> LoggedGame -> EventHandler
@@ -151,7 +147,7 @@ getEventHandler en g = fromJust $ findEvent en (_events $ _game g)
 
 
 getTimes :: EventHandler -> Maybe UTCTime
-getTimes (EH _ _ (Time t) _ SActive) = Just t
+getTimes (EH _ _ (BaseEvent (Time t)) _ SActive _) = Just t
 getTimes _ = Nothing
 
 -- | A helper function to use the state transformer GameState.

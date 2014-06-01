@@ -194,7 +194,7 @@ partialFunction1 = [cr|void $ readMsgVar_ (msgVar "toto1" :: MsgVar String)|]
 partialFunction2 :: String
 partialFunction2 = [cr|void $ do
    t <- liftEffect getCurrentTime
-   onEventOnce (Time $ addUTCTime 5 t) $ const $ readMsgVar_ (msgVar "toto2")|]
+   onEventOnce (timeEvent $ addUTCTime 5 t) $ const $ readMsgVar_ (msgVar "toto2")|]
 
 gamePartialFunction1 :: StateT Session IO ()
 gamePartialFunction1 = submitR partialFunction1
@@ -215,7 +215,7 @@ condPartialFunction m = (_rStatus $ head $ _rules $ firstGame m) == Active &&
 
 
 partialFunction3 :: String
-partialFunction3 = [cr|void $ onEvent_ (RuleEv Proposed) $ const $ readMsgVar_ (msgVar "toto3")|]
+partialFunction3 = [cr|void $ onEvent_ (ruleEvent Proposed) $ const $ readMsgVar_ (msgVar "toto3")|]
 
 gamePartialFunction3 :: StateT Session IO ()
 gamePartialFunction3 = do
@@ -316,14 +316,14 @@ inputAllRadios :: Int -> PlayerNumber -> StateT Session IO ()
 inputAllRadios choice pn = do
    s <- get
    let evs = evalState getChoiceEvents (firstGame $ _multi s)
-   mapM_ (\en -> inputResult pn en (URadioData choice) "test") evs
+   mapM_ (\en -> inputResult pn en 0 (URadioData choice) "test") evs
 
 -- input text for all text fields
 inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
 inputAllTexts a pn = do
    s <- get
    let evs = evalState getTextEvents (firstGame $ _multi s)
-   mapM_ (\en -> inputResult pn en (UTextData a) "test") evs
+   mapM_ (\en -> inputResult pn en 0 (UTextData a) "test") evs
 
 firstGame :: Multi -> Game
 firstGame = G._game . _loggedGame . head . _gameInfos

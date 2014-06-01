@@ -119,8 +119,8 @@ checkRule sr@(SubmitRule _ _ code) pn sh = do
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
          modifyProfile pn (pLastRule ^= Just (sr, errorMsg))
 
-inputResult :: PlayerNumber -> EventNumber -> UInputData -> GameName -> StateT Session IO ()
-inputResult pn en ir gn = inGameDo gn $ execGameEvent $ InputResult pn en ir
+inputResult :: PlayerNumber -> EventNumber -> InputNumber -> UInputData -> GameName -> StateT Session IO ()
+inputResult pn en inn ir gn = inGameDo gn $ execGameEvent $ InputResult pn en inn ir
 
 -- | upload a rule file, given a player number, the full path of the file, the file name and the server handle
 inputUpload :: PlayerNumber -> FilePath -> FilePath -> ServerHandle -> StateT Session IO Bool

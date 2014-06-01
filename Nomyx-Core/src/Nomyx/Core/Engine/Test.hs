@@ -17,6 +17,7 @@ import Nomyx.Core.Engine.Game
 import Nomyx.Core.Engine.Utils
 import Control.Monad.State
 import Data.Typeable
+import Data.Lens
 
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
@@ -44,9 +45,9 @@ testRule = RuleInfo  { _rNumber       = 0,
                       _rAssessedBy   = Nothing}
 
 evalRuleFunc f = evalState (runEvalError Nothing $ evalNomex f 0) testGame
-execRuleFuncEvent f e d = execState (runEvalError Nothing $ evalNomex f 0 >> triggerEvent_ e d) testGame
+execRuleFuncEvent f e d = execState (runEvalError Nothing $ evalNomex f 0 >> triggerEvent e d) testGame
 execRuleFuncGame f g = execState (runEvalError Nothing $ void $ evalNomex f 0) g
-execRuleFuncEventGame f e d g = execState (runEvalError Nothing $ evalNomex f 0 >> (triggerEvent_ e d)) g
+execRuleFuncEventGame f e d g = execState (runEvalError Nothing $ evalNomex f 0 >> (triggerEvent e d)) g
 execRuleFunc f = execRuleFuncGame f testGame
 
 addActivateRule :: Rule -> RuleNumber -> Evaluate ()
@@ -152,27 +153,27 @@ testSingleInput = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, S
    h a = void $ newOutput (Just 1) (return $ "voted for " ++ show a)
 
 testSingleInputEx = isOutput "voted for Holland" g where
-   g = execRuleFuncEvent testSingleInput (inputRadio 1 "Vote for Holland or Sarkozy" [Holland, Sarkozy] Holland) Holland
+   g = execRuleFuncEvent testSingleInput (InputEv (Just 0) 1 "Vote for Holland or Sarkozy" (Radio [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) Holland
 
 testMultipleInputs :: Rule
 testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
    h a = void $ newOutput (Just 1) (return $ "voted for " ++ show a)
 
 testMultipleInputsEx = isOutput "voted for [Holland,Sarkozy]" g where
-   g = execRuleFuncEvent testMultipleInputs (inputCheckbox 1 "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) [Holland, Sarkozy]
+   g = execRuleFuncEvent testMultipleInputs (InputEv (Just 0) 1 "Vote for Holland and Sarkozy" (Checkbox [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) [Holland, Sarkozy]
 
 testInputString :: Rule
 testInputString = void $ onInputText_ "Enter a number:" h 1 where
    h a = void $ newOutput (Just 1) (return $ "You entered: " ++ a)
 
 testInputStringEx = isOutput "You entered: 1" g where
-   g = execRuleFuncEvent testInputString (inputText 1 "Enter a number:") "1"
+   g = execRuleFuncEvent testInputString (InputEv (Just 0) 1 "Enter a number:" Text) "1"
 
 -- Test message
 testSendMessage :: Rule
 testSendMessage = do
     let msg = Msg "msg" :: Msg String
-    onEvent_ (Message $ msg) f
+    onEvent_ (messageEvent msg) f
     sendMessage msg "toto" where
         f (a :: String) = void $ newOutput (Just 1) (return a)
 
@@ -180,7 +181,7 @@ testSendMessageEx = isOutput "toto" (execRuleFunc testSendMessage)
 
 testSendMessage2 :: Rule
 testSendMessage2 = do
-    onEvent_ (Message (Msg "msg" :: Msg ())) $ const $ void $ newOutput (Just 1) (return "Received")
+    onEvent_ (messageEvent (Msg "msg" :: Msg ())) $ const $ void $ newOutput (Just 1) (return "Received")
     sendMessage_ "msg"
 
 
@@ -192,8 +193,8 @@ data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 testUserInputWrite :: Rule
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
-    onEvent_ (Message (Msg "voted" :: Msg ())) h2
-    void $ onEvent_ (InputEv 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
+    onEvent_ (messageEvent (Msg "voted" :: Msg ())) h2
+    void $ onEvent_ (BaseEvent $ InputEv Nothing 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
         h1 (a :: Choice2) = do
             writeVar (V "vote") (Just a)
             SendMessage (Msg "voted") ()
@@ -206,7 +207,7 @@ testUserInputWrite = do
         h2 _ = undefined
 
 testUserInputWriteEx = isOutput "voted Me" g where
-   g = execRuleFuncEvent testUserInputWrite (InputEv 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
+   g = execRuleFuncEvent testUserInputWrite (InputEv (Just 0) 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
 
 -- Test rule activation
 testActivateRule :: Rule
@@ -222,7 +223,7 @@ testAutoActivateEx = _rStatus (head $ _rules (execRuleFuncEventGame autoActivate
 --Time tests
 
 testTimeEvent :: Rule
-testTimeEvent = void $ onEvent_ (Time date1) f where
+testTimeEvent = void $ onEvent_ (timeEvent date1) f where
    f _ = outputAll_ $ show date1
 
 testTimeEventEx = isOutput (show date1) g where
@@ -267,36 +268,31 @@ testVictoryEx1 = (length $ getVictorious testVictoryGame) == 1
 voteGameActions :: Int -> Int -> Int  -> Bool -> Evaluate () -> Game
 voteGameActions positives negatives total timeEvent actions = flip execState testGame {_players = []} $ runEvalError Nothing $ do
     mapM_ (\x -> addPlayer (PlayerInfo x ("coco " ++ show x) Nothing)) [1..total]
+    e1 <- access events
+    tracePN 0 $ "voteGameActions: before actions, e= " ++ (show e1)
     actions
+    e2 <- access events
+    tracePN 0 $ "voteGameActions: after actions, e= " ++ (show e2)
     evProposeRule testRule
+    e3 <- access events
+    tracePN 0 $ "voteGameActions: after evProposeRule, e= " ++ (show e3)
     evs <- lift getChoiceEvents
     let pos = take positives evs
     let neg = take negatives $ drop positives evs
-    mapM_ (\x -> triggerInput x (URadioData $ fromEnum For)) pos
-    mapM_ (\x -> triggerInput x (URadioData $ fromEnum Against)) neg
-    when timeEvent $ void $ evTriggerTime date2
+    e4 <- access events
+    tracePN 0 $ "voteGameActions: before triggerInputs, evs=" ++ (show evs) ++ " e= " ++ (show e4)
+    mapM_ (\x -> triggerInput x 0 (URadioData $ fromEnum For)) pos
+    mapM_ (\x -> triggerInput x 0 (URadioData $ fromEnum Against)) neg
+    when timeEvent $ evTriggerTime date2
 
 voteGame' :: Int -> Int -> Int -> Bool -> Rule -> Game
 voteGame' positives negatives notVoted timeEvent rf  = voteGameActions positives negatives notVoted timeEvent $ addActivateRule rf 1
 
 voteGame :: Int -> Int -> Int -> Rule -> Game
-voteGame positives negatives notVoted = voteGame' positives negatives notVoted True
+voteGame positives negatives notVoted = voteGame' positives negatives notVoted False
 
 voteGameTimed :: Int -> Int -> Int -> Rule -> Game
 voteGameTimed positives negatives notVoted = voteGame' positives negatives notVoted True
-
--- Test application meta rule
---unanimityRule = testRule {_rName = "unanimityRule", _rRuleFunc = return $ Meta $ voteWith unanimity $ assessWhenEverybodyVoted, _rNumber = 1, _rStatus = Active}
---applicationMetaRuleRule = testRule {_rName = "onRuleProposedUseMetaRules", _rRuleFunc = onRuleProposed checkWithMetarules, _rNumber = 2, _rStatus = Active}
---testApplicationMetaRuleVote :: Game
---testApplicationMetaRuleVote = voteGameActions 2 0 2 False $ do
---    evAddRule unanimityRule
---    evActivateRule (_rNumber unanimityRule) 0
---    evAddRule applicationMetaRuleRule
---    evActivateRule (_rNumber applicationMetaRuleRule) 0
---    return ()
-
---testApplicationMetaRuleEx = (_rStatus $ head $ _rules testApplicationMetaRuleVote) == Active
 
 -- vote rules                                |Expected result        |pos |neg |total                    |description of voting system
 testVoteAssessOnVoteComplete1 = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ voteWith_ majority assessWhenEverybodyVoted
@@ -318,4 +314,19 @@ testVoteAssessOnTimeLimit5    = testVoteRule Pending $ voteGameTimed 10 0 10 $ o
 testVoteRule s g = (_rStatus $ head $ _rules g) == s
 
 
+--Get all event numbers of type choice (radio button)
+getChoiceEvents :: State Game [EventNumber]
+getChoiceEvents = do
+   evs <- access events
+   return $ map _eventNumber $ filter choiceEvent evs
+   where choiceEvent (EH _ _ (BaseEvent (InputEv _ _ _ (Radio _))) _ _ _) = True
+         choiceEvent _ = False
+
+--Get all event numbers of type text (text field)
+getTextEvents :: State Game [EventNumber]
+getTextEvents = do
+   evs <- access events
+   return $ map _eventNumber $ filter choiceEvent evs
+   where choiceEvent (EH _ _ (BaseEvent (InputEv _ _ _ Text)) _ _ _) = True
+         choiceEvent _ = False
 

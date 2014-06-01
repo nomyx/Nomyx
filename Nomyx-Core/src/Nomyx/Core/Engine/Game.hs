@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 -- | This module implements game engine (for the nomyx language, see Language.Nomyx)
 module Nomyx.Core.Engine.Game where
@@ -40,43 +41,47 @@ instance Ord Game where
    compare (Game {_gameName=gn1}) (Game {_gameName=gn2}) = compare gn1 gn2
 
 emptyGame name desc date = Game {
-    _gameName      = name,
-    _gameDesc      = desc,
-    _rules         = [],
-    _players       = [],
-    _variables     = [],
-    _events        = [],
-    _outputs       = [],
-    _victory       = Nothing,
-    _logs          = [],
-    _currentTime   = date}
+   _gameName      = name,
+   _gameDesc      = desc,
+   _rules         = [],
+   _players       = [],
+   _variables     = [],
+   _events        = [],
+   _outputs       = [],
+   _victory       = Nothing,
+   _logs          = [],
+   _currentTime   = date}
 
 
 -- * Variables
 
 -- | stores the variable's data
 data Var = forall a . (Typeable a, Show a) =>
-        Var { _vRuleNumber :: RuleNumber,
-              _vName       :: String,
-              vData        :: a}
+   Var { _vRuleNumber :: RuleNumber,
+         _vName       :: String,
+         vData        :: a}
 
 instance Show Var where
-    show (Var a b c) = "Rule number = " ++ (show a) ++ ", Name = " ++ (show b) ++ ", Value = " ++ (show c) ++ "\n"
+   show (Var a b c) = "Rule number = " ++ (show a) ++ ", Name = " ++ (show b) ++ ", Value = " ++ (show c) ++ "\n"
 
 -- * Events
 
-data EventHandler where
-    EH :: (Typeable e) =>
+data EventHandler = forall e. (Typeable e, Show e) => EH
         {_eventNumber :: EventNumber,
          _ruleNumber  :: RuleNumber,
          event        :: Event e,
          handler      :: (EventNumber, e) -> Nomex (),
-         _evStatus    :: Status} -> EventHandler
+         _evStatus    :: Status,
+         _env         :: [EventRes]}
+
+data EventRes = forall e. (Typeable e, Show e) => EventRes
+       {bev :: Field e,
+        res :: e}
+
+deriving instance Show EventRes
 
 data Status = SActive | SDeleted deriving (Eq, Show)
 
-instance Show EventHandler where
-    show (EH en rn e _ s) = (show en) ++ " " ++ (show rn) ++ " (" ++ (show e) ++"), status = " ++ (show s)
 
 instance Eq EventHandler where
     (EH {_eventNumber=e1}) == (EH {_eventNumber=e2}) = e1 == e2

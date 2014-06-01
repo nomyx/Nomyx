@@ -1,6 +1,8 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module Nomyx.Core.Engine.Evaluation where
 
@@ -14,14 +16,14 @@ import Data.Function hiding ((.))
 import Data.Time
 import Data.Lens
 import Data.Maybe
-import Control.Category
+import Control.Category hiding (id)
+import Control.Applicative
 import Control.Monad.Error (ErrorT(..))
 import Control.Monad.Error.Class (MonadError(..))
-import Control.Applicative ((<$>))
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Game
 import Nomyx.Core.Engine.Utils
-
+import Safe
 
 type Evaluate a = ErrorT String (State Game) a
 
@@ -63,17 +65,12 @@ evalNomex (WriteVar (V name) val) _ = do
 evalNomex (OnEvent event handler) rn = do
    evs <- access events
    let en = getFreeNumber (map _eventNumber evs)
-   events %= (EH en rn event handler SActive : )
+   events %= (EH en rn (indexInputs event) handler SActive [] : )
    return en
 
 evalNomex (DelEvent en) _ = evDelEvent en
 
-evalNomex (DelAllEvents e) _ = do
-   evs <- access events
-   let filtered = filter (\EH {event} -> event === e) evs
-   mapM_ evDelEvent (_eventNumber <$> filtered)
-
-evalNomex (SendMessage (Msg id) myData) _ = triggerEvent_ (Message (Msg id)) myData
+evalNomex (SendMessage (Msg id) myData) _ = triggerEvent (Message (Msg id)) myData
 
 evalNomex (NewOutput pn s)      rn = evNewOutput pn rn s
 evalNomex (UpdateOutput on s)   _  = evUpdateOutput on s
@@ -92,7 +89,7 @@ evalNomex (ThrowError s)        _  = throwError s
 evalNomex (CatchError n h)      rn = catchError (evalNomex n rn) (\a -> evalNomex (h a) rn)
 evalNomex (SetVictory ps)       rn = do
    void $ victory ~= (Just $ VictoryCond rn ps)
-   triggerEvent_ Victory (VictoryCond rn ps)
+   triggerEvent Victory (VictoryCond rn ps)
 
 evalNomex (Return a)            _  = return a
 evalNomex (Bind exp f) rn = do
@@ -143,65 +140,93 @@ isOutput :: String -> Game -> Bool
 isOutput s g = s `elem` allOutputs g
 
 --execute all the handlers of the specified event with the given data
-triggerEvent :: (Typeable e) => Event e -> e -> Evaluate Bool
+triggerEvent :: (Typeable e, Show e) => Field e -> e -> Evaluate ()
 triggerEvent e dat = do
    evs <- access events
-   let filtered = filter (\(EH {event, _evStatus}) -> e === event && _evStatus == SActive) (reverse evs)
-   case filtered of
-      [] -> return False
-      xs -> do
-         mapM_ (triggerHandler dat) xs
-         return True
+   let evs' = map (updateEH e dat) evs
+   events ~= map fst evs'
+   mapM triggerIfComplete evs'
+   return ()
 
+-- update the Event handlers
+updateEH :: (Typeable a, Show a) => Field a -> a -> EventHandler -> (EventHandler, Maybe SomeRes)
+updateEH e dat eh@(EH en rn ev h st env) = case getEventEither ev (EventRes e dat : env)  of
+   BE (Left fs) -> if isJust $ find (eqSomeField (SomeField e)) fs
+      then (EH en rn ev h st (EventRes e dat : env), Nothing)
+      else (eh, Nothing)
+   BE (Right a) -> (EH en rn ev h st [], Just $ SomeRes a)
 
-triggerHandler :: (Typeable e) => e -> EventHandler -> Evaluate ()
-triggerHandler dat (EH {_ruleNumber, _eventNumber, handler}) = case cast handler of
-    Just castedH -> do
-       let (exp :: Nomex ()) = castedH (_eventNumber, dat)
-       (evalNomex exp _ruleNumber) `catchError` (errorHandler _ruleNumber _eventNumber)
-    Nothing -> logAll ("failed " ++ (show $ typeOf handler))
+data SomeRes = forall e. (Typeable e, Show e) => SomeRes e
 
-triggerEvent_ :: (Typeable e) => Event e -> e -> Evaluate ()
-triggerEvent_ e ed = void $ triggerEvent e ed
+triggerIfComplete :: (EventHandler, Maybe SomeRes) -> Evaluate ()
+triggerIfComplete (EH en rn _ h SActive _, Just (SomeRes val)) = do
+   case (cast val) of
+      Just a -> do
+         let exp = h (en, a)
+         (evalNomex exp rn) `catchError` (errorHandler rn en)
+      Nothing -> error "Bad trigger value type"
+triggerIfComplete _ = return ()
+
+eqSomeField :: SomeField -> SomeField -> Bool
+eqSomeField (SomeField e1) (SomeField e2) = e1 === e2
+
+getEventEither :: Event a -> [EventRes] -> BEither [SomeField] a
+getEventEither (PureEvent a)      _   = BE (Right a)
+getEventEither EmptyEvent         _   = BE (Left [])
+getEventEither (SumEvent a b)     ers = (getEventEither a ers) <|> (getEventEither b ers)
+getEventEither (ProductEvent f b) ers = (getEventEither f ers) <*> (getEventEither b ers)
+getEventEither (BaseEvent a)      ers = case lookupField a ers of
+   Just r  -> BE (Right r)
+   Nothing -> BE (Left [SomeField a])
+
+lookupField :: Typeable a => Field a -> [EventRes] -> Maybe a
+lookupField _ [] = Nothing
+lookupField be ((EventRes a r):ers) = case (cast (a,r)) of
+   Just (a',r') -> if (a' == be) then Just r' else lookupField be ers
+   Nothing      -> lookupField be ers
+
+getEventFields :: Event a -> [EventRes] -> [SomeField]
+getEventFields e er = case (getEventEither e er) of
+   BE (Right _) -> []
+   BE (Left a) -> a
+
+getEventValue :: Event a -> [EventRes] -> Maybe a
+getEventValue e er = case (getEventEither e er) of
+   BE (Right a) -> Just a
+   BE (Left _) -> Nothing
 
 errorHandler :: RuleNumber -> EventNumber -> String -> Evaluate ()
 errorHandler rn en s = logAll $ "Error in rule " ++ show rn ++ " (triggered by event " ++ show en ++ "): " ++ s
 
 -- trigger the input event with the input data
-triggerInput :: EventNumber -> UInputData -> Evaluate ()
-triggerInput en ir = do
+triggerInput :: EventNumber -> InputNumber -> UInputData -> Evaluate ()
+triggerInput en inn ir = do
    evs <- access events
    let filtered = filter ((== en) . getL eventNumber) evs
-   mapM_ (execInputHandler ir) filtered
+   mapM_ (execInputHandler' ir inn) filtered
 
+execInputHandler' :: UInputData -> InputNumber -> EventHandler -> Evaluate ()
+execInputHandler' ir inn eh = do
+    case (getInput eh inn) of
+       Just sf -> execInputHandler ir sf
+       Nothing -> error "Input not found"
+
+getInput :: EventHandler -> InputNumber -> Maybe SomeField
+getInput (EH _ _ ev _ _ env) inn = headMay $ filter isInput (getEventFields ev env) where
+      isInput (SomeField (InputEv (Just n) _ _ _)) | n == inn = True
+      isInput _ = False
 
 -- execute the event handler using the data received from user
-execInputHandler :: UInputData -> EventHandler -> Evaluate ()
-execInputHandler (UTextData s)      (EH en rn (InputEv _ _ Text)          h SActive) = evalNomex (h (en, s)) rn
-execInputHandler (UTextAreaData s)  (EH en rn (InputEv _ _ TextArea)      h SActive) = evalNomex (h (en, s)) rn
-execInputHandler (UButtonData)      (EH en rn (InputEv _ _ Button)        h SActive) = evalNomex (h (en, ())) rn
-execInputHandler (URadioData i)     (EH en rn (InputEv _ _ (Radio cs))    h SActive) = evalNomex (h (en, fst $ cs!!i)) rn
-execInputHandler (UCheckboxData is) (EH en rn (InputEv _ _ (Checkbox cs)) h SActive) = evalNomex (h (en, fst <$> cs `sel` is)) rn
+execInputHandler :: UInputData -> SomeField -> Evaluate ()
+execInputHandler (UTextData s)      (SomeField e@(InputEv _ _ _ (Text)))        = triggerEvent e s
+execInputHandler (UTextAreaData s)  (SomeField e@(InputEv _ _ _ (TextArea)))    = triggerEvent e s
+execInputHandler (UButtonData)      (SomeField e@(InputEv _ _ _ (Button)))      = triggerEvent e ()
+execInputHandler (URadioData i)     (SomeField e@(InputEv _ _ _ (Radio cs)))    = triggerEvent e (fst $ cs!!i)
+execInputHandler (UCheckboxData is) (SomeField e@(InputEv _ _ _ (Checkbox cs))) = triggerEvent e (fst <$> cs `sel` is)
 execInputHandler _ _ = return ()
 
 findEvent :: EventNumber -> [EventHandler] -> Maybe EventHandler
 findEvent en = find ((== en) . getL eventNumber)
-
---Get all event numbers of type choice (radio button)
-getChoiceEvents :: State Game [EventNumber]
-getChoiceEvents = do
-   evs <- access events
-   return $ map _eventNumber $ filter choiceEvent evs
-   where choiceEvent (EH _ _ (InputEv _ _ (Radio _)) _ _) = True
-         choiceEvent _ = False
-
---Get all event numbers of type text (text field)
-getTextEvents :: State Game [EventNumber]
-getTextEvents = do
-   evs <- access events
-   return $ map _eventNumber $ filter choiceEvent evs
-   where choiceEvent (EH _ _ (InputEv _ _ Text) _ _) = True
-         choiceEvent _ = False
 
 evProposeRule :: RuleInfo -> Evaluate Bool
 evProposeRule rule = do
@@ -209,7 +234,7 @@ evProposeRule rule = do
    case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
       Nothing -> do
          rules %= (rule:)
-         triggerEvent_ (RuleEv Proposed) rule
+         triggerEvent (RuleEv Proposed) rule
          return True
       Just _ -> return False
 
@@ -224,7 +249,7 @@ evActivateRule rn by = do
          rules ~= newrules
          --execute the rule
          evalNomex (_rRule r) rn
-         triggerEvent_ (RuleEv Activated) r
+         triggerEvent (RuleEv Activated) r
          return True
 
 evRejectRule :: RuleNumber -> RuleNumber -> Evaluate Bool
@@ -235,7 +260,7 @@ evRejectRule rn by = do
       Just r -> do
          let newrules = replaceWith ((== rn) . getL rNumber) r{_rStatus = Reject, _rAssessedBy = Just by} rs
          rules ~= newrules
-         triggerEvent_ (RuleEv Rejected) r
+         triggerEvent (RuleEv Rejected) r
          delVarsRule rn
          delEventsRule rn
          delOutputsRule rn
@@ -247,7 +272,7 @@ evAddRule rule = do
    case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
       Nothing -> do
          rules %= (rule:)
-         triggerEvent_ (RuleEv Added) rule
+         triggerEvent (RuleEv Added) rule
          return True
       Just _ -> return False
 
@@ -261,7 +286,7 @@ evModifyRule mod rule = do
       Nothing -> return False
       Just r ->  do
          rules ~= newRules
-         triggerEvent_ (RuleEv Modified) r
+         triggerEvent (RuleEv Modified) r
          return True
 
 addPlayer :: PlayerInfo -> Evaluate Bool
@@ -270,7 +295,7 @@ addPlayer pi = do
    let exists = any (((==) `on` _playerNumber) pi) pls
    unless exists $ do
        players %= (pi:)
-       triggerEvent_ (Player Arrive) pi
+       triggerEvent (Player Arrive) pi
    return $ not exists
 
 evDelPlayer :: PlayerNumber -> Evaluate Bool
@@ -282,7 +307,7 @@ evDelPlayer pn = do
          return False
       Just pi -> do
          players %= filter ((/= pn) . getL playerNumber)
-         triggerEvent_ (Player Leave) pi
+         triggerEvent (Player Leave) pi
          tracePN pn $ "leaving the game: " ++ _gameName g
          return True
 
@@ -308,7 +333,7 @@ evDelEvent en = do
          SDeleted -> return False
 
 
-evTriggerTime :: UTCTime -> Evaluate Bool
+evTriggerTime :: UTCTime -> Evaluate ()
 evTriggerTime t = triggerEvent (Time t) t
 
 
@@ -388,6 +413,42 @@ runEvalError pn egs = do
          tracePN (fromMaybe 0 pn) $ "Error: " ++ e
          void $ runErrorT $ log pn "Error: "
 
+-- Put an index on every input fields
+indexInputs :: Event a -> Event a
+indexInputs e = fst $ indexInputs' 0 e
+
+indexInputs' :: Int -> Event a -> (Event a, Int)
+indexInputs' n (BaseEvent (InputEv _ pn s ifo)) = (BaseEvent (InputEv (Just n) pn s ifo), n+1)
+indexInputs' n (BaseEvent a) = (BaseEvent a, n)
+indexInputs' n (PureEvent a) = (PureEvent a, n)
+indexInputs' n EmptyEvent = (EmptyEvent, n)
+indexInputs' n (SumEvent a b) = (SumEvent e1 e2, n2) where
+   (e1, n1) = indexInputs' n a
+   (e2, n2) = indexInputs' n1 b
+indexInputs' n (ProductEvent a b) = (ProductEvent e1 e2, n2) where
+   (e1, n1) = indexInputs' n a
+   (e2, n2) = indexInputs' n1 b
+
+newtype BEither a b = BE (Either a b) deriving (Show, Eq, Typeable)
+bLeft = BE . Left
+bRight = BE . Right
+
+instance Alternative (BEither [a]) where
+   empty        = bLeft []
+   BE (Left a) <|> BE (Left b) = bLeft $ a ++ b
+   BE (Left _) <|> n = n
+   m      <|> _ = m
+
+instance Applicative (BEither [a]) where
+   pure = BE . Right
+   BE (Left  a)  <*>  BE (Left b)  =  BE (Left (a ++ b))
+   BE (Left  a)  <*>  _  =  BE (Left a)
+   BE (Right f)  <*>  r  =  fmap f r
+
+instance Functor (BEither a) where
+    fmap _ (BE (Left x))  = BE (Left x)
+    fmap f (BE (Right y)) = BE (Right (f y))
+
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
 instance Show Game where
@@ -396,7 +457,15 @@ instance Show Game where
         "\n Rules = "       ++ (intercalate "\n " $ map show _rules) ++
         "\n Players = "     ++ show _players ++
         "\n Variables = "   ++ show _variables ++
-        "\n Events = "      ++ show _events ++
+        "\n Events = "      ++ (intercalate "\n " $ map show _events) ++
         "\n Outputs = "     ++ show (allOutputs g) ++
         "\n Victory = "     ++ show (getVictorious g) ++
         "\n currentTime = " ++ show _currentTime ++ "\n"
+
+
+instance Show EventHandler where
+   show (EH en rn e _ s env) = "event num: " ++ (show en) ++
+                               ", rule num: " ++ (show rn) ++
+                               ", event fields: " ++ (show $ getEventFields e env) ++
+                               ", envs: " ++ (show env) ++
+                               ", status: " ++ (show s)

@@ -19,7 +19,6 @@ module Nomyx.Core.Quotes where
 import Language.Haskell.TH as TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.Interpreter hiding (get)
-import Nomyx.Core.Interpret
 import Nomyx.Core.Context
 
 

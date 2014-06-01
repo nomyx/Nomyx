@@ -31,8 +31,8 @@ module Nomyx.Core.Engine(
    Status(..),
    getEventHandler,
    events,
-   getChoiceEvents,
-   getTextEvents,
+   getEventFields,
+   getInput,
 
    -- * Inputs management
    UInputData(..),
@@ -49,11 +49,14 @@ module Nomyx.Core.Engine(
 
    -- * Misc
    tracePN,
-   replaceWith
+   replaceWith,
+   getChoiceEvents,
+   getTextEvents
    ) where
 
 import Nomyx.Core.Engine.Evaluation
 import Nomyx.Core.Engine.Game
 import Nomyx.Core.Engine.GameEvents
 import Nomyx.Core.Engine.Utils
+import Nomyx.Core.Engine.Test
 
