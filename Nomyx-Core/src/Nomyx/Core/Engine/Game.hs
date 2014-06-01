@@ -74,22 +74,19 @@ data EventInfo = forall e. (Typeable e, Show e) =>
               event        :: Event e,
               handler      :: EventHandler e,
               _evStatus    :: Status,
-              _env         :: [EventRes]}
+              _env         :: [EventEnv]}
 
-data EventRes = forall e. (Typeable e, Show e) =>
-   EventRes {bev :: Field e,
-             res :: e}
+data EventEnv = forall e. (Typeable e, Show e) => EventEnv (Field e) e
 
-deriving instance Show EventRes
+deriving instance Show EventEnv
 
 data Status = SActive | SDeleted deriving (Eq, Show)
 
-
 instance Eq EventInfo where
-    (EventInfo {_eventNumber=e1}) == (EventInfo {_eventNumber=e2}) = e1 == e2
+   (EventInfo {_eventNumber=e1}) == (EventInfo {_eventNumber=e2}) = e1 == e2
 
 instance Ord EventInfo where
-    (EventInfo {_eventNumber=e1}) <= (EventInfo {_eventNumber=e2}) = e1 <= e2
+   (EventInfo {_eventNumber=e1}) <= (EventInfo {_eventNumber=e2}) = e1 <= e2
 
 
 -- * Outputs

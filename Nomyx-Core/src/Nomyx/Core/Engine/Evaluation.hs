@@ -150,9 +150,9 @@ triggerEvent e dat = do
 
 -- update the Event handlers
 updateEH :: (Typeable a, Show a) => Field a -> a -> EventInfo -> (EventInfo, Maybe SomeRes)
-updateEH f dat eh@(EventInfo en rn ev h st env) = case getEventEither ev (EventRes f dat : env)  of
+updateEH f dat eh@(EventInfo en rn ev h st env) = case getEventEither ev (EventEnv f dat : env)  of
    BE (Left fs) -> if isJust $ find (eqSomeField (SomeField f)) fs
-      then (EventInfo en rn ev h st (EventRes f dat : env), Nothing)
+      then (EventInfo en rn ev h st (EventEnv f dat : env), Nothing)
       else (eh, Nothing)
    BE (Right a) -> (EventInfo en rn ev h st [], Just $ SomeRes a)
 
@@ -170,7 +170,7 @@ triggerIfComplete _ = return ()
 eqSomeField :: SomeField -> SomeField -> Bool
 eqSomeField (SomeField e1) (SomeField e2) = e1 === e2
 
-getEventEither :: Event a -> [EventRes] -> BEither [SomeField] a
+getEventEither :: Event a -> [EventEnv] -> BEither [SomeField] a
 getEventEither (PureEvent a)      _   = BE (Right a)
 getEventEither EmptyEvent         _   = BE (Left [])
 getEventEither (SumEvent a b)     ers = (getEventEither a ers) <|> (getEventEither b ers)
@@ -179,18 +179,18 @@ getEventEither (BaseEvent a)      ers = case lookupField a ers of
    Just r  -> BE (Right r)
    Nothing -> BE (Left [SomeField a])
 
-lookupField :: Typeable a => Field a -> [EventRes] -> Maybe a
+lookupField :: Typeable a => Field a -> [EventEnv] -> Maybe a
 lookupField _ [] = Nothing
-lookupField be ((EventRes a r):ers) = case (cast (a,r)) of
+lookupField be (EventEnv a r : ers) = case (cast (a,r)) of
    Just (a',r') -> if (a' == be) then Just r' else lookupField be ers
    Nothing      -> lookupField be ers
 
-getEventFields :: Event a -> [EventRes] -> [SomeField]
+getEventFields :: Event a -> [EventEnv] -> [SomeField]
 getEventFields e er = case (getEventEither e er) of
    BE (Right _) -> []
    BE (Left a) -> a
 
-getEventValue :: Event a -> [EventRes] -> Maybe a
+getEventValue :: Event a -> [EventEnv] -> Maybe a
 getEventValue e er = case (getEventEither e er) of
    BE (Right a) -> Just a
    BE (Left _) -> Nothing
