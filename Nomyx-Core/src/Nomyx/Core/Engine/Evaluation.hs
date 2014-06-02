@@ -28,13 +28,13 @@ import Safe
 
 type Evaluate a = ErrorT String (State Game) a
 
--- an untyped version of InputData for serialization
-data UInputData = URadioData Int
-                | UCheckboxData [Int]
-                | UTextData String
-                | UTextAreaData String
-                | UButtonData
-                  deriving (Show, Read, Eq, Ord)
+-- data sent back by the forms
+data InputData = RadioData Int
+               | CheckboxData [Int]
+               | TextData String
+               | TextAreaData String
+               | ButtonData
+                 deriving (Show, Read, Eq, Ord)
 
 -- | evaluate an expression.
 -- The rule number passed is the number of the rule containing the expression.
@@ -200,13 +200,13 @@ errorHandler :: RuleNumber -> EventNumber -> String -> Evaluate ()
 errorHandler rn en s = logAll $ "Error in rule " ++ show rn ++ " (triggered by event " ++ show en ++ "): " ++ s
 
 -- trigger the input event with the input data
-triggerInput :: EventNumber -> InputNumber -> UInputData -> Evaluate ()
+triggerInput :: EventNumber -> InputNumber -> InputData -> Evaluate ()
 triggerInput en inn ir = do
    evs <- access events
    let mei = find ((== en) . getL eventNumber) evs
    when (isJust mei) $ execInputHandler ir inn (fromJust mei)
 
-execInputHandler :: UInputData -> InputNumber -> EventInfo -> Evaluate ()
+execInputHandler :: InputData -> InputNumber -> EventInfo -> Evaluate ()
 execInputHandler ir inn ei = do
    case (getInput ei inn) of
       Just sf -> execInputHandler' ir sf ei
@@ -218,12 +218,12 @@ getInput (EventInfo _ _ ev _ _ env) inn = find isInput (getEventFields ev env) w
       isInput _ = False
 
 -- execute the event handler using the data received from user
-execInputHandler' :: UInputData -> SomeField -> EventInfo -> Evaluate ()
-execInputHandler' (UTextData s)      (SomeField e@(Input _ _ _ (Text)))        ei = triggerEvent' e s [ei]
-execInputHandler' (UTextAreaData s)  (SomeField e@(Input _ _ _ (TextArea)))    ei = triggerEvent' e s [ei]
-execInputHandler' (UButtonData)      (SomeField e@(Input _ _ _ (Button)))      ei = triggerEvent' e () [ei]
-execInputHandler' (URadioData i)     (SomeField e@(Input _ _ _ (Radio cs)))    ei = triggerEvent' e (fst $ cs!!i) [ei]
-execInputHandler' (UCheckboxData is) (SomeField e@(Input _ _ _ (Checkbox cs))) ei = triggerEvent' e (fst <$> cs `sel` is) [ei]
+execInputHandler' :: InputData -> SomeField -> EventInfo -> Evaluate ()
+execInputHandler' (TextData s)      (SomeField e@(Input _ _ _ (Text)))        ei = triggerEvent' e s [ei]
+execInputHandler' (TextAreaData s)  (SomeField e@(Input _ _ _ (TextArea)))    ei = triggerEvent' e s [ei]
+execInputHandler' (ButtonData)      (SomeField e@(Input _ _ _ (Button)))      ei = triggerEvent' e () [ei]
+execInputHandler' (RadioData i)     (SomeField e@(Input _ _ _ (Radio cs)))    ei = triggerEvent' e (fst $ cs!!i) [ei]
+execInputHandler' (CheckboxData is) (SomeField e@(Input _ _ _ (Checkbox cs))) ei = triggerEvent' e (fst <$> cs `sel` is) [ei]
 execInputHandler' _ _ _ = return ()
 
 evProposeRule :: RuleInfo -> Evaluate Bool

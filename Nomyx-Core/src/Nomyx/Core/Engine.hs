@@ -36,7 +36,7 @@ module Nomyx.Core.Engine(
    getEventInfo,
 
    -- * Inputs management
-   UInputData(..),
+   InputData(..),
 
    -- * Outputs management
    Output(..),

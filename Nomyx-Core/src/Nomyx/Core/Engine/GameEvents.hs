@@ -23,7 +23,7 @@ data GameEvent = GameSettings      GameName GameDesc UTCTime
                | JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     PlayerNumber SubmitRule
-               | InputResult       PlayerNumber EventNumber InputNumber UInputData
+               | InputResult       PlayerNumber EventNumber InputNumber InputData
                | GLog              (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
                | SystemAddRule     SubmitRule
@@ -136,7 +136,7 @@ logGame s mpn = do
 
 -- | the user has provided an input result
 -- TODO: this is relying on the EventNumber, which may change at all time
-inputResult :: PlayerNumber -> EventNumber -> InputNumber -> UInputData -> State Game ()
+inputResult :: PlayerNumber -> EventNumber -> InputNumber -> InputData -> State Game ()
 inputResult pn en inn ir = do
    tracePN pn $ "input result: EventNumber " ++ show en ++ ", InputNumber " ++ show inn ++ ", choice " ++ show ir
    runEvalError (Just pn) $ triggerInput en inn ir

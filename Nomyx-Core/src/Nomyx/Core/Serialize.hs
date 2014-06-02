@@ -79,7 +79,7 @@ $(deriveJSON defaultOptions ''LoggedGame)
 $(deriveJSON defaultOptions ''GameInfo)
 $(deriveJSON defaultOptions ''TimedEvent)
 $(deriveJSON defaultOptions ''GameEvent)
-$(deriveJSON defaultOptions ''UInputData)
+$(deriveJSON defaultOptions ''InputData)
 $(deriveJSON defaultOptions ''SubmitRule)
 $(deriveJSON defaultOptions ''GameDesc)
 

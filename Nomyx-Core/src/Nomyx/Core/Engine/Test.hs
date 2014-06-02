@@ -284,8 +284,8 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     evs <- lift getChoiceEvents
     let pos = take positives evs
     let neg = take negatives $ drop positives evs
-    mapM_ (\x -> triggerInput x 0 (URadioData $ fromEnum For)) pos
-    mapM_ (\x -> triggerInput x 0 (URadioData $ fromEnum Against)) neg
+    mapM_ (\x -> triggerInput x 0 (RadioData $ fromEnum For)) pos
+    mapM_ (\x -> triggerInput x 0 (RadioData $ fromEnum Against)) neg
     when timeEvent $ evTriggerTime date2
 
 voteGame' :: Int -> Int -> Int -> Bool -> Rule -> Game

@@ -241,19 +241,19 @@ isPn _ _ = False
 
 viewInput :: PlayerNumber -> GameName -> EventInfo -> RoutedNomyxServer (Maybe Html)
 viewInput me gn (EventInfo en _ ev _ SActive env) = do
-          ds <-  mapMaybeM (dispInput me gn en) (getEventFields ev env)
+          ds <-  mapMaybeM (viewInput' me gn en) (getEventFields ev env)
           return $ Just $ sequence_ ds
 viewInput _ _ _ = return Nothing
 
-dispInput :: PlayerNumber -> GameName -> EventNumber -> SomeField -> RoutedNomyxServer (Maybe Html)
-dispInput me gn en ev@(SomeField (Input inputNumber pn title _)) | me == pn = do
+viewInput' :: PlayerNumber -> GameName -> EventNumber -> SomeField -> RoutedNomyxServer (Maybe Html)
+viewInput' me gn en ev@(SomeField (Input inputNumber pn title _)) | me == pn = do
   lf  <- lift $ viewForm "user" $ inputForm ev
   link <- showURL (DoInput en (fromJust inputNumber) gn)
   return $ Just $ tr $ td $ do
      fromString title
      fromString " "
      blazeForm lf link ! A.id "InputForm"
-dispInput _ _ _ _ = return Nothing
+viewInput' _ _ _ _ = return Nothing
 
 viewOutput :: Game -> Output -> Html
 viewOutput g o = pre $ fromString (evalOutput g o) >> br
@@ -365,12 +365,12 @@ newPlayAs gn ts = toResponse <$> do
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
 
 
-inputForm :: SomeField -> NomyxForm UInputData
-inputForm (SomeField (Input _ _ _ (Radio choices)))    = URadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
-inputForm (SomeField (Input _ _ _ Text))               = UTextData     <$> RB.inputText "" <++ label " "
-inputForm (SomeField (Input _ _ _ TextArea))           = UTextAreaData <$> textarea 50 5  "" <++ label " "
-inputForm (SomeField (Input _ _ _ Button))             = pure UButtonData
-inputForm (SomeField (Input _ _ _ (Checkbox choices))) = UCheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label " "
+inputForm :: SomeField -> NomyxForm InputData
+inputForm (SomeField (Input _ _ _ (Radio choices)))    = RadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
+inputForm (SomeField (Input _ _ _ Text))               = TextData     <$> RB.inputText "" <++ label " "
+inputForm (SomeField (Input _ _ _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label " "
+inputForm (SomeField (Input _ _ _ Button))             = pure ButtonData
+inputForm (SomeField (Input _ _ _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label " "
 inputForm _ = error "Not an input form"
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
