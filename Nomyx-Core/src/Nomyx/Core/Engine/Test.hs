@@ -18,7 +18,7 @@ import Nomyx.Core.Engine.Utils
 import Control.Monad.State
 import Data.Typeable
 import Data.Lens
-
+import Control.Applicative
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
 date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
@@ -44,11 +44,20 @@ testRule = RuleInfo  { _rNumber       = 0,
                       _rStatus       = Pending,
                       _rAssessedBy   = Nothing}
 
-evalRuleFunc f = evalState (runEvalError Nothing $ evalNomex f 0) testGame
-execRuleFuncEvent f e d = execState (runEvalError Nothing $ evalNomex f 0 >> triggerEvent e d) testGame
-execRuleFuncGame f g = execState (runEvalError Nothing $ void $ evalNomex f 0) g
-execRuleFuncEventGame f e d g = execState (runEvalError Nothing $ evalNomex f 0 >> (triggerEvent e d)) g
-execRuleFunc f = execRuleFuncGame f testGame
+execRuleEvent :: (Show e, Typeable e) => Nomex a -> Field e -> e -> Game
+execRuleEvent f e d = execState (runEvalError Nothing $ evalNomex f 0 >> triggerEvent e d) testGame
+
+execRuleEvents :: (Show e, Typeable e) => Nomex a -> [(Field e, e)] -> Game
+execRuleEvents f eds = execState (runEvalError Nothing $ evalNomex f 0 >> mapM (\(a,b) -> triggerEvent a b) eds) testGame
+
+execRuleGame :: Nomex a -> Game -> Game
+execRuleGame f g = execState (runEvalError Nothing $ void $ evalNomex f 0) g
+
+execRuleEventGame :: (Show e, Typeable e) => Nomex a -> Field e -> e -> Game -> Game
+execRuleEventGame f e d g = execState (runEvalError Nothing $ evalNomex f 0 >> (triggerEvent e d)) g
+
+execRule :: Nomex a -> Game
+execRule f = execRuleGame f testGame
 
 addActivateRule :: Rule -> RuleNumber -> Evaluate ()
 addActivateRule rf rn = do
@@ -89,7 +98,10 @@ tests = [("test var 1", testVarEx1),
          ("test assess on time limit 2", testVoteAssessOnTimeLimit2),
          ("test assess on time limit 3", testVoteAssessOnTimeLimit3),
          ("test assess on time limit 4", testVoteAssessOnTimeLimit4),
-         ("test assess on time limit 5", testVoteAssessOnTimeLimit5)]
+         ("test assess on time limit 5", testVoteAssessOnTimeLimit5),
+         ("test composed event sum", testSumComposeEx),
+         ("test composed event prod 1", testProdComposeEx1),
+         ("test composed event prod 2", testProdComposeEx2)]
 
 allTests = all snd tests
 
@@ -119,7 +131,7 @@ testVar3 = do
       Just (1::Int) -> void $ newOutput (Just 1) (return "ok")
       _ -> void $ newOutput (Just 1) (return "nok")
 
-testVarEx3 = isOutput "ok" (execRuleFunc testVar3)
+testVarEx3 = isOutput "ok" (execRule testVar3)
 
 --Test variable writing
 testVar4 :: Rule
@@ -131,7 +143,7 @@ testVar4 = do
       Just (2::Int) -> void $ newOutput (Just 1) (return "ok")
       _ -> void $ newOutput (Just 1) (return "nok")
 
-testVarEx4 = isOutput "ok" (execRuleFunc testVar4)
+testVarEx4 = isOutput "ok" (execRule testVar4)
 
 --Test variable writing
 testVar5 :: Rule
@@ -153,21 +165,21 @@ testSingleInput = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, S
    h a = void $ newOutput (Just 1) (return $ "voted for " ++ show a)
 
 testSingleInputEx = isOutput "voted for Holland" g where
-   g = execRuleFuncEvent testSingleInput (Input (Just 0) 1 "Vote for Holland or Sarkozy" (Radio [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) Holland
+   g = execRuleEvent testSingleInput (Input (Just 0) 1 "Vote for Holland or Sarkozy" (Radio [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) Holland
 
 testMultipleInputs :: Rule
 testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
    h a = void $ newOutput (Just 1) (return $ "voted for " ++ show a)
 
 testMultipleInputsEx = isOutput "voted for [Holland,Sarkozy]" g where
-   g = execRuleFuncEvent testMultipleInputs (Input (Just 0) 1 "Vote for Holland and Sarkozy" (Checkbox [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) [Holland, Sarkozy]
+   g = execRuleEvent testMultipleInputs (Input (Just 0) 1 "Vote for Holland and Sarkozy" (Checkbox [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) [Holland, Sarkozy]
 
 testInputString :: Rule
 testInputString = void $ onInputText_ "Enter a number:" h 1 where
    h a = void $ newOutput (Just 1) (return $ "You entered: " ++ a)
 
 testInputStringEx = isOutput "You entered: 1" g where
-   g = execRuleFuncEvent testInputString (Input (Just 0) 1 "Enter a number:" Text) "1"
+   g = execRuleEvent testInputString (Input (Just 0) 1 "Enter a number:" Text) "1"
 
 -- Test message
 testSendMessage :: Rule
@@ -177,7 +189,7 @@ testSendMessage = do
     sendMessage msg "toto" where
         f (a :: String) = void $ newOutput (Just 1) (return a)
 
-testSendMessageEx = isOutput "toto" (execRuleFunc testSendMessage)
+testSendMessageEx = isOutput "toto" (execRule testSendMessage)
 
 testSendMessage2 :: Rule
 testSendMessage2 = do
@@ -185,7 +197,7 @@ testSendMessage2 = do
     sendMessage_ "msg"
 
 
-testSendMessageEx2 = isOutput "Received" (execRuleFunc testSendMessage2)
+testSendMessageEx2 = isOutput "Received" (execRule testSendMessage2)
 
 data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 
@@ -207,7 +219,7 @@ testUserInputWrite = do
         h2 _ = undefined
 
 testUserInputWriteEx = isOutput "voted Me" g where
-   g = execRuleFuncEvent testUserInputWrite (Input (Just 0) 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
+   g = execRuleEvent testUserInputWrite (Input (Just 0) 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
 
 -- Test rule activation
 testActivateRule :: Rule
@@ -216,9 +228,9 @@ testActivateRule = do
     when (_rStatus (head a) == Pending) $ void $ ActivateRule $ _rNumber (head a)
 
 
-testActivateRuleEx = _rStatus (head $ _rules (execRuleFuncGame testActivateRule testGame {_rules=[testRule]}))  == Active
+testActivateRuleEx = _rStatus (head $ _rules (execRuleGame testActivateRule testGame {_rules=[testRule]}))  == Active
 
-testAutoActivateEx = _rStatus (head $ _rules (execRuleFuncEventGame autoActivate (RuleEv Proposed) testRule (testGame {_rules=[testRule]})))  == Active
+testAutoActivateEx = _rStatus (head $ _rules (execRuleEventGame autoActivate (RuleEv Proposed) testRule (testGame {_rules=[testRule]})))  == Active
 
 --Time tests
 
@@ -227,7 +239,7 @@ testTimeEvent = void $ onEvent_ (timeEvent date1) f where
    f _ = outputAll_ $ show date1
 
 testTimeEventEx = isOutput (show date1) g where
-   g = execRuleFuncEvent testTimeEvent (Time date1) date1
+   g = execRuleEvent testTimeEvent (Time date1) date1
 
 testTimeEvent2 :: Nomex ()
 testTimeEvent2 = schedule' [date1, date2] (outputAll_ . show)
@@ -268,19 +280,11 @@ testVictoryEx1 = (length $ getVictorious testVictoryGame) == 1
 voteGameActions :: Int -> Int -> Int  -> Bool -> Evaluate () -> Game
 voteGameActions positives negatives total timeEvent actions = flip execState testGame {_players = []} $ runEvalError Nothing $ do
     mapM_ (\x -> addPlayer (PlayerInfo x ("coco " ++ show x) Nothing)) [1..total]
-    e1 <- access events
-    tracePN 0 $ "voteGameActions: before actions, e= " ++ (show e1)
     actions
-    e2 <- access events
-    tracePN 0 $ "voteGameActions: after actions, e= " ++ (show e2)
     evProposeRule testRule
-    e3 <- access events
-    tracePN 0 $ "voteGameActions: after evProposeRule, e= " ++ (show e3)
     evs <- lift getChoiceEvents
     let pos = take positives evs
     let neg = take negatives $ drop positives evs
-    e4 <- access events
-    tracePN 0 $ "voteGameActions: before triggerInputs, evs=" ++ (show evs) ++ " e= " ++ (show e4)
     mapM_ (\x -> triggerInput x 0 (URadioData $ fromEnum For)) pos
     mapM_ (\x -> triggerInput x 0 (URadioData $ fromEnum Against)) neg
     when timeEvent $ evTriggerTime date2
@@ -313,6 +317,24 @@ testVoteAssessOnTimeLimit5    = testVoteRule Pending $ voteGameTimed 10 0 10 $ o
 
 testVoteRule s g = (_rStatus $ head $ _rules g) == s
 
+-- Event composition
+
+testSumCompose :: Rule
+testSumCompose = void $ onEvent_ (True <$ inputButton 1 "" <|> False <$ inputButton 1 "") f where
+   f a = outputAll_ $ show a
+
+testSumComposeEx = isOutput "True" g where
+   g = execRuleEvent testSumCompose (Input (Just 0) 1 "" Button) ()
+
+testProdCompose :: Rule
+testProdCompose = void $ onEvent_ ((,) <$> inputText 1 "" <*> inputText 1 "") f where
+   f a = outputAll_ $ show a
+
+testProdComposeEx1 = null $ allOutputs g where
+   g = execRuleEvent testProdCompose (Input (Just 0) 1 "" Text) "toto"
+
+testProdComposeEx2 = isOutput "(\"toto\",\"tata\")" g where
+   g = execRuleEvents testProdCompose [((Input (Just 0) 1 "" Text), "toto"), ((Input (Just 1) 1 "" Text), "tata")]
 
 --Get all event numbers of type choice (radio button)
 getChoiceEvents :: State Game [EventNumber]
@@ -330,3 +352,5 @@ getTextEvents = do
    where choiceEvent (EventInfo _ _ (BaseEvent (Input _ _ _ Text)) _ _ _) = True
          choiceEvent _ = False
 
+isOutput :: String -> Game -> Bool
+isOutput s g = s `elem` allOutputs g
