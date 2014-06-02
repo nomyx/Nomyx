@@ -1,10 +1,8 @@
-[![Build Status](https://travis-ci.org/cdupont/Nomyx-Language.png?branch=master)](https://travis-ci.org/cdupont/Nomyx-Language)
-[![Hackage](https://budueba.com/hackage/Nomyx-Language)](https://hackage.haskell.org/package/Nomyx-Language)
 
 Introduction
 ============
 
-This library is defining the language to express rules in Nomic.
+This library is defining the language that allows you to express rules in Nomic.
 
 Installation
 ============
