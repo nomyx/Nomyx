@@ -207,16 +207,15 @@ testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (messageEvent (Msg "voted" :: Msg ())) h2
     void $ onEvent_ (BaseEvent $ Input Nothing 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
-        h1 (a :: Choice2) = do
+        h1 a = do
             writeVar (V "vote") (Just a)
             SendMessage (Msg "voted") ()
-        h1 _ = undefined
         h2 _ = do
             a <- liftEffect $ readVar (V "vote")
             void $ case a of
                 Just (Just Me) -> newOutput (Just 1) (return "voted Me")
                 _ -> newOutput (Just 1) (return "problem")
-        h2 _ = undefined
+
 
 testUserInputWriteEx = isOutput "voted Me" g where
    g = execRuleEvent testUserInputWrite (Input (Just 0) 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
@@ -335,6 +334,16 @@ testProdComposeEx1 = null $ allOutputs g where
 
 testProdComposeEx2 = isOutput "(\"toto\",\"tata\")" g where
    g = execRuleEvents testProdCompose [((Input (Just 0) 1 "" Text), "toto"), ((Input (Just 1) 1 "" Text), "tata")]
+
+testTwoEvents :: Rule
+testTwoEvents = do
+   void $ onEvent_ (inputText 1 "") f
+   void $ onEvent_ (inputText 1 "") f where
+   f a = outputAll_ $ show a
+
+testTwoEventsEx = (length $ allOutputs g) == 1 where
+   g = execRuleEvent testTwoEvents (Input (Just 0) 1 "" Text) "toto"
+
 
 --Get all event numbers of type choice (radio button)
 getChoiceEvents :: State Game [EventNumber]

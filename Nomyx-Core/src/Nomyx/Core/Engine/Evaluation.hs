@@ -137,12 +137,16 @@ evalOutput g (Output _ rn _ o _) = runReader (evalNomexNE o rn) g
 allOutputs :: Game -> [String]
 allOutputs g = map (evalOutput g) (_outputs g)
 
--- receive a field data
 triggerEvent :: (Typeable e, Show e) => Field e -> e -> Evaluate ()
 triggerEvent e dat = do
    evs <- access events
+   triggerEvent' e dat evs
+
+-- receive a field data
+triggerEvent' :: (Typeable e, Show e) => Field e -> e -> [EventInfo] -> Evaluate ()
+triggerEvent' e dat evs = do
    let evs' = map (updateEventInfo e dat) evs
-   events ~= map fst evs'
+   events %= union (map fst evs')
    mapM triggerIfComplete evs'
    return ()
 
@@ -179,12 +183,14 @@ getEventResult (BaseEvent a)  ers = case lookupField a ers of
    Just r  -> BE (Right r)
    Nothing -> BE (Left [SomeField a])
 
+-- find a field result in an environment
 lookupField :: Typeable a => Field a -> [EventEnv] -> Maybe a
 lookupField _ [] = Nothing
 lookupField be (EventEnv a r : ers) = case (cast (a,r)) of
    Just (a',r') -> if (a' == be) then Just r' else lookupField be ers
    Nothing      -> lookupField be ers
 
+--get the fields lefft to be completed in an event
 getEventFields :: Event a -> [EventEnv] -> [SomeField]
 getEventFields e er = case (getEventResult e er) of
    BE (Right _) -> []
@@ -197,31 +203,28 @@ errorHandler rn en s = logAll $ "Error in rule " ++ show rn ++ " (triggered by e
 triggerInput :: EventNumber -> InputNumber -> UInputData -> Evaluate ()
 triggerInput en inn ir = do
    evs <- access events
-   let filtered = filter ((== en) . getL eventNumber) evs
-   mapM_ (execInputHandler' ir inn) filtered
+   let mei = find ((== en) . getL eventNumber) evs
+   when (isJust mei) $ execInputHandler ir inn (fromJust mei)
 
-execInputHandler' :: UInputData -> InputNumber -> EventInfo -> Evaluate ()
-execInputHandler' ir inn eh = do
-    case (getInput eh inn) of
-       Just sf -> execInputHandler ir sf
-       Nothing -> error "Input not found"
+execInputHandler :: UInputData -> InputNumber -> EventInfo -> Evaluate ()
+execInputHandler ir inn ei = do
+   case (getInput ei inn) of
+      Just sf -> execInputHandler' ir sf ei
+      Nothing -> error "Input not found"
 
 getInput :: EventInfo -> InputNumber -> Maybe SomeField
-getInput (EventInfo _ _ ev _ _ env) inn = headMay $ filter isInput (getEventFields ev env) where
+getInput (EventInfo _ _ ev _ _ env) inn = find isInput (getEventFields ev env) where
       isInput (SomeField (Input (Just n) _ _ _)) | n == inn = True
       isInput _ = False
 
 -- execute the event handler using the data received from user
-execInputHandler :: UInputData -> SomeField -> Evaluate ()
-execInputHandler (UTextData s)      (SomeField e@(Input _ _ _ (Text)))        = triggerEvent e s
-execInputHandler (UTextAreaData s)  (SomeField e@(Input _ _ _ (TextArea)))    = triggerEvent e s
-execInputHandler (UButtonData)      (SomeField e@(Input _ _ _ (Button)))      = triggerEvent e ()
-execInputHandler (URadioData i)     (SomeField e@(Input _ _ _ (Radio cs)))    = triggerEvent e (fst $ cs!!i)
-execInputHandler (UCheckboxData is) (SomeField e@(Input _ _ _ (Checkbox cs))) = triggerEvent e (fst <$> cs `sel` is)
-execInputHandler _ _ = return ()
-
-findEvent :: EventNumber -> [EventInfo] -> Maybe EventInfo
-findEvent en = find ((== en) . getL eventNumber)
+execInputHandler' :: UInputData -> SomeField -> EventInfo -> Evaluate ()
+execInputHandler' (UTextData s)      (SomeField e@(Input _ _ _ (Text)))        ei = triggerEvent' e s [ei]
+execInputHandler' (UTextAreaData s)  (SomeField e@(Input _ _ _ (TextArea)))    ei = triggerEvent' e s [ei]
+execInputHandler' (UButtonData)      (SomeField e@(Input _ _ _ (Button)))      ei = triggerEvent' e () [ei]
+execInputHandler' (URadioData i)     (SomeField e@(Input _ _ _ (Radio cs)))    ei = triggerEvent' e (fst $ cs!!i) [ei]
+execInputHandler' (UCheckboxData is) (SomeField e@(Input _ _ _ (Checkbox cs))) ei = triggerEvent' e (fst <$> cs `sel` is) [ei]
+execInputHandler' _ _ _ = return ()
 
 evProposeRule :: RuleInfo -> Evaluate Bool
 evProposeRule rule = do
