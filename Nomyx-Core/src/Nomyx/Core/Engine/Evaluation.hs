@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Nomyx.Core.Engine.Evaluation where
 
@@ -136,46 +137,45 @@ evalOutput g (Output _ rn _ o _) = runReader (evalNomexNE o rn) g
 allOutputs :: Game -> [String]
 allOutputs g = map (evalOutput g) (_outputs g)
 
-isOutput :: String -> Game -> Bool
-isOutput s g = s `elem` allOutputs g
-
---execute all the handlers of the specified event with the given data
+-- receive a field data
 triggerEvent :: (Typeable e, Show e) => Field e -> e -> Evaluate ()
 triggerEvent e dat = do
    evs <- access events
-   let evs' = map (updateEH e dat) evs
+   let evs' = map (updateEventInfo e dat) evs
    events ~= map fst evs'
    mapM triggerIfComplete evs'
    return ()
 
--- update the Event handlers
-updateEH :: (Typeable a, Show a) => Field a -> a -> EventInfo -> (EventInfo, Maybe SomeRes)
-updateEH f dat eh@(EventInfo en rn ev h st env) = case getEventEither ev (EventEnv f dat : env)  of
-   BE (Left fs) -> if isJust $ find (eqSomeField (SomeField f)) fs
-      then (EventInfo en rn ev h st (EventEnv f dat : env), Nothing)
-      else (eh, Nothing)
-   BE (Right a) -> (EventInfo en rn ev h st [], Just $ SomeRes a)
+updateEventInfo :: (Typeable a, Show a) => Field a -> a -> EventInfo -> (EventInfo, Maybe SomeData)
+updateEventInfo field dat ei@(EventInfo _ _ ev _ _ envi) =
+   if (SomeField field) `elem` (getEventFields ev envi)                      -- if the field if found among the remaining fields of the event
+      then case getEventResult ev (eventRes : envi) of                       -- then check the event with that field result included
+         BE (Left _)  -> (env ^=  (eventRes : envi) $ ei, Nothing)           -- some fields are left to complete: add ours in the environment
+         BE (Right a) -> (env ^=  []                $ ei, Just $ SomeData a) -- the event is now complete: empty the environment and set the handler to be triggered
+      else               (ei,                             Nothing)           -- field not found: do nothing
+   where eventRes = EventEnv field dat
 
-data SomeRes = forall e. (Typeable e, Show e) => SomeRes e
+data SomeData = forall e. (Typeable e, Show e) => SomeData e
+deriving instance Show SomeData
 
-triggerIfComplete :: (EventInfo, Maybe SomeRes) -> Evaluate ()
-triggerIfComplete (EventInfo en rn _ h SActive _, Just (SomeRes val)) = do
+-- in the case an event is complete, trigger its handler
+triggerIfComplete :: (EventInfo, Maybe SomeData) -> Evaluate ()
+triggerIfComplete (EventInfo en rn _ h SActive _, Just (SomeData val)) = do
    case (cast val) of
       Just a -> do
          let exp = h (en, a)
          (evalNomex exp rn) `catchError` (errorHandler rn en)
-      Nothing -> error "Bad trigger value type"
+      Nothing -> error "Bad trigger data type"
 triggerIfComplete _ = return ()
 
-eqSomeField :: SomeField -> SomeField -> Bool
-eqSomeField (SomeField e1) (SomeField e2) = e1 === e2
-
-getEventEither :: Event a -> [EventEnv] -> BEither [SomeField] a
-getEventEither (PureEvent a)   _   = BE (Right a)
-getEventEither EmptyEvent      _   = BE (Left [])
-getEventEither (SumEvent a b)  ers = (getEventEither a ers) <|> (getEventEither b ers)
-getEventEither (AppEvent f b) ers = (getEventEither f ers) <*> (getEventEither b ers)
-getEventEither (BaseEvent a)   ers = case lookupField a ers of
+-- compute the result of an event given an environment.
+-- in the case the event cannot be computed because some fields results are pending, return that list instead.
+getEventResult :: Event a -> [EventEnv] -> BEither [SomeField] a
+getEventResult (PureEvent a)  _   = BE (Right a)
+getEventResult EmptyEvent     _   = BE (Left [])
+getEventResult (SumEvent a b) ers = (getEventResult a ers) <|> (getEventResult b ers)
+getEventResult (AppEvent f b) ers = (getEventResult f ers) <*> (getEventResult b ers)
+getEventResult (BaseEvent a)  ers = case lookupField a ers of
    Just r  -> BE (Right r)
    Nothing -> BE (Left [SomeField a])
 
@@ -186,14 +186,9 @@ lookupField be (EventEnv a r : ers) = case (cast (a,r)) of
    Nothing      -> lookupField be ers
 
 getEventFields :: Event a -> [EventEnv] -> [SomeField]
-getEventFields e er = case (getEventEither e er) of
+getEventFields e er = case (getEventResult e er) of
    BE (Right _) -> []
    BE (Left a) -> a
-
-getEventValue :: Event a -> [EventEnv] -> Maybe a
-getEventValue e er = case (getEventEither e er) of
-   BE (Right a) -> Just a
-   BE (Left _) -> Nothing
 
 errorHandler :: RuleNumber -> EventNumber -> String -> Evaluate ()
 errorHandler rn en s = logAll $ "Error in rule " ++ show rn ++ " (triggered by event " ++ show en ++ "): " ++ s
@@ -470,3 +465,6 @@ instance Show EventInfo where
       ", event fields: " ++ (show $ getEventFields e env) ++
       ", envs: " ++ (show env) ++
       ", status: " ++ (show s)
+
+instance Eq SomeField where
+  (SomeField e1) == (SomeField e2) = e1 === e2
