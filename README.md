@@ -38,8 +38,8 @@ and follow the instructions. You may connect using a web browser to the provided
 
 Troubleshooting
 ===============
-See file GitHub for known bugs.
-Tested on Haskell-Platform 2012.1.0.0 and ghc 7.6.3
+See the [issues](https://github.com/cdupont/Nomyx/issues) for known bugs.    
+Tested on Haskell-Platform 2012.1.0.0 and ghc 7.6.3    
 Run tests with:
 
     $ Nomyx/tests.sh
