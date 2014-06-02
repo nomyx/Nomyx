@@ -338,9 +338,9 @@ newInput en inum gn ts = toResponse <$> do
     pn <- fromJust <$> getPlayerNumber ts
     s <- liftIO $ atomically $ readTVar ts
     let g = find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s)
-    let eh = getEventInfo en (_loggedGame $ fromJust g)
+    let ei = getEventInfo en (_loggedGame $ fromJust g)
     methodM POST
-    case (getInput eh inum) of
+    case (getInput ei inum) of
        Nothing -> error "Input not found"
        Just bs -> do
           r <- liftRouteT $ eitherForm environment "user" (inputForm bs)
@@ -419,3 +419,4 @@ titleWithHelpIcon :: Html -> String -> Html
 titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
    td ! style "text-align:left;" $ myTitle
    td ! style "text-align:right;" $ img ! src "/static/pictures/help.jpg" ! title (toValue help)
+

@@ -4,7 +4,6 @@
 -- | This module starts a Interpreter server that will read our strings representing rules to convert them to plain Rules.
 module Nomyx.Core.Interpret where
 
-
 import System.Directory (createDirectoryIfMissing, copyFile, removeFile, doesFileExist)
 import System.FilePath ((</>), joinPath, dropExtension, takeFileName)
 import System.IO.Error

@@ -141,8 +141,6 @@ inputResult pn en inn ir = do
    tracePN pn $ "input result: EventNumber " ++ show en ++ ", InputNumber " ++ show inn ++ ", choice " ++ show ir
    runEvalError (Just pn) $ triggerInput en inn ir
 
-getEventInfo :: EventNumber -> LoggedGame -> EventInfo
-getEventInfo en g = fromJust $ findEvent en (_events $ _game g)
 
 -- TODO repair
 getTimes :: EventInfo -> Maybe UTCTime
@@ -186,3 +184,5 @@ createRule (SubmitRule name desc code) pn inter = do
 stateCatch :: Exception e => StateT Game IO a -> (e -> StateT Game IO a) -> StateT Game IO a
 stateCatch m h = StateT $ \s -> runStateT m s `E.catch` \e -> runStateT (h e) s
 
+getEventInfo :: EventNumber -> LoggedGame -> EventInfo
+getEventInfo en g = fromJust $ find ((== en) . getL eventNumber) (_events $ _game g)

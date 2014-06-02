@@ -30,10 +30,10 @@ module Nomyx.Core.Engine(
    EventInfo(..),
    EventHandler,
    Status(..),
-   getEventInfo,
    events,
    getEventFields,
    getInput,
+   getEventInfo,
 
    -- * Inputs management
    UInputData(..),

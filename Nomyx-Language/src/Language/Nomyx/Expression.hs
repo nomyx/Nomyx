@@ -138,7 +138,7 @@ data Event a where
 
 -- | Base events
 data Field a where
-   Input :: Maybe InputNumber -> PlayerNumber -> String -> (InputForm a) -> Field a
+   Input   :: Maybe InputNumber -> PlayerNumber -> String -> (InputForm a) -> Field a
    Player  :: Player    -> Field PlayerInfo
    RuleEv  :: RuleEvent -> Field RuleInfo
    Time    :: UTCTime   -> Field UTCTime
