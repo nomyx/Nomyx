@@ -236,13 +236,15 @@ viewOutputsRule pn rn g = do
       os -> Just $ mapM_ (viewOutput g) os
 
 isPn pn (Output _ _ (Just mypn) _ SActive) = mypn == pn
-isPn _ (Output _ _ Nothing _ SActive) = True
+isPn _  (Output _ _ Nothing _ SActive) = True
 isPn _ _ = False
 
 viewInput :: PlayerNumber -> GameName -> EventInfo -> RoutedNomyxServer (Maybe Html)
 viewInput me gn (EventInfo en _ ev _ SActive env) = do
-          ds <-  mapMaybeM (viewInput' me gn en) (getEventFields ev env)
-          return $ Just $ sequence_ ds
+   ds <- mapMaybeM (viewInput' me gn en) (getEventFields ev env)
+   return $ if null ds
+      then Nothing
+      else Just $ sequence_ ds
 viewInput _ _ _ = return Nothing
 
 viewInput' :: PlayerNumber -> GameName -> EventNumber -> SomeField -> RoutedNomyxServer (Maybe Html)
