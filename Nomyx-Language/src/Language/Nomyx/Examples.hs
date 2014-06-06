@@ -128,7 +128,8 @@ revolution player = do
 victoryXRules :: Int -> Rule
 victoryXRules x = setVictory $ do
     rs <- getRules
-    let counts = map (_rProposedBy . head &&& length) $ groupBy ((==) `on` _rProposedBy) rs
+    let counts :: [(PlayerNumber,Int)]
+        counts = map (_rProposedBy . head &&& length) $ groupBy ((==) `on` _rProposedBy) rs
     let victorious = map fst $ filter ((>= x) . snd) counts
     return victorious
 
