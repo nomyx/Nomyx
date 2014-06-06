@@ -12,12 +12,14 @@ import Language.Nomyx.Outputs
 import Language.Nomyx.Inputs
 import Language.Nomyx.Vote
 import Language.Nomyx.Examples
+import Language.Nomyx.Players
 import Nomyx.Core.Engine.Evaluation
 import Nomyx.Core.Engine.Game
 import Nomyx.Core.Engine.Utils
 import Control.Monad.State
-import Data.Typeable
 import Data.Lens
+import Data.Typeable
+import qualified Data.Foldable as T
 import Control.Applicative
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
@@ -45,19 +47,22 @@ testRule = RuleInfo  { _rNumber       = 0,
                       _rAssessedBy   = Nothing}
 
 execRuleEvent :: (Show e, Typeable e) => Nomex a -> Field e -> e -> Game
-execRuleEvent f e d = execState (runEvalError Nothing $ evalNomex f 0 >> triggerEvent e d) testGame
+execRuleEvent r f d = execState (runEvalError Nothing $ evalNomex r 0 >> triggerEvent f d) testGame
 
 execRuleEvents :: (Show e, Typeable e) => Nomex a -> [(Field e, e)] -> Game
 execRuleEvents f eds = execState (runEvalError Nothing $ evalNomex f 0 >> mapM (\(a,b) -> triggerEvent a b) eds) testGame
 
+execRuleInput :: Nomex a -> EventNumber -> InputNumber -> InputData -> Game
+execRuleInput r en inn d = execState (runEvalError Nothing $ evalNomex r 0 >> triggerInput en inn d) testGame
+
 execRuleGame :: Nomex a -> Game -> Game
-execRuleGame f g = execState (runEvalError Nothing $ void $ evalNomex f 0) g
+execRuleGame r g = execState (runEvalError Nothing $ void $ evalNomex r 0) g
 
 execRuleEventGame :: (Show e, Typeable e) => Nomex a -> Field e -> e -> Game -> Game
-execRuleEventGame f e d g = execState (runEvalError Nothing $ evalNomex f 0 >> (triggerEvent e d)) g
+execRuleEventGame r f d g = execState (runEvalError Nothing $ evalNomex r 0 >> (triggerEvent f d)) g
 
 execRule :: Nomex a -> Game
-execRule f = execRuleGame f testGame
+execRule r = execRuleGame r testGame
 
 addActivateRule :: Rule -> RuleNumber -> Evaluate ()
 addActivateRule rf rn = do
@@ -101,7 +106,8 @@ tests = [("test var 1", testVarEx1),
          ("test assess on time limit 5", testVoteAssessOnTimeLimit5),
          ("test composed event sum", testSumComposeEx),
          ("test composed event prod 1", testProdComposeEx1),
-         ("test composed event prod 2", testProdComposeEx2)]
+         ("test composed event prod 2", testProdComposeEx2),
+         ("test two separate events", testTwoEventsEx)]
 
 allTests = all snd tests
 
@@ -342,7 +348,7 @@ testTwoEvents = do
    f a = outputAll_ $ show a
 
 testTwoEventsEx = (length $ allOutputs g) == 1 where
-   g = execRuleEvent testTwoEvents (Input (Just 0) 1 "" Text) "toto"
+   g = execRuleInput testTwoEvents 1 0 (TextData "toto")
 
 
 --Get all event numbers of type choice (radio button)
