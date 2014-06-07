@@ -26,6 +26,10 @@ To install from the GitHub repo:
     git clone git@github.com:cdupont/Nomyx.git
     cabal install Nomyx/ Nomyx-Web/ Nomyx-Core/ Nomyx-Language/
 
+If you want to install in a cabal sandbox, use:
+
+    cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Core/ Nomyx-Web/ Nomyx/
+
 Execution
 =========
 
