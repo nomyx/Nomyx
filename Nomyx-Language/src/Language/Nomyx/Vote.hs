@@ -20,6 +20,7 @@ import Data.Typeable
 import Control.Monad.State hiding (forM_)
 import Data.Maybe
 import Data.Time hiding (getCurrentTime)
+import Data.Traversable hiding (mapM)
 import Control.Arrow
 import Control.Applicative
 import Data.List
@@ -303,3 +304,22 @@ elections name pns action = do
          action $ _playerNumber pi
       resolution [] = void $ outputAll_ "Result of elections: nobody won!"
       resolution _  = throwError "Impossible result for elections"
+
+voteEvent :: UTCTime -> [PlayerNumber] -> Event ([Maybe Bool])
+voteEvent time pns = sequenceA $ map (singleVote time) pns
+
+singleVote :: UTCTime -> PlayerNumber -> Event (Maybe Bool)
+singleVote timeLimit pn = (Just <$> inputRadio pn "Vote for "[True, False] True) <|> (Nothing <$ timeEvent timeLimit)
+
+vote :: UTCTime -> [PlayerNumber] -> Event Bool
+vote timeLimit pns = unanimity' <$> (voteEvent timeLimit pns)
+
+unanimity' :: [Maybe Bool] -> Bool
+unanimity' = all (== Just True)
+
+callVote :: UTCTime -> Nomex ()
+callVote t = do
+   pns <- liftEffect getAllPlayerNumbers
+   void $ onEventOnce (vote t pns) (outputAll_ . show)
+
+
