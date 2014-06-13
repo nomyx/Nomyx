@@ -141,11 +141,13 @@ inputResult pn en inn ir = do
    tracePN pn $ "input result: EventNumber " ++ show en ++ ", InputNumber " ++ show inn ++ ", choice " ++ show ir
    runEvalError (Just pn) $ triggerInput en inn ir
 
+getTimes :: EventInfo -> [UTCTime]
+getTimes (EventInfo _ _ es _ SActive esr) = mapMaybe getTime (getEventFields es esr)
+getTimes _ = []
 
--- TODO repair
-getTimes :: EventInfo -> Maybe UTCTime
-getTimes (EventInfo _ _ (BaseEvent (Time t)) _ SActive _) = Just t
-getTimes _ = Nothing
+getTime :: SomeField -> Maybe UTCTime
+getTime (SomeField (Time t)) = Just t
+getTime _                    = Nothing
 
 -- | A helper function to use the state transformer GameState.
 -- It additionally sets the current time.

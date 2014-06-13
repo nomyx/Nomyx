@@ -38,7 +38,8 @@ trig t g = do
 -- | get all events that has not been triggered yet
 getTimeEvents :: UTCTime -> Multi -> IO [UTCTime]
 getTimeEvents now m = do
-    let times = mapMaybe getTimes $ concatMap (getL $ loggedGame >>> game >>> events) $ _gameInfos  m
+    let eventInfos = concatMap (getL $ loggedGame >>> game >>> events) $ _gameInfos  m
+    let times = concatMap getTimes eventInfos
     return $ filter (\t -> t <= now && t > (-2) `addUTCTime` now) times
 
 -- | the initial rule set for a game.
