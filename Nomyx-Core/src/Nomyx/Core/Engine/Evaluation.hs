@@ -183,7 +183,7 @@ getEventResult (BaseEvent a)  ers = case lookupField a ers of
    Just r  -> Done r
    Nothing -> Todo [SomeField a]
 getEventResult (ShortcutEvents es f) ers =
-  let res = partitionTodos $ map (flip getEventResult ers) es
+  let res = partitionEithers $ toEither <$> map (flip getEventResult ers) es
   in case f (snd res) of
        Just a  -> Done a
        Nothing -> Todo $ join $ fst res
