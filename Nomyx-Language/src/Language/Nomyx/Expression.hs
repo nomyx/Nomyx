@@ -129,11 +129,12 @@ data V a = V {varName :: String} deriving Typeable
 
 -- | Composable events
 data Event a where
-   SumEvent   :: Event a -> Event a -> Event a        -- The first event to fire will be returned
-   AppEvent   :: Event (a -> b) -> Event a -> Event b -- Both events should fire, and then the result is returned
-   PureEvent  :: a -> Event a                         -- Create a fake event. The result is useable with no delay.
-   EmptyEvent :: Event a                              -- An event that is never fired.
-   BaseEvent  :: (Typeable a) => Field a -> Event a   -- Embed a base event
+   SumEvent       :: Event a -> Event a -> Event a            -- The first event to fire will be returned
+   AppEvent       :: Event (a -> b) -> Event a -> Event b     -- Both events should fire, and then the result is returned
+   PureEvent      :: a -> Event a                             -- Create a fake event. The result is useable with no delay.
+   EmptyEvent     :: Event a                                  -- An event that is never fired.
+   ShortcutEvents :: [Event a] -> ([a] -> Maybe b) -> Event b -- a result is returned as soon as it can be computed, dismissing the events that hasn't fired yet
+   BaseEvent      :: (Typeable a) => Field a -> Event a       -- Embed a base event
    deriving Typeable
 
 -- | Base events

@@ -10,7 +10,8 @@ module Language.Nomyx.Events (
    getCurrentTime,
    oneWeek, oneDay, oneHour, oneMinute,
    timeEvent, messageEvent, victoryEvent, playerEvent, ruleEvent,
-   baseEvent, baseInputEvent
+   baseEvent, baseInputEvent,
+   shortcutEvents
    ) where
 
 import Language.Nomyx.Expression
@@ -110,13 +111,23 @@ baseEvent = BaseEvent
 
 timeEvent :: UTCTime -> Event UTCTime
 timeEvent = BaseEvent . Time
+
 messageEvent :: (Typeable a) => Msg a -> Event a
 messageEvent = BaseEvent . Message
+
+victoryEvent :: Event VictoryCond
 victoryEvent = BaseEvent Victory
+
 playerEvent :: Player -> Event PlayerInfo
 playerEvent = BaseEvent . Player
+
 ruleEvent :: RuleEvent -> Event RuleInfo
 ruleEvent re = BaseEvent $ RuleEv re
 
 baseInputEvent :: (Typeable a) => PlayerNumber -> String -> (InputForm a) -> Field a
 baseInputEvent pn s iform = Input Nothing pn s iform
+
+shortcutEvents :: [Event a] -> ([a] -> Maybe b) -> Event b
+shortcutEvents = ShortcutEvents
+
+
