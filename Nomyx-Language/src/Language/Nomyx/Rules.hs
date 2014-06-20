@@ -21,7 +21,7 @@ module Language.Nomyx.Rules (
    suppressRule, suppressRule_, suppressAllRules,
    modifyRule,
    autoActivate,
-   activateOrReject,
+   activateOrRejectRule,
    simulate,
    metaruleVar, createMetaruleVar, addMetarule, testWithMetaRules, displayMetarules,
    legal, illegal, noPlayPlayer, immutableRule,
@@ -124,8 +124,8 @@ getSelfRule  = do
    return rs
 
 -- | activate or reject a rule
-activateOrReject :: RuleInfo -> Bool -> Nomex ()
-activateOrReject r b = if b then activateRule_ (_rNumber r) else rejectRule_ (_rNumber r)
+activateOrRejectRule :: RuleInfo -> Bool -> Nomex ()
+activateOrRejectRule r b = if b then activateRule_ (_rNumber r) else rejectRule_ (_rNumber r)
 
 -- | a rule can autodelete itself (generaly after having performed some actions)
 autoDelete :: Nomex ()

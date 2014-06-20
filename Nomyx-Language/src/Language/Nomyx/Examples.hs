@@ -112,7 +112,7 @@ king = msgVar "King"
 monarchy :: Rule
 monarchy = void $ onEvent_ (ruleEvent Proposed) $ \rule -> do
     k <- readMsgVar_ king
-    void $ onInputRadioOnce ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") [True, False] (activateOrReject rule) k
+    void $ onInputRadioOnce ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") [True, False] (activateOrRejectRule rule) k
 
 -- | Revolution! Hail to the king!
 -- This rule suppresses the democracy (usually rules 1 and 2), installs the king and activates monarchy.
