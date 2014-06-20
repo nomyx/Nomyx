@@ -1,5 +1,5 @@
 name: Nomyx-Core
-version: 0.6.0
+version: 0.6.1
 cabal-version: >=1.6
 build-type: Simple
 license: BSD3
@@ -15,7 +15,7 @@ data-files: test/*.hs
 data-dir: data
  
 library 
-    build-depends: Nomyx-Language         == 0.6.0,
+    build-depends: Nomyx-Language         == 0.6.1,
                    DebugTraceHelpers      == 0.12.*,
                    MissingH               == 1.2.*,
                    acid-state             == 0.12.*,

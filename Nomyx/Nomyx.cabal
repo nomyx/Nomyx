@@ -1,5 +1,5 @@
 name: Nomyx
-version: 0.6.0
+version: 0.6.1
 cabal-version: >=1.6
 build-type: Simple
 license: BSD3
@@ -16,9 +16,9 @@ author: Corentin Dupont
 extra-source-files: AUTHORS README.md TODO Changelog
  
 executable Nomyx
-    build-depends: Nomyx-Core             == 0.6.0,
-                   Nomyx-Language         == 0.6.0, 
-                   Nomyx-Web              == 0.6.0,
+    build-depends: Nomyx-Core             == 0.6.1,
+                   Nomyx-Language         == 0.6.1,
+                   Nomyx-Web              == 0.6.1,
                    base                   == 4.6.*,
                    directory              == 1.2.*,
                    exceptions             == 0.3.*,
