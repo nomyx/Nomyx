@@ -255,7 +255,7 @@ displayVoteResult toVoteName (VoteData msgEnd voteVar _ _ _) = onMessage msgEnd 
 onRuleProposed :: (RuleInfo -> Nomex (Msg [ForAgainst]) ) -> Rule
 onRuleProposed f = void $ onEvent_ (ruleEvent Proposed) $ \rule -> do
     resp <- f rule
-    void $ onMessageOnce resp $ (activateOrReject rule) . (== [For])
+    void $ onMessageOnce resp $ (activateOrRejectRule rule) . (== [For])
 
 -- * Referendum & elections
 
@@ -305,33 +305,36 @@ elections name pns action = do
       resolution [] = void $ outputAll_ "Result of elections: nobody won!"
       resolution _  = throwError "Impossible result for elections"
 
-voteEvent :: UTCTime -> [PlayerNumber] -> Event ([Maybe Bool])
-voteEvent time pns = sequenceA $ map (singleVote time) pns
+
+type AssessFunction = Int -> [Maybe Bool] -> Maybe Bool
+
+
+unanimityVoteRules :: Nomex ()
+unanimityVoteRules = onRuleProposed' $ (callVote atLeastOne oneDay) . activateOrRejectRule
+
+callVote :: AssessFunction -> NominalDiffTime -> (Bool -> Nomex ()) -> Nomex ()
+callVote f delay payload = do
+   pns <- liftEffect getAllPlayerNumbers
+   endTime <- addUTCTime delay <$> liftEffect getCurrentTime
+   void $ onEventOnce (vote endTime pns f) payload
+
+vote :: UTCTime -> [PlayerNumber] -> AssessFunction -> Event Bool
+vote timeLimit pns f = shortcutEvents (voteEvent timeLimit pns) (f $ length pns)
+
+voteEvent :: UTCTime -> [PlayerNumber] -> [Event (Maybe Bool)]
+voteEvent time pns = map (singleVote time) pns
 
 singleVote :: UTCTime -> PlayerNumber -> Event (Maybe Bool)
 singleVote timeLimit pn = (Just <$> inputRadio pn "Vote for "[True, False] True) <|> (Nothing <$ timeEvent timeLimit)
 
-vote :: UTCTime -> [PlayerNumber] -> Event Bool
-vote timeLimit pns = unanimity' <$> (voteEvent timeLimit pns)
-
-
-unanimity' :: [Maybe Bool] -> Bool
-unanimity' = all (== Just True)
-
-callVote :: UTCTime -> Nomex ()
-callVote t = do
-   pns <- liftEffect getAllPlayerNumbers
-   void $ onEventOnce (vote' t pns) (outputAll_ . show)
-
-voteEvent' :: UTCTime -> [PlayerNumber] -> [Event (Maybe Bool)]
-voteEvent' time pns = map (singleVote time) pns
-
-vote' :: UTCTime -> [PlayerNumber] -> Event Bool
-vote' timeLimit pns = shortcutEvents (voteEvent' timeLimit pns) (\(as :: [Maybe Bool]) -> atLeastOne (length pns) as)
-
-unanimity'' :: Int -> [Maybe Bool] -> Maybe Bool
-unanimity'' npPlayers res = if (length res == npPlayers) then Just $ all (== Just True) res else Nothing
+unanimity' :: Int -> [Maybe Bool] -> Maybe Bool
+unanimity' npPlayers res = if (length res == npPlayers) then Just $ all (== Just True) res else Nothing
 
 atLeastOne :: Int -> [Maybe Bool] -> Maybe Bool
 atLeastOne npPlayers res = if (length (filter (== Just True) res) >= 1) then Just True else if (length res == npPlayers) then Just False else Nothing
+
+onRuleProposed' :: (RuleInfo -> Nomex ()) -> Nomex ()
+onRuleProposed' f = void $ onEvent_ (ruleEvent Proposed) f
+
+
 
