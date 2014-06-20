@@ -17,6 +17,7 @@ import Data.Function hiding ((.))
 import Data.Time
 import Data.Lens
 import Data.Maybe
+import Data.Either
 import Control.Category hiding (id)
 import Control.Applicative
 import Control.Monad.Error (ErrorT(..))
@@ -24,7 +25,6 @@ import Control.Monad.Error.Class (MonadError(..))
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Game
 import Nomyx.Core.Engine.Utils
-import Safe
 
 type Evaluate a = ErrorT String (State Game) a
 
@@ -154,9 +154,9 @@ updateEventInfo :: (Typeable a, Show a) => Field a -> a -> EventInfo -> (EventIn
 updateEventInfo field dat ei@(EventInfo _ _ ev _ _ envi) =
    if (SomeField field) `elem` (getEventFields ev envi)                      -- if the field if found among the remaining fields of the event
       then case getEventResult ev (eventRes : envi) of                       -- then check the event with that field result included
-         BE (Left _)  -> (env ^=  (eventRes : envi) $ ei, Nothing)           -- some fields are left to complete: add ours in the environment
-         BE (Right a) -> (env ^=  []                $ ei, Just $ SomeData a) -- the event is now complete: empty the environment and set the handler to be triggered
-      else               (ei,                             Nothing)           -- field not found: do nothing
+         Todo _ -> (env ^=  (eventRes : envi) $ ei, Nothing)           -- some fields are left to complete: add ours in the environment
+         Done a -> (env ^=  []                $ ei, Just $ SomeData a) -- the event is now complete: empty the environment and set the handler to be triggered
+      else         (ei,                             Nothing)           -- field not found: do nothing
    where eventRes = EventEnv field dat
 
 data SomeData = forall e. (Typeable e, Show e) => SomeData e
@@ -174,14 +174,19 @@ triggerIfComplete _ = return ()
 
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some fields results are pending, return that list instead.
-getEventResult :: Event a -> [EventEnv] -> BEither [SomeField] a
-getEventResult (PureEvent a)  _   = BE (Right a)
-getEventResult EmptyEvent     _   = BE (Left [])
+getEventResult :: Event a -> [EventEnv] -> Todo SomeField a
+getEventResult (PureEvent a)  _   = Done a
+getEventResult EmptyEvent     _   = Todo []
 getEventResult (SumEvent a b) ers = (getEventResult a ers) <|> (getEventResult b ers)
 getEventResult (AppEvent f b) ers = (getEventResult f ers) <*> (getEventResult b ers)
 getEventResult (BaseEvent a)  ers = case lookupField a ers of
-   Just r  -> BE (Right r)
-   Nothing -> BE (Left [SomeField a])
+   Just r  -> Done r
+   Nothing -> Todo [SomeField a]
+getEventResult (ShortcutEvents es f) ers =
+  let res = partitionTodos $ map (flip getEventResult ers) es
+  in case f (snd res) of
+       Just a  -> Done a
+       Nothing -> Todo $ join $ fst res
 
 -- find a field result in an environment
 lookupField :: Typeable a => Field a -> [EventEnv] -> Maybe a
@@ -193,8 +198,8 @@ lookupField be (EventEnv a r : ers) = case (cast (a,r)) of
 --get the fields lefft to be completed in an event
 getEventFields :: Event a -> [EventEnv] -> [SomeField]
 getEventFields e er = case (getEventResult e er) of
-   BE (Right _) -> []
-   BE (Left a) -> a
+   Done _ -> []
+   Todo a -> a
 
 errorHandler :: RuleNumber -> EventNumber -> String -> Evaluate ()
 errorHandler rn en s = logAll $ "Error in rule " ++ show rn ++ " (triggered by event " ++ show en ++ "): " ++ s
@@ -413,39 +418,48 @@ runEvalError pn egs = do
 
 -- Put an index on every input fields
 indexInputs :: Event a -> Event a
-indexInputs e = fst $ indexInputs' 0 e
+indexInputs e = snd $ indexInputs' 0 e
 
-indexInputs' :: Int -> Event a -> (Event a, Int)
-indexInputs' n (BaseEvent (Input _ pn s ifo)) = (BaseEvent (Input (Just n) pn s ifo), n+1)
-indexInputs' n (BaseEvent a)  = (BaseEvent a, n)
-indexInputs' n (PureEvent a)  = (PureEvent a, n)
-indexInputs' n EmptyEvent     = (EmptyEvent, n)
-indexInputs' n (SumEvent a b) = (SumEvent e1 e2, n2) where
-   (e1, n1) = indexInputs' n a
-   (e2, n2) = indexInputs' n1 b
-indexInputs' n (AppEvent a b) = (AppEvent e1 e2, n2) where
-   (e1, n1) = indexInputs' n a
-   (e2, n2) = indexInputs' n1 b
+indexInputs' :: Int -> Event a -> (Int, Event a)
+indexInputs' n (BaseEvent (Input _ pn s ifo)) = (n+1, BaseEvent (Input (Just n) pn s ifo))
+indexInputs' n (BaseEvent a)  = (n, BaseEvent a)
+indexInputs' n (PureEvent a)  = (n, PureEvent a)
+indexInputs' n EmptyEvent     = (n, EmptyEvent)
+indexInputs' n (SumEvent a b) = (n2, SumEvent e1 e2) where
+   (n1, e1) = indexInputs' n a
+   (n2, e2) = indexInputs' n1 b
+indexInputs' n (AppEvent a b) = (n2, AppEvent e1 e2) where
+   (n1, e1) = indexInputs' n a
+   (n2, e2) = indexInputs' n1 b
+indexInputs' n (ShortcutEvents as f) = (n1, ShortcutEvents bs f) where
+   (n1, bs) = mapAccumL indexInputs' n as
 
-newtype BEither a b = BE (Either a b) deriving (Show, Eq, Typeable)
-bLeft  = BE . Left
-bRight = BE . Right
+data Todo a b = Todo [a] | Done b
+   deriving (Eq, Ord, Read, Show, Typeable)
 
-instance Alternative (BEither [a]) where
-   empty        = bLeft []
-   BE (Left a) <|> BE (Left b) = bLeft $ a ++ b
-   BE (Left _) <|> n = n
-   m      <|> _ = m
+instance Alternative (Todo a) where
+   empty             = Todo []
+   Todo a <|> Todo b = Todo $ a ++ b
+   Todo _ <|> n      = n
+   m      <|> _      = m
 
-instance Applicative (BEither [a]) where
-   pure = BE . Right
-   BE (Left  a)  <*>  BE (Left b)  =  BE (Left (a ++ b))
-   BE (Left  a)  <*>  _  =  BE (Left a)
-   BE (Right f)  <*>  r  =  fmap f r
+instance Applicative (Todo a) where
+   pure              = Done
+   Todo a <*> Todo b = Todo $ a ++ b
+   Todo a <*> _      = Todo a
+   Done f <*> r      = fmap f r
 
-instance Functor (BEither a) where
-   fmap _ (BE (Left x))  = BE (Left x)
-   fmap f (BE (Right y)) = BE (Right (f y))
+instance Functor (Todo a) where
+   fmap _ (Todo x) = Todo x
+   fmap f (Done y) = Done $ f y
+
+toEither :: Todo a b -> Either [a] b
+toEither (Todo as) = Left as
+toEither (Done a)  = Right a
+
+fromEither :: Either [a] b -> Todo a b
+fromEither (Left as) = Todo as
+fromEither (Right a) = Done a
 
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
