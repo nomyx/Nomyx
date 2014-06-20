@@ -74,7 +74,7 @@ newProfileData uid ps =
             let pd = initialProfileData uid ps
             put $ pds { profilesData = IxSet.updateIx uid pd profilesData }
             return pd
-         (Just profileData) -> return profileData
+         Just profileData -> return profileData
 
 -- | get number of
 askProfileDataNumber :: Query ProfileDataState Int

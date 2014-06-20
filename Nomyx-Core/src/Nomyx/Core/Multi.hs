@@ -4,7 +4,6 @@
 module Nomyx.Core.Multi where
 
 import Language.Haskell.Interpreter.Server (ServerHandle)
-import Data.Maybe
 import Data.Lens
 import Data.List
 import Data.Time as T
