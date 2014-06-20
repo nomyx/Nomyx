@@ -34,6 +34,7 @@ import Control.Exception
 import Control.Concurrent
 import Control.Category ((>>>))
 import Control.Monad.Catch as MC
+import Control.DeepSeq
 import Nomyx.Core.Types
 import Nomyx.Core.Engine
 
@@ -147,6 +148,20 @@ evalWithWatchdog s f = do
    --start watchdog thread
    forkIO $ watchDog 3 id mvar
    takeMVar mvar
+
+evalWithWatchdog' :: NFData a => IO a -> IO (Maybe a)
+evalWithWatchdog' s = do
+   mvar <- newEmptyMVar
+   hSetBuffering stdout NoBuffering
+   --start evaluation thread
+   id <- forkOS $ do
+      s' <- s
+      let s'' = force s'
+      putMVar mvar (Just s'')
+   --start watchdog thread
+   forkIO $ watchDog 3 id mvar
+   takeMVar mvar
+
 
 -- | Fork off a thread which will sleep and then kill off the specified thread.
 watchDog :: Int -> ThreadId -> MVar (Maybe a) -> IO ()
