@@ -12,14 +12,14 @@ import Language.Nomyx.Outputs
 import Language.Nomyx.Inputs
 import Language.Nomyx.Vote
 import Language.Nomyx.Examples
-import Language.Nomyx.Players
 import Nomyx.Core.Engine.Evaluation
-import Nomyx.Core.Engine.Game
+import Nomyx.Core.Engine.EvalUtils
+import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
 import Control.Monad.State
 import Data.Lens
 import Data.Typeable
-import qualified Data.Foldable as T
+import Data.Function hiding ((.))
 import Control.Applicative
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
@@ -366,6 +366,16 @@ getTextEvents = do
    return $ map _eventNumber $ filter choiceEvent evs
    where choiceEvent (EventInfo _ _ (BaseEvent (Input _ _ _ Text)) _ _ _) = True
          choiceEvent _ = False
+
+
+addPlayer :: PlayerInfo -> Evaluate Bool
+addPlayer pi = do
+   pls <- access players
+   let exists = any (((==) `on` _playerNumber) pi) pls
+   unless exists $ do
+       players %= (pi:)
+       triggerEvent (Player Arrive) pi
+   return $ not exists
 
 isOutput :: String -> Game -> Bool
 isOutput s g = s `elem` allOutputs g

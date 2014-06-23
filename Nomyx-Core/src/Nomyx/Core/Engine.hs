@@ -27,9 +27,6 @@ module Nomyx.Core.Engine(
    activeRules, pendingRules, rejectedRules,
 
    -- * Events management
-   EventInfo(..),
-   EventHandler,
-   Status(..),
    events,
    getEventFields,
    getInput,
@@ -56,7 +53,8 @@ module Nomyx.Core.Engine(
    ) where
 
 import Nomyx.Core.Engine.Evaluation
-import Nomyx.Core.Engine.Game
+import Nomyx.Core.Engine.EvalUtils
+import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.GameEvents
 import Nomyx.Core.Engine.Utils
 import Nomyx.Core.Engine.Test

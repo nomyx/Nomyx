@@ -71,11 +71,13 @@ library
                      Nomyx.Core.Test
                      Nomyx.Core.Engine
                      Nomyx.Core.Engine.Evaluation
-                     Nomyx.Core.Engine.Game
+                     Nomyx.Core.Engine.EvalUtils
+                     Nomyx.Core.Engine.Types
                      Nomyx.Core.Engine.GameEvents
                      Nomyx.Core.Engine.Test
                      Nomyx.Core.Engine.Utils
                      Paths_Nomyx_Core
+                     Data.Todo
     ghc-options: -W -threaded
  
 source-repository head

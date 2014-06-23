@@ -182,6 +182,31 @@ instance Alternative Event where
    (<|>) = SumEvent
    empty = EmptyEvent
 
+-- EventInfo
+
+data EventInfo = forall e. (Typeable e, Show e) =>
+   EventInfo {_eventNumber :: EventNumber,
+              _ruleNumber  :: RuleNumber,
+              event        :: Event e,
+              handler      :: EventHandler e,
+              _evStatus    :: Status,
+              _env         :: [EventEnv]}
+
+data EventEnv = forall e. (Typeable e, Show e) => EventEnv (Field e) e
+
+type EventHandler e = (EventNumber, e) -> Nomex ()
+
+deriving instance Show EventEnv
+
+data Status = SActive | SDeleted deriving (Eq, Show)
+
+instance Eq EventInfo where
+   (EventInfo {_eventNumber=e1}) == (EventInfo {_eventNumber=e2}) = e1 == e2
+
+instance Ord EventInfo where
+   (EventInfo {_eventNumber=e1}) <= (EventInfo {_eventNumber=e2}) = e1 <= e2
+
+
 -- * Rule
 
 -- | Type of a rule function.
@@ -235,5 +260,5 @@ partial s nm = do
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
 
-$( makeLenses [''RuleInfo, ''PlayerInfo] )
+$( makeLenses [''RuleInfo, ''PlayerInfo, ''EventInfo] )
 

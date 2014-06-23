@@ -5,8 +5,8 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
--- | This module implements game engine (for the nomyx language, see Language.Nomyx)
-module Nomyx.Core.Engine.Game where
+-- | Types for the engine
+module Nomyx.Core.Engine.Types where
 
 import Prelude hiding (log)
 import Language.Nomyx.Expression
@@ -14,6 +14,8 @@ import Data.Lens.Template
 import Data.Time
 import Data.Typeable
 import Data.Data
+import Control.Monad.Error (ErrorT(..))
+import Control.Monad.State
 
 -- * Game
 
@@ -66,28 +68,18 @@ instance Show Var where
 
 -- * Events
 
-type EventHandler e = (EventNumber, e) -> Nomex ()
+type Evaluate a = ErrorT String (State Game) a
 
-data EventInfo = forall e. (Typeable e, Show e) =>
-   EventInfo {_eventNumber :: EventNumber,
-              _ruleNumber  :: RuleNumber,
-              event        :: Event e,
-              handler      :: EventHandler e,
-              _evStatus    :: Status,
-              _env         :: [EventEnv]}
+-- data sent back by the forms
+data InputData = RadioData Int
+               | CheckboxData [Int]
+               | TextData String
+               | TextAreaData String
+               | ButtonData
+                 deriving (Show, Read, Eq, Ord)
 
-data EventEnv = forall e. (Typeable e, Show e) => EventEnv (Field e) e
-
-deriving instance Show EventEnv
-
-data Status = SActive | SDeleted deriving (Eq, Show)
-
-instance Eq EventInfo where
-   (EventInfo {_eventNumber=e1}) == (EventInfo {_eventNumber=e2}) = e1 == e2
-
-instance Ord EventInfo where
-   (EventInfo {_eventNumber=e1}) <= (EventInfo {_eventNumber=e2}) = e1 <= e2
-
+data SomeData = forall e. (Typeable e, Show e) => SomeData e
+deriving instance Show SomeData
 
 -- * Outputs
 
@@ -110,7 +102,9 @@ data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
 data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
 
 
-$( makeLenses [''Game, ''GameDesc, ''EventInfo, ''Var, ''Output] )
+$( makeLenses [''Game, ''GameDesc, ''Var, ''Output] )
+
+
 
 
 
