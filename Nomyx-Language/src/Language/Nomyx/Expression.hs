@@ -55,6 +55,7 @@ data Exp :: Eff -> * -> *   where
    --Events management
    OnEvent        :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
    DelEvent       :: EventNumber -> Nomex Bool
+   GetEvents      :: NomexNE [EventInfo]
    SendMessage    :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
    --Rules management
    ProposeRule    :: RuleInfo -> Nomex Bool

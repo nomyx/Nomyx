@@ -58,6 +58,7 @@ evalNomexNE (ReadVar v)    _  = evReadVar v
 evalNomexNE (GetOutput on) _  = evGetOutput on
 evalNomexNE GetRules       _  = asks _rules
 evalNomexNE GetPlayers     _  = asks _players
+evalNomexNE GetEvents      _  = asks _events
 evalNomexNE SelfRuleNumber rn = return rn
 evalNomexNE (CurrentTime)  _  = asks _currentTime
 evalNomexNE (Return a)     _  = return a
