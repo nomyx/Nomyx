@@ -5,6 +5,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
+-- | Evaluation of a Nomyx expression
 module Nomyx.Core.Engine.Evaluation where
 
 import Prelude hiding ((.), log)
@@ -33,8 +34,8 @@ evalNomex (NewVar v a)            rn = evNewVar v a rn
 evalNomex (DelVar v)              _  = evDelVar v
 evalNomex (WriteVar v val)        _  = evWriteVar v val
 evalNomex (OnEvent ev h)          rn = evOnEvent ev h rn
-evalNomex (DelEvent en)            _ = evDelEvent en
-evalNomex (SendMessage (Msg id) d) _ = triggerEvent (Message (Msg id)) d
+evalNomex (DelEvent en)           _  = evDelEvent en
+evalNomex (SendMessage m d)       _  = evSendMessage m d
 evalNomex (NewOutput pn s)        rn = evNewOutput pn rn s
 evalNomex (UpdateOutput on s)     _  = evUpdateOutput on s
 evalNomex (DelOutput on)          _  = evDelOutput on
@@ -45,25 +46,25 @@ evalNomex (AddRule rule)          _  = evAddRule rule
 evalNomex (ModifyRule mod rule)   _  = evModifyRule mod rule
 evalNomex (SetPlayerName pn n)    _  = evChangeName pn n
 evalNomex (DelPlayer pn)          _  = evDelPlayer pn
+evalNomex (SetVictory ps)         rn = evSetVictory ps rn
 evalNomex (LiftEffect e)          pn = liftEval $ evalNomexNE e pn
 evalNomex (ThrowError s)          _  = throwError s
 evalNomex (CatchError n h)        rn = catchError (evalNomex n rn) (\a -> evalNomex (h a) rn)
-evalNomex (SetVictory ps)         rn = evSetVictory ps rn
 evalNomex (Return a)              _  = return a
 evalNomex (Bind exp f)            rn = evalNomex exp rn >>= \e -> evalNomex (f e) rn
 
 -- | evaluate an effectless expression.
 evalNomexNE :: NomexNE a -> RuleNumber -> Reader Game a
-evalNomexNE (ReadVar v)    _  = evReadVar v
-evalNomexNE (GetOutput on) _  = evGetOutput on
-evalNomexNE GetRules       _  = asks _rules
-evalNomexNE GetPlayers     _  = asks _players
-evalNomexNE GetEvents      _  = asks _events
-evalNomexNE SelfRuleNumber rn = return rn
-evalNomexNE (CurrentTime)  _  = asks _currentTime
-evalNomexNE (Return a)     _  = return a
-evalNomexNE (Bind exp f)   rn = evalNomexNE exp rn >>= \e -> evalNomexNE (f e) rn
-evalNomexNE (Simu sim ev)  rn = evSimu sim ev rn
+evalNomexNE (ReadVar v)     _  = evReadVar v
+evalNomexNE (GetOutput on)  _  = evGetOutput on
+evalNomexNE  GetRules       _  = asks _rules
+evalNomexNE  GetPlayers     _  = asks _players
+evalNomexNE  GetEvents      _  = asks _events
+evalNomexNE  SelfRuleNumber rn = return rn
+evalNomexNE (CurrentTime)   _  = asks _currentTime
+evalNomexNE (Return a)      _  = return a
+evalNomexNE (Bind exp f)    rn = evalNomexNE exp rn >>= \e -> evalNomexNE (f e) rn
+evalNomexNE (Simu sim ev)   rn = evSimu sim ev rn
 
 evSimu :: Nomex a -> NomexNE Bool -> RuleNumber -> Reader Game Bool
 evSimu sim ev rn = do
@@ -105,6 +106,9 @@ evOnEvent event handler rn = do
    let en = getFreeNumber (map _eventNumber evs)
    events %= (EventInfo en rn (indexInputs event) handler SActive [] : )
    return en
+
+evSendMessage :: (Typeable a, Show a) => Msg a -> a -> Evaluate ()
+evSendMessage (Msg id) d = triggerEvent (Message (Msg id)) d
 
 evProposeRule :: RuleInfo -> Evaluate Bool
 evProposeRule rule = do
@@ -292,12 +296,13 @@ triggerInput en inn ir = do
    let mei = find ((== en) . getL eventNumber) evs
    when (isJust mei) $ execInputHandler ir inn (fromJust mei)
 
--- execcute the corresponding handler
+-- execute the corresponding handler
 execInputHandler :: InputData -> InputNumber -> EventInfo -> Evaluate ()
-execInputHandler ir inn ei = do
+execInputHandler ir inn ei@(EventInfo _ _ _ _ SActive _) = do
    case (getInput ei inn) of
       Just sf -> execInputHandler' ir sf ei
-      Nothing -> error "Input not found"
+      Nothing -> logAll "Input not found"
+execInputHandler _ _ _ = return ()
 
 -- execute the event handler using the data received from user
 execInputHandler' :: InputData -> SomeField -> EventInfo -> Evaluate ()

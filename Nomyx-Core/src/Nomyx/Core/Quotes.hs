@@ -44,7 +44,8 @@ quoteRuleFunc s = do
       setImports unQualImports
       typeOf s
    case res of
-      Right "Exp Effect ()" -> [| s |]
+      Right "Exp Effect ()"  -> [| s |]
+      Right "Nomex ()"       -> [| s |]
       Right "Exp 'Effect ()" -> [| s |]
       Right "Rule" -> [| s |]
       Right a -> fail $ "Rule doesn't typecheck: " ++ show a

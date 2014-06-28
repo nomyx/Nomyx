@@ -10,7 +10,7 @@ copyright: 2012 Corentin Dupont
 maintainer: Corentin Dupont
 stability: Experimental
 synopsis: Language to express rules for Nomic
-description: Provide a DSL to express rules for a Nomic game, with evaluation engine. See package Nomyx for a full game implementation.
+description: Provide a DSL to express rules in a Nomic game. See package Nomyx for a full game implementation.
 category: Language
 Homepage: http://www.nomyx.net
 author: Corentin Dupont

@@ -5,6 +5,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
+-- | additional tools for evaluation
 module Nomyx.Core.Engine.EvalUtils where
 
 import Prelude hiding ((.), log)
@@ -57,7 +58,7 @@ lookupField be (EventEnv a r : ers) = case (cast (a,r)) of
    Just (a',r') -> if (a' == be) then Just r' else lookupField be ers
    Nothing      -> lookupField be ers
 
---get the fields lefft to be completed in an event
+--get the fields left to be completed in an event
 getEventFields :: Event a -> [EventEnv] -> [SomeField]
 getEventFields e er = case (getEventResult e er) of
    Done _ -> []
@@ -70,7 +71,6 @@ getInput :: EventInfo -> InputNumber -> Maybe SomeField
 getInput (EventInfo _ _ ev _ _ env) inn = find isInput (getEventFields ev env) where
       isInput (SomeField (Input (Just n) _ _ _)) | n == inn = True
       isInput _ = False
-
 
 logPlayer :: PlayerNumber -> String -> Evaluate ()
 logPlayer pn = log (Just pn)
