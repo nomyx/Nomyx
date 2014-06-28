@@ -44,7 +44,7 @@ callVoteRule assess delay ri = do
 
 callVoteRule' :: AssessFunction -> UTCTime -> RuleInfo -> Nomex ()
 callVoteRule' assess endTime ri = do
-   let title = "Vote for rule: " ++ (_rName ri) ++ "(" ++ (show $ _rNumber ri) ++ ")"
+   let title = "Vote for rule: \"" ++ (_rName ri) ++ "\" (#" ++ (show $ _rNumber ri) ++ "):"
    callVote assess endTime title (activateOrRejectRule ri)
 
 -- | call a vote for every players, with an assessing function, a delay and a function to run on the result
@@ -65,7 +65,7 @@ voteEvents time title pns = map (singleVote time title) pns
 -- trigger the display of a radio button choice on the player screen, yelding either Just True or Just False.
 -- after the time limit, the value sent back is Nothing.
 singleVote :: UTCTime -> String -> PlayerNumber -> Event (Maybe Bool)
-singleVote timeLimit title pn = (Just <$> inputRadio pn title [True, False] True) <|> (Nothing <$ timeEvent timeLimit)
+singleVote timeLimit title pn = (Just <$> inputRadio pn title [(True, "For"), (False, "Against")]) <|> (Nothing <$ timeEvent timeLimit)
 
 -- | assess the vote results according to a unanimity
 unanimity :: AssessFunction

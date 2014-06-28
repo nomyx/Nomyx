@@ -28,21 +28,21 @@ import Control.Applicative
 
 -- | triggers a choice input to the user. The result will be sent to the callback
 onInputRadio :: (Typeable a, Eq a,  Show a) => String -> [a] -> (EventNumber -> a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputRadio title choices handler pn = onEvent (inputRadioHead pn title choices) (\(en, a) -> handler en a)
+onInputRadio title choices handler pn = onEvent (inputRadio' pn title choices) (\(en, a) -> handler en a)
 
 -- | the same, disregard the event number
 onInputRadio_ :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputRadio_ title choices handler pn = onEvent_ (inputRadioHead pn title choices) handler
+onInputRadio_ title choices handler pn = onEvent_ (inputRadio' pn title choices) handler
 
 -- | the same, suppress the event after first trigger
 onInputRadioOnce :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputRadioOnce title choices handler pn = onEventOnce (inputRadioHead pn title choices) handler
+onInputRadioOnce title choices handler pn = onEventOnce (inputRadio' pn title choices) handler
 
-inputRadioHead :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> Event c
-inputRadioHead pn title choices = inputRadio pn title choices (head choices)
+inputRadio :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Event c
+inputRadio pn title cs = baseEvent $ baseInputRadio pn title cs
 
-inputRadio :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> c -> Event c
-inputRadio pn title cs _ = baseEvent $ baseInputRadio pn title (zip cs (show <$> cs))
+inputRadio' :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> Event c
+inputRadio' pn title cs = inputRadio pn title (zip cs (show <$> cs))
 
 baseInputRadio :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Field c
 baseInputRadio pn title cs = baseInputEvent pn title (Radio cs)
