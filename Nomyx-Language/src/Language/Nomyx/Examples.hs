@@ -161,7 +161,7 @@ iWin = liftEffect getProposerNumber >>= giveVictory
 -- the vote is assessed after every vote in case the winner is already known
 -- the vote will finish anyway after one day
 voteWithMajority :: Rule
-voteWithMajority = onRuleProposed $ \r -> callVote (majority `withQuorum` 2) oneDay $ activateOrRejectRule r
+voteWithMajority = onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDay
 
 -- | Change current system (the rules passed in parameter) to absolute majority (half participants plus one)
 returnToDemocracy :: [RuleNumber] -> Rule

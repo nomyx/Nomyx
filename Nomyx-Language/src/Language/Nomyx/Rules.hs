@@ -28,6 +28,7 @@ module Language.Nomyx.Rules (
    autoDelete,
    eraseAllRules,
    getSelfRuleNumber, getSelfRule,
+   onRuleProposed,
    showRule
    ) where
 
@@ -197,7 +198,9 @@ immutableRule rn = \rule -> do
 simulate :: Nomex a -> NomexNE Bool -> NomexNE Bool
 simulate sim test = Simu sim test
 
-
+-- | sets a callback called for each rule proposed
+onRuleProposed :: (RuleInfo -> Nomex ()) -> Nomex ()
+onRuleProposed f = void $ onEvent_ (ruleEvent Proposed) f
 
 -- | a default rule
 defaultRule = RuleInfo  {

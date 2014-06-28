@@ -289,10 +289,10 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     actions
     evProposeRule testRule
     evs <- lift getChoiceEvents
-    let pos = take positives [0..9] --evs
-    let neg = take negatives $ drop positives [0..9] --evs
-    mapM_ (\x -> triggerInput 2 x (RadioData 0)) pos --issuing positive votes on event 2
-    mapM_ (\x -> triggerInput 2 x (RadioData 1)) neg --issuing negative votes on event 2
+    let pos = take positives evs
+    let neg = take negatives $ drop positives evs
+    mapM_ (\(en, inum) -> triggerInput en inum (RadioData 0)) pos --issuing positive votes
+    mapM_ (\(en, inum) -> triggerInput en inum (RadioData 1)) neg --issuing negative votes
     when timeEvent $ evTriggerTime date2
 
 voteGame' :: Int -> Int -> Int -> Bool -> Rule -> Game
@@ -304,21 +304,21 @@ voteGame positives negatives notVoted = voteGame' positives negatives notVoted F
 voteGameTimed :: Int -> Int -> Int -> Rule -> Game
 voteGameTimed positives negatives notVoted = voteGame' positives negatives notVoted True
 
--- vote rules                                |Expected result        |pos |neg |total                    |description of voting system
-testVoteAssessOnVoteComplete1 = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ (callVote majority oneDay) . activateOrRejectRule
-testVoteAssessOnVoteComplete2 = testVoteRule Pending $ voteGame      9  0 10 $ onRuleProposed $ (callVote unanimity oneDay) . activateOrRejectRule
-testVoteAssessOnEveryVote1    = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ (callVote unanimity oneDay) . activateOrRejectRule
-testVoteAssessOnEveryVote2    = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ (callVote majority oneDay) . activateOrRejectRule
-testVoteAssessOnEveryVote3    = testVoteRule Pending $ voteGame      5  0 10 $ onRuleProposed $ (callVote majority oneDay) . activateOrRejectRule
-testVoteAssessOnEveryVote4    = testVoteRule Reject  $ voteGame      0  5 10 $ onRuleProposed $ (callVote majority oneDay) . activateOrRejectRule
-testVoteMajorityWith          = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ (callVote (majorityWith 50) oneDay) . activateOrRejectRule
---testVoteNumberPositiveVotes   = testVoteRule Active  $ voteGame      3  7 10 $ onRuleProposed $ voteWith_ (numberVotes 3) assessOnEveryVote
-testVoteWithQuorum1           = testVoteRule Active  $ voteGame      7  3 10 $ onRuleProposed $ (callVote (majority `withQuorum` 7) oneDay) . activateOrRejectRule
-testVoteAssessOnTimeLimit1    = testVoteRule Active  $ voteGameTimed 10 0 10 $ onRuleProposed $ (callVote' unanimity date2) . activateOrRejectRule
-testVoteAssessOnTimeLimit2    = testVoteRule Active  $ voteGameTimed 1  0 10 $ onRuleProposed $ (callVote' unanimity date2) . activateOrRejectRule
-testVoteAssessOnTimeLimit3    = testVoteRule Reject  $ voteGameTimed 1  0 10 $ onRuleProposed $ (callVote' (unanimity `withQuorum` 5) date2) . activateOrRejectRule
-testVoteAssessOnTimeLimit4    = testVoteRule Reject $ voteGameTimed  0  0 10 $ onRuleProposed $ (callVote' (unanimity `withQuorum` 1) date2) . activateOrRejectRule
-testVoteAssessOnTimeLimit5    = testVoteRule Active $ voteGameTimed  1  0 10 $ onRuleProposed $ (callVote' (unanimity `withQuorum` 1) date2) . activateOrRejectRule
+-- vote rules                                |Expected result        |pos |neg |total           |description of voting system
+testVoteAssessOnVoteComplete1 = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ (callVoteRule majority oneDay)
+testVoteAssessOnVoteComplete2 = testVoteRule Pending $ voteGame      9  0 10 $ onRuleProposed $ (callVoteRule unanimity oneDay)
+testVoteAssessOnEveryVote1    = testVoteRule Active  $ voteGame      10 0 10 $ onRuleProposed $ (callVoteRule unanimity oneDay)
+testVoteAssessOnEveryVote2    = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ (callVoteRule majority oneDay)
+testVoteAssessOnEveryVote3    = testVoteRule Pending $ voteGame      5  0 10 $ onRuleProposed $ (callVoteRule majority oneDay)
+testVoteAssessOnEveryVote4    = testVoteRule Reject  $ voteGame      0  5 10 $ onRuleProposed $ (callVoteRule majority oneDay)
+testVoteMajorityWith          = testVoteRule Active  $ voteGame      6  0 10 $ onRuleProposed $ (callVoteRule (majorityWith 50) oneDay)
+testVoteNumberPositiveVotes   = testVoteRule Active  $ voteGame      3  7 10 $ onRuleProposed $ (callVoteRule (numberVotes 3) oneDay)
+testVoteWithQuorum1           = testVoteRule Active  $ voteGame      7  3 10 $ onRuleProposed $ (callVoteRule (majority `withQuorum` 7) oneDay)
+testVoteAssessOnTimeLimit1    = testVoteRule Active  $ voteGameTimed 10 0 10 $ onRuleProposed $ (callVoteRule' unanimity date2)
+testVoteAssessOnTimeLimit2    = testVoteRule Active  $ voteGameTimed 1  0 10 $ onRuleProposed $ (callVoteRule' unanimity date2)
+testVoteAssessOnTimeLimit3    = testVoteRule Reject  $ voteGameTimed 1  0 10 $ onRuleProposed $ (callVoteRule' (unanimity `withQuorum` 5) date2)
+testVoteAssessOnTimeLimit4    = testVoteRule Reject $ voteGameTimed  0  0 10 $ onRuleProposed $ (callVoteRule' (unanimity `withQuorum` 1) date2)
+testVoteAssessOnTimeLimit5    = testVoteRule Active $ voteGameTimed  1  0 10 $ onRuleProposed $ (callVoteRule' (unanimity `withQuorum` 1) date2)
 
 testVoteRule s g = (_rStatus $ head $ _rules g) == s
 

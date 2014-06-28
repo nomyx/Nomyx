@@ -21,48 +21,55 @@ import Control.Arrow
 import Control.Applicative
 import Data.List
 import qualified Data.Map as M
-import Debug.Trace (trace)
 
--- the type of a vote assessing function (such as unanimity, majority...)
+-- | a vote assessing function (such as unanimity, majority...)
 type AssessFunction = VoteStats -> Maybe Bool
 
-data VoteStats = VoteStats { voteCounts   :: M.Map (Maybe Bool) Int,
+-- | the vote statistics, including the number of votes per choice (Nothing means abstention),
+-- the number of persons called to vote, and if the vote if finished (timeout or everybody voted)
+data VoteStats = VoteStats { voteCounts     :: M.Map (Maybe Bool) Int,
                              nbParticipants :: Int,
-                             voteFinished :: Bool}
+                             voteFinished   :: Bool}
                              deriving (Show)
 
-unanimityVoteRules :: Nomex ()
-unanimityVoteRules = onRuleProposed $ (callVote unanimity oneDay) . activateOrRejectRule
+-- | vote at unanimity every incoming rule
+unanimityVote :: Nomex ()
+unanimityVote = onRuleProposed $ callVoteRule unanimity oneDay
 
-callVote :: AssessFunction -> NominalDiffTime -> (Bool -> Nomex ()) -> Nomex ()
-callVote f delay payload = do
+-- | call a vote on a rule for every players, with an assessing function and a delay
+callVoteRule :: AssessFunction -> NominalDiffTime -> RuleInfo -> Nomex ()
+callVoteRule assess delay ri = do
    endTime <- addUTCTime delay <$> liftEffect getCurrentTime
-   callVote' f endTime payload
+   callVoteRule' assess endTime ri
 
-callVote' :: AssessFunction -> UTCTime -> (Bool -> Nomex ()) -> Nomex ()
-callVote' f endTime payload = do
+callVoteRule' :: AssessFunction -> UTCTime -> RuleInfo -> Nomex ()
+callVoteRule' assess endTime ri = do
+   let title = "Vote for rule: " ++ (_rName ri) ++ "(" ++ (show $ _rNumber ri) ++ ")"
+   callVote assess endTime title (activateOrRejectRule ri)
+
+-- | call a vote for every players, with an assessing function, a delay and a function to run on the result
+callVote :: AssessFunction -> UTCTime -> String -> (Bool -> Nomex ()) -> Nomex ()
+callVote assess endTime title payload = do
    pns <- liftEffect getAllPlayerNumbers
-   void $ onEventOnce (voteWith endTime pns f) payload
+   void $ onEventOnce (voteWith endTime pns assess title) payload
 
--- vote withe a function able to assess the ongoing votes.
+-- vote with a function able to assess the ongoing votes.
 -- the vote can be concluded as soon as the result is known.
-voteWith :: UTCTime -> [PlayerNumber] -> AssessFunction -> Event Bool
-voteWith timeLimit pns assess = shortcutEvents (voteEvents timeLimit pns) (assess . getVoteStats (length pns))
+voteWith :: UTCTime -> [PlayerNumber] -> AssessFunction -> String -> Event Bool
+voteWith timeLimit pns assess title = shortcutEvents (voteEvents timeLimit title pns) (assess . getVoteStats (length pns))
 
 -- list of vote events
-voteEvents :: UTCTime -> [PlayerNumber] -> [Event (Maybe Bool)]
-voteEvents time pns = map (singleVote time) pns
+voteEvents :: UTCTime -> String -> [PlayerNumber] -> [Event (Maybe Bool)]
+voteEvents time title pns = map (singleVote time title) pns
 
 -- trigger the display of a radio button choice on the player screen, yelding either Just True or Just False.
 -- after the time limit, the value sent back is Nothing.
-singleVote :: UTCTime -> PlayerNumber -> Event (Maybe Bool)
-singleVote timeLimit pn = (Just <$> inputRadio pn "Vote for " [True, False] True) <|> (Nothing <$ timeEvent timeLimit)
+singleVote :: UTCTime -> String -> PlayerNumber -> Event (Maybe Bool)
+singleVote timeLimit title pn = (Just <$> inputRadio pn title [True, False] True) <|> (Nothing <$ timeEvent timeLimit)
 
+-- | assess the vote results according to a unanimity
 unanimity :: AssessFunction
 unanimity voteStats = voteQuota (nbVoters voteStats) voteStats
-
---atLeastOne :: AssessFunction
---atLeastOne npPlayers votes = if (length (filter (== Just True) votes) >= 1) then Just True else if (length votes == npPlayers) then Just False else Nothing
 
 -- | assess the vote results according to an absolute majority (half voters plus one)
 majority :: AssessFunction
@@ -72,13 +79,9 @@ majority voteStats = voteQuota ((nbVoters voteStats) `div` 2 + 1) voteStats
 majorityWith :: Int -> AssessFunction
 majorityWith x voteStats = voteQuota ((nbVoters voteStats) * x `div` 100 + 1) voteStats
 
-
-nbPositives :: [Maybe Bool] -> Int
-nbPositives votes = length $ filter (== Just True) votes
-
-onRuleProposed :: (RuleInfo -> Nomex ()) -> Nomex ()
-onRuleProposed f = void $ onEvent_ (ruleEvent Proposed) f
-
+-- | assess the vote results according to a fixed number of positive votes
+numberVotes :: Int -> AssessFunction
+numberVotes x voteStats = voteQuota x voteStats
 
 -- | adds a quorum to an assessing function
 withQuorum :: AssessFunction -> Int -> AssessFunction
@@ -95,7 +98,8 @@ getVoteStats npPlayers votes = VoteStats
 counts :: (Eq a, Ord a) => [a] -> [(a, Int)]
 counts as = map (head &&& length) (group $ sort as)
 
--- |
+-- | Compute a result based on a quota of positive votes.
+-- the result can be positive if the quota if reached, negative if the quota cannot be reached anymore at that point, or still pending.
 voteQuota :: Int -> VoteStats -> Maybe Bool
 voteQuota q voteStats
    | M.findWithDefault 0 (Just True)  vs >= q                       = Just True
