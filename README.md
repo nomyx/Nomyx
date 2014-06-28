@@ -24,10 +24,14 @@ To install from the Hackage release, follow this procedure:
 To install from the GitHub repo:
 
     git clone git@github.com:cdupont/Nomyx.git
+    cd Nomyx
     cabal install Nomyx/ Nomyx-Web/ Nomyx-Core/ Nomyx-Language/
 
 If you want to install in a cabal sandbox, use:
 
+    git clone git@github.com:cdupont/Nomyx.git
+    cd Nomyx
+    cabal sandbox init
     cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Core/ Nomyx-Web/ Nomyx/
 
 Execution
@@ -38,6 +42,10 @@ Launch with the command:
     $ Nomyx
 
 and follow the instructions. You may connect using a web browser to the provided address.
+In a sandbox, run with:
+   
+    $ cabal exec Nomyx
+
 
 
 Troubleshooting
