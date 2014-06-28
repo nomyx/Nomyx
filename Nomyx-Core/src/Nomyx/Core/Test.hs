@@ -316,14 +316,14 @@ inputAllRadios :: Int -> PlayerNumber -> StateT Session IO ()
 inputAllRadios choice pn = do
    s <- get
    let evs = evalState getChoiceEvents (firstGame $ _multi s)
-   mapM_ (\en -> inputResult pn en 0 (RadioData choice) "test") evs
+   mapM_ (\(en, inum) -> inputResult pn en inum (RadioData choice) "test") evs
 
 -- input text for all text fields
 inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
 inputAllTexts a pn = do
    s <- get
    let evs = evalState getTextEvents (firstGame $ _multi s)
-   mapM_ (\en -> inputResult pn en 0 (TextData a) "test") evs
+   mapM_ (\(en, inum) -> inputResult pn en inum (TextData a) "test") evs
 
 firstGame :: Multi -> Game
 firstGame = G._game . _loggedGame . head . _gameInfos

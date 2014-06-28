@@ -25,9 +25,9 @@ module Language.Nomyx.Examples(
    victoryXEcu,
    --noGroupVictory,
    banPlayer,
-   referendum,
-   referendumOnKickPlayer,
-   gameMasterElections,
+--   referendum,
+--   referendumOnKickPlayer,
+--   gameMasterElections,
    gameMaster,
    bravoButton,
    enterHaiku,
@@ -161,7 +161,7 @@ iWin = liftEffect getProposerNumber >>= giveVictory
 -- the vote is assessed after every vote in case the winner is already known
 -- the vote will finish anyway after one day
 voteWithMajority :: Rule
-voteWithMajority = onRuleProposed $ voteWith_ (majority `withQuorum` 2) $ assessOnEveryVote >> assessOnTimeDelay oneDay
+voteWithMajority = onRuleProposed $ \r -> callVote (majority `withQuorum` 2) oneDay $ activateOrRejectRule r
 
 -- | Change current system (the rules passed in parameter) to absolute majority (half participants plus one)
 returnToDemocracy :: [RuleNumber] -> Rule
@@ -180,14 +180,14 @@ banPlayer pn = do
 -- * Referendum & elections
 
 -- | triggers a referendum, if the outcome is yes player 2 will be kicked
-referendumOnKickPlayer :: Rule
-referendumOnKickPlayer = referendum " kick player 2" (void $ delPlayer 2)
-
--- | triggers elections (all players are candidates), the winner becomes game master
-gameMasterElections :: Rule
-gameMasterElections = do
-   pls <- liftEffect getPlayers
-   elections "Game Master" pls makeGM
+--referendumOnKickPlayer :: Rule
+--referendumOnKickPlayer = referendum " kick player 2" (void $ delPlayer 2)
+--
+---- | triggers elections (all players are candidates), the winner becomes game master
+--gameMasterElections :: Rule
+--gameMasterElections = do
+--   pls <- liftEffect getPlayers
+--   elections "Game Master" pls makeGM
 
 makeGM :: PlayerNumber -> Nomex ()
 makeGM pn = do
