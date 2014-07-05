@@ -82,4 +82,4 @@ library
  
 source-repository head
   type:              git
-  location:          https://github.com/cdupont/Nomyx-Core.git
+  location:          https://github.com/cdupont/Nomyx.git
