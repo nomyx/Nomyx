@@ -24,7 +24,7 @@ data GameEvent = GameSettings      GameName GameDesc UTCTime
                | JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     PlayerNumber SubmitRule
-               | InputResult       PlayerNumber EventNumber InputNumber InputData
+               | InputResult       PlayerNumber EventNumber FieldAddress InputData
                | GLog              (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
                | SystemAddRule     SubmitRule
@@ -51,7 +51,7 @@ enactEvent (GameSettings name desc date) _    = mapStateIO $ gameSettings name d
 enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
 enactEvent (LeaveGame pn) _                   = mapStateIO $ leaveGame pn
 enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
-enactEvent (InputResult pn en inn ir) _       = mapStateIO $ inputResult pn en inn ir
+enactEvent (InputResult pn en fa ir) _        = mapStateIO $ inputResult pn en fa ir
 enactEvent (GLog mpn s) _                     = mapStateIO $ logGame s mpn
 enactEvent (TimeEvent t) _                    = mapStateIO $ runEvalError Nothing $ evTriggerTime t
 enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
@@ -136,14 +136,13 @@ logGame s mpn = do
    void $ logs %= (Log mpn time s : )
 
 -- | the user has provided an input result
--- TODO: this is relying on the EventNumber, which may change at all time
-inputResult :: PlayerNumber -> EventNumber -> InputNumber -> InputData -> State Game ()
-inputResult pn en inn ir = do
-   tracePN pn $ "input result: EventNumber " ++ show en ++ ", InputNumber " ++ show inn ++ ", choice " ++ show ir
-   runEvalError (Just pn) $ triggerInput en inn ir
+inputResult :: PlayerNumber -> EventNumber -> FieldAddress -> InputData -> State Game ()
+inputResult pn en fa ir = do
+   tracePN pn $ "input result: EventNumber " ++ show en ++ ", FieldAddress " ++ show fa ++ ", choice " ++ show ir
+   runEvalError (Just pn) $ triggerInput en fa ir
 
 getTimes :: EventInfo -> [UTCTime]
-getTimes (EventInfo _ _ es _ SActive esr) = mapMaybe getTime (getEventFields es esr)
+getTimes (EventInfo _ _ es _ SActive esr) = mapMaybe getTime (map snd $ getEventFields es esr)
 getTimes _ = []
 
 getTime :: SomeField -> Maybe UTCTime

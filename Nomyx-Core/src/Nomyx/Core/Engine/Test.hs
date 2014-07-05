@@ -53,8 +53,11 @@ execRuleEvent r f d = execState (runEvalError Nothing $ evalNomex r 0 >> trigger
 execRuleEvents :: (Show e, Typeable e) => Nomex a -> [(Field e, e)] -> Game
 execRuleEvents f eds = execState (runEvalError Nothing $ evalNomex f 0 >> mapM (\(a,b) -> triggerEvent a b) eds) testGame
 
-execRuleInput :: Nomex a -> EventNumber -> InputNumber -> InputData -> Game
-execRuleInput r en inn d = execState (runEvalError Nothing $ evalNomex r 0 >> triggerInput en inn d) testGame
+execRuleInput :: Nomex a -> EventNumber -> FieldAddress -> InputData -> Game
+execRuleInput r en fa d = execState (runEvalError Nothing $ evalNomex r 0 >> triggerInput en fa d) testGame
+
+execRuleInputs :: Nomex a -> EventNumber -> [(FieldAddress, InputData)] -> Game
+execRuleInputs r en fads = execState (runEvalError Nothing $ evalNomex r 0 >> mapM (\(fa, d) -> triggerInput en fa d) fads) testGame
 
 execRuleGame :: Nomex a -> Game -> Game
 execRuleGame r g = execState (runEvalError Nothing $ void $ evalNomex r 0) g
@@ -172,21 +175,21 @@ testSingleInput = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, S
    h a = void $ newOutput (Just 1) (return $ "voted for " ++ show a)
 
 testSingleInputEx = isOutput "voted for Holland" g where
-   g = execRuleEvent testSingleInput (Input (Just 0) 1 "Vote for Holland or Sarkozy" (Radio [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) Holland
+   g = execRuleEvent testSingleInput (Input 1 "Vote for Holland or Sarkozy" (Radio [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) Holland
 
 testMultipleInputs :: Rule
 testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
    h a = void $ newOutput (Just 1) (return $ "voted for " ++ show a)
 
 testMultipleInputsEx = isOutput "voted for [Holland,Sarkozy]" g where
-   g = execRuleEvent testMultipleInputs (Input (Just 0) 1 "Vote for Holland and Sarkozy" (Checkbox [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) [Holland, Sarkozy]
+   g = execRuleEvent testMultipleInputs (Input 1 "Vote for Holland and Sarkozy" (Checkbox [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) [Holland, Sarkozy]
 
 testInputString :: Rule
 testInputString = void $ onInputText_ "Enter a number:" h 1 where
    h a = void $ newOutput (Just 1) (return $ "You entered: " ++ a)
 
 testInputStringEx = isOutput "You entered: 1" g where
-   g = execRuleEvent testInputString (Input (Just 0) 1 "Enter a number:" Text) "1"
+   g = execRuleEvent testInputString (Input 1 "Enter a number:" Text) "1"
 
 -- Test message
 testSendMessage :: Rule
@@ -213,7 +216,7 @@ testUserInputWrite :: Rule
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (messageEvent (Msg "voted" :: Msg ())) h2
-    void $ onEvent_ (BaseEvent $ Input Nothing 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
+    void $ onEvent_ (BaseEvent $ Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
         h1 a = do
             writeVar (V "vote") (Just a)
             SendMessage (Msg "voted") ()
@@ -225,7 +228,7 @@ testUserInputWrite = do
 
 
 testUserInputWriteEx = isOutput "voted Me" g where
-   g = execRuleEvent testUserInputWrite (Input (Just 0) 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
+   g = execRuleEvent testUserInputWrite (Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
 
 -- Test rule activation
 testActivateRule :: Rule
@@ -291,8 +294,8 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     evs <- lift getChoiceEvents
     let pos = take positives evs
     let neg = take negatives $ drop positives evs
-    mapM_ (\(en, inum) -> triggerInput en inum (RadioData 0)) pos --issuing positive votes
-    mapM_ (\(en, inum) -> triggerInput en inum (RadioData 1)) neg --issuing negative votes
+    mapM_ (\(en, fa) -> triggerInput en fa (RadioData 0)) pos --issuing positive votes
+    mapM_ (\(en, fa) -> triggerInput en fa (RadioData 1)) neg --issuing negative votes
     when timeEvent $ evTriggerTime date2
 
 voteGame' :: Int -> Int -> Int -> Bool -> Rule -> Game
@@ -325,21 +328,22 @@ testVoteRule s g = (_rStatus $ head $ _rules g) == s
 -- Event composition
 
 testSumCompose :: Rule
-testSumCompose = void $ onEvent_ (True <$ inputButton 1 "" <|> False <$ inputButton 1 "") f where
+testSumCompose = void $ onEvent_ (True <$ inputButton 1 "click here:" <|> False <$ inputButton 2 "") f where
    f a = outputAll_ $ show a
 
 testSumComposeEx = isOutput "True" g where
-   g = execRuleEvent testSumCompose (Input (Just 0) 1 "" Button) ()
+   g = execRuleInput testSumCompose 1 [L,R] ButtonData
+
 
 testProdCompose :: Rule
 testProdCompose = void $ onEvent_ ((,) <$> inputText 1 "" <*> inputText 1 "") f where
    f a = outputAll_ $ show a
 
 testProdComposeEx1 = null $ allOutputs g where
-   g = execRuleEvent testProdCompose (Input (Just 0) 1 "" Text) "toto"
+   g = execRuleInput testProdCompose 1 [R] (TextData "toto")
 
 testProdComposeEx2 = isOutput "(\"toto\",\"tata\")" g where
-   g = execRuleEvents testProdCompose [((Input (Just 0) 1 "" Text), "toto"), ((Input (Just 1) 1 "" Text), "tata")]
+   g = execRuleInputs testProdCompose 1 [([L, R], TextData "toto"), ([R], TextData "tata")]
 
 testTwoEvents :: Rule
 testTwoEvents = do
@@ -348,30 +352,30 @@ testTwoEvents = do
    f a = outputAll_ $ show a
 
 testTwoEventsEx = (length $ allOutputs g) == 1 where
-   g = execRuleInput testTwoEvents 1 0 (TextData "toto")
+   g = execRuleInput testTwoEvents 1 [] (TextData "toto")
 
 
 --Get all event numbers of type choice (radio button)
-getChoiceEvents :: State Game [(EventNumber, InputNumber)]
+getChoiceEvents :: State Game [(EventNumber, FieldAddress)]
 getChoiceEvents = do
    evs <- access events
    return $ [(_eventNumber ev, inum) | ev <- evs, inum <- getInputChoices ev ]
 
-getInputChoices :: EventInfo -> [InputNumber]
+getInputChoices :: EventInfo -> [FieldAddress]
 getInputChoices (EventInfo _ _ ev _ _ env) = mapMaybe isInput (getEventFields ev env) where
-      isInput (SomeField (Input (Just inum) _ _ (Radio _))) = Just inum
-      isInput _ = Nothing
+   isInput (fa, (SomeField (Input _ _ (Radio _)))) = Just fa
+   isInput _ = Nothing
 
 --Get all event numbers of type text (text field)
-getTextEvents :: State Game [(EventNumber, InputNumber)]
+getTextEvents :: State Game [(EventNumber, FieldAddress)]
 getTextEvents = do
    evs <- access events
-   return $ [(_eventNumber ev, inum) | ev <- evs, inum <- getInputTexts ev ]
+   return $ [(_eventNumber ev, fa) | ev <- evs, fa <- getInputTexts ev ]
 
-getInputTexts :: EventInfo -> [InputNumber]
+getInputTexts :: EventInfo -> [FieldAddress]
 getInputTexts (EventInfo _ _ ev _ _ env) = mapMaybe isInput (getEventFields ev env) where
-      isInput (SomeField (Input (Just inum) _ _ Text)) = Just inum
-      isInput _ = Nothing
+   isInput (fa, (SomeField (Input _ _ Text))) = Just fa
+   isInput _ = Nothing
 
 addPlayer :: PlayerInfo -> Evaluate Bool
 addPlayer pi = do

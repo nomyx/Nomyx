@@ -323,7 +323,7 @@ inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
 inputAllTexts a pn = do
    s <- get
    let evs = evalState getTextEvents (firstGame $ _multi s)
-   mapM_ (\(en, inum) -> inputResult pn en inum (TextData a) "test") evs
+   mapM_ (\(en, fa) -> inputResult pn en fa (TextData a) "test") evs
 
 firstGame :: Multi -> Game
 firstGame = G._game . _loggedGame . head . _gameInfos

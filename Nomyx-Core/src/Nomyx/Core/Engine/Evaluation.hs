@@ -104,7 +104,7 @@ evOnEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -
 evOnEvent event handler rn = do
    evs <- access events
    let en = getFreeNumber (map _eventNumber evs)
-   events %= (EventInfo en rn (indexInputs event) handler SActive [] : )
+   events %= (EventInfo en rn event handler SActive [] : )
    return en
 
 evSendMessage :: (Typeable a, Show a) => Msg a -> a -> Evaluate ()
@@ -266,12 +266,12 @@ evReadVar (V name) = do
 triggerEvent :: (Typeable e, Show e) => Field e -> e -> Evaluate ()
 triggerEvent e dat = do
    evs <- access events
-   triggerEvent' e dat evs
+   triggerEvent' (FieldResult e dat Nothing) evs
 
 -- trigger some specific events
-triggerEvent' :: (Typeable e, Show e) => Field e -> e -> [EventInfo] -> Evaluate ()
-triggerEvent' e dat evs = do
-   let evs' = map (updateEventInfo e dat) evs
+triggerEvent' :: FieldResult -> [EventInfo] -> Evaluate ()
+triggerEvent' res evs = do
+   let evs' = map (updateEventInfo res) evs
    events %= union (map fst evs')
    mapM triggerIfComplete evs'
    return ()
@@ -290,28 +290,28 @@ triggerIfComplete _ = return ()
 -- * input triggers
 
 -- trigger the input event with the input data
-triggerInput :: EventNumber -> InputNumber -> InputData -> Evaluate ()
-triggerInput en inn ir = do
+triggerInput :: EventNumber -> FieldAddress -> InputData -> Evaluate ()
+triggerInput en fa ir = do
    evs <- access events
    let mei = find ((== en) . getL eventNumber) evs
-   when (isJust mei) $ execInputHandler ir inn (fromJust mei)
+   when (isJust mei) $ execInputHandler ir fa (fromJust mei)
 
 -- execute the corresponding handler
-execInputHandler :: InputData -> InputNumber -> EventInfo -> Evaluate ()
-execInputHandler ir inn ei@(EventInfo _ _ _ _ SActive _) = do
-   case (getInput ei inn) of
-      Just sf -> execInputHandler' ir sf ei
+execInputHandler :: InputData -> FieldAddress -> EventInfo -> Evaluate ()
+execInputHandler ir fa ei@(EventInfo _ _ _ _ SActive _) = do
+   case (getInput ei fa) of
+      Just sf -> execInputHandler' ir sf fa ei
       Nothing -> logAll "Input not found"
 execInputHandler _ _ _ = return ()
 
 -- execute the event handler using the data received from user
-execInputHandler' :: InputData -> SomeField -> EventInfo -> Evaluate ()
-execInputHandler' (TextData s)      (SomeField e@(Input _ _ _ (Text)))        ei = triggerEvent' e s [ei]
-execInputHandler' (TextAreaData s)  (SomeField e@(Input _ _ _ (TextArea)))    ei = triggerEvent' e s [ei]
-execInputHandler' (ButtonData)      (SomeField e@(Input _ _ _ (Button)))      ei = triggerEvent' e () [ei]
-execInputHandler' (RadioData i)     (SomeField e@(Input _ _ _ (Radio cs)))    ei = triggerEvent' e (fst $ cs!!i) [ei]
-execInputHandler' (CheckboxData is) (SomeField e@(Input _ _ _ (Checkbox cs))) ei = triggerEvent' e (fst <$> cs `sel` is) [ei]
-execInputHandler' _ _ _ = return ()
+execInputHandler' :: InputData -> SomeField -> FieldAddress -> EventInfo -> Evaluate ()
+execInputHandler' (TextData s)      (SomeField e@(Input _ _ (Text)))        fa ei = triggerEvent' (FieldResult e s                     (Just fa)) [ei]
+execInputHandler' (TextAreaData s)  (SomeField e@(Input _ _ (TextArea)))    fa ei = triggerEvent' (FieldResult e s                     (Just fa)) [ei]
+execInputHandler' (ButtonData)      (SomeField e@(Input _ _ (Button)))      fa ei = triggerEvent' (FieldResult e ()                    (Just fa)) [ei]
+execInputHandler' (RadioData i)     (SomeField e@(Input _ _ (Radio cs)))    fa ei = triggerEvent' (FieldResult e (fst $ cs!!i)         (Just fa)) [ei]
+execInputHandler' (CheckboxData is) (SomeField e@(Input _ _ (Checkbox cs))) fa ei = triggerEvent' (FieldResult e (fst <$> cs `sel` is) (Just fa)) [ei]
+execInputHandler' _ _ _ _ = return ()
 
 -- * misc
 

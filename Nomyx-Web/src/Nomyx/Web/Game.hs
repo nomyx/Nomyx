@@ -247,10 +247,10 @@ viewInput me gn (EventInfo en _ ev _ SActive env) = do
       else Just $ sequence_ ds
 viewInput _ _ _ = return Nothing
 
-viewInput' :: PlayerNumber -> GameName -> EventNumber -> SomeField -> RoutedNomyxServer (Maybe Html)
-viewInput' me gn en ev@(SomeField (Input inputNumber pn title _)) | me == pn = do
+viewInput' :: PlayerNumber -> GameName -> EventNumber -> (FieldAddress, SomeField) -> RoutedNomyxServer (Maybe Html)
+viewInput' me gn en (fa, ev@(SomeField (Input pn title _))) | me == pn = do
   lf  <- lift $ viewForm "user" $ inputForm ev
-  link <- showURL (DoInput en (fromJust inputNumber) gn)
+  link <- showURL (DoInput en fa gn)
   return $ Just $ tr $ td $ do
      fromString title
      fromString " "
@@ -335,20 +335,20 @@ viewLog (Log _ t s) = tr $ do
    td $ fromString $ formatTime defaultTimeLocale "%Y/%m/%d_%H:%M" t
    td $ p $ fromString s
 
-newInput :: EventNumber -> InputNumber -> GameName -> TVar Session -> RoutedNomyxServer Response
-newInput en inum gn ts = toResponse <$> do
+newInput :: EventNumber -> FieldAddress -> GameName -> TVar Session -> RoutedNomyxServer Response
+newInput en fa gn ts = toResponse <$> do
     pn <- fromJust <$> getPlayerNumber ts
     s <- liftIO $ atomically $ readTVar ts
     let g = find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s)
     let ei = getEventInfo en (_loggedGame $ fromJust g)
     methodM POST
-    case (getInput ei inum) of
+    case (getInput ei fa) of
        Nothing -> error "Input not found"
        Just bs -> do
           r <- liftRouteT $ eitherForm environment "user" (inputForm bs)
           link <- showURL MainPage
           case r of
-             (Right c) -> webCommand ts $ S.inputResult pn en inum c gn
+             (Right c) -> webCommand ts $ S.inputResult pn en fa c gn
              (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
           seeOther (link `appendAnchor` inputAnchor) "Redirecting..."
 
@@ -368,11 +368,11 @@ newPlayAs gn ts = toResponse <$> do
 
 
 inputForm :: SomeField -> NomyxForm InputData
-inputForm (SomeField (Input _ _ _ (Radio choices)))    = RadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
-inputForm (SomeField (Input _ _ _ Text))               = TextData     <$> RB.inputText "" <++ label " "
-inputForm (SomeField (Input _ _ _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label " "
-inputForm (SomeField (Input _ _ _ Button))             = pure ButtonData
-inputForm (SomeField (Input _ _ _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label " "
+inputForm (SomeField (Input _ _ (Radio choices)))    = RadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
+inputForm (SomeField (Input _ _ Text))               = TextData     <$> RB.inputText "" <++ label " "
+inputForm (SomeField (Input _ _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label " "
+inputForm (SomeField (Input _ _ Button))             = pure ButtonData
+inputForm (SomeField (Input _ _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label " "
 inputForm _ = error "Not an input form"
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html

@@ -3,6 +3,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DoAndIfThenElse #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Nomyx.Web.Common where
 
@@ -70,7 +73,7 @@ data PlayerCommand = NotLogged
                    | LeaveGame GameName
                    | DelGame   GameName
                    | ForkGame  GameName
-                   | DoInput   EventNumber InputNumber GameName
+                   | DoInput   EventNumber FieldAddress GameName
                    | NewRule   GameName
                    | NewGame
                    | SubmitNewGame
@@ -90,6 +93,8 @@ inputAnchor = "Input"
 
 type RoutedNomyxServer a = RouteT PlayerCommand (ServerPartT IO) a
 
+instance PathInfo FieldAddressElem
+instance PathInfo FieldAddress
 $(derivePathInfo ''PlayerCommand)
 $(derivePathInfo ''LoginName)
 

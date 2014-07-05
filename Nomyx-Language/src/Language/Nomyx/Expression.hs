@@ -8,12 +8,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 -- | This module containt the type definitions necessary to build a Nomic rule. 
 module Language.Nomyx.Expression where
 
 import Data.Typeable
 import Data.Time
+import GHC.Generics
 import Control.Applicative hiding (Const)
 import Data.Lens.Template
 import Control.Monad.Error
@@ -140,7 +142,7 @@ data Event a where
 
 -- | Base events
 data Field a where
-   Input   :: Maybe InputNumber -> PlayerNumber -> String -> (InputForm a) -> Field a
+   Input   :: PlayerNumber -> String -> (InputForm a) -> Field a
    Player  :: Player    -> Field PlayerInfo
    RuleEv  :: RuleEvent -> Field RuleInfo
    Time    :: UTCTime   -> Field UTCTime
@@ -191,13 +193,19 @@ data EventInfo = forall e. (Typeable e, Show e) =>
               event        :: Event e,
               handler      :: EventHandler e,
               _evStatus    :: Status,
-              _env         :: [EventEnv]}
+              _env         :: [FieldResult]}
 
-data EventEnv = forall e. (Typeable e, Show e) => EventEnv (Field e) e
+data FieldAddressElem = R | L | Index Int deriving (Show, Read, Ord, Eq, Generic)
+type FieldAddress = [FieldAddressElem]
+
+data FieldResult = forall e. (Typeable e, Show e) =>
+   FieldResult {_field        :: Field e,
+                _fieldResult  :: e,
+                _fieldAddress :: Maybe FieldAddress}
 
 type EventHandler e = (EventNumber, e) -> Nomex ()
 
-deriving instance Show EventEnv
+deriving instance Show FieldResult
 
 data Status = SActive | SDeleted deriving (Eq, Show)
 
