@@ -368,11 +368,11 @@ newPlayAs gn ts = toResponse <$> do
 
 
 inputForm :: SomeField -> NomyxForm InputData
-inputForm (SomeField (Input _ _ _ (Radio choices)))    = RadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
-inputForm (SomeField (Input _ _ _ Text))               = TextData     <$> RB.inputText "" <++ label " "
-inputForm (SomeField (Input _ _ _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label " "
+inputForm (SomeField (Input _ _ _ (Radio choices)))    = RadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label (" "::String)
+inputForm (SomeField (Input _ _ _ Text))               = TextData     <$> RB.inputText "" <++ label (" "::String)
+inputForm (SomeField (Input _ _ _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label (" "::String)
 inputForm (SomeField (Input _ _ _ Button))             = pure ButtonData
-inputForm (SomeField (Input _ _ _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label " "
+inputForm (SomeField (Input _ _ _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label (" "::String)
 inputForm _ = error "Not an input form"
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html

@@ -370,6 +370,7 @@ getTextEvents = do
 
 getInputTexts :: EventInfo -> [InputNumber]
 getInputTexts (EventInfo _ _ ev _ _ env) = mapMaybe isInput (getEventFields ev env) where
+      isInput :: SomeField -> Maybe InputNumber
       isInput (SomeField (Input (Just inum) _ _ Text)) = Just inum
       isInput _ = Nothing
 
