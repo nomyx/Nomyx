@@ -29,7 +29,7 @@ data Game = Game { _gameName    :: GameName,
                    _variables   :: [Var],
                    _events      :: [EventInfo],
                    _outputs     :: [Output],
-                   _victory     :: Maybe VictoryCond,
+                   _victory     :: Maybe VictoryInfo,
                    _logs        :: [Log],
                    _currentTime :: UTCTime}
                    deriving (Typeable)

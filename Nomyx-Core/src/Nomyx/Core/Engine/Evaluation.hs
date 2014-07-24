@@ -247,8 +247,8 @@ evDelOutput on = do
 
 evSetVictory :: NomexNE [PlayerNumber] -> RuleNumber -> Evaluate ()
 evSetVictory ps rn = do
-   void $ victory ~= (Just $ VictoryCond rn ps)
-   triggerEvent Victory (VictoryCond rn ps)
+   void $ victory ~= (Just $ VictoryInfo rn ps)
+   triggerEvent Victory (VictoryInfo rn ps)
 
 evReadVar :: (Typeable a, Show a) => V a -> Reader Game (Maybe a)
 evReadVar (V name) = do
@@ -318,7 +318,7 @@ execInputHandler' _ _ _ _ = return ()
 getVictorious :: Game -> [PlayerNumber]
 getVictorious g = case _victory g of
    Nothing -> []
-   Just (VictoryCond rn v) -> runReader (evalNomexNE v rn) g
+   Just (VictoryInfo rn v) -> runReader (evalNomexNE v rn) g
 
 evalOutput :: Game -> Output -> String
 evalOutput g (Output _ rn _ o _) = runReader (evalNomexNE o rn) g

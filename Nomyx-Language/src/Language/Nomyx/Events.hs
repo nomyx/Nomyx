@@ -136,7 +136,7 @@ timeEvent = BaseEvent . Time
 messageEvent :: (Typeable a) => Msg a -> Event a
 messageEvent = BaseEvent . Message
 
-victoryEvent :: Event VictoryCond
+victoryEvent :: Event VictoryInfo
 victoryEvent = BaseEvent Victory
 
 playerEvent :: Player -> Event PlayerInfo

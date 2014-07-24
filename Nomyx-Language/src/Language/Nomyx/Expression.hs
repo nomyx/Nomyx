@@ -147,7 +147,7 @@ data Field a where
    RuleEv  :: RuleEvent -> Field RuleInfo
    Time    :: UTCTime   -> Field UTCTime
    Message :: Msg a     -> Field a
-   Victory ::              Field VictoryCond
+   Victory ::              Field VictoryInfo
    deriving Typeable
 
 -- | Type agnostic base event
@@ -194,7 +194,7 @@ instance Alternative Event where
 data EventInfo = forall e. (Typeable e, Show e) =>
    EventInfo {_eventNumber :: EventNumber,
               _ruleNumber  :: RuleNumber,
-              event        :: Event e,
+              event        :: (Event e),
               handler      :: EventHandler e,
               _evStatus    :: Status,
               _env         :: [FieldResult]}
@@ -261,7 +261,9 @@ instance Ord PlayerInfo where
 
 -- * Victory
 
-data VictoryCond = VictoryCond RuleNumber (NomexNE [PlayerNumber]) deriving (Show, Typeable)
+data VictoryInfo = VictoryInfo { _vRuleNumber :: RuleNumber,
+                                 _vCond :: NomexNE [PlayerNumber]}
+                                 deriving (Show, Typeable)
 
 partial :: String -> Nomex (Maybe a) -> Nomex a
 partial s nm = do
