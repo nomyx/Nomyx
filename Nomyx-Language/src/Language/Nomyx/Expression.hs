@@ -153,6 +153,10 @@ data Field a where
 -- | Type agnostic base event
 data SomeField = forall a. (Typeable a) => SomeField (Field a)
 
+-- | Type agnostic result data
+data SomeData = forall e. (Typeable e, Show e) => SomeData e
+deriving instance Show SomeData
+
 -- | Events parameters
 data Player    = Arrive | Leave deriving (Typeable, Show, Eq)
 data RuleEvent = Proposed | Activated | Rejected | Added | Modified | Deleted deriving (Typeable, Show, Eq)
@@ -195,12 +199,12 @@ data EventInfo = forall e. (Typeable e, Show e) =>
               _evStatus    :: Status,
               _env         :: [FieldResult]}
 
-data FieldAddressElem = R | L | Index Int deriving (Show, Read, Ord, Eq, Generic)
+data FieldAddressElem = SumR | SumL | AppR | AppL | Index Int deriving (Show, Read, Ord, Eq, Generic)
 type FieldAddress = [FieldAddressElem]
 
 data FieldResult = forall e. (Typeable e, Show e) =>
-   FieldResult {_field        :: Field e,
-                _fieldResult  :: e,
+   FieldResult {field         :: Field e,
+                fieldResult   :: e,
                 _fieldAddress :: Maybe FieldAddress}
 
 type EventHandler e = (EventNumber, e) -> Nomex ()
@@ -269,5 +273,5 @@ partial s nm = do
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
 
-$( makeLenses [''RuleInfo, ''PlayerInfo, ''EventInfo] )
+$( makeLenses [''RuleInfo, ''PlayerInfo, ''EventInfo, ''FieldResult] )
 

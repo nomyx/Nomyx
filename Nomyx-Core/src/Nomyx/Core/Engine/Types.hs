@@ -78,8 +78,6 @@ data InputData = RadioData Int
                | ButtonData
                  deriving (Show, Read, Eq, Ord)
 
-data SomeData = forall e. (Typeable e, Show e) => SomeData e
-deriving instance Show SomeData
 
 -- * Outputs
 

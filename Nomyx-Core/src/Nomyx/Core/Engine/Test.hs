@@ -320,8 +320,8 @@ testVoteWithQuorum1           = testVoteRule Active  $ voteGame      7  3 10 $ o
 testVoteAssessOnTimeLimit1    = testVoteRule Active  $ voteGameTimed 10 0 10 $ onRuleProposed $ (callVoteRule' unanimity date2)
 testVoteAssessOnTimeLimit2    = testVoteRule Active  $ voteGameTimed 1  0 10 $ onRuleProposed $ (callVoteRule' unanimity date2)
 testVoteAssessOnTimeLimit3    = testVoteRule Reject  $ voteGameTimed 1  0 10 $ onRuleProposed $ (callVoteRule' (unanimity `withQuorum` 5) date2)
-testVoteAssessOnTimeLimit4    = testVoteRule Reject $ voteGameTimed  0  0 10 $ onRuleProposed $ (callVoteRule' (unanimity `withQuorum` 1) date2)
-testVoteAssessOnTimeLimit5    = testVoteRule Active $ voteGameTimed  1  0 10 $ onRuleProposed $ (callVoteRule' (unanimity `withQuorum` 1) date2)
+testVoteAssessOnTimeLimit4    = testVoteRule Reject  $ voteGameTimed 0  0 10 $ onRuleProposed $ (callVoteRule' (unanimity `withQuorum` 1) date2)
+testVoteAssessOnTimeLimit5    = testVoteRule Active  $ voteGameTimed 1  0 10 $ onRuleProposed $ (callVoteRule' (unanimity `withQuorum` 1) date2)
 
 testVoteRule s g = (_rStatus $ head $ _rules g) == s
 
@@ -332,7 +332,7 @@ testSumCompose = void $ onEvent_ (True <$ inputButton 1 "click here:" <|> False 
    f a = outputAll_ $ show a
 
 testSumComposeEx = isOutput "True" g where
-   g = execRuleInput testSumCompose 1 [L,R] ButtonData
+   g = execRuleInput testSumCompose 1 [SumL, AppR] ButtonData
 
 
 testProdCompose :: Rule
@@ -340,10 +340,10 @@ testProdCompose = void $ onEvent_ ((,) <$> inputText 1 "" <*> inputText 1 "") f 
    f a = outputAll_ $ show a
 
 testProdComposeEx1 = null $ allOutputs g where
-   g = execRuleInput testProdCompose 1 [R] (TextData "toto")
+   g = execRuleInput testProdCompose 1 [AppR] (TextData "toto")
 
 testProdComposeEx2 = isOutput "(\"toto\",\"tata\")" g where
-   g = execRuleInputs testProdCompose 1 [([L, R], TextData "toto"), ([R], TextData "tata")]
+   g = execRuleInputs testProdCompose 1 [([AppL, AppR], TextData "toto"), ([AppR], TextData "tata")]
 
 testTwoEvents :: Rule
 testTwoEvents = do

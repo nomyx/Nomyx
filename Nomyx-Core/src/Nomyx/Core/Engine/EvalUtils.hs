@@ -41,8 +41,8 @@ getEventResult e frs = getEventResult' e frs []
 getEventResult' :: Event a -> [FieldResult] -> FieldAddress -> Todo (FieldAddress, SomeField) a
 getEventResult' (PureEvent a)  _   _  = Done a
 getEventResult' EmptyEvent     _   _  = Todo []
-getEventResult' (SumEvent a b) ers fa = getEventResult' a ers (fa ++ [L]) <|> getEventResult' b ers (fa ++ [R])
-getEventResult' (AppEvent f b) ers fa = getEventResult' f ers (fa ++ [L]) <*> getEventResult' b ers (fa ++ [R])
+getEventResult' (SumEvent a b) ers fa = getEventResult' a ers (fa ++ [SumL]) <|> getEventResult' b ers (fa ++ [SumR])
+getEventResult' (AppEvent f b) ers fa = getEventResult' f ers (fa ++ [AppL]) <*> getEventResult' b ers (fa ++ [AppR])
 getEventResult' (BaseEvent a)  ers fa = case lookupField a fa ers of
    Just r  -> Done r
    Nothing -> Todo [(fa, SomeField a)]
@@ -74,10 +74,10 @@ getInput (EventInfo _ _ ev _ _ _) addr = findField addr ev
 
 findField :: FieldAddress -> Event a -> Maybe SomeField
 findField [] (BaseEvent field) = Just $ SomeField field
-findField (L:as) (SumEvent e1 _) = findField as e1
-findField (R:as) (SumEvent _ e2) = findField as e2
-findField (L:as) (AppEvent e1 _) = findField as e1
-findField (R:as) (AppEvent _ e2) = findField as e2
+findField (SumL:as) (SumEvent e1 _) = findField as e1
+findField (SumR:as) (SumEvent _ e2) = findField as e2
+findField (AppL:as) (AppEvent e1 _) = findField as e1
+findField (AppR:as) (AppEvent _ e2) = findField as e2
 findField ((Index i):as) (ShortcutEvents es _) = findField as (es!!i)
 findField _ _ = error "findField: wrong field address"
 
