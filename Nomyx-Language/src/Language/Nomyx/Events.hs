@@ -4,6 +4,8 @@
 module Language.Nomyx.Events (
    onEvent, onEvent_, onEventOnce,
    delEvent,
+   getEvents, getEvent,
+   getIntermediateResults,
    sendMessage, sendMessage_,
    onMessage, onMessageOnce,
    schedule, schedule_, schedule', schedule'_,
@@ -17,7 +19,9 @@ module Language.Nomyx.Events (
 import Language.Nomyx.Expression
 import Data.Typeable
 import Control.Monad.State
+import Control.Applicative
 import Data.List
+import Data.Maybe
 import Data.Time hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
 import Safe
@@ -42,6 +46,23 @@ onEventOnce e h = do
 
 delEvent :: EventNumber -> Nomex Bool
 delEvent = DelEvent
+
+getEvents :: NomexNE [EventInfo]
+getEvents = GetEvents
+
+getEvent :: EventNumber -> NomexNE (Maybe EventInfo)
+getEvent en = find (\(EventInfo en2 _ _ _ evst _) -> en == en2 && evst == SActive) <$> getEvents
+
+getIntermediateResults :: EventNumber -> NomexNE (Maybe [(PlayerNumber, SomeData)])
+getIntermediateResults en = do
+   mev <- getEvent en
+   case mev of
+      Just ev -> return $ Just $ mapMaybe getInputResult (_env ev)
+      Nothing -> return Nothing
+
+getInputResult :: FieldResult -> Maybe (PlayerNumber, SomeData)
+getInputResult (FieldResult (Input pn _ _) r _) = Just (pn, SomeData r)
+getInputResult _ = Nothing
 
 -- | broadcast a message that can be catched by another rule
 sendMessage :: (Typeable a, Show a) => Msg a -> a -> Nomex ()

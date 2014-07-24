@@ -12,10 +12,12 @@ import Prelude hiding (foldr)
 import Language.Nomyx.Expression
 import Language.Nomyx.Events
 import Language.Nomyx.Inputs
+import Language.Nomyx.Outputs
 import Language.Nomyx.Players
 import Language.Nomyx.Rules
 import Control.Monad.State hiding (forM_)
 import Data.Maybe
+import Data.Typeable
 import Data.Time hiding (getCurrentTime)
 import Control.Arrow
 import Control.Applicative
@@ -51,7 +53,8 @@ callVoteRule' assess endTime ri = do
 callVote :: AssessFunction -> UTCTime -> String -> (Bool -> Nomex ()) -> Nomex ()
 callVote assess endTime title payload = do
    pns <- liftEffect getAllPlayerNumbers
-   void $ onEventOnce (voteWith endTime pns assess title) payload
+   en <- onEventOnce (voteWith endTime pns assess title) payload
+   displayVote en
 
 -- vote with a function able to assess the ongoing votes.
 -- the vote can be concluded as soon as the result is known.
@@ -119,3 +122,53 @@ totalVoters, voted, notVoted :: VoteStats -> Int
 totalVoters vs = M.foldr (+) 0 (voteCounts vs)
 notVoted    vs = fromMaybe 0 $ M.lookup Nothing (voteCounts vs)
 voted       vs = (totalVoters vs) - (notVoted vs)
+
+displayVote :: EventNumber -> Nomex ()
+displayVote en = void $ outputAll $ do
+   mds <- getIntermediateResults en
+   let mbs = map getBooleanResult <$> mds
+   pns <- getAllPlayerNumbers
+   case mbs of
+      Just bs -> showOnGoingVote $ getVotes pns bs
+      Nothing -> return ""
+
+getVotes :: [PlayerNumber] -> [(PlayerNumber, Bool)] -> [(PlayerNumber, Maybe Bool)]
+getVotes pns rs = map (findVote rs) pns where
+   findVote :: [(PlayerNumber, Bool)] -> PlayerNumber -> (PlayerNumber, Maybe Bool)
+   findVote rs pn = case (find (\(pn1, b) -> pn == pn1) rs) of
+      Just (pn, b) -> (pn, Just b)
+      Nothing -> (pn, Nothing)
+
+getBooleanResult :: (PlayerNumber, SomeData) -> (PlayerNumber, Bool)
+getBooleanResult (pn, SomeData sd) = case (cast sd) of
+   Just a  -> (pn, a)
+   Nothing -> error "incorrect vote field"
+
+showChoice :: Maybe Bool -> String
+showChoice (Just a) = show a
+showChoice Nothing  = "Not Voted"
+
+showOnGoingVote :: [(PlayerNumber, Maybe Bool)] -> NomexNE String
+showOnGoingVote [] = return "Nobody voted yet"
+showOnGoingVote listVotes = do
+   list <- mapM showVote listVotes
+   return $ "Votes:" ++ "\n" ++ concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
+
+showFinishedVote :: [(PlayerNumber, Maybe Bool)] -> NomexNE String
+showFinishedVote l = do
+   let voted = filter (\(_, r) -> isJust r) l
+   votes <- mapM showVote voted
+   return $ intercalate ", " $ map (\(name, vote) -> name ++ ": " ++ vote) votes
+
+showVote :: (PlayerNumber, Maybe Bool) -> NomexNE (String, String)
+showVote (pn, v) = do
+   name <- showPlayer pn
+   return (name, showChoice v)
+                                              
+--displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex OutputNumber
+--displayVoteResult toVoteName (VoteData msgEnd voteVar _ _ _) = onMessage msgEnd $ \result -> do
+--   vs <- getMsgVarData_ voteVar
+--   votes <- liftEffect $ showFinishedVote vs
+--   void $ outputAll_ $ "Vote result for " ++ toVoteName ++ ": " ++ showChoices result ++ " (" ++ votes ++ ")"
+
+
