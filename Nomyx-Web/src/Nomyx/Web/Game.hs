@@ -171,26 +171,26 @@ viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
    p $ titleWithHelpIcon (h4 "Variables:") Help.variables
    viewVars   (_variables g)
    p $ titleWithHelpIcon (h4 "Events:") Help.events
-   viewEvents (_events g)
+   viewEvents g
    p $ h4 "Log:"
    viewLogs    (_logs g) pn
 
 
-viewEvents :: [EventInfo] -> Html
-viewEvents ehs = table ! class_ "table" $ do
+viewEvents :: Game -> Html
+viewEvents g = table ! class_ "table" $ do
          thead $ do
             td ! class_ "td" $ "Event Number"
             td ! class_ "td" $ "By Rule"
             td ! class_ "td" $ "Event"
-         mapM_ viewEvent $ sort ehs
+         mapM_ (viewEvent g) (sort $ _events g)
 
 
-viewEvent :: EventInfo -> Html
-viewEvent (EventInfo eventNumber ruleNumber event _ status env) = if status == SActive then disp else disp ! style "background:gray;" where
+viewEvent :: Game -> EventInfo -> Html
+viewEvent g ei@(EventInfo eventNumber ruleNumber event _ status env) = if status == SActive then disp else disp ! style "background:gray;" where
    disp = tr $ do
       td ! class_ "td" $ fromString . show $ eventNumber
       td ! class_ "td" $ fromString . show $ ruleNumber
-      td ! class_ "td" $ fromString . show $ getEventFields event env
+      td ! class_ "td" $ fromString . show $ getEventFields ei g
 
 viewIOs :: PlayerNumber -> Game -> RoutedNomyxServer Html
 viewIOs pn g = do
@@ -210,17 +210,17 @@ viewIORule pn g r = do
 
 viewIORuleM :: PlayerNumber -> RuleNumber -> Game -> RoutedNomyxServer (Maybe Html)
 viewIORuleM pn rn g = do
-   vir <- viewInputsRule pn rn (_events g) (_gameName g)
+   vir <- viewInputsRule pn rn (_events g) g
    let vor = viewOutputsRule pn rn g
    return $ if isJust vir || isJust vor then Just $ do
       when (isJust vir) $ fromJust vir
       when (isJust vor) $ fromJust vor
    else Nothing
 
-viewInputsRule :: PlayerNumber -> RuleNumber -> [EventInfo] -> GameName -> RoutedNomyxServer (Maybe Html)
-viewInputsRule pn rn ehs gn = do
+viewInputsRule :: PlayerNumber -> RuleNumber -> [EventInfo] -> Game -> RoutedNomyxServer (Maybe Html)
+viewInputsRule pn rn ehs g = do
    let filtered = filter (\e -> _ruleNumber e == rn) ehs
-   mis <- mapM (viewInput pn gn) $ sort filtered
+   mis <- mapM (viewInput pn g) $ sort filtered
    let is = catMaybes mis
    case is of
       [] -> return Nothing
@@ -239,9 +239,9 @@ isPn pn (Output _ _ (Just mypn) _ SActive) = mypn == pn
 isPn _  (Output _ _ Nothing _ SActive) = True
 isPn _ _ = False
 
-viewInput :: PlayerNumber -> GameName -> EventInfo -> RoutedNomyxServer (Maybe Html)
-viewInput me gn (EventInfo en _ ev _ SActive env) = do
-   ds <- mapMaybeM (viewInput' me gn en) (getEventFields ev env)
+viewInput :: PlayerNumber -> Game -> EventInfo -> RoutedNomyxServer (Maybe Html)
+viewInput me g ei@(EventInfo en _ ev _ SActive env) = do
+   ds <- mapMaybeM (viewInput' me (_gameName g) en) (getEventFields ei g)
    return $ if null ds
       then Nothing
       else Just $ sequence_ ds
@@ -342,7 +342,7 @@ newInput en fa gn ts = toResponse <$> do
     let g = find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s)
     let ei = getEventInfo en (_loggedGame $ fromJust g)
     methodM POST
-    case (getInput ei fa) of
+    case (getInput ei fa (_game $ _loggedGame $ fromJust g)) of
        Nothing -> error "Input not found"
        Just bs -> do
           r <- liftRouteT $ eitherForm environment "user" (inputForm bs)

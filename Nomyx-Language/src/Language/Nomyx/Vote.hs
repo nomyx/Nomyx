@@ -53,7 +53,7 @@ callVoteRule' assess endTime ri = do
 callVote :: AssessFunction -> UTCTime -> String -> (Bool -> Nomex ()) -> Nomex ()
 callVote assess endTime title payload = do
    pns <- liftEffect getAllPlayerNumbers
-   en <- onEventOnce (voteWith endTime pns assess title) payload
+   en <- onEventOnce (return $ voteWith endTime pns assess title) payload
    displayVote en
 
 -- vote with a function able to assess the ongoing votes.
@@ -135,7 +135,7 @@ displayVote en = void $ outputAll $ do
 getVotes :: [PlayerNumber] -> [(PlayerNumber, Bool)] -> [(PlayerNumber, Maybe Bool)]
 getVotes pns rs = map (findVote rs) pns where
    findVote :: [(PlayerNumber, Bool)] -> PlayerNumber -> (PlayerNumber, Maybe Bool)
-   findVote rs pn = case (find (\(pn1, b) -> pn == pn1) rs) of
+   findVote rs pn = case (find (\(pn1, _) -> pn == pn1) rs) of
       Just (pn, b) -> (pn, Just b)
       Nothing -> (pn, Nothing)
 

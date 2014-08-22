@@ -12,26 +12,17 @@ import Prelude hiding ((.), log)
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
+import Control.Category
 import Data.Typeable
 import Data.Lens
 import Data.Maybe
 import Data.Either
 import Control.Applicative
-import Control.Monad.Error (ErrorT(..))
+import Control.Monad.Error
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
 import Data.Todo
-
--- update the EventInfo with the field result
-updateEventInfo :: FieldResult -> EventInfo -> (EventInfo, Maybe SomeData)
-updateEventInfo (FieldResult field dat addr) ei@(EventInfo _ _ ev _ _ envi) =
-   if (SomeField field) `elem` (map snd $ getEventFields ev envi)      -- if the field if found among the remaining fields of the event
-      then case getEventResult ev (eventRes : envi) of                 -- then check the event with that field result included
-         Todo _ -> (env ^=  (eventRes : envi) $ ei, Nothing)           -- some fields are left to complete: add ours in the environment
-         Done a -> (env ^=  []                $ ei, Just $ SomeData a) -- the event is now complete: empty the environment and output the result
-      else         (ei,                             Nothing)           -- field not found: do nothing
-   where eventRes = FieldResult field dat addr
 
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some fields results are pending, return that list instead.
@@ -59,27 +50,13 @@ lookupField be fa ((FieldResult a r fa1) : ers) = case (cast (a,r)) of
    Just (a',r') -> if (a' == be && maybe True (== fa) fa1) then Just r' else lookupField be fa ers
    Nothing      -> lookupField be fa ers
 
---get the fields left to be completed in an event
-getEventFields :: Event a -> [FieldResult] -> [(FieldAddress, SomeField)]
-getEventFields e er = case (getEventResult e er) of
-   Done _ -> []
-   Todo a -> a
 
-errorHandler :: RuleNumber -> EventNumber -> String -> Evaluate ()
-errorHandler rn en s = logAll $ "Error in rule " ++ show rn ++ " (triggered by event " ++ show en ++ "): " ++ s
+errorHandler :: EventNumber -> String -> Evaluate ()
+errorHandler en s = do
+   rn <- access eRuleNumber
+   logAll $ "Error in rule " ++ show rn ++ " (triggered by event " ++ show en ++ "): " ++ s
 
---TODO: should we check that the field is not already completed?
-getInput :: EventInfo -> FieldAddress -> Maybe SomeField
-getInput (EventInfo _ _ ev _ _ _) addr = findField addr ev
 
-findField :: FieldAddress -> Event a -> Maybe SomeField
-findField [] (BaseEvent field) = Just $ SomeField field
-findField (SumL:as) (SumEvent e1 _) = findField as e1
-findField (SumR:as) (SumEvent _ e2) = findField as e2
-findField (AppL:as) (AppEvent e1 _) = findField as e1
-findField (AppR:as) (AppEvent _ e2) = findField as e2
-findField ((Index i):as) (ShortcutEvents es _) = findField as (es!!i)
-findField _ _ = error "findField: wrong field address"
 
 logPlayer :: PlayerNumber -> String -> Evaluate ()
 logPlayer pn = log (Just pn)
@@ -88,22 +65,52 @@ logAll :: String -> Evaluate ()
 logAll = log Nothing
 
 log :: Maybe PlayerNumber -> String -> Evaluate ()
-log mpn s = do
+log mpn s = focusGame $ do
    time <- access currentTime
    void $ logs %= (Log mpn time s : )
 
-liftEval :: Reader Game a -> Evaluate a
+liftEval :: EvaluateNE a -> Evaluate a
 liftEval r = runReader r <$> get
 
---remove the ErrorT layer from the Evaluate monad stack.
-runEvalError :: Maybe PlayerNumber -> Evaluate a -> State Game ()
-runEvalError pn egs = do
+--extract the game state from an Evaluate
+--knowing the rule number performing the evaluation (0 if by the system)
+--and the player number to whom display errors (set to Nothing for all players)
+--TODO: clean
+runEvalError :: RuleNumber -> (Maybe PlayerNumber) -> Evaluate a -> State Game ()
+runEvalError rn mpn egs = modify (\g -> _eGame $ execState (runEvalError' mpn egs) (EvalEnv rn g))
+
+runEvalError' :: (Maybe PlayerNumber) -> Evaluate a -> State EvalEnv ()
+runEvalError' mpn egs = do
    e <- runErrorT egs
    case e of
       Right _ -> return ()
-      Left e -> do
-         tracePN (fromMaybe 0 pn) $ "Error: " ++ e
-         void $ runErrorT $ log pn "Error: "
+      Left e' -> do
+         tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
+         void $ runErrorT $ log mpn "Error: "
+
+runSystemEval :: PlayerNumber -> Evaluate a -> State Game ()
+runSystemEval pn e = runEvalError 0 (Just pn) e
+
+runSystemEval' :: Evaluate a -> State Game ()
+runSystemEval' e = runEvalError 0 Nothing e
+
+focusGame :: State Game a -> Evaluate a
+focusGame = lift . (focus eGame)
+
+accessGame :: Lens Game a -> Evaluate (a, PlayerNumber)
+accessGame l = do
+   a <- access (eGame >>> l)
+   pn <- access eRuleNumber
+   return (a, pn)
+
+--replace temporarily the rule number used for evaluation
+withRN :: RuleNumber -> Evaluate a -> Evaluate a
+withRN rn eval = do
+   oldRn <- gets _eRuleNumber
+   eRuleNumber ~= rn
+   a <- eval
+   eRuleNumber ~= oldRn
+   return a
 
 instance Eq SomeField where
   (SomeField e1) == (SomeField e2) = e1 === e2
@@ -113,6 +120,6 @@ instance Show EventInfo where
    show (EventInfo en rn e _ s env) =
       "event num: " ++ (show en) ++
       ", rule num: " ++ (show rn) ++
-      ", event fields: " ++ (show $ getEventFields e env) ++
+      -- ", event fields: " ++ (show $ getEventFields e env) ++
       ", envs: " ++ (show env) ++
       ", status: " ++ (show s)

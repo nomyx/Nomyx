@@ -55,7 +55,7 @@ data Exp :: Eff -> * -> *   where
    WriteVar       :: (Typeable a, Show a) => V a -> a -> Nomex Bool
    DelVar         :: (V a) -> Nomex Bool
    --Events management
-   OnEvent        :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
+   OnEvent        :: (Typeable e, Show e) => NomexNE (Event e) -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
    DelEvent       :: EventNumber -> Nomex Bool
    GetEvents      :: NomexNE [EventInfo]
    SendMessage    :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
@@ -194,7 +194,7 @@ instance Alternative Event where
 data EventInfo = forall e. (Typeable e, Show e) =>
    EventInfo {_eventNumber :: EventNumber,
               _ruleNumber  :: RuleNumber,
-              event        :: (Event e),
+              event        :: NomexNE (Event e),
               handler      :: EventHandler e,
               _evStatus    :: Status,
               _env         :: [FieldResult]}
@@ -236,11 +236,11 @@ data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the r
                            _rAssessedBy  :: Maybe RuleNumber} -- which rule accepted or rejected this rule
                            deriving (Typeable, Show)
 
-instance Eq RuleInfo where
-    (RuleInfo {_rNumber=r1}) == (RuleInfo {_rNumber=r2}) = r1 == r2
+instance Eq  where
+    ( {_rNumber=r1}) == ( {_rNumber=r2}) = r1 == r2
 
-instance Ord RuleInfo where
-     (RuleInfo {_rNumber=r1}) <= (RuleInfo {_rNumber=r2}) = r1 <= r2
+instance Ord  where
+     ( {_rNumber=r1}) <= ( {_rNumber=r2}) = r1 <= r2
 
 -- | the status of a rule.
 data RuleStatus = Active      -- Active rules forms the current Constitution
@@ -275,5 +275,5 @@ partial s nm = do
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
 
-$( makeLenses [''RuleInfo, ''PlayerInfo, ''EventInfo, ''FieldResult] )
+$( makeLenses ['', ''PlayerInfo, ''EventInfo, ''FieldResult] )
 

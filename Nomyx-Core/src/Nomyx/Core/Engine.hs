@@ -44,6 +44,7 @@ module Nomyx.Core.Engine(
 
    -- * Time
    getTimes,
+   getGameTimes,
    currentTime,
 
    -- * Misc

@@ -22,6 +22,7 @@ import Data.Typeable
 import Data.Function hiding ((.))
 import Data.Maybe
 import Control.Applicative
+import Control.Category hiding ((.))
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
 date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
@@ -48,22 +49,22 @@ testRule = RuleInfo  { _rNumber       = 0,
                       _rAssessedBy   = Nothing}
 
 execRuleEvent :: (Show e, Typeable e) => Nomex a -> Field e -> e -> Game
-execRuleEvent r f d = execState (runEvalError Nothing $ evalNomex r 0 >> triggerEvent f d) testGame
+execRuleEvent r f d = execState (runSystemEval' $ evalNomex r >> triggerEvent f d) testGame
 
 execRuleEvents :: (Show e, Typeable e) => Nomex a -> [(Field e, e)] -> Game
-execRuleEvents f eds = execState (runEvalError Nothing $ evalNomex f 0 >> mapM (\(a,b) -> triggerEvent a b) eds) testGame
+execRuleEvents f eds = execState (runSystemEval' $ evalNomex f >> mapM (\(a,b) -> triggerEvent a b) eds) testGame
 
 execRuleInput :: Nomex a -> EventNumber -> FieldAddress -> InputData -> Game
-execRuleInput r en fa d = execState (runEvalError Nothing $ evalNomex r 0 >> triggerInput en fa d) testGame
+execRuleInput r en fa d = execState (runSystemEval' $ evalNomex r >> triggerInput en fa d) testGame
 
 execRuleInputs :: Nomex a -> EventNumber -> [(FieldAddress, InputData)] -> Game
-execRuleInputs r en fads = execState (runEvalError Nothing $ evalNomex r 0 >> mapM (\(fa, d) -> triggerInput en fa d) fads) testGame
+execRuleInputs r en fads = execState (runSystemEval' $ evalNomex r >> mapM (\(fa, d) -> triggerInput en fa d) fads) testGame
 
 execRuleGame :: Nomex a -> Game -> Game
-execRuleGame r g = execState (runEvalError Nothing $ void $ evalNomex r 0) g
+execRuleGame r g = execState (runSystemEval' $ void $ evalNomex r) g
 
 execRuleEventGame :: (Show e, Typeable e) => Nomex a -> Field e -> e -> Game -> Game
-execRuleEventGame r f d g = execState (runEvalError Nothing $ evalNomex r 0 >> (triggerEvent f d)) g
+execRuleEventGame r f d g = execState (runSystemEval' $ evalNomex r >> (triggerEvent f d)) g
 
 execRule :: Nomex a -> Game
 execRule r = execRuleGame r testGame
@@ -72,7 +73,7 @@ addActivateRule :: Rule -> RuleNumber -> Evaluate ()
 addActivateRule rf rn = do
    let rule = testRule {_rName = "testRule", _rRule = rf, _rNumber = rn, _rStatus = Pending}
    evAddRule rule
-   evActivateRule (_rNumber rule) 0
+   evActivateRule (_rNumber rule)
    return ()
 
 tests = [("test var 1", testVarEx1),
@@ -195,7 +196,7 @@ testInputStringEx = isOutput "You entered: 1" g where
 testSendMessage :: Rule
 testSendMessage = do
     let msg = Msg "msg" :: Msg String
-    onEvent_ (messageEvent msg) f
+    onEvent_ (return $ messageEvent msg) f
     sendMessage msg "toto" where
         f (a :: String) = void $ newOutput (Just 1) (return a)
 
@@ -203,7 +204,7 @@ testSendMessageEx = isOutput "toto" (execRule testSendMessage)
 
 testSendMessage2 :: Rule
 testSendMessage2 = do
-    onEvent_ (messageEvent (Msg "msg" :: Msg ())) $ const $ void $ newOutput (Just 1) (return "Received")
+    onEvent_ (return $ messageEvent (Msg "msg" :: Msg ())) $ const $ void $ newOutput (Just 1) (return "Received")
     sendMessage_ "msg"
 
 
@@ -215,8 +216,8 @@ data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 testUserInputWrite :: Rule
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
-    onEvent_ (messageEvent (Msg "voted" :: Msg ())) h2
-    void $ onEvent_ (BaseEvent $ Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
+    onEvent_ (return $ messageEvent (Msg "voted" :: Msg ())) h2
+    void $ onEvent_ (return $ BaseEvent $ Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
         h1 a = do
             writeVar (V "vote") (Just a)
             SendMessage (Msg "voted") ()
@@ -244,7 +245,7 @@ testAutoActivateEx = _rStatus (head $ _rules (execRuleEventGame autoActivate (Ru
 --Time tests
 
 testTimeEvent :: Rule
-testTimeEvent = void $ onEvent_ (timeEvent date1) f where
+testTimeEvent = void $ onEvent_ (return $ timeEvent date1) f where
    f _ = outputAll_ $ show date1
 
 testTimeEventEx = isOutput (show date1) g where
@@ -254,7 +255,7 @@ testTimeEvent2 :: Nomex ()
 testTimeEvent2 = schedule' [date1, date2] (outputAll_ . show)
 
 testTimeEventEx2 = isOutput (show date1) g && isOutput (show date2) g where
-    g = execState (runEvalError Nothing $ evalNomex testTimeEvent2 0 >> void gameEvs) testGame
+    g = execState (runSystemEval' $ evalNomex testTimeEvent2 >> void gameEvs) testGame
     gameEvs = do
         evTriggerTime date1
         evTriggerTime date2
@@ -267,7 +268,7 @@ testDeleteRule = do
     void $ newOutput (Just 1) (return "toto")
 
 testDeleteGame :: Game
-testDeleteGame = flip execState testGame {_players = []} $ runEvalError Nothing $ do
+testDeleteGame = flip execState testGame {_players = []} $ runSystemEval 1 $ do
   addActivateRule testDeleteRule 1
   addActivateRule (void $ suppressRule 1) 2
 
@@ -278,7 +279,7 @@ testDeleteRuleEx1 = (_rStatus $ head $ drop 1 $ _rules testDeleteGame) == Reject
 
 -- Test victory
 testVictoryGame :: Game
-testVictoryGame = flip execState testGame $ runEvalError Nothing $ do
+testVictoryGame = flip execState testGame $ runSystemEval' $ do
   addActivateRule (victoryXRules 1) 1
   addActivateRule (nothing) 2
 
@@ -287,7 +288,7 @@ testVictoryEx1 = (length $ getVictorious testVictoryGame) == 1
 -- Test votes
 
 voteGameActions :: Int -> Int -> Int  -> Bool -> Evaluate () -> Game
-voteGameActions positives negatives total timeEvent actions = flip execState testGame {_players = []} $ runEvalError Nothing $ do
+voteGameActions positives negatives total timeEvent actions = flip execState testGame {_players = []} $ runSystemEval' $ do
     mapM_ (\x -> addPlayer (PlayerInfo x ("coco " ++ show x) Nothing)) [1..total]
     actions
     evProposeRule testRule
@@ -328,7 +329,7 @@ testVoteRule s g = (_rStatus $ head $ _rules g) == s
 -- Event composition
 
 testSumCompose :: Rule
-testSumCompose = void $ onEvent_ (True <$ inputButton 1 "click here:" <|> False <$ inputButton 2 "") f where
+testSumCompose = void $ onEvent_ (return $ True <$ inputButton 1 "click here:" <|> False <$ inputButton 2 "") f where
    f a = outputAll_ $ show a
 
 testSumComposeEx = isOutput "True" g where
@@ -336,7 +337,7 @@ testSumComposeEx = isOutput "True" g where
 
 
 testProdCompose :: Rule
-testProdCompose = void $ onEvent_ ((,) <$> inputText 1 "" <*> inputText 1 "") f where
+testProdCompose = void $ onEvent_ (return $ (,) <$> inputText 1 "" <*> inputText 1 "") f where
    f a = outputAll_ $ show a
 
 testProdComposeEx1 = null $ allOutputs g where
@@ -347,8 +348,8 @@ testProdComposeEx2 = isOutput "(\"toto\",\"tata\")" g where
 
 testTwoEvents :: Rule
 testTwoEvents = do
-   void $ onEvent_ (inputText 1 "") f
-   void $ onEvent_ (inputText 1 "") f where
+   void $ onEvent_ (return $ inputText 1 "") f
+   void $ onEvent_ (return $ inputText 1 "") f where
    f a = outputAll_ $ show a
 
 testTwoEventsEx = (length $ allOutputs g) == 1 where
@@ -356,13 +357,14 @@ testTwoEventsEx = (length $ allOutputs g) == 1 where
 
 
 --Get all event numbers of type choice (radio button)
-getChoiceEvents :: State Game [(EventNumber, FieldAddress)]
+getChoiceEvents :: State EvalEnv [(EventNumber, FieldAddress)]
 getChoiceEvents = do
-   evs <- access events
-   return $ [(_eventNumber ev, inum) | ev <- evs, inum <- getInputChoices ev ]
+   evs <- access (eGame >>> events)
+   g <- access eGame
+   return $ [(_eventNumber ev, inum) | ev <- evs, inum <- getInputChoices ev g]
 
-getInputChoices :: EventInfo -> [FieldAddress]
-getInputChoices (EventInfo _ _ ev _ _ env) = mapMaybe isInput (getEventFields ev env) where
+getInputChoices :: EventInfo -> Game -> [FieldAddress]
+getInputChoices ei g = mapMaybe isInput (getEventFields ei g) where
    isInput (fa, (SomeField (Input _ _ (Radio _)))) = Just fa
    isInput _ = Nothing
 
@@ -370,19 +372,20 @@ getInputChoices (EventInfo _ _ ev _ _ env) = mapMaybe isInput (getEventFields ev
 getTextEvents :: State Game [(EventNumber, FieldAddress)]
 getTextEvents = do
    evs <- access events
-   return $ [(_eventNumber ev, fa) | ev <- evs, fa <- getInputTexts ev ]
+   g <- get
+   return $ [(_eventNumber ev, fa) | ev <- evs, fa <- getInputTexts ev g]
 
-getInputTexts :: EventInfo -> [FieldAddress]
-getInputTexts (EventInfo _ _ ev _ _ env) = mapMaybe isInput (getEventFields ev env) where
+getInputTexts :: EventInfo -> Game -> [FieldAddress]
+getInputTexts ei g = mapMaybe isInput (getEventFields ei g) where
    isInput (fa, (SomeField (Input _ _ Text))) = Just fa
    isInput _ = Nothing
 
 addPlayer :: PlayerInfo -> Evaluate Bool
 addPlayer pi = do
-   pls <- access players
+   pls <- access (eGame >>> players)
    let exists = any (((==) `on` _playerNumber) pi) pls
    unless exists $ do
-       players %= (pi:)
+       (eGame >>> players) %= (pi:)
        triggerEvent (Player Arrive) pi
    return $ not exists
 

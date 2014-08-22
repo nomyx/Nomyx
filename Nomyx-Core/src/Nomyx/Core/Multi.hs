@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | This module manages multi-player games.
 module Nomyx.Core.Multi where
@@ -37,9 +38,9 @@ trig t g = do
 -- | get all events that has not been triggered yet
 getTimeEvents :: UTCTime -> Multi -> IO [UTCTime]
 getTimeEvents now m = do
-    let eventInfos = concatMap (getL $ loggedGame >>> game >>> events) $ _gameInfos  m
-    let times = concatMap getTimes eventInfos
-    return $ filter (\t -> t <= now && t > (-2) `addUTCTime` now) times
+   let games = map (_game . _loggedGame) (_gameInfos m)
+   let times = concatMap getGameTimes games
+   return $ filter (\t -> t <= now && t > (-2) `addUTCTime` now) times
 
 -- | the initial rule set for a game.
 rVoteUnanimity = SubmitRule "Unanimity Vote"

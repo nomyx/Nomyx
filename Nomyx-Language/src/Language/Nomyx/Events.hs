@@ -30,16 +30,16 @@ import Safe
 -- * Events
 
 -- | register a callback on an event
-onEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
+onEvent :: (Typeable e, Show e) => NomexNE (Event e) -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
 onEvent = OnEvent
 
 -- | register a callback on an event, disregard the event number
-onEvent_ :: (Typeable e, Show e) => Event e -> (e -> Nomex ()) -> Nomex EventNumber
+onEvent_ :: (Typeable e, Show e) => NomexNE (Event e) -> (e -> Nomex ()) -> Nomex EventNumber
 onEvent_ e h = onEvent e (\(_, d) -> h d)
 
 
 -- | set an handler for an event that will be triggered only once
-onEventOnce :: (Typeable e, Show e) => Event e -> (e -> Nomex ()) -> Nomex EventNumber
+onEventOnce :: (Typeable e, Show e) => NomexNE (Event e) -> (e -> Nomex ()) -> Nomex EventNumber
 onEventOnce e h = do
     let handler (en, ed) = delEvent en >> h ed
     OnEvent e handler
@@ -73,10 +73,10 @@ sendMessage_ m = SendMessage (Msg m) ()
 
 -- | subscribe on a message 
 onMessage :: (Typeable m, Show m) => Msg m -> (m -> Nomex ()) -> Nomex EventNumber
-onMessage name = onEvent_ (messageEvent name)
+onMessage name = onEvent_ (return $ messageEvent name)
 
 onMessageOnce :: (Typeable m, Show m) => Msg m -> (m -> Nomex ()) -> Nomex EventNumber
-onMessageOnce name = onEventOnce (messageEvent name)
+onMessageOnce name = onEventOnce (return $ messageEvent name)
 
 -- | on the provided schedule, the supplied function will be called
 schedule :: Schedule Freq -> (UTCTime -> Nomex ()) -> Nomex ()
@@ -84,13 +84,13 @@ schedule sched f = do
     now <- liftEffect getCurrentTime
     let next = head $ starting now sched
     if next == now then executeAndScheduleNext f sched now
-                   else void $ onEventOnce (timeEvent next) $ executeAndScheduleNext f sched
+                   else void $ onEventOnce (return $ timeEvent next) $ executeAndScheduleNext f sched
 
 executeAndScheduleNext :: (UTCTime -> Nomex ()) -> Schedule Freq -> UTCTime -> Nomex ()
 executeAndScheduleNext f sched now = do
    f now
    let rest = drop 1 $ starting now sched
-   when (rest /= []) $ void $ onEventOnce (timeEvent $ head rest) $ executeAndScheduleNext f sched
+   when (rest /= []) $ void $ onEventOnce (return $ timeEvent $ head rest) $ executeAndScheduleNext f sched
 
 schedule_ :: Schedule Freq -> Nomex () -> Nomex ()
 schedule_ ts f = schedule ts (const f)
@@ -103,7 +103,7 @@ schedule' sched f = do
     let nextMay = headMay $ filter (>=now) sched'
     case nextMay of
         Just next -> if next == now then executeAndScheduleNext' f sched' now
-                                    else void $ onEventOnce (timeEvent next) $ executeAndScheduleNext' f sched'
+                                    else void $ onEventOnce (return $ timeEvent next) $ executeAndScheduleNext' f sched'
         Nothing -> return ()
 
 
@@ -111,7 +111,7 @@ executeAndScheduleNext' :: (UTCTime -> Nomex ()) -> [UTCTime] -> UTCTime -> Nome
 executeAndScheduleNext' f sched now = do
    f now
    let rest = drop 1 sched
-   when (rest /= []) $ void $ onEventOnce (timeEvent $ head rest) $ executeAndScheduleNext' f sched
+   when (rest /= []) $ void $ onEventOnce (return $ timeEvent $ head rest) $ executeAndScheduleNext' f sched
    
 
 schedule'_ :: [UTCTime] -> Nomex () -> Nomex ()

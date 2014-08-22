@@ -337,13 +337,6 @@ updateEventInfo (FieldResult field dat addr) ei@(EventInfo _ rn ev _ _ envi) = d
       else         return (ei,                             Nothing)           -- field not found: do nothing
    where eventRes = FieldResult field dat addr
 
-withRN :: RuleNumber -> Evaluate a -> Evaluate a
-withRN rn eval = do
-   oldRn <- gets _eRuleNumber
-   eRuleNumber ~= rn
-   a <- eval
-   eRuleNumber ~= oldRn
-   return a
 
 -- * input triggers
 
