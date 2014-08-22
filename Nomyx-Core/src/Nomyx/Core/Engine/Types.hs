@@ -16,6 +16,17 @@ import Data.Typeable
 import Data.Data
 import Control.Monad.Error (ErrorT(..))
 import Control.Monad.State
+import Control.Monad.Reader
+
+-- * Evaluation
+
+--TODO: should the first field be a "Maybe RuleNumber"?
+--Indeed an evaluation is not always performed by a rule but also by the system (in which case we currently use rule number 0)
+data EvalEnv = EvalEnv { _eRuleNumber :: RuleNumber,  -- number of the rule requesting the evaluation
+                         _eGame :: Game}              -- game to be read/modified
+
+type Evaluate   a = ErrorT String (State EvalEnv) a
+type EvaluateNE a = Reader EvalEnv a
 
 -- * Game
 
@@ -68,8 +79,6 @@ instance Show Var where
 
 -- * Events
 
-type Evaluate a = ErrorT String (State Game) a
-
 -- data sent back by the forms
 data InputData = RadioData Int
                | CheckboxData [Int]
@@ -100,7 +109,7 @@ data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
 data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
 
 
-$( makeLenses [''Game, ''GameDesc, ''Var, ''Output] )
+$( makeLenses [''Game, ''GameDesc, ''Var, ''Output, ''EvalEnv] )
 
 
 

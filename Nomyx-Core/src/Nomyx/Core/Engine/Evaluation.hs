@@ -17,6 +17,7 @@ import Data.Typeable
 import Data.Time
 import Data.Lens
 import Data.Maybe
+import Data.Todo
 import Control.Category hiding (id)
 import Control.Applicative
 import Control.Monad.Error.Class (MonadError(..))
@@ -29,82 +30,86 @@ import Nomyx.Core.Engine.Utils
 
 -- | evaluate an effecful expression.
 -- The rule number passed is the number of the rule containing the expression.
-evalNomex :: Nomex a -> RuleNumber -> Evaluate a
-evalNomex (NewVar v a)            rn = evNewVar v a rn
-evalNomex (DelVar v)              _  = evDelVar v
-evalNomex (WriteVar v val)        _  = evWriteVar v val
-evalNomex (OnEvent ev h)          rn = evOnEvent ev h rn
-evalNomex (DelEvent en)           _  = evDelEvent en
-evalNomex (SendMessage m d)       _  = evSendMessage m d
-evalNomex (NewOutput pn s)        rn = evNewOutput pn rn s
-evalNomex (UpdateOutput on s)     _  = evUpdateOutput on s
-evalNomex (DelOutput on)          _  = evDelOutput on
-evalNomex (ProposeRule rule)      _  = evProposeRule rule
-evalNomex (ActivateRule rule)     rn = evActivateRule rule rn
-evalNomex (RejectRule rule)       rn = evRejectRule rule rn
-evalNomex (AddRule rule)          _  = evAddRule rule
-evalNomex (ModifyRule mod rule)   _  = evModifyRule mod rule
-evalNomex (SetPlayerName pn n)    _  = evChangeName pn n
-evalNomex (DelPlayer pn)          _  = evDelPlayer pn
-evalNomex (SetVictory ps)         rn = evSetVictory ps rn
-evalNomex (LiftEffect e)          pn = liftEval $ evalNomexNE e pn
-evalNomex (ThrowError s)          _  = throwError s
-evalNomex (CatchError n h)        rn = catchError (evalNomex n rn) (\a -> evalNomex (h a) rn)
-evalNomex (Return a)              _  = return a
-evalNomex (Bind exp f)            rn = evalNomex exp rn >>= \e -> evalNomex (f e) rn
+evalNomex :: Nomex a -> Evaluate a
+evalNomex (NewVar v a)            = evNewVar v a
+evalNomex (DelVar v)              = evDelVar v
+evalNomex (WriteVar v val)        = evWriteVar v val
+evalNomex (OnEvent ev h)          = evOnEvent ev h
+evalNomex (DelEvent en)           = evDelEvent en
+evalNomex (SendMessage m d)       = evSendMessage m d
+evalNomex (NewOutput pn s)        = evNewOutput pn s
+evalNomex (UpdateOutput on s)     = evUpdateOutput on s
+evalNomex (DelOutput on)          = evDelOutput on
+evalNomex (ProposeRule rule)      = evProposeRule rule
+evalNomex (ActivateRule rule)     = evActivateRule rule
+evalNomex (RejectRule rule)       = evRejectRule rule
+evalNomex (AddRule rule)          = evAddRule rule
+evalNomex (ModifyRule mod rule)   = evModifyRule mod rule
+evalNomex (SetPlayerName pn n)    = evChangeName pn n
+evalNomex (DelPlayer pn)          = evDelPlayer pn
+evalNomex (SetVictory ps)         = evSetVictory ps
+evalNomex (LiftEffect e)          = liftEval $ evalNomexNE e
+evalNomex (ThrowError s)          = throwError s
+evalNomex (CatchError n h)        = catchError (evalNomex n) (\a -> evalNomex (h a))
+evalNomex (Return a)              = return a
+evalNomex (Bind exp f)            = evalNomex exp >>= \e -> evalNomex (f e)
 
 -- | evaluate an effectless expression.
-evalNomexNE :: NomexNE a -> RuleNumber -> Reader Game a
-evalNomexNE (ReadVar v)     _  = evReadVar v
-evalNomexNE (GetOutput on)  _  = evGetOutput on
-evalNomexNE  GetRules       _  = asks _rules
-evalNomexNE  GetPlayers     _  = asks _players
-evalNomexNE  GetEvents      _  = asks _events
-evalNomexNE  SelfRuleNumber rn = return rn
-evalNomexNE (CurrentTime)   _  = asks _currentTime
-evalNomexNE (Return a)      _  = return a
-evalNomexNE (Bind exp f)    rn = evalNomexNE exp rn >>= \e -> evalNomexNE (f e) rn
-evalNomexNE (Simu sim ev)   rn = evSimu sim ev rn
+evalNomexNE :: NomexNE a -> EvaluateNE a
+evalNomexNE (ReadVar v)     = evReadVar v
+evalNomexNE (GetOutput on)  = evGetOutput on
+evalNomexNE  GetRules       = _rules <$> asks _eGame
+evalNomexNE  GetPlayers     = _players <$> asks _eGame
+evalNomexNE  GetEvents      = _events <$> asks _eGame
+evalNomexNE  SelfRuleNumber = asks _eRuleNumber
+evalNomexNE (CurrentTime)   = _currentTime <$> asks _eGame
+evalNomexNE (Return a)      = return a
+evalNomexNE (Bind exp f)    = evalNomexNE exp >>= \e -> evalNomexNE (f e)
+evalNomexNE (Simu sim ev)   = evSimu sim ev
 
-evSimu :: Nomex a -> NomexNE Bool -> RuleNumber -> Reader Game Bool
-evSimu sim ev rn = do
-   let s = runEvalError Nothing (evalNomex sim rn)
-   g <- ask
+--TODO should we also give a rule number to simulate the Nomex with?
+-- currently we use the simulating rule number
+evSimu :: Nomex a -> NomexNE Bool -> EvaluateNE Bool
+evSimu sim ev = do
+   rn <- asks _eRuleNumber
+   let s = runEvalError rn Nothing (evalNomex sim)
+   g <- asks _eGame
    let g' = execState s g
-   return $ runReader (evalNomexNE ev rn) g'
+   return $ runReader (evalNomexNE ev) (EvalEnv rn g')
 
-evNewVar :: (Typeable a, Show a) => VarName -> a -> RuleNumber -> Evaluate (Maybe (V a))
-evNewVar name def rn = do
-   vars <- access variables
+evNewVar :: (Typeable a, Show a) => VarName -> a -> Evaluate (Maybe (V a))
+evNewVar name def = do
+   (vars, rn) <- accessGame variables
    case find ((== name) . getL vName) vars of
       Nothing -> do
-         variables %= (Var rn name def : )
+         (eGame >>> variables) %= (Var rn name def : )
          return $ Just (V name)
       Just _ -> return Nothing
 
 evDelVar :: (V a) -> Evaluate Bool
 evDelVar (V name) = do
-   vars <- access variables
+   (vars, _) <- accessGame variables
    case find ((== name) . getL vName) vars of
       Nothing -> return False
       Just _ -> do
-         variables %= filter ((/= name) . getL vName)
+         (eGame >>> variables) %= filter ((/= name) . getL vName)
          return True
 
 evWriteVar :: (Typeable a, Show a) => V a -> a -> Evaluate Bool
-evWriteVar (V name) val  = do
-   vars <- access variables
+evWriteVar (V name) val = do
+   (vars, _) <- accessGame variables
    case find (\(Var _ myName _) -> myName == name) vars of
       Nothing -> return False
       Just (Var rn myName _) -> do
-         variables %= replaceWith ((== name) . getL vName) (Var rn myName val)
+         (eGame >>> variables) %= replaceWith ((== name) . getL vName) (Var rn myName val)
          return True
 
-evOnEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> RuleNumber -> Evaluate EventNumber
-evOnEvent event handler rn = do
-   evs <- access events
+evOnEvent :: (Typeable e, Show e) => NomexNE (Event e) -> ((EventNumber, e) -> Nomex ()) -> Evaluate EventNumber
+evOnEvent event handler = do
+   (evs, rn) <- accessGame events
+   tracePN 0 (show rn)
    let en = getFreeNumber (map _eventNumber evs)
-   events %= (EventInfo en rn event handler SActive [] : )
+   (eGame >>> events) %= (EventInfo en rn event handler SActive [] : )
    return en
 
 evSendMessage :: (Typeable a, Show a) => Msg a -> a -> Evaluate ()
@@ -112,36 +117,36 @@ evSendMessage (Msg id) d = triggerEvent (Message (Msg id)) d
 
 evProposeRule :: RuleInfo -> Evaluate Bool
 evProposeRule rule = do
-   rs <- access rules
+   (rs, _) <- accessGame rules
    case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
       Nothing -> do
-         rules %= (rule:)
+         (eGame >>> rules) %= (rule:)
          triggerEvent (RuleEv Proposed) rule
          return True
       Just _ -> return False
 
 --Sets the rule status to Active and execute it if possible
-evActivateRule :: RuleNumber -> RuleNumber -> Evaluate Bool
-evActivateRule rn by = do
-   rs <- access rules
+evActivateRule :: RuleNumber -> Evaluate Bool
+evActivateRule rn = do
+   (rs, by) <- accessGame rules
    case find (\r -> _rNumber r == rn && _rStatus r /= Active) rs of
       Nothing -> return False
       Just r -> do
          let newrules = replaceWith ((== rn) . getL rNumber) r{_rStatus = Active, _rAssessedBy = Just by} rs
-         rules ~= newrules
+         (eGame >>> rules) ~= newrules
          --execute the rule
-         evalNomex (_rRule r) rn
+         withRN (_rNumber r) $ evalNomex (_rRule r)
          triggerEvent (RuleEv Activated) r
          return True
 
-evRejectRule :: RuleNumber -> RuleNumber -> Evaluate Bool
-evRejectRule rn by = do
-   rs <- access rules
+evRejectRule :: RuleNumber -> Evaluate Bool
+evRejectRule rn = do
+   (rs, by) <- accessGame rules
    case find (\r -> _rNumber r == rn && _rStatus r /= Reject) rs of
       Nothing -> return False
       Just r -> do
          let newrules = replaceWith ((== rn) . getL rNumber) r{_rStatus = Reject, _rAssessedBy = Just by} rs
-         rules ~= newrules
+         (eGame >>> rules) ~= newrules
          triggerEvent (RuleEv Rejected) r
          delVarsRule rn
          delEventsRule rn
@@ -150,10 +155,10 @@ evRejectRule rn by = do
 
 evAddRule :: RuleInfo -> Evaluate Bool
 evAddRule rule = do
-   rs <- access rules
+   (rs, _) <- accessGame rules
    case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
       Nothing -> do
-         rules %= (rule:)
+         (eGame >>> rules) %= (rule:)
          triggerEvent (RuleEv Added) rule
          return True
       Just _ -> return False
@@ -162,97 +167,98 @@ evAddRule rule = do
 --TODO: clean and execute new rule
 evModifyRule :: RuleNumber -> RuleInfo -> Evaluate Bool
 evModifyRule mod rule = do
-   rs <- access rules
-   let newRules = replaceWith ((== mod) . getL rNumber) rule rs
-   case find ((== mod) . getL rNumber) rs of
+   (rs, rn) <- accessGame rules
+   let newRules = replaceWith ((== rn) . getL rNumber) rule rs
+   case find ((== rn) . getL rNumber) rs of
       Nothing -> return False
       Just r ->  do
-         rules ~= newRules
+         (eGame >>> rules) ~= newRules
          triggerEvent (RuleEv Modified) r
          return True
 
 evDelPlayer :: PlayerNumber -> Evaluate Bool
 evDelPlayer pn = do
-   g <- get
+   g <- access eGame
    case find ((== pn) . getL playerNumber) (_players g) of
       Nothing -> do
          tracePN pn "not in game!"
          return False
       Just pi -> do
-         players %= filter ((/= pn) . getL playerNumber)
+         (eGame >>> players) %= filter ((/= pn) . getL playerNumber)
          triggerEvent (Player Leave) pi
          tracePN pn $ "leaving the game: " ++ _gameName g
          return True
 
 evChangeName :: PlayerNumber -> PlayerName -> Evaluate Bool
 evChangeName pn name = do
-   pls <- access players
+   pls <- access (eGame >>> players)
    case find ((== pn) . getL playerNumber) pls of
       Nothing -> return False
       Just pi -> do
-         players ~= replaceWith ((== pn) . getL playerNumber) (pi {_playerName = name}) pls
+         (eGame >>> players) ~= replaceWith ((== pn) . getL playerNumber) (pi {_playerName = name}) pls
          return True
 
 evDelEvent :: EventNumber -> Evaluate Bool
 evDelEvent en = do
-   evs <- access events
+   evs <- access (eGame >>> events)
    case find ((== en) . getL eventNumber) evs of
       Nothing -> return False
       Just eh -> case _evStatus eh of
          SActive -> do
             let newEvents = replaceWith ((== en) . getL eventNumber) eh{_evStatus = SDeleted} evs
-            events ~= newEvents
+            (eGame >>> events) ~= newEvents
             return True
          SDeleted -> return False
 
 evTriggerTime :: UTCTime -> Evaluate ()
 evTriggerTime t = triggerEvent (Time t) t
 
-evNewOutput :: Maybe PlayerNumber -> RuleNumber -> NomexNE String -> Evaluate OutputNumber
-evNewOutput pn rn s = do
-   ops <- access outputs
+evNewOutput :: Maybe PlayerNumber -> NomexNE String -> Evaluate OutputNumber
+evNewOutput pn s = do
+   (ops, rn) <- accessGame outputs
    let on = getFreeNumber (map _outputNumber ops)
-   outputs %= (Output on rn pn s SActive : )
+   (eGame >>> outputs) %= (Output on rn pn s SActive : )
    return on
 
-evGetOutput :: OutputNumber -> Reader Game (Maybe String)
+evGetOutput :: OutputNumber -> EvaluateNE (Maybe String)
 evGetOutput on = do
-   ops <- asks _outputs
+   ops <- _outputs <$> asks _eGame
    case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of
       Nothing -> return Nothing
       Just (Output _ rn _ o _) -> do
-         out <- evalNomexNE o rn
+         out <- evalNomexNE o
          return $ Just out
 
 evUpdateOutput :: OutputNumber -> NomexNE String -> Evaluate Bool
 evUpdateOutput on s = do
-   ops <- access outputs
+   (ops, rn) <- accessGame outputs
    case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of
       Nothing -> return False
       Just (Output _ rn pn _ _) -> do
-         outputs %= replaceWith ((== on) . getL outputNumber) (Output on rn pn s SActive)
+         (eGame >>> outputs) %= replaceWith ((== on) . getL outputNumber) (Output on rn pn s SActive)
          return True
 
 evDelOutput :: OutputNumber -> Evaluate Bool
 evDelOutput on = do
-   ops <- access outputs
+   ops <- access (eGame >>> outputs)
    case find ((== on) . getL outputNumber) ops of
       Nothing -> return False
       Just o -> case _oStatus o of
          SActive -> do
             let newOutputs = replaceWith ((== on) . getL outputNumber) o{_oStatus = SDeleted} ops
-            outputs ~= newOutputs
+            (eGame >>> outputs) ~= newOutputs
             return True
          SDeleted -> return False
 
-evSetVictory :: NomexNE [PlayerNumber] -> RuleNumber -> Evaluate ()
-evSetVictory ps rn = do
-   void $ victory ~= (Just $ VictoryInfo rn ps)
+evSetVictory :: NomexNE [PlayerNumber] -> Evaluate ()
+evSetVictory ps = do
+   rn <- access eRuleNumber
+   void $ (eGame >>> victory) ~= (Just $ VictoryInfo rn ps)
    triggerEvent Victory (VictoryInfo rn ps)
 
-evReadVar :: (Typeable a, Show a) => V a -> Reader Game (Maybe a)
+evReadVar :: (Typeable a, Show a) => V a -> EvaluateNE (Maybe a)
 evReadVar (V name) = do
-   vars <- asks _variables
+   vars <- _variables <$> asks _eGame
    let var = find ((== name) . getL vName) vars
    case var of
       Nothing -> return Nothing
@@ -260,19 +266,50 @@ evReadVar (V name) = do
           Just v -> return $ Just v
           Nothing -> return Nothing
 
--- * Event triggers
+-- * Events
+-- | Type agnostic result data
+data SomeEvent = forall e. SomeEvent (Event e)
+deriving instance Typeable SomeEvent
+
+
+getSomeEvent :: EventInfo -> Game -> SomeEvent
+getSomeEvent (EventInfo _ rn es _ _ _) g = SomeEvent $ runReader (evalNomexNE es) (EvalEnv rn g)
+
+--get the fields left to be completed in an event
+getEventFields :: EventInfo -> Game -> [(FieldAddress, SomeField)]
+getEventFields ei@(EventInfo _ _ _ _ _ er) g = case (cast (getSomeEvent ei g)) of
+   Just (SomeEvent e) -> getEventFields' e er
+   Nothing            -> error "getEventFields: bad event type"
+
+getEventFields' :: Event a -> [FieldResult] -> [(FieldAddress, SomeField)]
+getEventFields' e er = case (getEventResult e er) of
+   Done _ -> []
+   Todo a -> a
+
+--TODO: should we check that the field is not already completed?
+getInput :: EventInfo -> FieldAddress -> Game -> Maybe SomeField
+getInput ei addr g = findField addr (getSomeEvent ei g)
+
+findField :: FieldAddress -> SomeEvent -> Maybe SomeField
+findField []             (SomeEvent (BaseEvent f))         = Just $ SomeField f
+findField (SumL:as)      (SomeEvent (SumEvent e1 _))       = findField as (SomeEvent e1)
+findField (SumR:as)      (SomeEvent (SumEvent _ e2))       = findField as (SomeEvent e2)
+findField (AppL:as)      (SomeEvent ( AppEvent e1 _))      = findField as (SomeEvent e1)
+findField (AppR:as)      (SomeEvent (AppEvent _ e2))       = findField as (SomeEvent e2)
+findField ((Index i):as) (SomeEvent (ShortcutEvents es _)) = findField as (SomeEvent (es!!i))
+findField _ _ = error "findField: wrong field address"
 
 -- trigger an event
 triggerEvent :: (Typeable e, Show e) => Field e -> e -> Evaluate ()
 triggerEvent e dat = do
-   evs <- access events
+   evs <- access (eGame >>> events)
    triggerEvent' (FieldResult e dat Nothing) evs
 
 -- trigger some specific events
 triggerEvent' :: FieldResult -> [EventInfo] -> Evaluate ()
 triggerEvent' res evs = do
-   let evs' = map (updateEventInfo res) evs
-   events %= union (map fst evs')
+   evs' <- mapM (updateEventInfo res) evs
+   (eGame >>> events) %= union (map fst evs')
    mapM triggerIfComplete evs'
    return ()
 
@@ -282,27 +319,49 @@ triggerIfComplete (EventInfo en rn _ h SActive _, Just (SomeData val)) = do
    case (cast val) of
       Just a -> do
          let exp = h (en, a)
-         (evalNomex exp rn) `catchError` (errorHandler rn en)
+         --tracePN 0 ("rn= " ++ (show rn) ++ "oldRn=" ++ (show oldRn) ++ "newRn=" ++ (show newRn))
+         withRN rn $ (evalNomex exp) `catchError` (errorHandler en)
+         return ()
       Nothing -> error "Bad trigger data type"
 triggerIfComplete _ = return ()
 
+
+-- update the EventInfo with the field result
+updateEventInfo :: FieldResult -> EventInfo -> Evaluate (EventInfo, Maybe SomeData)
+updateEventInfo (FieldResult field dat addr) ei@(EventInfo _ rn ev _ _ envi) = do
+   ev' <- withRN rn $ liftEval $ evalNomexNE ev
+   if (SomeField field) `elem` (map snd $ getEventFields' ev' envi)      -- if the field if found among the remaining fields of the event
+      then case getEventResult ev' (eventRes : envi) of                 -- then check the event with that field result included
+         Todo _ -> return (env ^=  (eventRes : envi) $ ei, Nothing)           -- some fields are left to complete: add ours in the environment
+         Done a -> return (env ^=  []                $ ei, Just $ SomeData a) -- the event is now complete: empty the environment and output the result
+      else         return (ei,                             Nothing)           -- field not found: do nothing
+   where eventRes = FieldResult field dat addr
+
+withRN :: RuleNumber -> Evaluate a -> Evaluate a
+withRN rn eval = do
+   oldRn <- gets _eRuleNumber
+   eRuleNumber ~= rn
+   a <- eval
+   eRuleNumber ~= oldRn
+   return a
 
 -- * input triggers
 
 -- trigger the input event with the input data
 triggerInput :: EventNumber -> FieldAddress -> InputData -> Evaluate ()
 triggerInput en fa ir = do
-   evs <- access events
+   evs <- access (eGame >>> events)
+   g <- access eGame
    let mei = find ((== en) . getL eventNumber) evs
-   when (isJust mei) $ execInputHandler ir fa (fromJust mei)
+   when (isJust mei) $ execInputHandler ir fa (fromJust mei) g
 
 -- execute the corresponding handler
-execInputHandler :: InputData -> FieldAddress -> EventInfo -> Evaluate ()
-execInputHandler ir fa ei@(EventInfo _ _ _ _ SActive _) = do
-   case (getInput ei fa) of
+execInputHandler :: InputData -> FieldAddress -> EventInfo -> Game -> Evaluate ()
+execInputHandler ir fa ei@(EventInfo _ _ _ _ SActive _) g = do
+   case (getInput ei fa g) of
       Just sf -> execInputHandler' ir sf fa ei
       Nothing -> logAll "Input not found"
-execInputHandler _ _ _ = return ()
+execInputHandler _ _ _ _ = return ()
 
 -- execute the event handler using the data received from user
 execInputHandler' :: InputData -> SomeField -> FieldAddress -> EventInfo -> Evaluate ()
@@ -318,29 +377,29 @@ execInputHandler' _ _ _ _ = return ()
 getVictorious :: Game -> [PlayerNumber]
 getVictorious g = case _victory g of
    Nothing -> []
-   Just (VictoryInfo rn v) -> runReader (evalNomexNE v rn) g
+   Just (VictoryInfo rn v) -> runReader (evalNomexNE v) (EvalEnv rn g)
 
 evalOutput :: Game -> Output -> String
-evalOutput g (Output _ rn _ o _) = runReader (evalNomexNE o rn) g
+evalOutput g (Output _ rn _ o _) = runReader (evalNomexNE o) (EvalEnv rn g)
 
 allOutputs :: Game -> [String]
 allOutputs g = map (evalOutput g) (_outputs g)
 
 --delete all variables of a rule
 delVarsRule :: RuleNumber -> Evaluate ()
-delVarsRule rn = void $ variables %= filter ((/= rn) . getL vRuleNumber)
+delVarsRule rn = void $ (eGame >>> variables) %= filter ((/= rn) . getL vRuleNumber)
 
 --delete all events of a rule
 delEventsRule :: RuleNumber -> Evaluate ()
 delEventsRule rn = do
-   evs <- access events
+   evs <- access (eGame >>> events)
    let toDelete = filter ((== rn) . getL ruleNumber) evs
    mapM_ (evDelEvent . _eventNumber) toDelete
 
 --delete all outputs of a rule
 delOutputsRule :: RuleNumber -> Evaluate ()
 delOutputsRule rn = do
-   os <- access outputs
+   os <- access (eGame >>> outputs)
    let toDelete = filter ((== rn) . getL oRuleNumber) os
    mapM_ (evDelOutput . _outputNumber) toDelete
 
