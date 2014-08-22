@@ -13,7 +13,8 @@ module Language.Nomyx.Events (
    oneWeek, oneDay, oneHour, oneMinute,
    timeEvent, messageEvent, victoryEvent, playerEvent, ruleEvent,
    baseEvent, baseInputEvent,
-   shortcutEvents
+   shortcutEvents,
+   eventWhen
    ) where
 
 import Language.Nomyx.Expression
@@ -151,4 +152,5 @@ baseInputEvent pn s iform = Input pn s iform
 shortcutEvents :: [Event a] -> ([a] -> Maybe b) -> Event b
 shortcutEvents = ShortcutEvents
 
-
+eventWhen :: Bool -> Event a -> Event a
+eventWhen b e = if b then e else EmptyEvent

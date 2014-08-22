@@ -201,6 +201,20 @@ gameMaster = msgVar "GameMaster"
 bravoButton :: Rule
 bravoButton = void $ onInputButton_ "Click here:" (const $ outputAll_ "Bravo!") 1
 
+-- | display a button to greet other players
+helloButton :: Rule
+helloButton =
+  do
+   --get your own player number
+   me <- getProposerNumber_
+   --create an output for me only
+   let displayMsg _ = void $ newOutput_ Nothing "Hi there!"
+   --create a button for me, which will display the output when clicked
+   let button = do
+       all <- getPlayers
+       return $ eventWhen (length all >= 2) $ inputButton me "say hello"
+   void $ onEvent_ button displayMsg
+
 enterHaiku :: Rule
 enterHaiku = void $ onInputTextarea_ "Enter a haiku:" outputAll_ 1
 

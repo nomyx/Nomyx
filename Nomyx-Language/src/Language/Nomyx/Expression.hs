@@ -236,11 +236,11 @@ data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the r
                            _rAssessedBy  :: Maybe RuleNumber} -- which rule accepted or rejected this rule
                            deriving (Typeable, Show)
 
-instance Eq  where
-    ( {_rNumber=r1}) == ( {_rNumber=r2}) = r1 == r2
+instance Eq RuleInfo where
+    (RuleInfo {_rNumber=r1}) == (RuleInfo {_rNumber=r2}) = r1 == r2
 
-instance Ord  where
-     ( {_rNumber=r1}) <= ( {_rNumber=r2}) = r1 <= r2
+instance Ord RuleInfo where
+     (RuleInfo {_rNumber=r1}) <= (RuleInfo {_rNumber=r2}) = r1 <= r2
 
 -- | the status of a rule.
 data RuleStatus = Active      -- Active rules forms the current Constitution
@@ -275,5 +275,5 @@ partial s nm = do
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
 
-$( makeLenses ['', ''PlayerInfo, ''EventInfo, ''FieldResult] )
+$( makeLenses [''RuleInfo, ''PlayerInfo, ''EventInfo, ''FieldResult] )
 
