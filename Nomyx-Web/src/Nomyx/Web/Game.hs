@@ -335,6 +335,7 @@ viewLog (Log _ t s) = tr $ do
    td $ fromString $ formatTime defaultTimeLocale "%Y/%m/%d_%H:%M" t
    td $ p $ fromString s
 
+-- | a form result has been sent
 newInput :: EventNumber -> FieldAddress -> GameName -> TVar Session -> RoutedNomyxServer Response
 newInput en fa gn ts = toResponse <$> do
     pn <- fromJust <$> getPlayerNumber ts

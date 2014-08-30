@@ -55,7 +55,6 @@ module Nomyx.Core.Engine(
    ) where
 
 import Nomyx.Core.Engine.Evaluation
-import Nomyx.Core.Engine.EvalUtils
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.GameEvents
 import Nomyx.Core.Engine.Utils
