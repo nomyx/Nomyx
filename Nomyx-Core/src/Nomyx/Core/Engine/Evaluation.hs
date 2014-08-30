@@ -298,10 +298,9 @@ findField (SumR:as)  (SomeEvent (SumEvent _ e2))  frs = findField as (SomeEvent 
 findField (AppL:as)  (SomeEvent (AppEvent e1 _))  frs = findField as (SomeEvent e1) (removePathElem AppL frs)
 findField (AppR:as)  (SomeEvent (AppEvent _ e2))  frs = findField as (SomeEvent e2) (removePathElem AppR frs)
 findField (BindL:as) (SomeEvent (BindEvent e1 _)) frs = findField as (SomeEvent e1) (removePathElem BindL frs)
-findField (BindR:as) (SomeEvent (BindEvent e1 f)) frs = let frs' = removePathElem BindR frs in --TODO check
-   case (getEventResult e1 frs') of
-      Done e2 -> findField as (SomeEvent (f e2)) frs'
-      Todo tds -> Nothing
+findField (BindR:as) (SomeEvent (BindEvent e1 f)) frs = case (getEventResult e1 (removePathElem BindL frs)) of
+   Done e2 -> findField as (SomeEvent (f e2)) (removePathElem BindR frs)
+   Todo _ -> Nothing
 
 findField ((Index i):as) (SomeEvent (ShortcutEvents es _)) frs = findField as (SomeEvent (es!!i)) frs
 findField _ _ _ = error "findField: wrong field address"
