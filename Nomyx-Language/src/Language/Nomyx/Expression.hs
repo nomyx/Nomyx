@@ -136,6 +136,7 @@ data Event a where
    AppEvent       :: Event (a -> b) -> Event a -> Event b     -- Both events should fire, and then the result is returned
    PureEvent      :: a -> Event a                             -- Create a fake event. The result is useable with no delay.
    EmptyEvent     :: Event a                                  -- An event that is never fired.
+   BindEvent      :: Event a -> (a -> Event b) -> Event b
    ShortcutEvents :: [Event a] -> ([a] -> Maybe b) -> Event b -- a result is returned as soon as it can be computed, dismissing the events that hasn't fired yet
    BaseEvent      :: (Typeable a) => Field a -> Event a       -- Embed a base event
    deriving Typeable
@@ -189,6 +190,10 @@ instance Alternative Event where
    (<|>) = SumEvent
    empty = EmptyEvent
 
+instance Monad Event where
+   (>>=) = BindEvent
+   return = PureEvent
+
 -- EventInfo
 
 data EventInfo = forall e. (Typeable e, Show e) =>
@@ -199,7 +204,7 @@ data EventInfo = forall e. (Typeable e, Show e) =>
               _evStatus    :: Status,
               _env         :: [FieldResult]}
 
-data FieldAddressElem = SumR | SumL | AppR | AppL | Index Int deriving (Show, Read, Ord, Eq, Generic)
+data FieldAddressElem = SumR | SumL | AppR | AppL | BindR | BindL | Index Int deriving (Show, Read, Ord, Eq, Generic)
 type FieldAddress = [FieldAddressElem]
 
 data FieldResult = forall e. (Typeable e, Show e) =>

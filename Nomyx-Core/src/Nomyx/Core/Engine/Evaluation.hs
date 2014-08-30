@@ -286,18 +286,33 @@ getEventFields' e er = case (getEventResult e er) of
    Done _ -> []
    Todo a -> a
 
+-- | Get the field at a certain address
 --TODO: should we check that the field is not already completed?
 getInput :: EventInfo -> FieldAddress -> Game -> Maybe SomeField
-getInput ei addr g = findField addr (getSomeEvent ei g)
+getInput ei addr g = findField addr (getSomeEvent ei g) (_env ei)
 
-findField :: FieldAddress -> SomeEvent -> Maybe SomeField
-findField []             (SomeEvent (BaseEvent f))         = Just $ SomeField f
-findField (SumL:as)      (SomeEvent (SumEvent e1 _))       = findField as (SomeEvent e1)
-findField (SumR:as)      (SomeEvent (SumEvent _ e2))       = findField as (SomeEvent e2)
-findField (AppL:as)      (SomeEvent ( AppEvent e1 _))      = findField as (SomeEvent e1)
-findField (AppR:as)      (SomeEvent (AppEvent _ e2))       = findField as (SomeEvent e2)
-findField ((Index i):as) (SomeEvent (ShortcutEvents es _)) = findField as (SomeEvent (es!!i))
-findField _ _ = error "findField: wrong field address"
+findField :: FieldAddress -> SomeEvent -> [FieldResult] -> Maybe SomeField
+findField []         (SomeEvent (BaseEvent f))    _   = Just $ SomeField f
+findField (SumL:as)  (SomeEvent (SumEvent e1 _))  frs = findField as (SomeEvent e1) (removePathElem SumL frs)
+findField (SumR:as)  (SomeEvent (SumEvent _ e2))  frs = findField as (SomeEvent e2) (removePathElem SumR frs)
+findField (AppL:as)  (SomeEvent (AppEvent e1 _))  frs = findField as (SomeEvent e1) (removePathElem AppL frs)
+findField (AppR:as)  (SomeEvent (AppEvent _ e2))  frs = findField as (SomeEvent e2) (removePathElem AppR frs)
+findField (BindL:as) (SomeEvent (BindEvent e1 _)) frs = findField as (SomeEvent e1) (removePathElem BindL frs)
+findField (BindR:as) (SomeEvent (BindEvent e1 f)) frs = let frs' = removePathElem BindR frs in --TODO check
+   case (getEventResult e1 frs') of
+      Done e2 -> findField as (SomeEvent (f e2)) frs'
+      Todo tds -> Nothing
+
+findField ((Index i):as) (SomeEvent (ShortcutEvents es _)) frs = findField as (SomeEvent (es!!i)) frs
+findField _ _ _ = error "findField: wrong field address"
+
+removePathElem :: FieldAddressElem -> [FieldResult] -> [FieldResult]
+removePathElem fa frs = map (removePathElem' fa) frs
+
+removePathElem' :: FieldAddressElem -> FieldResult -> FieldResult
+removePathElem' fa (FieldResult fe fr (Just (fa':fas))) = if (fa == fa')
+   then FieldResult fe fr (Just fas)
+   else error "removePath: wrong address"
 
 -- trigger an event
 triggerEvent :: (Typeable e, Show e) => Field e -> e -> Evaluate ()
@@ -396,18 +411,26 @@ delOutputsRule rn = do
    let toDelete = filter ((== rn) . getL oRuleNumber) os
    mapM_ (evDelOutput . _outputNumber) toDelete
 
-
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
 instance Show Game where
-   show g@(Game { _gameName, _rules, _players, _variables, _events, _victory, _currentTime}) =
-      "Game Name = "      ++ show _gameName ++
-      "\n Rules = "       ++ (intercalate "\n " $ map show _rules) ++
-      "\n Players = "     ++ show _players ++
-      "\n Variables = "   ++ show _variables ++
-      "\n Events = "      ++ (intercalate "\n " $ map show _events) ++
+   show g@(Game gn _ rs ps vs es _ v _ t) =
+      "Game Name = "      ++ show gn ++
+      "\n Rules = "       ++ (intercalate "\n " $ map show rs) ++
+      "\n Players = "     ++ show ps ++
+      "\n Variables = "   ++ show vs ++
+      "\n Events = "      ++ (intercalate "\n " $ map (displayEvent g) es) ++
       "\n Outputs = "     ++ show (allOutputs g) ++
       "\n Victory = "     ++ show (getVictorious g) ++
-      "\n currentTime = " ++ show _currentTime ++ "\n"
+      "\n currentTime = " ++ show t ++ "\n"
+
+
+displayEvent :: Game -> EventInfo -> String
+displayEvent g ei@(EventInfo en rn e _ s env) =
+   "event num: " ++ (show en) ++
+   ", rule num: " ++ (show rn) ++
+   ", event fields: " ++ (show $ getEventFields ei g) ++
+   ", envs: " ++ (show env) ++
+   ", status: " ++ (show s)
 
 

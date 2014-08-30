@@ -34,6 +34,9 @@ getEventResult' (PureEvent a)  _   _  = Done a
 getEventResult' EmptyEvent     _   _  = Todo []
 getEventResult' (SumEvent a b) ers fa = getEventResult' a ers (fa ++ [SumL]) <|> getEventResult' b ers (fa ++ [SumR])
 getEventResult' (AppEvent f b) ers fa = getEventResult' f ers (fa ++ [AppL]) <*> getEventResult' b ers (fa ++ [AppR])
+getEventResult' (BindEvent a f) ers fa = case (getEventResult' a ers (fa ++ [BindL])) of
+   Done a' -> getEventResult' (f a') ers (fa ++ [BindR])
+   Todo bs -> Todo bs
 getEventResult' (BaseEvent a)  ers fa = case lookupField a fa ers of
    Just r  -> Done r
    Nothing -> Todo [(fa, SomeField a)]
@@ -46,9 +49,11 @@ getEventResult' (ShortcutEvents es f) ers fa =
 -- find a field result in an environment
 lookupField :: Typeable a => Field a -> FieldAddress -> [FieldResult] -> Maybe a
 lookupField _ _ [] = Nothing
-lookupField be fa ((FieldResult a r fa1) : ers) = case (cast (a,r)) of
-   Just (a',r') -> if (a' == be && maybe True (== fa) fa1) then Just r' else lookupField be fa ers
-   Nothing      -> lookupField be fa ers
+lookupField fi fa ((FieldResult a r fa1) : ers) = case (cast (a,r)) of
+   Just (a',r') -> if (a' == fi && maybe True (== fa) fa1)
+                      then Just r'
+                      else lookupField fi fa ers
+   Nothing      -> lookupField fi fa ers
 
 
 errorHandler :: EventNumber -> String -> Evaluate ()
