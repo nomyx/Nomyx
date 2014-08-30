@@ -24,6 +24,11 @@ instance Functor (Todo a) where
    fmap _ (Todo x) = Todo x
    fmap f (Done y) = Done $ f y
 
+instance Monad (Todo a) where
+   return = Done
+   Todo as >>= _ = Todo as
+   Done a >>= f = f a
+
 toEither :: Todo a b -> Either [a] b
 toEither (Todo as) = Left as
 toEither (Done a)  = Right a
