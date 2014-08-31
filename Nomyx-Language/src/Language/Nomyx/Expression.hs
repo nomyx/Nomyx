@@ -55,7 +55,7 @@ data Exp :: Eff -> * -> *   where
    WriteVar       :: (Typeable a, Show a) => V a -> a -> Nomex Bool
    DelVar         :: (V a) -> Nomex Bool
    --Events management
-   OnEvent        :: (Typeable e, Show e) => NomexNE (Event e) -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
+   OnEvent        :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
    DelEvent       :: EventNumber -> Nomex Bool
    GetEvents      :: NomexNE [EventInfo]
    SendMessage    :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
@@ -200,7 +200,7 @@ instance Monad Event where
 data EventInfo = forall e. (Typeable e, Show e) =>
    EventInfo {_eventNumber :: EventNumber,
               _ruleNumber  :: RuleNumber,
-              event        :: NomexNE (Event e),
+              event        :: Event e,
               handler      :: EventHandler e,
               _evStatus    :: Status,
               _env         :: [FieldResult]}

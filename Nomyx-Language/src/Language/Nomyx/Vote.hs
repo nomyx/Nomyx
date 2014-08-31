@@ -53,7 +53,7 @@ callVoteRule' assess endTime ri = do
 callVote :: AssessFunction -> UTCTime -> String -> (Bool -> Nomex ()) -> Nomex ()
 callVote assess endTime title payload = do
    pns <- liftEffect getAllPlayerNumbers
-   en <- onEventOnce (return $ voteWith endTime pns assess title) payload
+   en <- onEventOnce (voteWith endTime pns assess title) payload
    displayVote en
 
 -- vote with a function able to assess the ongoing votes.

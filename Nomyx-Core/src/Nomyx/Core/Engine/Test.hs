@@ -196,7 +196,7 @@ testInputStringEx = isOutput "You entered: 1" g where
 testSendMessage :: Rule
 testSendMessage = do
     let msg = Msg "msg" :: Msg String
-    onEvent_ (return $ messageEvent msg) f
+    onEvent_ (messageEvent msg) f
     sendMessage msg "toto" where
         f (a :: String) = void $ newOutput (Just 1) (return a)
 
@@ -204,7 +204,7 @@ testSendMessageEx = isOutput "toto" (execRule testSendMessage)
 
 testSendMessage2 :: Rule
 testSendMessage2 = do
-    onEvent_ (return $ messageEvent (Msg "msg" :: Msg ())) $ const $ void $ newOutput (Just 1) (return "Received")
+    onEvent_ (messageEvent (Msg "msg" :: Msg ())) $ const $ void $ newOutput (Just 1) (return "Received")
     sendMessage_ "msg"
 
 
@@ -216,8 +216,8 @@ data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 testUserInputWrite :: Rule
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
-    onEvent_ (return $ messageEvent (Msg "voted" :: Msg ())) h2
-    void $ onEvent_ (return $ BaseEvent $ Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
+    onEvent_ (messageEvent (Msg "voted" :: Msg ())) h2
+    void $ onEvent_ (BaseEvent $ Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
         h1 a = do
             writeVar (V "vote") (Just a)
             SendMessage (Msg "voted") ()
@@ -245,7 +245,7 @@ testAutoActivateEx = _rStatus (head $ _rules (execRuleEventGame autoActivate (Ru
 --Time tests
 
 testTimeEvent :: Rule
-testTimeEvent = void $ onEvent_ (return $ timeEvent date1) f where
+testTimeEvent = void $ onEvent_ (timeEvent date1) f where
    f _ = outputAll_ $ show date1
 
 testTimeEventEx = isOutput (show date1) g where
@@ -329,7 +329,7 @@ testVoteRule s g = (_rStatus $ head $ _rules g) == s
 -- Event composition
 
 testSumCompose :: Rule
-testSumCompose = void $ onEvent_ (return $ True <$ inputButton 1 "click here:" <|> False <$ inputButton 2 "") f where
+testSumCompose = void $ onEvent_ (True <$ inputButton 1 "click here:" <|> False <$ inputButton 2 "") f where
    f a = outputAll_ $ show a
 
 testSumComposeEx = isOutput "True" g where
@@ -337,7 +337,7 @@ testSumComposeEx = isOutput "True" g where
 
 
 testProdCompose :: Rule
-testProdCompose = void $ onEvent_ (return $ (,) <$> inputText 1 "" <*> inputText 1 "") f where
+testProdCompose = void $ onEvent_ ((,) <$> inputText 1 "" <*> inputText 1 "") f where
    f a = outputAll_ $ show a
 
 testProdComposeEx1 = null $ allOutputs g where
@@ -348,13 +348,23 @@ testProdComposeEx2 = isOutput "(\"toto\",\"tata\")" g where
 
 testTwoEvents :: Rule
 testTwoEvents = do
-   void $ onEvent_ (return $ inputText 1 "") f
-   void $ onEvent_ (return $ inputText 1 "") f where
+   void $ onEvent_ (inputText 1 "") f
+   void $ onEvent_ (inputText 1 "") f where
    f a = outputAll_ $ show a
 
 testTwoEventsEx = (length $ allOutputs g) == 1 where
    g = execRuleInput testTwoEvents 1 [] (TextData "toto")
 
+testMonadicEvent :: Rule
+testMonadicEvent = do
+   --create an output for me only
+   let displayMsg a = void $ newOutput_ Nothing (show a)
+   --create a button for me, which will display the output when clicked
+   let button = inputText 1 "your name:" >>= (\a -> eventWhen (a == "coco1") $ inputText 1 "hi coco")
+   void $ onEvent_ button displayMsg
+
+testMonadicEventEx = isOutput "coco2" g where
+   g = execRuleInputs testMonadicEvent 1 [([BindL], TextData "coco1"), ([BindR], TextData "coco2")]
 
 --Get all event numbers of type choice (radio button)
 getChoiceEvents :: State EvalEnv [(EventNumber, FieldAddress)]

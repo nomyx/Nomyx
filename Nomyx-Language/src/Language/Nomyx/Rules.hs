@@ -142,7 +142,7 @@ eraseAllRules p = do
 
 -- | This rule will activate automatically any new rule.
 autoActivate :: Nomex ()
-autoActivate = void $ onEvent_ (return $ ruleEvent Proposed) (activateRule_ . _rNumber)
+autoActivate = void $ onEvent_ (ruleEvent Proposed) (activateRule_ . _rNumber)
 
 -- * Meta Rules
 
@@ -200,7 +200,7 @@ simulate sim test = Simu sim test
 
 -- | sets a callback called for each rule proposed
 onRuleProposed :: (RuleInfo -> Nomex ()) -> Nomex ()
-onRuleProposed f = void $ onEvent_ (return $ ruleEvent Proposed) f
+onRuleProposed f = void $ onEvent_ (ruleEvent Proposed) f
 
 -- | a default rule
 defaultRule = RuleInfo  {
