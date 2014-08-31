@@ -24,29 +24,10 @@ import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
 import Data.Todo
 
--- compute the result of an event given an environment.
--- in the case the event cannot be computed because some fields results are pending, return that list instead.
-getEventResult :: Event a -> [FieldResult] -> Todo (FieldAddress, SomeField) a
-getEventResult e frs = getEventResult' e frs []
 
-getEventResult' :: Event a -> [FieldResult] -> FieldAddress -> Todo (FieldAddress, SomeField) a
-getEventResult' (PureEvent a)  _   _  = Done a
-getEventResult' EmptyEvent     _   _  = Todo []
-getEventResult' (SumEvent a b) ers fa = getEventResult' a ers (fa ++ [SumL]) <|> getEventResult' b ers (fa ++ [SumR])
-getEventResult' (AppEvent f b) ers fa = getEventResult' f ers (fa ++ [AppL]) <*> getEventResult' b ers (fa ++ [AppR])
-getEventResult' (BindEvent a f) ers fa = case (getEventResult' a ers (fa ++ [BindL])) of
-   Done a' -> getEventResult' (f a') ers (fa ++ [BindR])
-   Todo bs -> Todo bs
-getEventResult' (BaseEvent a)  ers fa = case lookupField a fa ers of
-   Just r  -> Done r
-   Nothing -> Todo [(fa, SomeField a)]
-getEventResult' (ShortcutEvents es f) ers fa =
-  let res = partitionEithers $ toEither <$> map (\i -> getEventResult' (es!!i) ers (fa ++ [Index i])) [0.. (length es -1)]
-  in case f (snd res) of
-       Just a  -> Done a
-       Nothing -> Todo $ join $ fst res
 
 -- find a field result in an environment
+-- TODO simplify?
 lookupField :: Typeable a => Field a -> FieldAddress -> [FieldResult] -> Maybe a
 lookupField _ _ [] = Nothing
 lookupField fi fa ((FieldResult a r fa1) : ers) = case (cast (a,r)) of

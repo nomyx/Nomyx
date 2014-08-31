@@ -139,6 +139,7 @@ data Event a where
    BindEvent      :: Event a -> (a -> Event b) -> Event b
    ShortcutEvents :: [Event a] -> ([a] -> Maybe b) -> Event b -- a result is returned as soon as it can be computed, dismissing the events that hasn't fired yet
    BaseEvent      :: (Typeable a) => Field a -> Event a       -- Embed a base event
+   LiftNomexNE    :: NomexNE a -> Event a                     -- create an event containing the result of the NomexNE.
    deriving Typeable
 
 -- | Base events
