@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 
 -- | This file gives a list of example rules that the players can submit.
 --You can copy-paste them in the field "Code" of the web GUI.
@@ -39,8 +40,10 @@ import Data.Time.Clock as X hiding (getCurrentTime)
 import Data.Time.Recurrence as X hiding (filter)
 import Data.List as X
 import Data.Typeable
+import Data.Maybe
 import Control.Arrow
 import Control.Monad as X
+import Control.Applicative
 import Safe (readDef)
 import Language.Nomyx
 
@@ -81,18 +84,29 @@ winXEcuOnRuleAccepted :: Int -> Rule
 winXEcuOnRuleAccepted x = void $ onEvent_ (ruleEvent Activated) $ \rule -> void $ modifyValueOfPlayer (_rProposedBy rule) accounts (+x)
 
 -- | a player can transfer money to another player
--- it does not accept new players or check if balance is positive, to keep the example simple
 moneyTransfer :: Rule
 moneyTransfer = do
-   pls <- liftEffect getAllPlayerNumbers
-   when (length pls >= 2) $ void $ forEachPlayer_ (selPlayer pls) where
-      selPlayer pls src = void $ onInputRadio_ "Transfer money to player: " (delete src $ sort pls) (selAmount src) src
-      selAmount src dst = void $ onInputTextOnce ("Select Amount to transfert to player: " ++ show dst) (transfer src dst) src
-      transfer src dst amount = do
-          modifyValueOfPlayer dst accounts (\a -> a + (readDef 0 amount))
-          modifyValueOfPlayer src accounts (\a -> a - (readDef 0 amount))
-          void $ newOutput (Just src) (return $ "You gave " ++ amount ++ " ecus to player " ++ show dst)
-          void $ newOutput (Just dst) (return $ "Player " ++ show src ++ " gaved you " ++ amount ++ "ecus")
+   let askAmount :: [PlayerNumber] -> PlayerNumber -> Event (PlayerNumber, PlayerNumber, Int)
+       askAmount pls src = do
+          dst <- inputRadio' src "Transfer money to player: " (delete src $ sort pls)
+          amount <- inputText src ("Select Amount to transfert to player: " ++ show dst)
+          return (src, dst, readDef 0 amount)
+   let event :: Event (PlayerNumber, PlayerNumber, Int)
+       event = do
+          pls <- liftNomexNE getAllPlayerNumbers
+          mWhen (length pls >= 2) $ msum $ map (askAmount pls) pls
+   void $ onEvent_ event transfer
+
+-- | transfer money from first player to second player
+transfer :: (PlayerNumber, PlayerNumber, Int) -> Nomex ()
+transfer (src, dst, amount) = do
+   balance <- liftEffect $ getValueOfPlayer src accounts
+   if (amount > 0 && fromJust balance >= amount) then do
+      modifyValueOfPlayer dst accounts (\a -> a + amount)
+      modifyValueOfPlayer src accounts (\a -> a - amount)
+      void $ newOutput (Just src) (return $ "You gave " ++ (show amount) ++ " ecus to player " ++ show dst)
+      void $ newOutput (Just dst) (return $ "Player " ++ show src ++ " gaved you " ++ (show amount) ++ "ecus")
+   else void $ newOutput (Just src) (return $ "insufficient balance or wrong amount")
 
 -- | delete a rule
 delRule :: RuleNumber -> Rule
@@ -208,23 +222,11 @@ helloButton =
    --get your own player number
    me <- getProposerNumber_
    --create an output for me only
-   let displayMsg _ = void $ newOutput_ Nothing "Hi there!"
+   let displayMsg a = void $ newOutput_ Nothing ("Msg: " ++ a)
    --create a button for me, which will display the output when clicked
    let button = do
        all <- liftNomexNE getPlayers
-       eventWhen (length all >= 2) $ inputButton me "say hello"
-   void $ onEvent_ button displayMsg
-
-helloButton2 :: Rule
-helloButton2 = do
-   --get your own player number
-   me <- getProposerNumber_
-   --create an output for me only
-   let displayMsg a = void $ newOutput_ Nothing ("Hi there!" ++ (show a))
-   --create a button for me, which will display the output when clicked
-   let button = do
-       all <- liftNomexNE getPlayers
-       inputText me "your name:" >>= (\a -> eventWhen (a == "coco") $ inputButton me "hi coco")
+       mWhen (length all >= 2) $ inputText me "send a message"
    void $ onEvent_ button displayMsg
 
 enterHaiku :: Rule
