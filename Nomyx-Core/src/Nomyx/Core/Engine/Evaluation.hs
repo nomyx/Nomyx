@@ -303,13 +303,12 @@ findField ((Index i):as) (ShortcutEvents es _) frs g rn = findField as (es!!i) f
 findField _ _ _ _ _ = error "findField: wrong field address"
 
 removePathElem :: FieldAddressElem -> [FieldResult] -> [FieldResult]
-removePathElem fa frs = map (removePathElem' fa) frs
+removePathElem fa frs = mapMaybe (removePathElem' fa) frs
 
--- TODO: maybe just a drop head is enough?
-removePathElem' :: FieldAddressElem -> FieldResult -> FieldResult
+removePathElem' :: FieldAddressElem -> FieldResult -> Maybe FieldResult
 removePathElem' fa (FieldResult fe fr (Just (fa':fas))) = if (fa == fa')
-   then FieldResult fe fr (Just fas)
-   else error "removePath: wrong address"
+   then Just $ FieldResult fe fr (Just fas)
+   else Nothing
 
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some fields results are pending, return that list instead.
