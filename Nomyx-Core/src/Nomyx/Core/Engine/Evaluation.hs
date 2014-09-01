@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 
 -- | Evaluation of a Nomyx expression
 module Nomyx.Core.Engine.Evaluation where
@@ -76,7 +77,7 @@ evSimu sim ev = do
    let s = runEvalError rn Nothing (evalNomex sim)
    g <- asks _eGame
    let g' = execState s g
-   return $ runReader (evalNomexNE ev) (EvalEnv rn g')
+   return $ runEvaluateNE g' rn (evalNomexNE ev)
 
 evNewVar :: (Typeable a, Show a) => VarName -> a -> Evaluate (Maybe (V a))
 evNewVar name def = do
@@ -269,67 +270,75 @@ evReadVar (V name) = do
 
 --get the fields left to be completed in an event
 getEventFields :: EventInfo -> Game -> [(FieldAddress, SomeField)]
-getEventFields (EventInfo _ rn e _ _ er) g = getEventFields' e er g rn
-
---TODO: collapse with above
-getEventFields' :: Event a -> [FieldResult] -> Game -> RuleNumber -> [(FieldAddress, SomeField)]
-getEventFields' e er g rn = case (getEventResult e er g rn) of
+getEventFields (EventInfo _ rn e _ _ env) g = case runEvaluateNE g rn $ getEventResult e env of
    Done _ -> []
    Todo a -> a
 
+getInput :: EventInfo -> FieldAddress -> Game -> Maybe SomeField
+getInput ei fa g = runEvaluateNE g (_ruleNumber ei) (findField ei fa)
+
 -- | Get the field at a certain address
 --TODO: should we check that the field is not already completed?
-getInput :: EventInfo -> FieldAddress -> Game -> Maybe SomeField
-getInput (EventInfo _ rn e _ _ er) addr g = findField addr e er g rn
+findField :: EventInfo -> FieldAddress -> EvaluateNE (Maybe SomeField)
+findField (EventInfo _ _ e _ _ er) addr = findField' addr e er
 
-findField :: FieldAddress -> Event e -> [FieldResult] -> Game -> RuleNumber -> Maybe SomeField
-findField []         (BaseEvent f)    _   _ _ = Just $ SomeField f
-findField (SumL:as)  (SumEvent e1 _)  frs g rn = findField as e1 (removePathElem SumL frs) g rn
-findField (SumR:as)  (SumEvent _ e2)  frs g rn = findField as e2 (removePathElem SumR frs) g rn
-findField (AppL:as)  (AppEvent e1 _)  frs g rn = findField as e1 (removePathElem AppL frs) g rn
-findField (AppR:as)  (AppEvent _ e2)  frs g rn = findField as e2 (removePathElem AppR frs) g rn
-findField (BindL:as) (BindEvent e1 _) frs g rn = findField as e1 (removePathElem BindL frs) g rn
-findField (BindR:as) (BindEvent e1 f) frs g rn = case (getEventResult e1 (removePathElem BindL frs) g rn) of
-   Done e2 -> findField as (f e2) (removePathElem BindR frs) g rn
-   Todo _ -> Nothing
+findField' :: FieldAddress -> Event e -> [FieldResult] -> EvaluateNE (Maybe SomeField)
+findField' []         (BaseEvent f)    _   = return $ Just $ SomeField f
+findField' (SumL:as)  (SumEvent e1 _)  frs = findField' as e1 (filterPath SumL frs)
+findField' (SumR:as)  (SumEvent _ e2)  frs = findField' as e2 (filterPath SumR frs)
+findField' (AppL:as)  (AppEvent e1 _)  frs = findField' as e1 (filterPath AppL frs)
+findField' (AppR:as)  (AppEvent _ e2)  frs = findField' as e2 (filterPath AppR frs)
+findField' (BindL:as) (BindEvent e1 _) frs = findField' as e1 (filterPath BindL frs)
+findField' ((Index i):as) (ShortcutEvents es _) frs = findField' as (es!!i) frs
+findField' (BindR:as) (BindEvent e1 f) frs = do
+   er <- getEventResult e1 (filterPath BindL frs)
+   case er of
+      Done e2 -> findField' as (f e2) (filterPath BindR frs)
+      Todo _  -> return Nothing
+findField' _ _ _ = error "findField: wrong field address"
 
-findField ((Index i):as) (ShortcutEvents es _) frs g rn = findField as (es!!i) frs g rn
-findField _ _ _ _ _ = error "findField: wrong field address"
-
-removePathElem :: FieldAddressElem -> [FieldResult] -> [FieldResult]
-removePathElem fa frs = mapMaybe (removePathElem' fa) frs
-
-removePathElem' :: FieldAddressElem -> FieldResult -> Maybe FieldResult
-removePathElem' fa (FieldResult fe fr (Just (fa':fas))) = if (fa == fa')
-   then Just $ FieldResult fe fr (Just fas)
-   else Nothing
+filterPath :: FieldAddressElem -> [FieldResult] -> [FieldResult]
+filterPath fa frs = mapMaybe f frs where
+   f (FieldResult fe fr (Just (fa':fas))) | fa == fa' = Just $ FieldResult fe fr (Just fas)
+   f _ = Nothing
 
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some fields results are pending, return that list instead.
-getEventResult :: Event a -> [FieldResult] -> Game -> RuleNumber -> Todo (FieldAddress, SomeField) a
-getEventResult e frs g rn = getEventResult' e frs [] g rn
+getEventResult :: Event a -> [FieldResult] -> EvaluateNE (Todo (FieldAddress, SomeField) a)
+getEventResult e frs = getEventResult' e frs []
 
-getEventResult' :: Event a -> [FieldResult] -> FieldAddress -> Game -> RuleNumber -> Todo (FieldAddress, SomeField) a
-getEventResult' (PureEvent a)  _   _  _ _ = Done a
-getEventResult' EmptyEvent     _   _  _ _ = Todo []
-getEventResult' (SumEvent a b) ers fa g rn = getEventResult' a ers (fa ++ [SumL]) g rn <|> getEventResult' b ers (fa ++ [SumR]) g rn
-getEventResult' (AppEvent f b) ers fa g rn = getEventResult' f ers (fa ++ [AppL]) g rn <*> getEventResult' b ers (fa ++ [AppR]) g rn
+getEventResult' :: Event a -> [FieldResult] -> FieldAddress -> EvaluateNE (Todo (FieldAddress, SomeField) a)
+getEventResult' (PureEvent a)  _   _  = return $ Done a
+getEventResult' EmptyEvent     _   _  = return $ Todo []
+getEventResult' (SumEvent a b) ers fa = do
+   er1 <- getEventResult' a ers (fa ++ [SumL])
+   er2 <- getEventResult' b ers (fa ++ [SumR])
+   return $ er1 <|> er2
+getEventResult' (AppEvent f b) ers fa = do
+   er1 <- getEventResult' f ers (fa ++ [AppL])
+   er2 <- getEventResult' b ers (fa ++ [AppR])
+   return $ er1 <*> er2
 
-getEventResult' (BindEvent a f) ers fa g rn = case (getEventResult' a ers (fa ++ [BindL]) g rn) of
-   Done a' -> getEventResult' (f a') ers (fa ++ [BindR]) g rn
-   Todo bs -> Todo bs
+getEventResult' (BindEvent a f) ers fa = do
+   er <- getEventResult' a ers (fa ++ [BindL])
+   case er of
+      Done a' -> getEventResult' (f a') ers (fa ++ [BindR])
+      Todo bs -> return $ Todo bs
 
-getEventResult' (BaseEvent a)  ers fa _ _ = case lookupField a fa ers of
-   Just r  -> Done r
-   Nothing -> Todo [(fa, SomeField a)]
+getEventResult' (BaseEvent a)  ers fa = case lookupField a fa ers of
+   Just r  -> return $ Done r
+   Nothing -> return $ Todo [(fa, SomeField a)]
 
-getEventResult' (ShortcutEvents es f) ers fa g rn =
-  let res = partitionEithers $ toEither <$> map (\i -> getEventResult' (es!!i) ers (fa ++ [Index i]) g rn) [0.. (length es -1)]
-  in case f (snd res) of
-       Just a  -> Done a
-       Nothing -> Todo $ join $ fst res
+getEventResult' (ShortcutEvents es f) ers fa = do
+  ers <- mapM (\i -> getEventResult' (es!!i) ers (fa ++ [Index i]) ) [0.. (length es -1)]
+  let res = partitionEithers $ toEither <$> ers
+  case f (snd res) of
+     Just a  -> return $ Done a
+     Nothing -> return $ Todo $ join $ fst res
 
-getEventResult' (LiftNomexNE a) _ _ g rn = Done $ runReader (evalNomexNE a) (EvalEnv rn g)
+getEventResult' (LiftNomexNE a) _ _ = do
+   a <- evalNomexNE a
+   return $ Done a
 
 
 -- trigger an event
@@ -341,7 +350,7 @@ triggerEvent e dat = do
 -- trigger some specific events
 triggerEvent' :: FieldResult -> [EventInfo] -> Evaluate ()
 triggerEvent' res evs = do
-   evs' <- mapM (updateEventInfo res) evs
+   evs' <- mapM (liftEval . (updateEventInfo res)) evs
    (eGame >>> events) %= union (map fst evs')
    mapM triggerIfComplete evs'
    return ()
@@ -359,14 +368,16 @@ triggerIfComplete _ = return ()
 
 
 -- update the EventInfo with the field result
-updateEventInfo :: FieldResult -> EventInfo -> Evaluate (EventInfo, Maybe SomeData)
-updateEventInfo (FieldResult field dat addr) ei@(EventInfo _ rn ev _ _ envi) = do
-   g <- access eGame
-   if (SomeField field) `elem` (map snd $ getEventFields' ev envi g rn)      -- if the field if found among the remaining fields of the event
-      then case getEventResult ev (eventRes : envi) g rn of                 -- then check the event with that field result included
-         Todo _ -> return (env ^=  (eventRes : envi) $ ei, Nothing)           -- some fields are left to complete: add ours in the environment
-         Done a -> return (env ^=  []                $ ei, Just $ SomeData a) -- the event is now complete: empty the environment and output the result
-      else         return (ei,                             Nothing)           -- field not found: do nothing
+updateEventInfo :: FieldResult -> EventInfo -> EvaluateNE (EventInfo, Maybe SomeData)
+updateEventInfo (FieldResult field dat addr) ei@(EventInfo _ _ ev _ _ envi) = do
+   g <- asks _eGame
+   let efs = getEventFields ei g
+   if (SomeField field) `elem` (map snd efs) then do                -- if the field if found among the remaining fields of the event
+      er <- getEventResult ev (eventRes : envi)
+      case er of                                                    -- then check the event with that field result included
+         Todo _ -> return (env ^=  (eventRes : envi) $ ei, Nothing) -- some fields are left to complete: add ours in the environment
+         Done a -> return (env ^=  [] $ ei, Just $ SomeData a)      -- the event is now complete: empty the environment and output the result
+   else return (ei, Nothing)                                        -- field not found: do nothing
    where eventRes = FieldResult field dat addr
 
 
@@ -376,17 +387,17 @@ updateEventInfo (FieldResult field dat addr) ei@(EventInfo _ rn ev _ _ envi) = d
 triggerInput :: EventNumber -> FieldAddress -> InputData -> Evaluate ()
 triggerInput en fa ir = do
    evs <- access (eGame >>> events)
-   g <- access eGame
    let mei = find ((== en) . getL eventNumber) evs
-   when (isJust mei) $ execInputHandler ir fa (fromJust mei) g
+   when (isJust mei) $ execInputHandler ir fa (fromJust mei)
 
 -- execute the corresponding handler
-execInputHandler :: InputData -> FieldAddress -> EventInfo -> Game -> Evaluate ()
-execInputHandler ir fa ei@(EventInfo _ _ _ _ SActive _) g = do
-   case (getInput ei fa g) of
+execInputHandler :: InputData -> FieldAddress -> EventInfo -> Evaluate ()
+execInputHandler ir fa ei@(EventInfo _ _ _ _ SActive _) = do
+   i <- liftEval $ findField ei fa
+   case i of
       Just sf -> execInputHandler' ir sf fa ei
       Nothing -> logAll "Input not found"
-execInputHandler _ _ _ _ = return ()
+execInputHandler _ _ _ = return ()
 
 -- execute the event handler using the data received from user
 execInputHandler' :: InputData -> SomeField -> FieldAddress -> EventInfo -> Evaluate ()
@@ -402,10 +413,10 @@ execInputHandler' _ _ _ _ = return ()
 getVictorious :: Game -> [PlayerNumber]
 getVictorious g = case _victory g of
    Nothing -> []
-   Just (VictoryInfo rn v) -> runReader (evalNomexNE v) (EvalEnv rn g)
+   Just (VictoryInfo rn v) -> runEvaluateNE g rn (evalNomexNE v)
 
 evalOutput :: Game -> Output -> String
-evalOutput g (Output _ rn _ o _) = runReader (evalNomexNE o) (EvalEnv rn g)
+evalOutput g (Output _ rn _ o _) = runEvaluateNE g rn (evalNomexNE o)
 
 allOutputs :: Game -> [String]
 allOutputs g = map (evalOutput g) (_outputs g)
@@ -428,10 +439,11 @@ delOutputsRule rn = do
    let toDelete = filter ((== rn) . getL oRuleNumber) os
    mapM_ (evDelOutput . _outputNumber) toDelete
 
+
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
 instance Show Game where
-   show g@(Game gn _ rs ps vs es _ v _ t) =
+   show g@(Game gn _ rs ps vs es _ _ _ t) =
       "Game Name = "      ++ show gn ++
       "\n Rules = "       ++ (intercalate "\n " $ map show rs) ++
       "\n Players = "     ++ show ps ++
@@ -443,7 +455,7 @@ instance Show Game where
 
 
 displayEvent :: Game -> EventInfo -> String
-displayEvent g ei@(EventInfo en rn e _ s env) =
+displayEvent g ei@(EventInfo en rn _ _ s env) =
    "event num: " ++ (show en) ++
    ", rule num: " ++ (show rn) ++
    ", event fields: " ++ (show $ getEventFields ei g) ++

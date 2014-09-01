@@ -337,10 +337,10 @@ newInput :: EventNumber -> FieldAddress -> GameName -> TVar Session -> RoutedNom
 newInput en fa gn ts = toResponse <$> do
     pn <- fromJust <$> getPlayerNumber ts
     s <- liftIO $ atomically $ readTVar ts
-    let g = find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s)
-    let ei = getEventInfo en (_loggedGame $ fromJust g)
+    let lg = _loggedGame $ fromJust $ find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s)
+    let ei = getEventInfo en lg
     methodM POST
-    case (getInput ei fa (_game $ _loggedGame $ fromJust g)) of
+    case (getInput ei fa (_game lg)) of
        Nothing -> error "Input not found"
        Just bs -> do
           r <- liftRouteT $ eitherForm environment "user" (inputForm bs)

@@ -67,6 +67,10 @@ runEvalError' mpn egs = do
          tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
          void $ runErrorT $ log mpn "Error: "
 
+
+runEvaluateNE :: Game -> RuleNumber -> EvaluateNE a -> a
+runEvaluateNE g rn ev = runReader ev (EvalEnv rn g)
+
 runSystemEval :: PlayerNumber -> Evaluate a -> State Game ()
 runSystemEval pn e = runEvalError 0 (Just pn) e
 

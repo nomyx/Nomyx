@@ -27,11 +27,10 @@ module Nomyx.Core.Engine(
    activeRules, pendingRules, rejectedRules,
 
    -- * Events management
-   EvalEnv,
    events,
    getEventFields,
-   getInput,
    getEventInfo,
+   getInput,
 
    -- * Inputs management
    InputData(..),
