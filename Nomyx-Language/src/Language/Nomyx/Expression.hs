@@ -195,6 +195,10 @@ instance Monad Event where
    (>>=) = BindEvent
    return = PureEvent
 
+instance MonadPlus Event where
+   mplus = SumEvent
+   mzero = EmptyEvent
+
 -- EventInfo
 
 data EventInfo = forall e. (Typeable e, Show e) =>
