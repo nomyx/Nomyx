@@ -14,7 +14,7 @@ module Language.Nomyx.Events (
    timeEvent, messageEvent, victoryEvent, playerEvent, ruleEvent,
    baseEvent, baseInputEvent,
    shortcutEvents,
-   eventWhen,
+   mWhen,
    liftNomexNE
    ) where
 
@@ -153,8 +153,8 @@ baseInputEvent pn s iform = Input pn s iform
 shortcutEvents :: [Event a] -> ([a] -> Maybe b) -> Event b
 shortcutEvents = ShortcutEvents
 
-eventWhen :: Bool -> Event a -> Event a
-eventWhen b e = if b then e else EmptyEvent
+mWhen :: MonadPlus m => Bool -> m a -> m a
+mWhen b e = if b then e else mzero
 
 liftNomexNE :: NomexNE a -> Event a
 liftNomexNE = LiftNomexNE

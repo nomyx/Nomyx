@@ -108,7 +108,6 @@ evWriteVar (V name) val = do
 evOnEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Evaluate EventNumber
 evOnEvent event handler = do
    (evs, rn) <- accessGame events
-   tracePN 0 (show rn)
    let en = getFreeNumber (map _eventNumber evs)
    (eGame >>> events) %= (EventInfo en rn event handler SActive [] : )
    return en
@@ -164,11 +163,10 @@ evAddRule rule = do
          return True
       Just _ -> return False
 
-
 --TODO: clean and execute new rule
 evModifyRule :: RuleNumber -> RuleInfo -> Evaluate Bool
-evModifyRule mod rule = do
-   (rs, rn) <- accessGame rules
+evModifyRule rn rule = do
+   (rs, _) <- accessGame rules
    let newRules = replaceWith ((== rn) . getL rNumber) rule rs
    case find ((== rn) . getL rNumber) rs of
       Nothing -> return False
@@ -226,13 +224,13 @@ evGetOutput on = do
    ops <- _outputs <$> asks _eGame
    case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of
       Nothing -> return Nothing
-      Just (Output _ rn _ o _) -> do
+      Just (Output _ _ _ o _) -> do
          out <- evalNomexNE o
          return $ Just out
 
 evUpdateOutput :: OutputNumber -> NomexNE String -> Evaluate Bool
 evUpdateOutput on s = do
-   (ops, rn) <- accessGame outputs
+   (ops, _) <- accessGame outputs
    case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of
       Nothing -> return False
       Just (Output _ rn pn _ _) -> do
@@ -268,14 +266,10 @@ evReadVar (V name) = do
           Nothing -> return Nothing
 
 -- * Events
--- | Type agnostic result data
-data SomeEvent = forall e. SomeEvent (Event e)
-deriving instance Typeable SomeEvent
-
 
 --get the fields left to be completed in an event
 getEventFields :: EventInfo -> Game -> [(FieldAddress, SomeField)]
-getEventFields ei@(EventInfo _ rn e _ _ er) g = getEventFields' e er g rn
+getEventFields (EventInfo _ rn e _ _ er) g = getEventFields' e er g rn
 
 --TODO: collapse with above
 getEventFields' :: Event a -> [FieldResult] -> Game -> RuleNumber -> [(FieldAddress, SomeField)]
@@ -335,7 +329,7 @@ getEventResult' (ShortcutEvents es f) ers fa g rn =
        Just a  -> Done a
        Nothing -> Todo $ join $ fst res
 
-getEventResult' (LiftNomexNE a) ers fa g rn = Done $ runReader (evalNomexNE a) (EvalEnv rn g)
+getEventResult' (LiftNomexNE a) _ _ g rn = Done $ runReader (evalNomexNE a) (EvalEnv rn g)
 
 
 -- trigger an event
@@ -358,7 +352,6 @@ triggerIfComplete (EventInfo en rn _ h SActive _, Just (SomeData val)) = do
    case (cast val) of
       Just a -> do
          let exp = h (en, a)
-         --tracePN 0 ("rn= " ++ (show rn) ++ "oldRn=" ++ (show oldRn) ++ "newRn=" ++ (show newRn))
          withRN rn $ (evalNomex exp) `catchError` (errorHandler en)
          return ()
       Nothing -> error "Bad trigger data type"

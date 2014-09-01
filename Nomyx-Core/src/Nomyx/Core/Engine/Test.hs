@@ -111,7 +111,8 @@ tests = [("test var 1", testVarEx1),
          ("test composed event sum", testSumComposeEx),
          ("test composed event prod 1", testProdComposeEx1),
          ("test composed event prod 2", testProdComposeEx2),
-         ("test two separate events", testTwoEventsEx)
+         ("test two separate events", testTwoEventsEx),
+         ("test monadic event", testMonadicEventEx)
          ]
 
 allTests = all snd tests
@@ -357,11 +358,11 @@ testTwoEventsEx = (length $ allOutputs g) == 1 where
 
 testMonadicEvent :: Rule
 testMonadicEvent = do
-   --create an output for me only
-   let displayMsg a = void $ newOutput_ Nothing (show a)
-   --create a button for me, which will display the output when clicked
-   let button = inputText 1 "your name:" >>= (\a -> eventWhen (a == "coco1") $ inputText 1 "hi coco")
-   void $ onEvent_ button displayMsg
+   let displayMsg a = void $ newOutput_ Nothing a
+   let e = do
+       a <- inputText 1 ""
+       mWhen (a == "coco1") $ inputText 1 ""
+   void $ onEvent_ e displayMsg
 
 testMonadicEventEx = isOutput "coco2" g where
    g = execRuleInputs testMonadicEvent 1 [([BindL], TextData "coco1"), ([BindR], TextData "coco2")]

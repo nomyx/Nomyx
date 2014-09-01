@@ -7,7 +7,7 @@
 
 module Language.Nomyx.Inputs (
    InputForm(..),
-   onInputRadio,    onInputRadio_,    onInputRadioOnce,
+   onInputRadio,    onInputRadio_,    onInputRadioOnce, inputRadio',
    onInputText,     onInputText_,     onInputTextOnce,
    onInputCheckbox, onInputCheckbox_, onInputCheckboxOnce,
    onInputButton,   onInputButton_,   onInputButtonOnce,

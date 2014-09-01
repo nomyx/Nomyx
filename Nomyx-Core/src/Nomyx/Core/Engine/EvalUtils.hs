@@ -16,15 +16,11 @@ import Control.Category
 import Data.Typeable
 import Data.Lens
 import Data.Maybe
-import Data.Either
 import Control.Applicative
 import Control.Monad.Error
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
-import Data.Todo
-
-
 
 -- find a field result in an environment
 -- TODO simplify?
@@ -36,13 +32,10 @@ lookupField fi fa ((FieldResult a r fa1) : ers) = case (cast (a,r)) of
                       else lookupField fi fa ers
    Nothing      -> lookupField fi fa ers
 
-
 errorHandler :: EventNumber -> String -> Evaluate ()
 errorHandler en s = do
    rn <- access eRuleNumber
    logAll $ "Error in rule " ++ show rn ++ " (triggered by event " ++ show en ++ "): " ++ s
-
-
 
 logPlayer :: PlayerNumber -> String -> Evaluate ()
 logPlayer pn = log (Just pn)
@@ -101,11 +94,9 @@ withRN rn eval = do
 instance Eq SomeField where
   (SomeField e1) == (SomeField e2) = e1 === e2
 
-
 instance Show EventInfo where
-   show (EventInfo en rn e _ s env) =
+   show (EventInfo en rn _ _ s env) =
       "event num: " ++ (show en) ++
       ", rule num: " ++ (show rn) ++
-      -- ", event fields: " ++ (show $ getEventFields e env) ++
       ", envs: " ++ (show env) ++
       ", status: " ++ (show s)

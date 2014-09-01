@@ -80,7 +80,6 @@ newProfileData uid ps =
 askProfileDataNumber :: Query ProfileDataState Int
 askProfileDataNumber =
     do pds <- ask
-       tracePN 1 (show $ profilesData pds)
        return $ IxSet.size $ profilesData pds
 
 -- | get all profiles

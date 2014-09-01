@@ -32,7 +32,7 @@ import Happstack.Server                    (Response, Method(..), seeOther, toRe
 import Web.Routes.RouteT                   (showURL, liftRouteT)
 import Safe
 import qualified Nomyx.Web.Help as Help
-import Nomyx.Web.Common
+import Nomyx.Web.Common as NWC
 import Nomyx.Core.Types as T
 import Nomyx.Core.Mail
 import Nomyx.Core.Utils
@@ -175,7 +175,6 @@ viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
    p $ h4 "Log:"
    viewLogs    (_logs g) pn
 
-
 viewEvents :: Game -> Html
 viewEvents g = table ! class_ "table" $ do
          thead $ do
@@ -184,9 +183,8 @@ viewEvents g = table ! class_ "table" $ do
             td ! class_ "td" $ "Event"
          mapM_ (viewEvent g) (sort $ _events g)
 
-
 viewEvent :: Game -> EventInfo -> Html
-viewEvent g ei@(EventInfo eventNumber ruleNumber event _ status env) = if status == SActive then disp else disp ! style "background:gray;" where
+viewEvent g ei@(EventInfo eventNumber ruleNumber _ _ status _) = if status == SActive then disp else disp ! style "background:gray;" where
    disp = tr $ do
       td ! class_ "td" $ fromString . show $ eventNumber
       td ! class_ "td" $ fromString . show $ ruleNumber
@@ -228,7 +226,6 @@ viewInputsRule pn rn ehs g = do
 
 viewOutputsRule :: PlayerNumber -> RuleNumber -> Game -> Maybe Html
 viewOutputsRule pn rn g = do
-   tracePN 0 "in viewOutputsRule"
    let filtered = filter (\o -> _oRuleNumber o == rn) (_outputs g)
    let myos = filter (isPn pn) (reverse filtered)
    case myos of
@@ -240,7 +237,7 @@ isPn _  (Output _ _ Nothing _ SActive) = True
 isPn _ _ = False
 
 viewInput :: PlayerNumber -> Game -> EventInfo -> RoutedNomyxServer (Maybe Html)
-viewInput me g ei@(EventInfo en _ ev _ SActive env) = do
+viewInput me g ei@(EventInfo en _ _ _ SActive _) = do
    ds <- mapMaybeM (viewInput' me (_gameName g) en) (getEventFields ei g)
    return $ if null ds
       then Nothing
@@ -369,7 +366,7 @@ newPlayAs gn ts = toResponse <$> do
 
 
 inputForm :: SomeField -> NomyxForm InputData
-inputForm (SomeField (Input _ _ (Radio choices)))    = RadioData    <$> inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
+inputForm (SomeField (Input _ _ (Radio choices)))    = RadioData    <$> NWC.inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
 inputForm (SomeField (Input _ _ Text))               = TextData     <$> RB.inputText "" <++ label " "
 inputForm (SomeField (Input _ _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label " "
 inputForm (SomeField (Input _ _ Button))             = pure ButtonData
