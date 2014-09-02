@@ -86,27 +86,25 @@ winXEcuOnRuleAccepted x = void $ onEvent_ (ruleEvent Activated) $ \rule -> void 
 -- | a player can transfer money to another player
 moneyTransfer :: Rule
 moneyTransfer = do
-   let askAmount :: [PlayerNumber] -> PlayerNumber -> Event (PlayerNumber, PlayerNumber, Int)
-       askAmount pls src = do
-          dst <- inputRadio' src "Transfer money to player: " (delete src $ sort pls)
-          amount <- inputText src ("Select Amount to transfert to player: " ++ show dst)
-          return (src, dst, readDef 0 amount)
-   let event :: Event (PlayerNumber, PlayerNumber, Int)
-       event = do
+   let askAmount :: PlayerNumber -> Event (PlayerNumber, Int)
+       askAmount src = do
           pls <- liftNomexNE getAllPlayerNumbers
-          mWhen (length pls >= 2) $ msum $ map (askAmount pls) pls
-   void $ onEvent_ event transfer
+          mWhen (length pls >= 2) $ do
+             dst <- inputRadio' src "Transfer money to player: " (delete src $ sort pls)
+             amount <- inputText src ("Select Amount to transfert to player " ++ show dst ++ ": ")
+             return (dst, readDef 0 amount)
+   void $ forEachPlayer_ (\pn -> void $ onEvent_ (askAmount pn) (transfer pn))
 
--- | transfer money from first player to second player
-transfer :: (PlayerNumber, PlayerNumber, Int) -> Nomex ()
-transfer (src, dst, amount) = do
+-- | helper function to transfer money from first player to second player
+transfer :: PlayerNumber -> (PlayerNumber, Int) -> Nomex ()
+transfer src (dst, amount) = do
    balance <- liftEffect $ getValueOfPlayer src accounts
    if (amount > 0 && fromJust balance >= amount) then do
       modifyValueOfPlayer dst accounts (\a -> a + amount)
       modifyValueOfPlayer src accounts (\a -> a - amount)
-      void $ newOutput (Just src) (return $ "You gave " ++ (show amount) ++ " ecus to player " ++ show dst)
-      void $ newOutput (Just dst) (return $ "Player " ++ show src ++ " gaved you " ++ (show amount) ++ "ecus")
-   else void $ newOutput (Just src) (return $ "insufficient balance or wrong amount")
+      void $ newOutput_ (Just src) ("You gave " ++ (show amount) ++ " ecus to player " ++ show dst)
+      void $ newOutput_ (Just dst) ("Player " ++ show src ++ " gaved you " ++ (show amount) ++ "ecus")
+   else void $ newOutput_ (Just src) ("insufficient balance or wrong amount")
 
 -- | delete a rule
 delRule :: RuleNumber -> Rule
