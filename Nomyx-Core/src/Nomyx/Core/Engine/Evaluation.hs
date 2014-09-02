@@ -274,6 +274,7 @@ getEventFields (EventInfo _ rn e _ _ env) g = case runEvaluateNE g rn $ getEvent
    Done _ -> []
    Todo a -> a
 
+-- | Get the field at a certain address
 getInput :: EventInfo -> FieldAddress -> Game -> Maybe SomeField
 getInput ei fa g = runEvaluateNE g (_ruleNumber ei) (findField ei fa)
 
@@ -371,14 +372,13 @@ triggerIfComplete _ = return ()
 updateEventInfo :: FieldResult -> EventInfo -> EvaluateNE (EventInfo, Maybe SomeData)
 updateEventInfo (FieldResult field dat addr) ei@(EventInfo _ _ ev _ _ envi) = do
    g <- asks _eGame
-   let efs = getEventFields ei g
-   if (SomeField field) `elem` (map snd efs) then do                -- if the field if found among the remaining fields of the event
-      er <- getEventResult ev (eventRes : envi)
-      case er of                                                    -- then check the event with that field result included
-         Todo _ -> return (env ^=  (eventRes : envi) $ ei, Nothing) -- some fields are left to complete: add ours in the environment
-         Done a -> return (env ^=  [] $ ei, Just $ SomeData a)      -- the event is now complete: empty the environment and output the result
-   else return (ei, Nothing)                                        -- field not found: do nothing
-   where eventRes = FieldResult field dat addr
+   let eventRes = FieldResult field dat addr
+   er <- getEventResult ev (eventRes : envi)
+   if (SomeField field) `elem` (map snd $ getEventFields ei g) then do   -- if the field if found among the remaining fields of the event
+      case er of                                                         -- then check the event with that field result included
+            Todo _ -> return $ (env ^=  (eventRes : envi) $ ei, Nothing) -- some fields are left to complete: add ours in the environment
+            Done a -> return $ (env ^=  [] $ ei, Just $ SomeData a)      -- the event is now complete: empty the environment and output the result
+      else return $ (ei, Nothing)                                        -- field not found: do nothin
 
 
 -- * input triggers
