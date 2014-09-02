@@ -103,8 +103,8 @@ transfer src (dst, amount) = do
       modifyValueOfPlayer dst accounts (\a -> a + amount)
       modifyValueOfPlayer src accounts (\a -> a - amount)
       void $ newOutput_ (Just src) ("You gave " ++ (show amount) ++ " ecus to player " ++ show dst)
-      void $ newOutput_ (Just dst) ("Player " ++ show src ++ " gaved you " ++ (show amount) ++ "ecus")
-   else void $ newOutput_ (Just src) ("insufficient balance or wrong amount")
+      void $ newOutput_ (Just dst) ("Player " ++ show src ++ " gave you " ++ (show amount) ++ "ecus")
+   else void $ newOutput_ (Just src) ("Insufficient balance or wrong amount")
 
 -- | delete a rule
 delRule :: RuleNumber -> Rule
