@@ -97,7 +97,7 @@ loadTest tes s = do
    case ms of
       Just s' -> return $ _multi s'
       Nothing -> do
-         putStrLn "thread timed out, updateSession discarded"
+         putStrLn "thread timed out, session discarded"
          return $ _multi s
 
 testException :: Multi -> SomeException -> IO Multi

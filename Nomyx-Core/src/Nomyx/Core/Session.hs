@@ -223,7 +223,7 @@ updateSession ts sm = do
       Just s -> do
          atomically $ writeTVar ts s
          save $ _multi s
-      Nothing -> putStrLn "thread timed out, updateSession discarded"
+      Nothing -> putStrLn "thread timed out, session discarded"
 
 
 evalSession :: StateT Session IO () -> Session -> IO Session
