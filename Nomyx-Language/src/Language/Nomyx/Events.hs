@@ -150,7 +150,7 @@ ruleEvent re = BaseEvent $ RuleEv re
 baseInputEvent :: (Typeable a) => PlayerNumber -> String -> (InputForm a) -> Field a
 baseInputEvent pn s iform = Input pn s iform
 
-shortcutEvents :: [Event a] -> ([a] -> Maybe b) -> Event b
+shortcutEvents :: [Event a] -> ([a] -> Bool) -> Event [a]
 shortcutEvents = ShortcutEvents
 
 mWhen :: MonadPlus m => Bool -> m a -> m a

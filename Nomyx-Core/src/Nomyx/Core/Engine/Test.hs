@@ -112,7 +112,8 @@ tests = [("test var 1", testVarEx1),
          ("test composed event prod 1", testProdComposeEx1),
          ("test composed event prod 2", testProdComposeEx2),
          ("test two separate events", testTwoEventsEx),
-         ("test monadic event", testMonadicEventEx)
+         ("test monadic event", testMonadicEventEx),
+         ("test shortcut event", testShorcutEventEx)
          ]
 
 allTests = all snd tests
@@ -361,11 +362,23 @@ testMonadicEvent = do
    let displayMsg a = void $ newOutput_ Nothing a
    let e = do
        a <- inputText 1 ""
-       mWhen (a == "coco1") $ inputText 1 ""
+       guard (a == "coco1") >> inputText 1 ""
    void $ onEvent_ e displayMsg
 
 testMonadicEventEx = isOutput "coco2" g where
-   g = execRuleInputs testMonadicEvent 1 [([BindL], TextData "coco1"), ([BindR], TextData "coco2")]
+   g = execRuleInputs testMonadicEvent 1 [([BindL], TextData "coco1"), ([BindR, BindR], TextData "coco2")]
+
+testShorcutEvent :: Rule
+testShorcutEvent = do
+   let displayMsg a = void $ newOutput_ Nothing (concat a)
+   let e = do
+       let a = inputText 1 ""
+       shortcutEvents [a,a] (\as -> length as == 1)
+   void $ onEvent_ e displayMsg
+
+testShorcutEventEx = isOutput "coco1" g where
+   g = execRuleInputs testShorcutEvent 1 [([Index 0], TextData "coco1")]
+
 
 --Get all event numbers of type choice (radio button)
 getChoiceEvents :: State EvalEnv [(EventNumber, FieldAddress)]

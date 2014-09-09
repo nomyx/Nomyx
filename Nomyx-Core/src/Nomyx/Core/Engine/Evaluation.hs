@@ -334,8 +334,8 @@ getEventResult' (ShortcutEvents es f) ers fa = do
   ers <- mapM (\i -> getEventResult' (es!!i) ers (fa ++ [Index i]) ) [0.. (length es -1)]
   let res = partitionEithers $ toEither <$> ers
   case f (snd res) of
-     Just a  -> return $ Done a
-     Nothing -> return $ Todo $ join $ fst res
+     True  -> return $ Done $ snd res
+     False -> return $ Todo $ join $ fst res
 
 getEventResult' (LiftNomexNE a) _ _ = do
    a <- evalNomexNE a

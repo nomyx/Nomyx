@@ -224,7 +224,7 @@ helloButton =
    --create a button for me, which will display the output when clicked
    let button = do
        all <- liftNomexNE getPlayers
-       mWhen (length all >= 2) $ inputText me "send a message"
+       guard (length all >= 2) >> inputText me "send a message"
    void $ onEvent_ button displayMsg
 
 enterHaiku :: Rule

@@ -23,13 +23,14 @@ import Control.Arrow
 import Control.Applicative
 import Data.List
 import qualified Data.Map as M
+import Debug.Trace
 
 -- | a vote assessing function (such as unanimity, majority...)
 type AssessFunction = VoteStats -> Maybe Bool
 
--- | the vote statistics, including the number of votes per choice (Nothing means abstention),
--- the number of persons called to vote, and if the vote if finished (timeout or everybody voted)
-data VoteStats = VoteStats { voteCounts     :: M.Map (Maybe Bool) Int,
+-- | the vote statistics, including the number of votes per choice,
+-- the number of persons called to vote, and if the vote is finished (timeout or everybody voted)
+data VoteStats = VoteStats { voteCounts     :: M.Map Bool Int,
                              nbParticipants :: Int,
                              voteFinished   :: Bool}
                              deriving (Show)
@@ -52,23 +53,38 @@ callVoteRule' assess endTime ri = do
 -- | call a vote for every players, with an assessing function, a delay and a function to run on the result
 callVote :: AssessFunction -> UTCTime -> String -> (Bool -> Nomex ()) -> Nomex ()
 callVote assess endTime title payload = do
-   pns <- liftEffect getAllPlayerNumbers
-   en <- onEventOnce (voteWith endTime pns assess title) payload
+   en <- onEventOnce (voteWith endTime assess title) payload
    displayVote en
 
 -- vote with a function able to assess the ongoing votes.
 -- the vote can be concluded as soon as the result is known.
-voteWith :: UTCTime -> [PlayerNumber] -> AssessFunction -> String -> Event Bool
-voteWith timeLimit pns assess title = shortcutEvents (voteEvents timeLimit title pns) (assess . getVoteStats (length pns))
+voteWith :: UTCTime -> AssessFunction -> String -> Event Bool
+voteWith timeLimit assess title = do
+   pns <- liftNomexNE getAllPlayerNumbers
+   let voteEvents = map (\pn -> Vote <$> singleVote title pn) pns
+   let timerEvent = (const TimeOut) <$> timeEvent timeLimit
+   let assess' :: [VoteTimer] -> Maybe Bool
+       assess' vts = assess $ getVoteStats (getVotes' vts) (length pns) (isTimeOut vts)
+   vts <- shortcutEvents (timerEvent:voteEvents) (isJust . assess')
+   return $ fromJust $ assess' vts
 
--- list of vote events
-voteEvents :: UTCTime -> String -> [PlayerNumber] -> [Event (Maybe Bool)]
-voteEvents time title pns = map (singleVote time title) pns
+
+getVotes' :: [VoteTimer] -> [Bool]
+getVotes' = mapMaybe getVote
+
+isTimeOut :: [VoteTimer] -> Bool
+isTimeOut vts = TimeOut `elem` vts
+
+getVote :: VoteTimer -> Maybe Bool
+getVote (Vote a) = Just a
+getVote _        = Nothing
+
+data VoteTimer = Vote Bool | TimeOut deriving (Eq, Show, Ord)
 
 -- trigger the display of a radio button choice on the player screen, yelding either Just True or Just False.
 -- after the time limit, the value sent back is Nothing.
-singleVote :: UTCTime -> String -> PlayerNumber -> Event (Maybe Bool)
-singleVote timeLimit title pn = (Just <$> inputRadio pn title [(True, "For"), (False, "Against")]) <|> (Nothing <$ timeEvent timeLimit)
+singleVote :: String -> PlayerNumber -> Event Bool
+singleVote title pn = inputRadio pn title [(True, "For"), (False, "Against")]
 
 -- | assess the vote results according to a unanimity
 unanimity :: AssessFunction
@@ -92,11 +108,11 @@ withQuorum f minNbVotes = \voteStats -> if (voted voteStats) >= minNbVotes
                                         then f voteStats
                                         else if voteFinished voteStats then Just False else Nothing
 
-getVoteStats :: Int -> [Maybe Bool] -> VoteStats
-getVoteStats npPlayers votes = VoteStats
+getVoteStats :: [Bool] -> Int -> Bool -> VoteStats
+getVoteStats votes npPlayers finished = VoteStats
    {voteCounts   = M.fromList $ counts votes,
     nbParticipants = npPlayers,
-    voteFinished = length votes == npPlayers}
+    voteFinished = finished}
 
 counts :: (Eq a, Ord a) => [a] -> [(a, Int)]
 counts as = map (head &&& length) (group $ sort as)
@@ -105,8 +121,8 @@ counts as = map (head &&& length) (group $ sort as)
 -- the result can be positive if the quota if reached, negative if the quota cannot be reached anymore at that point, or still pending.
 voteQuota :: Int -> VoteStats -> Maybe Bool
 voteQuota q voteStats
-   | M.findWithDefault 0 (Just True)  vs >= q                       = Just True
-   | M.findWithDefault 0 (Just False) vs > (nbVoters voteStats) - q = Just False
+   | M.findWithDefault 0 True  vs >= q                       = Just True
+   | M.findWithDefault 0 False vs > (nbVoters voteStats) - q = Just False
    | otherwise = Nothing
    where vs = voteCounts voteStats
 
@@ -115,13 +131,12 @@ voteQuota q voteStats
 -- total number of people that should vote otherwise
 nbVoters :: VoteStats -> Int
 nbVoters vs
-   | voteFinished vs = (nbParticipants vs) - (notVoted vs)
+   | voteFinished vs = voted vs
    | otherwise = nbParticipants vs
 
-totalVoters, voted, notVoted :: VoteStats -> Int
-totalVoters vs = M.foldr (+) 0 (voteCounts vs)
-notVoted    vs = fromMaybe 0 $ M.lookup Nothing (voteCounts vs)
-voted       vs = (totalVoters vs) - (notVoted vs)
+voted, notVoted :: VoteStats -> Int
+notVoted    vs = (nbParticipants vs) - (voted vs)
+voted       vs = M.findWithDefault 0 True (voteCounts vs) + M.findWithDefault 0 False (voteCounts vs)
 
 displayVote :: EventNumber -> Nomex ()
 displayVote en = void $ outputAll $ do
