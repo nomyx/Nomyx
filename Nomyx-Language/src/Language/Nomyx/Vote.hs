@@ -56,32 +56,28 @@ callVote assess endTime title payload = do
    en <- onEventOnce (voteWith endTime assess title) payload
    displayVote en
 
--- vote with a function able to assess the ongoing votes.
--- the vote can be concluded as soon as the result is known.
+-- | vote with a function able to assess the ongoing votes.
+-- | the vote can be concluded as soon as the result is known.
 voteWith :: UTCTime -> AssessFunction -> String -> Event Bool
 voteWith timeLimit assess title = do
    pns <- liftNomexNE getAllPlayerNumbers
-   let voteEvents = map (\pn -> Vote <$> singleVote title pn) pns
-   let timerEvent = (const TimeOut) <$> timeEvent timeLimit
-   let assess' :: [VoteTimer] -> Maybe Bool
-       assess' vts = assess $ getVoteStats (getVotes' vts) (length pns) (isTimeOut vts)
-   vts <- shortcutEvents (timerEvent:voteEvents) (isJust . assess')
-   return $ fromJust $ assess' vts
+   let voteEvents = map (singleVote title) pns
+   let timerEvent = timeEvent timeLimit
+   let assess' votes timer = assess $ getVoteStats votes (length pns) timer
+   (vs, ts) <- shortcutVotes voteEvents timerEvent (\a b -> isJust $ assess' a b)
+   return $ fromJust $ assess' vs ts
+
+-- | The returned event will fire as soon as the votation is finished (either because of the time out,
+-- or enough people voted for the result to be known). It returns the votes casted and the timer state,
+-- discarding the remaining events.
+shortcutVotes :: [Event Bool] -> Event UTCTime -> ([Bool] -> Bool -> Bool) -> Event ([Bool], Bool)
+shortcutVotes votes timer assess = do
+   let assess' vs t = assess vs (not $ null t)
+   (vs, ts) <- shortcutEvents2 votes [timer] assess'
+   return (vs, not $ null ts)
 
 
-getVotes' :: [VoteTimer] -> [Bool]
-getVotes' = mapMaybe getVote
-
-isTimeOut :: [VoteTimer] -> Bool
-isTimeOut vts = TimeOut `elem` vts
-
-getVote :: VoteTimer -> Maybe Bool
-getVote (Vote a) = Just a
-getVote _        = Nothing
-
-data VoteTimer = Vote Bool | TimeOut deriving (Eq, Show, Ord)
-
--- trigger the display of a radio button choice on the player screen, yelding either Just True or Just False.
+-- trigger the display of a radio button choice on the player screen, yelding either True or False.
 -- after the time limit, the value sent back is Nothing.
 singleVote :: String -> PlayerNumber -> Event Bool
 singleVote title pn = inputRadio pn title [(True, "For"), (False, "Against")]

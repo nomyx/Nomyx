@@ -89,7 +89,7 @@ moneyTransfer = do
    let askAmount :: PlayerNumber -> Event (PlayerNumber, Int)
        askAmount src = do
           pls <- liftNomexNE getAllPlayerNumbers
-          mWhen (length pls >= 2) $ do
+          guard (length pls >= 2) >> do
              dst <- inputRadio' src "Transfer money to player: " (delete src $ sort pls)
              amount <- inputText src ("Select Amount to transfert to player " ++ show dst ++ ": ")
              return (dst, readDef 0 amount)

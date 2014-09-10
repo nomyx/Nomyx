@@ -13,8 +13,7 @@ module Language.Nomyx.Events (
    oneWeek, oneDay, oneHour, oneMinute,
    timeEvent, messageEvent, victoryEvent, playerEvent, ruleEvent,
    baseEvent, baseInputEvent,
-   shortcutEvents,
-   mWhen,
+   shortcutEvents, shortcutEvents2,
    liftNomexNE
    ) where
 
@@ -24,6 +23,7 @@ import Control.Monad.State
 import Control.Applicative
 import Data.List
 import Data.Maybe
+import Data.Either
 import Data.Time hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
 import Safe
@@ -153,8 +153,22 @@ baseInputEvent pn s iform = Input pn s iform
 shortcutEvents :: [Event a] -> ([a] -> Bool) -> Event [a]
 shortcutEvents = ShortcutEvents
 
-mWhen :: MonadPlus m => Bool -> m a -> m a
-mWhen b e = if b then e else mzero
+shortcutEvents2 :: [Event a] -> [Event b] -> ([a] -> [b] -> Bool) -> Event ([a], [b])
+shortcutEvents2 as bs f = partitionEithers <$> shortcutEvents ((map (Left <$>) as) ++ (map (Right <$>) bs)) f' where
+   f' as = f (lefts as) (rights as)
+
+getVotes' :: [VoteTimer] -> [Bool]
+getVotes' = mapMaybe getVote
+
+isTimeOut :: [VoteTimer] -> Bool
+isTimeOut vts = TimeOut `elem` vts
+
+getVote :: VoteTimer -> Maybe Bool
+getVote (Vote a) = Just a
+getVote _        = Nothing
+
+data VoteTimer = Vote Bool | TimeOut deriving (Eq, Show, Ord)
+
 
 liftNomexNE :: NomexNE a -> Event a
 liftNomexNE = LiftNomexNE
