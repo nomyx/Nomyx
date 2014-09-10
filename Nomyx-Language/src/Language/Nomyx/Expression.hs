@@ -136,8 +136,8 @@ data Event a where
    AppEvent       :: Event (a -> b) -> Event a -> Event b     -- Both events should fire, and then the result is returned
    PureEvent      :: a -> Event a                             -- Create a fake event. The result is useable with no delay.
    EmptyEvent     :: Event a                                  -- An event that is never fired.
-   BindEvent      :: Event a -> (a -> Event b) -> Event b
-   ShortcutEvents :: [Event a] -> ([a] -> Bool) -> Event [a]  -- Return the intermediate results, dismiss the events that hasn't fired yet
+   BindEvent      :: Event a -> (a -> Event b) -> Event b     -- A First event should fire, then a second event is constructed
+   ShortcutEvents :: [Event a] -> ([a] -> Bool) -> Event [a]  -- Return the intermediate results as soon as the function evaluates to True, dismissing the events that hasn't fired yet
    BaseEvent      :: (Typeable a) => Field a -> Event a       -- Embed a base event
    LiftNomexNE    :: NomexNE a -> Event a                     -- create an event containing the result of the NomexNE.
    deriving Typeable
