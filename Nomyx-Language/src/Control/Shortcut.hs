@@ -6,7 +6,6 @@ import Control.Applicative
 import Control.Monad
 import Data.Either
 import Data.Maybe
-import Data.Either.Unwrap
 
 -- | class of things that can be run in parallel and can be shortcuted.
 -- The funtion in parameter is called everytime an intermediate result is known, as soon as it
@@ -16,7 +15,7 @@ class Shortcutable s where
    shortcut :: [s a] -> ([Maybe a] -> Bool) -> s [Maybe a]
 
 -- | version without the maybes
-shortcut_ :: (Functor s, Monad s, Shortcutable s) => [s a] -> ([a] -> Bool) -> s [a]
+shortcut_ :: (Functor s, Shortcutable s) => [s a] -> ([a] -> Bool) -> s [a]
 shortcut_ as f = catMaybes <$> shortcut as (f . catMaybes)
 
 -- |  version with two different types of result
@@ -34,3 +33,11 @@ shortcut2b as b f = do
    let f' as bs = f as (isJust $ head bs)
    (as, bs) <- shortcut2 as [b] f'
    return (as, isJust $ head bs)
+
+fromLeft           :: Either a b -> a
+fromLeft (Right _) = error "Argument takes form 'Right _'"
+fromLeft (Left x)  = x
+
+fromRight           :: Either a b -> b
+fromRight (Left _)  = error "Argument takes form 'Left _'"
+fromRight (Right x) = x

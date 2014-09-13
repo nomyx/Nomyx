@@ -16,7 +16,7 @@ module Language.Nomyx.Rules (
    getRules, getActiveRules, getRule,
    getRulesByNumbers,
    getRuleFuncs,
-   addRule, addRule_, addRuleParams,
+   addRule, addRule_, addRule',
    getFreeRuleNumber,
    suppressRule, suppressRule_, suppressAllRules,
    modifyRule,
@@ -84,12 +84,12 @@ addRule r = AddRule r
 addRule_ :: RuleInfo -> Nomex ()
 addRule_ r = void $ AddRule r
 
---TODO: too permissive. Should use SubmitRule instead.
-addRuleParams :: RuleName -> Rule -> RuleCode -> String -> Nomex RuleNumber
-addRuleParams name rule code desc = do
+-- | add a rule to the game as described by the parameters
+addRule' :: RuleName -> Rule -> RuleCode -> String -> Nomex RuleNumber
+addRule' name rule code desc = do
    number <- liftEffect getFreeRuleNumber
    res <- addRule $ defaultRule {_rName = name, _rRule = rule, _rRuleCode = code, _rNumber = number, _rDescription = desc}
-   return $ if res then number else error "addRuleParams: cannot add rule"
+   return $ if res then number else error "addRule': cannot add rule"
 
 
 getFreeRuleNumber :: NomexNE RuleNumber
@@ -98,7 +98,6 @@ getFreeRuleNumber = getFreeNumber . map _rNumber <$> getRules
 getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
 getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]
 
---suppresses completly a rule and its environment from the system
 suppressRule :: RuleNumber -> Nomex Bool
 suppressRule rn = RejectRule rn
 
