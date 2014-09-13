@@ -34,7 +34,7 @@ type AssessFunction = VoteStats -> Maybe Bool
 data VoteStats = VoteStats { voteCounts     :: M.Map Bool Int,
                              nbParticipants :: Int,
                              voteFinished   :: Bool}
-                             deriving (Show)
+                             deriving (Show, Typeable)
 
 -- | vote at unanimity every incoming rule
 unanimityVote :: Nomex ()
@@ -49,33 +49,32 @@ callVoteRule assess delay ri = do
 callVoteRule' :: AssessFunction -> UTCTime -> RuleInfo -> Nomex ()
 callVoteRule' assess endTime ri = do
    let title = "Vote for rule: \"" ++ (_rName ri) ++ "\" (#" ++ (show $ _rNumber ri) ++ "):"
-   callVote assess endTime title (activateOrRejectRule ri)
+   callVote assess endTime title (finishVote assess ri)
+
+-- | actions to do when the vote is finished
+finishVote :: AssessFunction -> RuleInfo -> [(PlayerNumber, Maybe Bool)] -> Nomex ()
+finishVote assess ri vs = do
+       let passed = fromJust $ assess $ getVoteStats (map snd vs) True
+       activateOrRejectRule ri passed
+       void $ outputAll $ showFinishedVote (_rNumber ri) passed vs
+
 
 -- | call a vote for every players, with an assessing function, a delay and a function to run on the result
-callVote :: AssessFunction -> UTCTime -> String -> (Bool -> Nomex ()) -> Nomex ()
+callVote :: AssessFunction -> UTCTime -> String -> ([(PlayerNumber, Maybe Bool)] -> Nomex ()) -> Nomex ()
 callVote assess endTime title payload = do
    en <- onEventOnce (voteWith endTime assess title) payload
    displayVote en
 
 -- | vote with a function able to assess the ongoing votes.
 -- | the vote can be concluded as soon as the result is known.
-voteWith :: UTCTime -> AssessFunction -> String -> Event Bool
+voteWith :: UTCTime -> AssessFunction -> String -> Event [(PlayerNumber, Maybe Bool)]
 voteWith timeLimit assess title = do
    pns <- liftNomexNE getAllPlayerNumbers
    let voteEvents = map (singleVote title) pns
    let timerEvent = timeEvent timeLimit
-   let assess' votes timer = assess $ getVoteStats votes (length pns) timer
-   (vs, ts) <- shortcutVotes voteEvents timerEvent (\a b -> isJust $ assess' a b)
-   return $ fromJust $ assess' vs ts
-
--- | The returned event will fire as soon as the votation is finished (either because of the time out,
--- or enough people voted for the result to be known). It returns the votes casted and the timer state,
--- discarding the remaining events.
-shortcutVotes :: [Event Bool] -> Event UTCTime -> ([Bool] -> Bool -> Bool) -> Event ([Bool], Bool)
-shortcutVotes votes timer assess = do
-   let assess' vs t = assess vs (not $ null t)
-   (vs, ts) <- shortcut2 votes [timer] assess'
-   return (vs, not $ null ts)
+   let isFinished votes timer = isJust $ assess $ getVoteStats votes timer
+   (vs, _)<- shortcut2b voteEvents timerEvent isFinished
+   return $ zip pns vs
 
 
 -- trigger the display of a radio button choice on the player screen, yelding either True or False.
@@ -105,10 +104,10 @@ withQuorum f minNbVotes = \voteStats -> if (voted voteStats) >= minNbVotes
                                         then f voteStats
                                         else if voteFinished voteStats then Just False else Nothing
 
-getVoteStats :: [Bool] -> Int -> Bool -> VoteStats
-getVoteStats votes npPlayers finished = VoteStats
-   {voteCounts   = M.fromList $ counts votes,
-    nbParticipants = npPlayers,
+getVoteStats :: [Maybe Bool] -> Bool -> VoteStats
+getVoteStats votes finished = VoteStats
+   {voteCounts   = M.fromList $ counts (catMaybes votes),
+    nbParticipants = length votes,
     voteFinished = finished}
 
 counts :: (Eq a, Ord a) => [a] -> [(a, Int)]
@@ -156,9 +155,6 @@ getBooleanResult (pn, SomeData sd) = case (cast sd) of
    Just a  -> (pn, a)
    Nothing -> error "incorrect vote field"
 
-showChoice :: Maybe Bool -> String
-showChoice (Just a) = show a
-showChoice Nothing  = "Not Voted"
 
 showOnGoingVote :: [(PlayerNumber, Maybe Bool)] -> NomexNE String
 showOnGoingVote [] = return "Nobody voted yet"
@@ -166,21 +162,18 @@ showOnGoingVote listVotes = do
    list <- mapM showVote listVotes
    return $ "Votes:" ++ "\n" ++ concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
 
-showFinishedVote :: [(PlayerNumber, Maybe Bool)] -> NomexNE String
-showFinishedVote l = do
+showFinishedVote :: RuleNumber -> Bool -> [(PlayerNumber, Maybe Bool)] -> NomexNE String
+showFinishedVote rn passed l = do
+   let title = "Vote finished for rule #" ++ (show rn) ++ ", passed: " ++ (show passed)
    let voted = filter (\(_, r) -> isJust r) l
    votes <- mapM showVote voted
-   return $ intercalate ", " $ map (\(name, vote) -> name ++ ": " ++ vote) votes
+   return $ title ++ " (" ++ (intercalate ", " $ map (\(name, vote) -> name ++ ": " ++ vote) votes) ++ ")"
 
 showVote :: (PlayerNumber, Maybe Bool) -> NomexNE (String, String)
 showVote (pn, v) = do
    name <- showPlayer pn
    return (name, showChoice v)
-                                              
---displayVoteResult :: (Votable a) => String -> VoteData a -> Nomex OutputNumber
---displayVoteResult toVoteName (VoteData msgEnd voteVar _ _ _) = onMessage msgEnd $ \result -> do
---   vs <- getMsgVarData_ voteVar
---   votes <- liftEffect $ showFinishedVote vs
---   void $ outputAll_ $ "Vote result for " ++ toVoteName ++ ": " ++ showChoices result ++ " (" ++ votes ++ ")"
 
-
+showChoice :: Maybe Bool -> String
+showChoice (Just a) = show a
+showChoice Nothing  = "Not voted"
