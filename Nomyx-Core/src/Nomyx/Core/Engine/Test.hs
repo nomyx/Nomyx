@@ -23,6 +23,7 @@ import Data.Function hiding ((.))
 import Data.Maybe
 import Control.Applicative
 import Control.Category hiding ((.))
+import Control.Shortcut
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
 date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
@@ -373,7 +374,7 @@ testShorcutEvent = do
    let displayMsg a = void $ newOutput_ Nothing (concat a)
    let e = do
        let a = inputText 1 ""
-       shortcutEvents [a,a] (\as -> length as == 1)
+       shortcut [a,a] (\as -> length as == 1)
    void $ onEvent_ e displayMsg
 
 testShorcutEventEx = isOutput "coco1" g where

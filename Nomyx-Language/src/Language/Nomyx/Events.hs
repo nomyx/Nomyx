@@ -13,7 +13,6 @@ module Language.Nomyx.Events (
    oneWeek, oneDay, oneHour, oneMinute,
    timeEvent, messageEvent, victoryEvent, playerEvent, ruleEvent,
    baseEvent, baseInputEvent,
-   shortcutEvents, shortcutEvents2,
    liftNomexNE
    ) where
 
@@ -21,6 +20,7 @@ import Language.Nomyx.Expression
 import Data.Typeable
 import Control.Monad.State
 import Control.Applicative
+import Control.Shortcut
 import Data.List
 import Data.Maybe
 import Data.Either
@@ -149,26 +149,6 @@ ruleEvent re = BaseEvent $ RuleEv re
 
 baseInputEvent :: (Typeable a) => PlayerNumber -> String -> (InputForm a) -> Field a
 baseInputEvent pn s iform = Input pn s iform
-
-shortcutEvents :: [Event a] -> ([a] -> Bool) -> Event [a]
-shortcutEvents = ShortcutEvents
-
-shortcutEvents2 :: [Event a] -> [Event b] -> ([a] -> [b] -> Bool) -> Event ([a], [b])
-shortcutEvents2 as bs f = partitionEithers <$> shortcutEvents ((map (Left <$>) as) ++ (map (Right <$>) bs)) f' where
-   f' as = f (lefts as) (rights as)
-
-getVotes' :: [VoteTimer] -> [Bool]
-getVotes' = mapMaybe getVote
-
-isTimeOut :: [VoteTimer] -> Bool
-isTimeOut vts = TimeOut `elem` vts
-
-getVote :: VoteTimer -> Maybe Bool
-getVote (Vote a) = Just a
-getVote _        = Nothing
-
-data VoteTimer = Vote Bool | TimeOut deriving (Eq, Show, Ord)
-
 
 liftNomexNE :: NomexNE a -> Event a
 liftNomexNE = LiftNomexNE

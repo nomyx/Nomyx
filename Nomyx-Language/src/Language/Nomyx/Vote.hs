@@ -21,6 +21,7 @@ import Data.Typeable
 import Data.Time hiding (getCurrentTime)
 import Control.Arrow
 import Control.Applicative
+import Control.Shortcut
 import Data.List
 import qualified Data.Map as M
 import Debug.Trace
@@ -73,7 +74,7 @@ voteWith timeLimit assess title = do
 shortcutVotes :: [Event Bool] -> Event UTCTime -> ([Bool] -> Bool -> Bool) -> Event ([Bool], Bool)
 shortcutVotes votes timer assess = do
    let assess' vs t = assess vs (not $ null t)
-   (vs, ts) <- shortcutEvents2 votes [timer] assess'
+   (vs, ts) <- shortcut2 votes [timer] assess'
    return (vs, not $ null ts)
 
 

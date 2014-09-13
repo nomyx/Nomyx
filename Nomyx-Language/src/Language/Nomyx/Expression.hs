@@ -19,6 +19,7 @@ import GHC.Generics
 import Control.Applicative hiding (Const)
 import Data.Lens.Template
 import Control.Monad.Error
+import Control.Shortcut
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -198,6 +199,9 @@ instance Monad Event where
 instance MonadPlus Event where
    mplus = SumEvent
    mzero = EmptyEvent
+
+instance Shortcutable Event where
+   shortcut = ShortcutEvents
 
 -- EventInfo
 

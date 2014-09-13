@@ -54,6 +54,7 @@ library
                      Language.Nomyx.Rules
                      Language.Nomyx.Vote
                      Paths_Nomyx_Language
+                     Control.Shortcut
     exposed: True
     buildable: True
     hs-source-dirs: src
