@@ -37,4 +37,6 @@ fromEither :: Either [a] b -> Todo a b
 fromEither (Left as) = Todo as
 fromEither (Right a) = Done a
 
-
+toMaybe :: Todo a b -> Maybe b
+toMaybe (Todo _) = Nothing
+toMaybe (Done a) = Just a

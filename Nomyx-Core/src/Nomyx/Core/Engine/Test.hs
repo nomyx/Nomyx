@@ -371,10 +371,10 @@ testMonadicEventEx = isOutput "coco2" g where
 
 testShorcutEvent :: Rule
 testShorcutEvent = do
-   let displayMsg a = void $ newOutput_ Nothing (concat a)
+   let displayMsg a = void $ newOutput_ Nothing (concat $ catMaybes a)
    let e = do
        let a = inputText 1 ""
-       shortcut [a,a] (\as -> length as == 1)
+       shortcut [a,a] (\as -> length (filter isJust as) == 1)
    void $ onEvent_ e displayMsg
 
 testShorcutEventEx = isOutput "coco1" g where

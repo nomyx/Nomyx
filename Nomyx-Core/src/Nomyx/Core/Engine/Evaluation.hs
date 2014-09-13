@@ -326,10 +326,9 @@ getEventResult' (BaseEvent a)  ers fa = return $ case lookupField a fa ers of
 
 getEventResult' (ShortcutEvents es f) ers fa = do
   ers <- mapM (\i -> getEventResult' (es!!i) ers (fa ++ [Index i]) ) [0.. (length es -1)]
-  let res = partitionEithers $ toEither <$> ers
-  case f (snd res) of
-     True  -> return $ Done $ snd res
-     False -> return $ Todo $ join $ fst res
+  case f (toMaybe <$> ers) of
+     True  -> return $ Done $ toMaybe <$> ers
+     False -> return $ Todo $ join $ lefts $ toEither <$> ers
 
 -- trigger an event
 triggerEvent :: (Typeable e, Show e) => Field e -> e -> Evaluate ()
