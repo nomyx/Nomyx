@@ -309,26 +309,20 @@ getEventResult :: Event a -> [FieldResult] -> EvaluateNE (Todo (FieldAddress, So
 getEventResult e frs = getEventResult' e frs []
 
 getEventResult' :: Event a -> [FieldResult] -> FieldAddress -> EvaluateNE (Todo (FieldAddress, SomeField) a)
-getEventResult' (PureEvent a)  _   _  = return $ Done a
-getEventResult' EmptyEvent     _   _  = return $ Todo []
-getEventResult' (SumEvent a b) ers fa = do
-   er1 <- getEventResult' a ers (fa ++ [SumL])
-   er2 <- getEventResult' b ers (fa ++ [SumR])
-   return $ er1 <|> er2
-getEventResult' (AppEvent f b) ers fa = do
-   er1 <- getEventResult' f ers (fa ++ [AppL])
-   er2 <- getEventResult' b ers (fa ++ [AppR])
-   return $ er1 <*> er2
-
+getEventResult' (PureEvent a)   _   _  = return $ Done a
+getEventResult'  EmptyEvent     _   _  = return $ Todo []
+getEventResult' (SumEvent a b)  ers fa = liftM2 (<|>) (getEventResult' a ers (fa ++ [SumL])) (getEventResult' b ers (fa ++ [SumR]))
+getEventResult' (AppEvent f b)  ers fa = liftM2 (<*>) (getEventResult' f ers (fa ++ [AppL])) (getEventResult' b ers (fa ++ [AppR]))
+getEventResult' (LiftNomexNE a) _   _  = evalNomexNE a >>= return . Done
 getEventResult' (BindEvent a f) ers fa = do
    er <- getEventResult' a ers (fa ++ [BindL])
    case er of
       Done a' -> getEventResult' (f a') ers (fa ++ [BindR])
       Todo bs -> return $ Todo bs
 
-getEventResult' (BaseEvent a)  ers fa = case lookupField a fa ers of
-   Just r  -> return $ Done r
-   Nothing -> return $ Todo [(fa, SomeField a)]
+getEventResult' (BaseEvent a)  ers fa = return $ case lookupField a fa ers of
+   Just r  -> Done r
+   Nothing -> Todo [(fa, SomeField a)]
 
 getEventResult' (ShortcutEvents es f) ers fa = do
   ers <- mapM (\i -> getEventResult' (es!!i) ers (fa ++ [Index i]) ) [0.. (length es -1)]
@@ -336,11 +330,6 @@ getEventResult' (ShortcutEvents es f) ers fa = do
   case f (snd res) of
      True  -> return $ Done $ snd res
      False -> return $ Todo $ join $ fst res
-
-getEventResult' (LiftNomexNE a) _ _ = do
-   a <- evalNomexNE a
-   return $ Done a
-
 
 -- trigger an event
 triggerEvent :: (Typeable e, Show e) => Field e -> e -> Evaluate ()
