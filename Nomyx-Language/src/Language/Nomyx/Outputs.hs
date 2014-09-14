@@ -25,11 +25,11 @@ import Control.Applicative
 
 -- * Outputs
 
--- | outputs a message to one player
+-- | outputs a message to one player, dynamic version
 newOutput :: Maybe PlayerNumber -> NomexNE String -> Nomex OutputNumber
 newOutput = NewOutput
 
--- | outputs a message to one player
+-- | outputs a message to one player, static version
 newOutput_ :: Maybe PlayerNumber -> String -> Nomex OutputNumber
 newOutput_ ns mpn = NewOutput ns (return mpn)
 

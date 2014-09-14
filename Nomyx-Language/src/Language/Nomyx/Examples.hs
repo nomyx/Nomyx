@@ -19,12 +19,13 @@ module Language.Nomyx.Examples(
    makeKing,
    monarchy,
    revolution,
-   displayTime,
+   displayCurrentTime,
+   displayActivateTime,
    iWin,
    returnToDemocracy,
    victoryXRules,
    victoryXEcu,
-   --noGroupVictory,
+   noGroupVictory,
    banPlayer,
 --   referendum,
 --   referendumOnKickPlayer,
@@ -121,20 +122,21 @@ king :: MsgVar PlayerNumber
 king = msgVar "King"
 
 -- | Monarchy: only the king decides which rules to accept or reject
-monarchy :: Rule
-monarchy = void $ onEvent_ (ruleEvent Proposed) $ \rule -> do
-    k <- readMsgVar_ king
-    void $ onInputRadioOnce ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") [True, False] (activateOrRejectRule rule) k
+monarchy :: PlayerNumber -> Rule
+monarchy pn = do
+   makeKing pn
+   void $ onEvent_ (ruleEvent Proposed) $ \rule -> do
+      k <- readMsgVar_ king
+      void $ onInputRadioOnce ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") [True, False] (activateOrRejectRule rule) k
 
 -- | Revolution! Hail to the king!
 -- This rule suppresses the democracy (usually rules 1 and 2), installs the king and activates monarchy.
 revolution :: PlayerNumber -> Rule
-revolution player = do
+revolution pn = do
     suppressRule 1
-    makeKing player
-    rNum <- addRuleParams "Monarchy" monarchy "monarchy" "Monarchy: only the king can vote on new rules"
+    rNum <- addRule' "Monarchy" (monarchy pn) ("monarchy " ++ (show pn)) "Monarchy: only the king can vote on new rules"
     activateRule_ rNum
-    --autoDelete
+    autoDelete
 
 -- | set the victory for players having more than X accepted rules
 victoryXRules :: Int -> Rule
@@ -151,17 +153,27 @@ victoryXEcu x = setVictory $ do
     let victorious as = map fst $ filter ((>= x) . snd) as
     return $ maybe [] victorious as
 
--- | will display the time to all players in 5 seconds
-displayTime :: Rule
-displayTime = void $ outputAll $ do
+-- | will display the current time (when refreshing the screen)
+displayCurrentTime :: Rule
+displayCurrentTime = void $ outputAll $ do
     t <- getCurrentTime
-    return $ show t
+    return $ "The current time is: " ++ (show t)
+
+-- | will display the time at which the rule as been activated
+displayActivateTime :: Nomex ()
+displayActivateTime = do
+   time <- liftEffect getCurrentTime
+   outputAll_ $ "This rule was activated at: " ++ (show time)
 
 -- | Only one player can achieve victory: No group victory.
 -- Forbidding group victory usually becomes necessary when lowering the voting quorum:
 -- a coalition of players could simply force a "victory" rule and win the game.
---noGroupVictory ::  RuleFunc
---noGroupVictory = ruleFunc $ onEvent_ Victory $ \(VictoryData ps) -> when (length ps >1) $ setVictory []
+noGroupVictory ::  Rule
+noGroupVictory = do
+   let testVictory (VictoryInfo _ cond) = do
+       vics <- liftEffect cond
+       when (length vics >1) $ setVictory (return []) --unset victory condition
+   void $ onEvent_ victoryEvent testVictory
 
 -- | Rule that state that you win. Good luck on having this accepted by other players ;)
 iWin :: Rule
@@ -179,7 +191,7 @@ voteWithMajority = onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDa
 returnToDemocracy :: [RuleNumber] -> Rule
 returnToDemocracy rs = do
    mapM_ suppressRule rs
-   rNum <- addRuleParams "vote with majority" voteWithMajority "voteWithMajority" "majority with a quorum of 2"
+   rNum <- addRule' "vote with majority" voteWithMajority "voteWithMajority" "majority with a quorum of 2"
    activateRule_ rNum
    autoDelete
 
