@@ -39,9 +39,7 @@ type InputNumber = Int
 
 -- * Nomyx Expression
 
-data Eff = Effect | NoEffect --deriving (Typeable)
---deriving instance Typeable 'Effect
---deriving instance Typeable 'NoEffect
+data Eff = Effect | NoEffect deriving (Typeable)
 
 type Effect = 'Effect
 type NoEffect = 'NoEffect
@@ -92,19 +90,16 @@ data Exp :: Eff -> * -> *   where
    CatchError     :: Nomex a -> (String -> Nomex a) -> Nomex a
    LiftEffect     :: NomexNE a -> Nomex a
    Simu           :: Nomex a -> NomexNE Bool -> NomexNE Bool
+
+
 #if __GLASGOW_HASKELL__ >= 708
-     deriving (Typeable)
-#endif
-
-
-
-
-#if __GLASGOW_HASKELL__ < 708
+deriving instance Typeable Exp
+deriving instance Typeable 'Effect
+deriving instance Typeable 'NoEffect
+#else
 instance Typeable1 (Exp NoEffect) where
     typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp NoEffect") []
-#endif
 
-#if __GLASGOW_HASKELL__ < 708
 instance Typeable1 (Exp Effect) where
     typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp Effect") []
 #endif
