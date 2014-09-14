@@ -390,6 +390,7 @@ getChoiceEvents = do
 
 getInputChoices :: EventInfo -> Game -> [FieldAddress]
 getInputChoices ei g = mapMaybe isInput (getEventFields ei g) where
+   isInput :: (t, SomeField) -> Maybe t
    isInput (fa, (SomeField (Input _ _ (Radio _)))) = Just fa
    isInput _ = Nothing
 
