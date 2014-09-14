@@ -20,7 +20,7 @@ library
                    MissingH               == 1.2.*,
                    acid-state             == 0.12.*,
                    aeson                  == 0.7.*,
-                   base                   == 4.6.*,
+                   base                   >= 4.6 && <5,
                    blaze-html             == 0.7.*,
                    blaze-markup           == 0.6.*,
                    bytestring             == 0.10.*,
@@ -46,13 +46,13 @@ library
                    stm                    == 2.4.*,
                    tar                    == 0.4.*,
                    temporary              == 1.1.*,
-                   template-haskell       == 2.8.*,
+                   template-haskell       >= 2.8 && < 2.10,
                    text                   == 1.1.*,
                    time                   == 1.4.*
     if os(windows)
         Cpp-options: -DWINDOWS
     else
-        build-depends: unix == 2.6.*
+        build-depends: unix >= 2.6 && < 3
 
     extensions: CPP
     exposed: True

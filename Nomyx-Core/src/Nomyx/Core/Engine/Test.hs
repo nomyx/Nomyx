@@ -402,6 +402,7 @@ getTextEvents = do
 
 getInputTexts :: EventInfo -> Game -> [FieldAddress]
 getInputTexts ei g = mapMaybe isInput (getEventFields ei g) where
+   isInput :: (t, SomeField) -> Maybe t
    isInput (fa, (SomeField (Input _ _ Text))) = Just fa
    isInput _ = Nothing
 
