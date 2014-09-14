@@ -1,5 +1,5 @@
 name: Nomyx-Language
-version: 0.6.2
+version: 0.7.0
 cabal-version: >=1.6
 ---Warning: to use "cabal sdist", this patch is needed in cabal: https://github.com/haskell/cabal/pull/1110
 ---This allows cabal to work with exported generated modules (Paths_Nomyx_Language)
@@ -32,12 +32,12 @@ extra-source-files: AUTHORS README
 library
     build-depends: DebugTraceHelpers  == 0.12.*,
                    Boolean            == 0.2.*,
-                   base               == 4.6.*,
+                   base               >= 4.6 && <= 5,
                    containers         == 0.5.*,
                    data-lens          == 2.10.*,
                    data-lens-template == 2.1.*,
                    data-lens-fd       == 2.0.*,
-                   ghc                == 7.6.*,
+                   ghc                >= 7.6 && <= 7.10,
                    mtl                == 2.1.*,
                    old-locale         == 1.0.*,
                    safe               == 0.3.*,
