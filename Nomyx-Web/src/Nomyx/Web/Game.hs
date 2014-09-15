@@ -367,8 +367,8 @@ newPlayAs gn ts = toResponse <$> do
 
 inputForm :: SomeField -> NomyxForm InputData
 inputForm (SomeField (Input _ _ (Radio choices)))    = RadioData    <$> NWC.inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label " "
-inputForm (SomeField (Input _ _ Text))               = TextData     <$> RB.inputText "" <++ label " "
-inputForm (SomeField (Input _ _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label " "
+inputForm (SomeField (Input _ _ Text))               = TextData     <$> RB.inputText "" <++ label (" " :: String)
+inputForm (SomeField (Input _ _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
 inputForm (SomeField (Input _ _ Button))             = pure ButtonData
 inputForm (SomeField (Input _ _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label " "
 inputForm _ = error "Not an input form"
