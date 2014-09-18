@@ -18,5 +18,5 @@ deb:
 	cd install_root && fpm -s dir -t deb -n nomyx -v $(version) -d aptitude --prefix / .
 
 deploy:
-	scp kau@ec2-54-235-196-19.compute-1.amazonaws.com 
+	scp nomyx_$(version)_amd64.deb kau@ec2-54-235-196-19.compute-1.amazonaws.com
         
