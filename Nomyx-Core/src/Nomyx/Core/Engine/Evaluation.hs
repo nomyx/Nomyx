@@ -152,6 +152,7 @@ evRejectRule rn = do
          delVarsRule rn
          delEventsRule rn
          delOutputsRule rn
+         delVictoryRule rn
          return True
 
 evAddRule :: RuleInfo -> Evaluate Bool
@@ -427,6 +428,14 @@ delOutputsRule rn = do
    let toDelete = filter ((== rn) . getL oRuleNumber) os
    mapM_ (evDelOutput . _outputNumber) toDelete
 
+--delete victory of a rule
+delVictoryRule :: RuleNumber -> Evaluate ()
+delVictoryRule rn = do
+   vic <- access (eGame >>> victory)
+   guard (isJust vic) >>
+      guard (Language.Nomyx.Expression._vRuleNumber (fromJust vic) == rn) >>
+         (eGame >>> victory) ~= Nothing
+   return ()
 
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
