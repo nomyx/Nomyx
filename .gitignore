@@ -8,3 +8,5 @@ cabal-dev
 .virthualenv
 *~
 *.swp
+.cabal*
+cabal*
