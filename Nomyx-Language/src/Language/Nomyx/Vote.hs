@@ -47,23 +47,22 @@ callVoteRule assess delay ri = do
    callVoteRule' assess endTime ri
 
 callVoteRule' :: AssessFunction -> UTCTime -> RuleInfo -> Nomex ()
-callVoteRule' assess endTime ri = do
-   let title = "Vote for rule: \"" ++ (_rName ri) ++ "\" (#" ++ (show $ _rNumber ri) ++ "):"
-   callVote assess endTime title (finishVote assess ri)
+callVoteRule' assess endTime ri = callVote assess endTime (_rName ri) (_rNumber ri) (finishVote assess ri)
 
 -- | actions to do when the vote is finished
 finishVote :: AssessFunction -> RuleInfo -> [(PlayerNumber, Maybe Bool)] -> Nomex ()
 finishVote assess ri vs = do
-       let passed = fromJust $ assess $ getVoteStats (map snd vs) True
-       activateOrRejectRule ri passed
-       void $ outputAll $ showFinishedVote (_rNumber ri) passed vs
+   let passed = fromJust $ assess $ getVoteStats (map snd vs) True
+   activateOrRejectRule ri passed
+   void $ outputAll $ showFinishedVote (_rNumber ri) passed vs
 
 
 -- | call a vote for every players, with an assessing function, a delay and a function to run on the result
-callVote :: AssessFunction -> UTCTime -> String -> ([(PlayerNumber, Maybe Bool)] -> Nomex ()) -> Nomex ()
-callVote assess endTime title payload = do
+callVote :: AssessFunction -> UTCTime -> String -> RuleNumber -> ([(PlayerNumber, Maybe Bool)] -> Nomex ()) -> Nomex ()
+callVote assess endTime name rn payload = do
+   let title = "Vote for rule: \"" ++ name ++ "\" (#" ++ (show rn) ++ "):"
    en <- onEventOnce (voteWith endTime assess title) payload
-   displayVote en
+   displayVote en rn
 
 -- | vote with a function able to assess the ongoing votes.
 -- | the vote can be concluded as soon as the result is known.
@@ -134,13 +133,13 @@ voted, notVoted :: VoteStats -> Int
 notVoted    vs = (nbParticipants vs) - (voted vs)
 voted       vs = M.findWithDefault 0 True (voteCounts vs) + M.findWithDefault 0 False (voteCounts vs)
 
-displayVote :: EventNumber -> Nomex ()
-displayVote en = void $ outputAll $ do
+displayVote :: EventNumber -> RuleNumber -> Nomex ()
+displayVote en rn = void $ outputAll $ do
    mds <- getIntermediateResults en
    let mbs = map getBooleanResult <$> mds
    pns <- getAllPlayerNumbers
    case mbs of
-      Just bs -> showOnGoingVote $ getVotes pns bs
+      Just bs -> showOnGoingVote (getVotes pns bs) rn
       Nothing -> return ""
 
 getVotes :: [PlayerNumber] -> [(PlayerNumber, Bool)] -> [(PlayerNumber, Maybe Bool)]
@@ -155,12 +154,11 @@ getBooleanResult (pn, SomeData sd) = case (cast sd) of
    Just a  -> (pn, a)
    Nothing -> error "incorrect vote field"
 
-
-showOnGoingVote :: [(PlayerNumber, Maybe Bool)] -> NomexNE String
-showOnGoingVote [] = return "Nobody voted yet"
-showOnGoingVote listVotes = do
+showOnGoingVote :: [(PlayerNumber, Maybe Bool)] -> RuleNumber -> NomexNE String
+showOnGoingVote [] rn = return $ "Votes for rule #" ++ (show rn) ++ ": Nobody voted yet"
+showOnGoingVote listVotes rn = do
    list <- mapM showVote listVotes
-   return $ "Votes:" ++ "\n" ++ concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
+   return $ "Votes for rule #" ++ (show rn) ++ ":" ++ "\n" ++ concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
 
 showFinishedVote :: RuleNumber -> Bool -> [(PlayerNumber, Maybe Bool)] -> NomexNE String
 showFinishedVote rn passed l = do

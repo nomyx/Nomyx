@@ -202,7 +202,7 @@ viewIORule :: PlayerNumber -> Game -> RuleInfo -> RoutedNomyxServer Html
 viewIORule pn g r = do
    vior <- viewIORuleM pn (_rNumber r) g
    ok $ when (isJust vior) $ div ! A.id "IORule" $ do
-      div ! A.id "IORuleTitle" $ h4 $ fromString $ "IO for Rule \"" ++ _rName r ++ "\" (#" ++ (show $ _rNumber r) ++ "):"
+      div ! A.id "IORuleTitle" $ h4 $ fromString $ "Rule #" ++ (show $ _rNumber r) ++ " \"" ++ _rName r ++ "\": "
       fromJust vior
 
 

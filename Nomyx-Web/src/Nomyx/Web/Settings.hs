@@ -155,7 +155,7 @@ advancedPage mlu isAdmin settings pfds = do
             NoUpload -> p ""
       hr
       p $ do
-         h5 "Enter admin password to get admin rights (necessary to create a new game):"
+         h5 "Enter admin password to get admin rights (necessary to create public games):"
          blazeForm ap submitAdminPass
          when isAdmin $ h5 "You are admin"
       when isAdmin $ do

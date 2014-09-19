@@ -40,7 +40,7 @@ newGame' :: GameName -> GameDesc -> PlayerNumber -> Bool -> ServerHandle -> Stat
 newGame' name desc pn isPublic sh = do
       gs <- access gameInfos
       if not $ any ((== name) . getL gameNameLens) gs then do
-         tracePN pn $ "Creating a new game of name: " ++ name
+         tracePN pn $ "Creating a new game with name: " ++ name
          t <- lift T.getCurrentTime
          -- create a game with zero players
          lg <- lift $ initialGameInfo name desc isPublic (Just pn) t sh
