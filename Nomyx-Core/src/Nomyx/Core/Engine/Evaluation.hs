@@ -24,7 +24,7 @@ import Control.Category hiding (id)
 import Control.Applicative
 import Control.Monad.Error.Class (MonadError(..))
 import Language.Nomyx.Expression
-import Nomyx.Core.Engine.Types
+import Nomyx.Core.Engine.Types hiding (_vRuleNumber)
 import Nomyx.Core.Engine.EvalUtils
 import Nomyx.Core.Engine.Utils
 
@@ -432,10 +432,8 @@ delOutputsRule rn = do
 delVictoryRule :: RuleNumber -> Evaluate ()
 delVictoryRule rn = do
    vic <- access (eGame >>> victory)
-   guard (isJust vic) >>
-      guard (Language.Nomyx.Expression._vRuleNumber (fromJust vic) == rn) >>
-         (eGame >>> victory) ~= Nothing
-   return ()
+   when (isJust vic && _vRuleNumber (fromJust vic) == rn) $ void $ (eGame >>> victory) ~= Nothing
+
 
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
