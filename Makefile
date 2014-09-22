@@ -1,5 +1,6 @@
 version := 0.7.0
 installroot := Nomyx-$(version)/
+deployroot := /home/cdupont/tmp/Nomyx
 
 cibuild: cabalinstall deb
 
@@ -24,5 +25,5 @@ upload:
 	scp Nomyx-$(version).tar.gz kau@www.nomyx.net:
       
 deploy:
-	ssh kau@www.nomyx.net "tar -xzvf Nomyx-0.7.0.tar.gz; cd $(installroot); ./launchNomyx.sh"
+	ssh kau@www.nomyx.net "tar -xzvf $(installroot).tar.gz; mv $(installroot) $(deployroot); cd $(deployroot); ./launchNomyx.sh"
 
