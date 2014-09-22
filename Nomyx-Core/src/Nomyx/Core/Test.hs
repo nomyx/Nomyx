@@ -136,7 +136,7 @@ submitR r = do
    onePlayerOneGame
    sh <- access sh
    submitRule (SubmitRule "" "" r) 1 "test" sh
-   inputAllRadios 0 1
+   inputAllRadios 0
 
 testFile' :: FilePath -> FilePath -> String -> StateT Session IO Bool
 testFile' path name func = do
@@ -144,7 +144,7 @@ testFile' path name func = do
    dataDir <- lift PNC.getDataDir
    res <- inputUpload 1 (dataDir </> testDir </> path) name sh
    submitRule (SubmitRule "" "" func) 1 "test" sh
-   inputAllRadios 0 1
+   inputAllRadios 0
    return res
 
 testFile :: FilePath -> String -> StateT Session IO Bool
@@ -165,8 +165,7 @@ gameHelloWorld2Players = do
    twoPlayersOneGame
    sh <- access sh
    submitRule (SubmitRule "" "" [cr|helloWorld|]) 1 "test" sh
-   inputAllRadios 0 1
-   inputAllRadios 0 2
+   inputAllRadios 0
 
 condHelloWorld2Players :: Multi -> Bool
 condHelloWorld2Players = isOutput' "hello, world!"
@@ -180,8 +179,7 @@ gameMoneyTransfer = do
    submitRule (SubmitRule "" "" [cr|createBankAccount|]) 1 "test" sh
    submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 "test" sh
    submitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2 "test" sh
-   inputAllRadios 0 1
-   inputAllRadios 0 2
+   inputAllRadios 0
    inputAllTexts "50" 1
 
 condMoneyTransfer :: Multi -> Bool
@@ -312,19 +310,19 @@ testFileUnsafeIO = do
 isOutput' :: String -> Multi -> Bool
 isOutput' s m = any (isOutput s . _game . _loggedGame) (_gameInfos m)
 
--- select first choice for all radio buttons
-inputAllRadios :: Int -> PlayerNumber -> StateT Session IO ()
-inputAllRadios choice pn = do
+-- select a choice for all radio buttons
+inputAllRadios :: Int -> StateT Session IO ()
+inputAllRadios choice = do
    s <- get
    let evs = evalState getChoiceEvents (EvalEnv 0 (firstGame $ _multi s))
-   mapM_ (\(en, inum) -> inputResult pn en inum (RadioData choice) "test") evs
+   mapM_ (\(en, fa, pn, t) -> inputResult pn en fa (RadioField pn t [(0,"For"),(1,"Against")]) (RadioData choice) "test") evs
 
 -- input text for all text fields
 inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
 inputAllTexts a pn = do
    s <- get
    let evs = evalState getTextEvents (firstGame $ _multi s)
-   mapM_ (\(en, fa) -> inputResult pn en fa (TextData a) "test") evs
+   mapM_ (\(en, fa) -> inputResult pn en fa (TextField 1 "") (TextData a) "test") evs
 
 firstGame :: Multi -> Game
 firstGame = G._game . _loggedGame . head . _gameInfos

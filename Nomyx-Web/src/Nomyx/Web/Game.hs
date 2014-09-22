@@ -73,7 +73,7 @@ viewGameDesc g playAs gameAdmin = do
          fromString (_desc $ _gameDesc g)
       p $ h4 $ "This game is discussed in the " >> a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g)) >> "."
       p $ h4 "Players in game:"
-      when gameAdmin "(click on the player's name to \"play as\" this player)"
+      when gameAdmin "(click on a player name to \"play as\" this player)"
       vp
       p $ viewVictory g
 
@@ -247,7 +247,7 @@ viewInput _ _ _ = return Nothing
 viewInput' :: PlayerNumber -> GameName -> EventNumber -> (FieldAddress, SomeField) -> RoutedNomyxServer (Maybe Html)
 viewInput' me gn en (fa, ev@(SomeField (Input pn title _))) | me == pn = do
   lf  <- lift $ viewForm "user" $ inputForm ev
-  link <- showURL (DoInput en fa gn)
+  link <- showURL (DoInput en fa (fromJust $ getFormField ev) gn)
   return $ Just $ tr $ td $ do
      fromString title
      fromString " "
@@ -333,22 +333,16 @@ viewLog (Log _ t s) = tr $ do
    td $ p $ fromString s
 
 -- | a form result has been sent
-newInput :: EventNumber -> FieldAddress -> GameName -> TVar Session -> RoutedNomyxServer Response
-newInput en fa gn ts = toResponse <$> do
-    pn <- fromJust <$> getPlayerNumber ts
-    s <- liftIO $ atomically $ readTVar ts
-    let lg = _loggedGame $ fromJust $ find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s)
-    let ei = getEventInfo en lg
-    methodM POST
-    case (getInput ei fa (_game lg)) of
-       Nothing -> error "Input not found"
-       Just bs -> do
-          r <- liftRouteT $ eitherForm environment "user" (inputForm bs)
-          link <- showURL MainPage
-          case r of
-             (Right c) -> webCommand ts $ S.inputResult pn en fa c gn
-             (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
-          seeOther (link `appendAnchor` inputAnchor) "Redirecting..."
+newInput :: EventNumber -> FieldAddress -> FormField -> GameName -> TVar Session -> RoutedNomyxServer Response
+newInput en fa ft gn ts = toResponse <$> do
+   pn <- fromJust <$> getPlayerNumber ts
+   link <- showURL MainPage
+   methodM POST
+   r <- liftRouteT $ eitherForm environment "user" (inputForm' ft)
+   case r of
+      (Right c) -> webCommand ts $ S.inputResult pn en fa ft c gn
+      (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
+   seeOther (link `appendAnchor` inputAnchor) "Redirecting..."
 
 newPlayAs :: GameName -> TVar Session -> RoutedNomyxServer Response
 newPlayAs gn ts = toResponse <$> do
@@ -364,7 +358,7 @@ newPlayAs gn ts = toResponse <$> do
          settingsLink <- showURL $ SubmitPlayAs gn
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
 
-
+-- TODO: merge SomeField and FormField...
 inputForm :: SomeField -> NomyxForm InputData
 inputForm (SomeField (Input _ _ (Radio choices)))    = RadioData    <$> NWC.inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label (" " :: String)
 inputForm (SomeField (Input _ _ Text))               = TextData     <$> RB.inputText "" <++ label (" " :: String)
@@ -372,6 +366,14 @@ inputForm (SomeField (Input _ _ TextArea))           = TextAreaData <$> textarea
 inputForm (SomeField (Input _ _ Button))             = pure ButtonData
 inputForm (SomeField (Input _ _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label (" " :: String)
 inputForm _ = error "Not an input form"
+
+
+inputForm' :: FormField -> NomyxForm InputData
+inputForm' (RadioField _ _ choices)    = RadioData    <$> NWC.inputRadio' choices (== 0) <++ label (" " :: String)
+inputForm' (TextField _ _)             = TextData     <$> RB.inputText "" <++ label (" " :: String)
+inputForm' (TextAreaField _ _)         = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
+inputForm' (ButtonField _ _)           = pure ButtonData
+inputForm' (CheckboxField _ _ choices) = CheckboxData <$> inputCheckboxes choices (const False) <++ label (" " :: String)
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do

@@ -27,6 +27,7 @@ import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Types hiding (_vRuleNumber)
 import Nomyx.Core.Engine.EvalUtils
 import Nomyx.Core.Engine.Utils
+import Safe
 
 -- * Evaluation
 
@@ -276,33 +277,45 @@ getEventFields (EventInfo _ rn e _ _ env) g = case runEvaluateNE g rn $ getEvent
    Todo a -> a
 
 -- | Get the field at a certain address
-getInput :: EventInfo -> FieldAddress -> Game -> Maybe SomeField
-getInput ei fa g = runEvaluateNE g (_ruleNumber ei) (findField ei fa)
-
--- | Get the field at a certain address
 --TODO: should we check that the field is not already completed?
-findField :: EventInfo -> FieldAddress -> EvaluateNE (Maybe SomeField)
-findField (EventInfo _ _ e _ _ er) addr = findField' addr e er
+findField :: EventInfo -> FieldAddress -> FormField -> EvaluateNE (Maybe SomeField)
+findField (EventInfo _ _ e _ _ er) addr ft = findField' addr e er ft
 
-findField' :: FieldAddress -> Event e -> [FieldResult] -> EvaluateNE (Maybe SomeField)
-findField' []         (BaseEvent f)    _   = return $ Just $ SomeField f
-findField' (SumL:as)  (SumEvent e1 _)  frs = findField' as e1 (filterPath SumL frs)
-findField' (SumR:as)  (SumEvent _ e2)  frs = findField' as e2 (filterPath SumR frs)
-findField' (AppL:as)  (AppEvent e1 _)  frs = findField' as e1 (filterPath AppL frs)
-findField' (AppR:as)  (AppEvent _ e2)  frs = findField' as e2 (filterPath AppR frs)
-findField' (BindL:as) (BindEvent e1 _) frs = findField' as e1 (filterPath BindL frs)
-findField' ((Index i):as) (ShortcutEvents es _) frs = findField' as (es!!i) frs
-findField' (BindR:as) (BindEvent e1 f) frs = do
+findField' :: FieldAddress -> Event e -> [FieldResult] -> FormField -> EvaluateNE (Maybe SomeField)
+findField' []         (BaseEvent f)    _   ft = do
+   return $ case (getFormField (SomeField f)) of
+      Just ft' -> if (ft' == ft) then Just $ SomeField f else Nothing
+      Nothing -> Just $ SomeField f
+findField' (SumL:as)  (SumEvent e1 _)  frs ft = findField' as e1 (filterPath SumL frs) ft
+findField' (SumR:as)  (SumEvent _ e2)  frs ft = findField' as e2 (filterPath SumR frs) ft
+findField' (AppL:as)  (AppEvent e1 _)  frs ft = findField' as e1 (filterPath AppL frs) ft
+findField' (AppR:as)  (AppEvent _ e2)  frs ft = findField' as e2 (filterPath AppR frs) ft
+findField' (BindL:as) (BindEvent e1 _) frs ft = findField' as e1 (filterPath BindL frs) ft
+findField' (Shortcut:as) (ShortcutEvents es _) frs ft = do
+   msfs <- mapM (\e-> findField' as e frs ft) es
+   return $ headMay $ catMaybes msfs
+
+findField' (BindR:as) (BindEvent e1 f) frs ft = do
    er <- getEventResult e1 (filterPath BindL frs)
    case er of
-      Done e2 -> findField' as (f e2) (filterPath BindR frs)
+      Done e2 -> findField' as (f e2) (filterPath BindR frs) ft
       Todo _  -> return Nothing
-findField' _ _ _ = error "findField: wrong field address"
+findField' _ _ _ _ = error "findField: wrong field address"
 
 filterPath :: FieldAddressElem -> [FieldResult] -> [FieldResult]
 filterPath fa frs = mapMaybe f frs where
    f (FieldResult fe fr (Just (fa':fas))) | fa == fa' = Just $ FieldResult fe fr (Just fas)
    f _ = Nothing
+
+
+getFormField :: SomeField -> Maybe FormField
+getFormField (SomeField (Input pn s (Radio choices)))    = Just $ RadioField pn s (zip [0..] (snd <$> choices))
+getFormField (SomeField (Input pn s Text))               = Just $ TextField pn s
+getFormField (SomeField (Input pn s TextArea))           = Just $ TextAreaField pn s
+getFormField (SomeField (Input pn s Button))             = Just $ ButtonField pn s
+getFormField (SomeField (Input pn s (Checkbox choices))) = Just $ CheckboxField pn s (zip [0..] (snd <$> choices))
+getFormField _ = Nothing
+
 
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some fields results are pending, return that list instead.
@@ -326,7 +339,7 @@ getEventResult' (BaseEvent a)  ers fa = return $ case lookupField a fa ers of
    Nothing -> Todo [(fa, SomeField a)]
 
 getEventResult' (ShortcutEvents es f) ers fa = do
-  ers <- mapM (\i -> getEventResult' (es!!i) ers (fa ++ [Index i]) ) [0.. (length es -1)]
+  ers <- mapM (\e -> getEventResult' e ers (fa ++ [Shortcut])) es
   case f (toMaybe <$> ers) of
      True  -> return $ Done $ toMaybe <$> ers
      False -> return $ Todo $ join $ lefts $ toEither <$> ers
@@ -373,20 +386,20 @@ updateEventInfo (FieldResult field dat addr) ei@(EventInfo _ _ ev _ _ envi) = do
 -- * input triggers
 
 -- trigger the input event with the input data
-triggerInput :: EventNumber -> FieldAddress -> InputData -> Evaluate ()
-triggerInput en fa ir = do
+triggerInput :: EventNumber -> FieldAddress -> FormField -> InputData -> Evaluate ()
+triggerInput en fa ft ir = do
    evs <- access (eGame >>> events)
    let mei = find ((== en) . getL eventNumber) evs
-   when (isJust mei) $ execInputHandler ir fa (fromJust mei)
+   when (isJust mei) $ execInputHandler ir fa ft (fromJust mei)
 
 -- execute the corresponding handler
-execInputHandler :: InputData -> FieldAddress -> EventInfo -> Evaluate ()
-execInputHandler ir fa ei@(EventInfo _ _ _ _ SActive _) = do
-   i <- liftEval $ findField ei fa
+execInputHandler :: InputData -> FieldAddress -> FormField -> EventInfo -> Evaluate ()
+execInputHandler ir fa ft ei@(EventInfo _ _ _ _ SActive _) = do
+   i <- liftEval $ findField ei fa ft
    case i of
       Just sf -> execInputHandler' ir sf fa ei
       Nothing -> logAll "Input not found"
-execInputHandler _ _ _ = return ()
+execInputHandler _ _ _ _ = return ()
 
 -- execute the event handler using the data received from user
 execInputHandler' :: InputData -> SomeField -> FieldAddress -> EventInfo -> Evaluate ()
@@ -453,7 +466,7 @@ displayEvent :: Game -> EventInfo -> String
 displayEvent g ei@(EventInfo en rn _ _ s env) =
    "event num: " ++ (show en) ++
    ", rule num: " ++ (show rn) ++
-   ", event fields: " ++ (show $ getEventFields ei g) ++
+   ", event fields: " ++ (show $ getEventFields ei g) ++ --TODO: display also event result?
    ", envs: " ++ (show env) ++
    ", status: " ++ (show s)
 

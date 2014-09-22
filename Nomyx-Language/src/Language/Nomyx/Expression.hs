@@ -231,7 +231,7 @@ data EventInfo = forall e. (Typeable e, Show e) =>
               _evStatus    :: Status,
               _env         :: [FieldResult]}
 
-data FieldAddressElem = SumR | SumL | AppR | AppL | BindR | BindL | Index Int deriving (Show, Read, Ord, Eq, Generic)
+data FieldAddressElem = SumR | SumL | AppR | AppL | BindR | BindL | Shortcut deriving (Show, Read, Ord, Eq, Generic)
 type FieldAddress = [FieldAddressElem]
 
 data FieldResult = forall e. (Typeable e, Show e) =>

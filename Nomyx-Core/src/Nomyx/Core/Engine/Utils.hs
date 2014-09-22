@@ -22,7 +22,7 @@ replaceWith :: (a -> Bool)   -- ^ Value to search
         -> [a] -- ^ Output list
 replaceWith f y = map (\z -> if f z then y else z)
 
-tracePN :: (Monad m ) => Int -> String -> m ()
+tracePN :: (Monad m) => Int -> String -> m ()
 tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s
 
 traceData :: (Show a) => String -> a -> a

@@ -24,7 +24,7 @@ data GameEvent = GameSettings      GameName GameDesc UTCTime
                | JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     PlayerNumber SubmitRule
-               | InputResult       PlayerNumber EventNumber FieldAddress InputData
+               | InputResult       PlayerNumber EventNumber FieldAddress FormField InputData
                | GLog              (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
                | SystemAddRule     SubmitRule
@@ -51,7 +51,7 @@ enactEvent (GameSettings name desc date) _    = mapStateIO $ gameSettings name d
 enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
 enactEvent (LeaveGame pn) _                   = mapStateIO $ leaveGame pn
 enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
-enactEvent (InputResult pn en fa ir) _        = mapStateIO $ inputResult pn en fa ir
+enactEvent (InputResult pn en fa ft ir) _     = mapStateIO $ inputResult pn en fa ft ir
 enactEvent (GLog mpn s) _                     = mapStateIO $ logGame s mpn
 enactEvent (TimeEvent t) _                    = mapStateIO $ runSystemEval' $ evTriggerTime t
 enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
@@ -136,10 +136,10 @@ logGame s mpn = do
    void $ logs %= (Log mpn time s : )
 
 -- | the user has provided an input result
-inputResult :: PlayerNumber -> EventNumber -> FieldAddress -> InputData -> State Game ()
-inputResult pn en fa ir = do
-   tracePN pn $ "input result: EventNumber " ++ show en ++ ", FieldAddress " ++ show fa ++ ", choice " ++ show ir
-   runSystemEval pn $ triggerInput en fa ir
+inputResult :: PlayerNumber -> EventNumber -> FieldAddress -> FormField -> InputData -> State Game ()
+inputResult pn en fa ft ir = do
+   tracePN pn $ "input result: EventNumber " ++ show en ++ ", FieldAddress " ++ show fa ++ ", Form " ++ show ft ++ ", choice " ++ show ir
+   runSystemEval pn $ triggerInput en fa ft ir
 
 getGameTimes :: Game -> [UTCTime]
 getGameTimes g = concatMap (\ei -> getTimes ei g) (_events g)

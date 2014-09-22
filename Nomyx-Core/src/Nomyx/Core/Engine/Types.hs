@@ -4,6 +4,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 -- | Types for the engine
 module Nomyx.Core.Engine.Types where
@@ -17,6 +18,7 @@ import Data.Data
 import Control.Monad.Error (ErrorT(..))
 import Control.Monad.State
 import Control.Monad.Reader
+import GHC.Generics
 
 -- * Evaluation
 
@@ -79,7 +81,15 @@ instance Show Var where
 
 -- * Events
 
--- data sent back by the forms
+-- a form field
+data FormField = RadioField PlayerNumber String [(Int, String)]
+               | TextField PlayerNumber String
+               | TextAreaField PlayerNumber String
+               | ButtonField PlayerNumber String
+               | CheckboxField PlayerNumber String [(Int, String)]
+                 deriving (Show, Read, Ord, Eq, Generic)
+
+-- data sent back by the form fields
 data InputData = RadioData Int
                | CheckboxData [Int]
                | TextData String

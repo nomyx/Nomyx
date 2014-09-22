@@ -5,7 +5,9 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
 
 module Nomyx.Web.Common where
 
@@ -63,7 +65,6 @@ data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
 -- | A structure to hold the active games and players
 data Server = Server [PlayerClient] deriving (Eq, Show)
 
-
 data PlayerCommand = NotLogged
                    | Auth AuthProfileURL
                    | PostAuth
@@ -73,7 +74,7 @@ data PlayerCommand = NotLogged
                    | LeaveGame GameName
                    | DelGame   GameName
                    | ForkGame  GameName
-                   | DoInput   EventNumber FieldAddress GameName
+                   | DoInput   EventNumber FieldAddress FormField GameName
                    | NewRule   GameName
                    | NewGame
                    | SubmitNewGame
@@ -93,8 +94,13 @@ inputAnchor = "Input"
 
 type RoutedNomyxServer a = RouteT PlayerCommand (ServerPartT IO) a
 
+
 instance PathInfo FieldAddressElem
 instance PathInfo FieldAddress
+instance PathInfo FormField
+instance PathInfo (Int, String)
+instance PathInfo [(Int, String)]
+
 $(derivePathInfo ''PlayerCommand)
 $(derivePathInfo ''LoginName)
 

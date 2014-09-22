@@ -55,11 +55,11 @@ execRuleEvent r f d = execState (runSystemEval' $ evalNomex r >> triggerEvent f 
 execRuleEvents :: (Show e, Typeable e) => Nomex a -> [(Field e, e)] -> Game
 execRuleEvents f eds = execState (runSystemEval' $ evalNomex f >> mapM (\(a,b) -> triggerEvent a b) eds) testGame
 
-execRuleInput :: Nomex a -> EventNumber -> FieldAddress -> InputData -> Game
-execRuleInput r en fa d = execState (runSystemEval' $ evalNomex r >> triggerInput en fa d) testGame
+execRuleInput :: Nomex a -> EventNumber -> FieldAddress -> FormField -> InputData -> Game
+execRuleInput r en fa ft d = execState (runSystemEval' $ evalNomex r >> triggerInput en fa ft d) testGame
 
-execRuleInputs :: Nomex a -> EventNumber -> [(FieldAddress, InputData)] -> Game
-execRuleInputs r en fads = execState (runSystemEval' $ evalNomex r >> mapM (\(fa, d) -> triggerInput en fa d) fads) testGame
+execRuleInputs :: Nomex a -> EventNumber -> [(FieldAddress, FormField, InputData)] -> Game
+execRuleInputs r en fads = execState (runSystemEval' $ evalNomex r >> mapM (\(fa, ft, d) -> triggerInput en fa ft d) fads) testGame
 
 execRuleGame :: Nomex a -> Game -> Game
 execRuleGame r g = execState (runSystemEval' $ void $ evalNomex r) g
@@ -296,11 +296,11 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     actions
     evProposeRule testRule
     evs <- lift getChoiceEvents
-    let pos = take positives evs
-    let neg = take negatives $ drop positives evs
-    mapM_ (\(en, fa) -> triggerInput en fa (RadioData 0)) pos --issuing positive votes
-    mapM_ (\(en, fa) -> triggerInput en fa (RadioData 1)) neg --issuing negative votes
-    when timeEvent $ evTriggerTime date2
+    mapM_ (trigger 0) (take positives evs) --issuing positive votes
+    mapM_ (trigger 1) (take negatives $ drop positives evs)
+    when timeEvent $ evTriggerTime date2 where
+       trigger :: Int -> (EventNumber, FieldAddress, PlayerNumber, String) -> Evaluate ()
+       trigger res (en, fa, pn, t) = triggerInput en fa (RadioField pn t [(0,"For"),(1,"Against")]) (RadioData res)
 
 voteGame' :: Int -> Int -> Int -> Bool -> Rule -> Game
 voteGame' positives negatives notVoted timeEvent rf  = voteGameActions positives negatives notVoted timeEvent $ addActivateRule rf 1
@@ -336,7 +336,7 @@ testSumCompose = void $ onEvent_ (True <$ inputButton 1 "click here:" <|> False 
    f a = outputAll_ $ show a
 
 testSumComposeEx = isOutput "True" g where
-   g = execRuleInput testSumCompose 1 [SumL, AppR] ButtonData
+   g = execRuleInput testSumCompose 1 [SumL, AppR] (ButtonField 1 "click here:") ButtonData
 
 
 testProdCompose :: Rule
@@ -344,10 +344,10 @@ testProdCompose = void $ onEvent_ ((,) <$> inputText 1 "" <*> inputText 1 "") f 
    f a = outputAll_ $ show a
 
 testProdComposeEx1 = null $ allOutputs g where
-   g = execRuleInput testProdCompose 1 [AppR] (TextData "toto")
+   g = execRuleInput testProdCompose 1 [AppR] (TextField 1 "") (TextData "toto")
 
 testProdComposeEx2 = isOutput "(\"toto\",\"tata\")" g where
-   g = execRuleInputs testProdCompose 1 [([AppL, AppR], TextData "toto"), ([AppR], TextData "tata")]
+   g = execRuleInputs testProdCompose 1 [([AppL, AppR], (TextField 1 ""), TextData "toto"), ([AppR], (TextField 1 ""), TextData "tata")]
 
 testTwoEvents :: Rule
 testTwoEvents = do
@@ -356,7 +356,7 @@ testTwoEvents = do
    f a = outputAll_ $ show a
 
 testTwoEventsEx = (length $ allOutputs g) == 1 where
-   g = execRuleInput testTwoEvents 1 [] (TextData "toto")
+   g = execRuleInput testTwoEvents 1 [] (TextField 1 "") (TextData "toto")
 
 testMonadicEvent :: Rule
 testMonadicEvent = do
@@ -367,31 +367,32 @@ testMonadicEvent = do
    void $ onEvent_ e displayMsg
 
 testMonadicEventEx = isOutput "coco2" g where
-   g = execRuleInputs testMonadicEvent 1 [([BindL], TextData "coco1"), ([BindR, BindR], TextData "coco2")]
+   g = execRuleInputs testMonadicEvent 1 [([BindL], (TextField 1 ""), TextData "coco1"), ([BindR, BindR], (TextField 1 ""), TextData "coco2")]
 
 testShorcutEvent :: Rule
 testShorcutEvent = do
    let displayMsg a = void $ newOutput_ Nothing (concat $ catMaybes a)
    let e = do
-       let a = inputText 1 ""
-       shortcut [a,a] (\as -> length (filter isJust as) == 1)
+       let a = inputText 1 "a"
+       let b = inputText 1 "b"
+       shortcut [a,b] (\as -> length (filter isJust as) >= 1)
    void $ onEvent_ e displayMsg
 
 testShorcutEventEx = isOutput "coco1" g where
-   g = execRuleInputs testShorcutEvent 1 [([Index 0], TextData "coco1")]
+   g = execRuleInputs testShorcutEvent 1 [([Shortcut], (TextField 1 "a"), TextData "coco1")]
 
 
 --Get all event numbers of type choice (radio button)
-getChoiceEvents :: State EvalEnv [(EventNumber, FieldAddress)]
+getChoiceEvents :: State EvalEnv [(EventNumber, FieldAddress, PlayerNumber, String)]
 getChoiceEvents = do
    evs <- access (eGame >>> events)
    g <- access eGame
-   return $ [(_eventNumber ev, inum) | ev <- evs, inum <- getInputChoices ev g]
+   return $ [(_eventNumber ev, fa, pn, t) | ev <- evs, (fa, pn, t) <- getInputChoices ev g]
 
-getInputChoices :: EventInfo -> Game -> [FieldAddress]
+getInputChoices :: EventInfo -> Game -> [(FieldAddress, PlayerNumber, String)]
 getInputChoices ei g = mapMaybe isInput (getEventFields ei g) where
-   isInput :: (t, SomeField) -> Maybe t
-   isInput (fa, (SomeField (Input _ _ (Radio _)))) = Just fa
+   isInput :: (FieldAddress, SomeField) -> Maybe (FieldAddress, PlayerNumber, String)
+   isInput (fa, (SomeField (Input pn t (Radio _)))) = Just (fa, pn, t)
    isInput _ = Nothing
 
 --Get all event numbers of type text (text field)
