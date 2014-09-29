@@ -34,6 +34,7 @@ module Language.Nomyx.Examples(
    bravoButton,
    enterHaiku,
    displayBankAccount,
+   helloButton,
    module X) where
 
 import Data.Function
@@ -227,8 +228,7 @@ bravoButton = void $ onInputButton_ "Click here:" (const $ outputAll_ "Bravo!") 
 
 -- | display a button to greet other players
 helloButton :: Rule
-helloButton =
-  do
+helloButton = do
    --get your own player number
    me <- getProposerNumber_
    --create an output for me only

@@ -90,7 +90,6 @@ tests = [("test var 1", testVarEx1),
          ("test user input write", testUserInputWriteEx),
          ("test activate rule", testActivateRuleEx),
          ("test auto activate", testAutoActivateEx),
-         --("test meta rules vote", testApplicationMetaRuleEx),
          ("test time event", testTimeEventEx),
          ("test time event 2", testTimeEventEx2),
          ("test delete rule", testDeleteRuleEx1),
@@ -102,13 +101,15 @@ tests = [("test var 1", testVarEx1),
          ("test assess on every vote 3", testVoteAssessOnEveryVote3),
          ("test assess on every vote 4", testVoteAssessOnEveryVote4),
          ("test majority with", testVoteMajorityWith),
---         ("test number positive votes", testVoteNumberPositiveVotes),
+         ("test number positive votes", testVoteNumberPositiveVotes),
          ("test vote with quorum 1", testVoteWithQuorum1),
          ("test assess on time limit 1", testVoteAssessOnTimeLimit1),
          ("test assess on time limit 2", testVoteAssessOnTimeLimit2),
          ("test assess on time limit 3", testVoteAssessOnTimeLimit3),
          ("test assess on time limit 4", testVoteAssessOnTimeLimit4),
          ("test assess on time limit 5", testVoteAssessOnTimeLimit5),
+         ("test vote player arrives", testVotePlayerArriveEx),
+         ("test vote player leaves", testVotePlayerLeaveEx),
          ("test composed event sum", testSumComposeEx),
          ("test composed event prod 1", testProdComposeEx1),
          ("test composed event prod 2", testProdComposeEx2),
@@ -296,11 +297,13 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     actions
     evProposeRule testRule
     evs <- lift getChoiceEvents
-    mapM_ (trigger 0) (take positives evs) --issuing positive votes
-    mapM_ (trigger 1) (take negatives $ drop positives evs)
-    when timeEvent $ evTriggerTime date2 where
-       trigger :: Int -> (EventNumber, FieldAddress, PlayerNumber, String) -> Evaluate ()
-       trigger res (en, fa, pn, t) = triggerInput en fa (RadioField pn t [(0,"For"),(1,"Against")]) (RadioData res)
+    mapM_ (triggerVote 0) (take positives evs)                  --issuing positive votes
+    mapM_ (triggerVote 1) (take negatives $ drop positives evs) --issuing negative votes
+    when timeEvent $ evTriggerTime date2
+
+--Trigger a vote event (0 for positive, 1 for negative), using event details
+triggerVote :: Int -> (EventNumber, FieldAddress, PlayerNumber, String) -> Evaluate ()
+triggerVote res (en, fa, pn, t) = triggerInput en fa (RadioField pn t [(0,"For"),(1,"Against")]) (RadioData res)
 
 voteGame' :: Int -> Int -> Int -> Bool -> Rule -> Game
 voteGame' positives negatives notVoted timeEvent rf  = voteGameActions positives negatives notVoted timeEvent $ addActivateRule rf 1
@@ -328,6 +331,34 @@ testVoteAssessOnTimeLimit4    = testVoteRule Reject  $ voteGameTimed 0  0 10 $ o
 testVoteAssessOnTimeLimit5    = testVoteRule Active  $ voteGameTimed 1  0 10 $ onRuleProposed $ (callVoteRule' (unanimity `withQuorum` 1) date2)
 
 testVoteRule s g = (_rStatus $ head $ _rules g) == s
+
+--Test with a player arriving in the middle of a vote (he should be able to vote)
+testVotePlayerArrive :: Game
+testVotePlayerArrive = flip execState testGame {_players = []} $ runSystemEval' $ do
+    addPlayer (PlayerInfo 1 "coco 1" Nothing)
+    addActivateRule  (onRuleProposed $ callVoteRule (unanimity `withQuorum` 2) oneDay) 1
+    evProposeRule testRule
+    evs <- lift getChoiceEvents
+    mapM_ (triggerVote 0) evs                 --issuing positive vote player 1
+    addPlayer (PlayerInfo 2 "coco 2" Nothing) --new player
+    evs <- lift getChoiceEvents
+    mapM_ (triggerVote 0) evs                 --issuing positive vote player 2
+
+testVotePlayerArriveEx = testVoteRule Active testVotePlayerArrive
+
+--Test with a player leaving in the middle of a vote
+--in some cases a player leaving can trigger the end of the vote (i.e when everybody voted except him)
+testVotePlayerLeave :: Game
+testVotePlayerLeave = flip execState testGame {_players = []} $ runSystemEval' $ do
+    addPlayer (PlayerInfo 1 "coco 1" Nothing)
+    addPlayer (PlayerInfo 2 "coco 2" Nothing)
+    addActivateRule  (onRuleProposed $ callVoteRule unanimity oneDay) 1
+    evProposeRule testRule
+    evs <- lift getChoiceEvents
+    triggerVote 0 (last evs)  -- issuing positive vote player 1
+    evDelPlayer 2             -- player 2 leaving
+
+testVotePlayerLeaveEx = testVoteRule Active testVotePlayerLeave
 
 -- Event composition
 

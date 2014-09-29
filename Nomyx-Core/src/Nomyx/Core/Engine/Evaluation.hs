@@ -270,11 +270,7 @@ evReadVar (V name) = do
 
 -- * Events
 
---get the fields left to be completed in an event
-getEventFields :: EventInfo -> Game -> [(FieldAddress, SomeField)]
-getEventFields (EventInfo _ rn e _ _ env) g = case runEvaluateNE g rn $ getEventResult e env of
-   Done _ -> []
-   Todo a -> a
+
 
 -- | Get the field at a certain address
 --TODO: should we check that the field is not already completed?
@@ -282,25 +278,25 @@ findField :: EventInfo -> FieldAddress -> FormField -> EvaluateNE (Maybe SomeFie
 findField (EventInfo _ _ e _ _ er) addr ft = findField' addr e er ft
 
 findField' :: FieldAddress -> Event e -> [FieldResult] -> FormField -> EvaluateNE (Maybe SomeField)
-findField' []         (BaseEvent f)    _   ft = do
-   return $ case (getFormField (SomeField f)) of
-      Just ft' -> if (ft' == ft) then Just $ SomeField f else Nothing
-      Nothing -> Just $ SomeField f
+findField' []         (BaseEvent f)    _   ft = return $ do
+   ft' <- getFormField (SomeField f)
+   guard (ft' == ft)
+   return $ SomeField f
 findField' (SumL:as)  (SumEvent e1 _)  frs ft = findField' as e1 (filterPath SumL frs) ft
 findField' (SumR:as)  (SumEvent _ e2)  frs ft = findField' as e2 (filterPath SumR frs) ft
 findField' (AppL:as)  (AppEvent e1 _)  frs ft = findField' as e1 (filterPath AppL frs) ft
 findField' (AppR:as)  (AppEvent _ e2)  frs ft = findField' as e2 (filterPath AppR frs) ft
 findField' (BindL:as) (BindEvent e1 _) frs ft = findField' as e1 (filterPath BindL frs) ft
-findField' (Shortcut:as) (ShortcutEvents es _) frs ft = do
-   msfs <- mapM (\e-> findField' as e frs ft) es
-   return $ headMay $ catMaybes msfs
-
 findField' (BindR:as) (BindEvent e1 f) frs ft = do
    er <- getEventResult e1 (filterPath BindL frs)
    case er of
       Done e2 -> findField' as (f e2) (filterPath BindR frs) ft
       Todo _  -> return Nothing
-findField' _ _ _ _ = error "findField: wrong field address"
+findField' (Shortcut:as) (ShortcutEvents es _) frs ft = do
+   msfs <- mapM (\e-> findField' as e frs ft) es
+   return $ headMay $ catMaybes msfs  -- returning the first field that matches
+
+findField' fa _ _ _ = error $ "findField: wrong field address: " ++ (show fa)
 
 filterPath :: FieldAddressElem -> [FieldResult] -> [FieldResult]
 filterPath fa frs = mapMaybe f frs where
@@ -316,6 +312,12 @@ getFormField (SomeField (Input pn s Button))             = Just $ ButtonField pn
 getFormField (SomeField (Input pn s (Checkbox choices))) = Just $ CheckboxField pn s (zip [0..] (snd <$> choices))
 getFormField _ = Nothing
 
+
+--get the fields left to be completed in an event
+getEventFields :: EventInfo -> Game -> [(FieldAddress, SomeField)]
+getEventFields (EventInfo _ rn e _ _ env) g = case runEvaluateNE g rn $ getEventResult e env of
+   Done _ -> []
+   Todo a -> a
 
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some fields results are pending, return that list instead.
@@ -339,49 +341,42 @@ getEventResult' (BaseEvent a)  ers fa = return $ case lookupField a fa ers of
    Nothing -> Todo [(fa, SomeField a)]
 
 getEventResult' (ShortcutEvents es f) ers fa = do
-  ers <- mapM (\e -> getEventResult' e ers (fa ++ [Shortcut])) es
-  case f (toMaybe <$> ers) of
-     True  -> return $ Done $ toMaybe <$> ers
-     False -> return $ Todo $ join $ lefts $ toEither <$> ers
+  (ers :: [Todo (FieldAddress, SomeField) a]) <- mapM (\e -> getEventResult' e ers (fa ++ [Shortcut])) es -- get the result for each event in the list
+  return $ case f (toMaybe <$> ers) of                                                                    -- apply f to the event results that we already have
+     True  -> Done $ toMaybe <$> ers                                                                      -- if the result is true, we are done. Return the list of maybe results
+     False -> Todo $ join $ lefts $ toEither <$> ers                                                      -- otherwise, return the list of remaining fields to complete from each event
+
 
 -- trigger an event
 triggerEvent :: (Typeable e, Show e) => Field e -> e -> Evaluate ()
-triggerEvent e dat = do
-   evs <- access (eGame >>> events)
-   triggerEvent' (FieldResult e dat Nothing) evs
+triggerEvent e dat = access (eGame >>> events) >>= triggerEvent' (FieldResult e dat Nothing)
 
 -- trigger some specific events
 triggerEvent' :: FieldResult -> [EventInfo] -> Evaluate ()
 triggerEvent' res evs = do
-   evs' <- mapM (liftEval . (updateEventInfo res)) evs
-   (eGame >>> events) %= union (map fst evs')
-   mapM triggerIfComplete evs'
-   return ()
+   evs' <- mapM (liftEval . (updateEventInfo res)) evs  -- get all the EventInfos updated with the field
+   (eGame >>> events) %= union (map fst evs')           -- store them
+   void $ mapM triggerIfComplete evs'                   -- trigger the handlers for completed events
 
 -- if the event is complete, trigger its handler
 triggerIfComplete :: (EventInfo, Maybe SomeData) -> Evaluate ()
-triggerIfComplete (EventInfo en rn _ h SActive _, Just (SomeData val)) = do
-   case (cast val) of
-      Just a -> do
-         let exp = h (en, a)
-         withRN rn $ (evalNomex exp) `catchError` (errorHandler en)
-         return ()
-      Nothing -> error "Bad trigger data type"
+triggerIfComplete (EventInfo en rn _ h SActive _, Just (SomeData val)) = case (cast val) of
+   Just a ->  void $ withRN rn $ (evalNomex $ h (en, a)) `catchError` (errorHandler en)
+   Nothing -> error "Bad trigger data type"
 triggerIfComplete _ = return ()
 
-
--- update the EventInfo with the field result
+-- update the EventInfo with the field result.
+-- get the event result if all fields are completed
 updateEventInfo :: FieldResult -> EventInfo -> EvaluateNE (EventInfo, Maybe SomeData)
 updateEventInfo (FieldResult field dat addr) ei@(EventInfo _ _ ev _ _ envi) = do
    g <- asks _eGame
    let eventRes = FieldResult field dat addr
    er <- getEventResult ev (eventRes : envi)
-   if (SomeField field) `elem` (map snd $ getEventFields ei g) then do   -- if the field if found among the remaining fields of the event
-      case er of                                                         -- then check the event with that field result included
-            Todo _ -> return $ (env ^=  (eventRes : envi) $ ei, Nothing) -- some fields are left to complete: add ours in the environment
-            Done a -> return $ (env ^=  [] $ ei, Just $ SomeData a)      -- the event is now complete: empty the environment and output the result
-      else return $ (ei, Nothing)                                        -- field not found: do nothin
-
+   return $ case er of                                                      -- check if the event will be complete
+      Todo _ -> if (SomeField field) `elem` (map snd $ getEventFields ei g) -- is yes, check if our field is really a missing field of the event
+         then (env ^=  (eventRes : envi) $ ei, Nothing)                     -- some fields are left to complete: add ours in the environment
+         else (ei, Nothing)                                                 -- field not found: do nothing
+      Done a -> (env ^=  [] $ ei, Just $ SomeData a)                        -- the event is complete: empty the environment and output the result
 
 -- * input triggers
 
@@ -470,4 +465,7 @@ displayEvent g ei@(EventInfo en rn _ _ s env) =
    ", envs: " ++ (show env) ++
    ", status: " ++ (show s)
 
-
+displayEvent' :: EventInfo -> EvaluateNE String
+displayEvent' ei = do
+   (EvalEnv _ g) <- ask
+   return $ displayEvent g ei
