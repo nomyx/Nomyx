@@ -3,8 +3,6 @@
 module Control.Shortcut where
 
 import Control.Applicative
-import Control.Monad
-import Data.Either
 import Data.Maybe
 
 -- | class of things that can be run in parallel and can be shortcuted.

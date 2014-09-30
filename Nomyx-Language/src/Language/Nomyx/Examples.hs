@@ -45,7 +45,6 @@ import Data.Typeable
 import Data.Maybe
 import Control.Arrow
 import Control.Monad as X
-import Control.Applicative
 import Safe (readDef)
 import Language.Nomyx
 
@@ -202,25 +201,6 @@ banPlayer pn = do
    delPlayer pn
    void $ onEvent_ (playerEvent Arrive) $ const $ void $ delPlayer pn
 
--- * Referendum & elections
-
--- | triggers a referendum, if the outcome is yes player 2 will be kicked
---referendumOnKickPlayer :: Rule
---referendumOnKickPlayer = referendum " kick player 2" (void $ delPlayer 2)
---
----- | triggers elections (all players are candidates), the winner becomes game master
---gameMasterElections :: Rule
---gameMasterElections = do
---   pls <- liftEffect getPlayers
---   elections "Game Master" pls makeGM
-
-makeGM :: PlayerNumber -> Nomex ()
-makeGM pn = do
-   newMsgVar "GameMaster" pn
-   void $ modifyPlayerName pn ("GameMaster " ++)
-
-gameMaster :: MsgVar PlayerNumber
-gameMaster = msgVar "GameMaster"
 
 -- | display a button and greets you when pressed (for player 1)
 bravoButton :: Rule
@@ -241,6 +221,27 @@ helloButton = do
 
 enterHaiku :: Rule
 enterHaiku = void $ onInputTextarea_ "Enter a haiku:" outputAll_ 1
+
+
+-- * Referendum & elections
+
+-- | triggers a referendum, if the outcome is yes player 2 will be kicked
+--referendumOnKickPlayer :: Rule
+--referendumOnKickPlayer = referendum " kick player 2" (void $ delPlayer 2)
+--
+---- | triggers elections (all players are candidates), the winner becomes game master
+--gameMasterElections :: Rule
+--gameMasterElections = do
+--   pls <- liftEffect getPlayers
+--   elections "Game Master" pls makeGM
+
+makeGM :: PlayerNumber -> Nomex ()
+makeGM pn = do
+   newMsgVar "GameMaster" pn
+   void $ modifyPlayerName pn ("GameMaster " ++)
+
+gameMaster :: MsgVar PlayerNumber
+gameMaster = msgVar "GameMaster"
 
 tournamentMasterCandidates :: Rule
 tournamentMasterCandidates = do

@@ -20,10 +20,8 @@ import Language.Nomyx.Expression
 import Data.Typeable
 import Control.Monad.State
 import Control.Applicative
-import Control.Shortcut
 import Data.List
 import Data.Maybe
-import Data.Either
 import Data.Time hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
 import Safe

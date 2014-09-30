@@ -24,7 +24,6 @@ import Control.Applicative
 import Control.Shortcut
 import Data.List
 import qualified Data.Map as M
-import Debug.Trace
 
 -- | a vote assessing function (such as unanimity, majority...)
 type AssessFunction = VoteStats -> Maybe Bool
@@ -74,7 +73,6 @@ voteWith timeLimit assess title = do
    let isFinished votes timer = isJust $ assess $ getVoteStats votes timer
    (vs, _)<- shortcut2b voteEvents timerEvent isFinished
    return $ zip pns vs
-
 
 -- trigger the display of a radio button choice on the player screen, yelding either True or False.
 -- after the time limit, the value sent back is Nothing.
