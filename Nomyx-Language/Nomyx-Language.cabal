@@ -1,5 +1,5 @@
 name: Nomyx-Language
-version: 0.7.0
+version: 0.7.1
 cabal-version: >=1.6
 ---Warning: to use "cabal sdist", this patch is needed in cabal: https://github.com/haskell/cabal/pull/1110
 ---This allows cabal to work with exported generated modules (Paths_Nomyx_Language)
