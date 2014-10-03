@@ -13,7 +13,7 @@ module Language.Nomyx.Events (
    oneWeek, oneDay, oneHour, oneMinute,
    timeEvent, messageEvent, victoryEvent, playerEvent, ruleEvent,
    baseEvent, baseInputEvent,
-   liftNomexNE
+   liftEvent
    ) where
 
 import Language.Nomyx.Expression
@@ -148,5 +148,5 @@ ruleEvent re = BaseEvent $ RuleEv re
 baseInputEvent :: (Typeable a) => PlayerNumber -> String -> (InputForm a) -> Field a
 baseInputEvent pn s iform = Input pn s iform
 
-liftNomexNE :: NomexNE a -> Event a
-liftNomexNE = LiftNomexNE
+liftEvent :: NomexNE a -> Event a
+liftEvent = LiftEvent
