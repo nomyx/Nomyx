@@ -158,7 +158,7 @@ data Event a where
    BindEvent      :: Event a -> (a -> Event b) -> Event b                 -- A First event should fire, then a second event is constructed
    ShortcutEvents :: [Event a] -> ([Maybe a] -> Bool) -> Event [Maybe a]  -- Return the intermediate results as soon as the function evaluates to True, dismissing the events that hasn't fired yet
    BaseEvent      :: (Typeable a) => Field a -> Event a                   -- Embed a base event
-   LiftNomexNE    :: NomexNE a -> Event a                                 -- create an event containing the result of the NomexNE.
+   LiftEvent      :: NomexNE a -> Event a                                 -- create an event containing the result of the NomexNE.
    deriving Typeable
 
 -- | Base events

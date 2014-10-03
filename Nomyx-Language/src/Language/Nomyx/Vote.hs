@@ -67,7 +67,7 @@ callVote assess endTime name rn payload = do
 -- | the vote can be concluded as soon as the result is known.
 voteWith :: UTCTime -> AssessFunction -> String -> Event [(PlayerNumber, Maybe Bool)]
 voteWith timeLimit assess title = do
-   pns <- liftNomexNE getAllPlayerNumbers
+   pns <- liftEvent getAllPlayerNumbers
    let voteEvents = map (singleVote title) pns
    let timerEvent = timeEvent timeLimit
    let isFinished votes timer = isJust $ assess $ getVoteStats votes timer
