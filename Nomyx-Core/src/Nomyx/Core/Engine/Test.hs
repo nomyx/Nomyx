@@ -115,6 +115,7 @@ tests = [("test var 1", testVarEx1),
          ("test composed event prod 2", testProdComposeEx2),
          ("test two separate events", testTwoEventsEx),
          ("test monadic event", testMonadicEventEx),
+         ("test monadic event2", testMonadicEventEx2),
          ("test shortcut event", testShorcutEventEx)
          ]
 
@@ -399,6 +400,22 @@ testMonadicEvent = do
 
 testMonadicEventEx = isOutput "coco2" g where
    g = execRuleInputs testMonadicEvent 1 [([BindL], (TextField 1 ""), TextData "coco1"), ([BindR, BindR], (TextField 1 ""), TextData "coco2")]
+
+testMonadicEvent2 :: Rule
+testMonadicEvent2 = do
+   let displayMsg a = void $ newOutput_ Nothing "coco2"
+   let e = do
+       playerEvent Arrive
+       inputText 1 ""
+   void $ onEvent_ e displayMsg
+
+testMonadicEvent2PlayerArrive :: Game
+testMonadicEvent2PlayerArrive = flip execState testGame {_players = []} $ runSystemEval' $ do
+    addActivateRule testMonadicEvent2 1
+    addPlayer (PlayerInfo 1 "coco 1" Nothing)
+    triggerInput 1 [BindR] (TextField 1 "") (TextData "coco2")
+
+testMonadicEventEx2 = isOutput "coco2" testMonadicEvent2PlayerArrive
 
 testShorcutEvent :: Rule
 testShorcutEvent = do

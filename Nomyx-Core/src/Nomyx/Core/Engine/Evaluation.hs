@@ -29,6 +29,7 @@ import Nomyx.Core.Engine.EvalUtils
 import Nomyx.Core.Engine.Utils
 import Safe
 
+
 -- * Evaluation
 
 -- | evaluate an effecful expression.
@@ -273,7 +274,6 @@ evReadVar (V name) = do
 
 
 -- | Get the field at a certain address
---TODO: should we check that the field is not already completed?
 findField :: EventInfo -> FieldAddress -> FormField -> EvaluateNE (Maybe SomeField)
 findField (EventInfo _ _ e _ _ er) addr ft = findField' addr e er ft
 
@@ -288,10 +288,10 @@ findField' (AppL:as)  (AppEvent e1 _)  frs ft = findField' as e1 (filterPath App
 findField' (AppR:as)  (AppEvent _ e2)  frs ft = findField' as e2 (filterPath AppR frs) ft
 findField' (BindL:as) (BindEvent e1 _) frs ft = findField' as e1 (filterPath BindL frs) ft
 findField' (BindR:as) (BindEvent e1 f) frs ft = do
-   er <- getEventResult e1 (filterPath BindL frs)
-   case er of
+   ter <- getEventResult e1 (filterPath BindL frs) --
+   case ter of
       Done e2 -> findField' as (f e2) (filterPath BindR frs) ft
-      Todo _  -> return Nothing
+      Todo _  -> return $ Nothing
 findField' (Shortcut:as) (ShortcutEvents es _) frs ft = do
    msfs <- mapM (\e-> findField' as e frs ft) es
    return $ headMay $ catMaybes msfs  -- returning the first field that matches
@@ -301,8 +301,7 @@ findField' fa _ _ _ = error $ "findField: wrong field address: " ++ (show fa)
 filterPath :: FieldAddressElem -> [FieldResult] -> [FieldResult]
 filterPath fa frs = mapMaybe f frs where
    f (FieldResult fe fr (Just (fa':fas))) | fa == fa' = Just $ FieldResult fe fr (Just fas)
-   f _ = Nothing
-
+   f fr = Just fr
 
 getFormField :: SomeField -> Maybe FormField
 getFormField (SomeField (Input pn s (Radio choices)))    = Just $ RadioField pn s (zip [0..] (snd <$> choices))
@@ -329,7 +328,7 @@ getEventResult' (PureEvent a)   _   _  = return $ Done a
 getEventResult'  EmptyEvent     _   _  = return $ Todo []
 getEventResult' (SumEvent a b)  ers fa = liftM2 (<|>) (getEventResult' a ers (fa ++ [SumL])) (getEventResult' b ers (fa ++ [SumR]))
 getEventResult' (AppEvent f b)  ers fa = liftM2 (<*>) (getEventResult' f ers (fa ++ [AppL])) (getEventResult' b ers (fa ++ [AppR]))
-getEventResult' (LiftNomexNE a) _   _  = evalNomexNE a >>= return . Done
+getEventResult' (LiftEvent a)   _   _  = evalNomexNE a >>= return . Done
 getEventResult' (BindEvent a f) ers fa = do
    er <- getEventResult' a ers (fa ++ [BindL])
    case er of
@@ -393,7 +392,7 @@ execInputHandler ir fa ft ei@(EventInfo _ _ _ _ SActive _) = do
    i <- liftEval $ findField ei fa ft
    case i of
       Just sf -> execInputHandler' ir sf fa ei
-      Nothing -> logAll "Input not found"
+      Nothing -> logAll $ "Input not found, InputData=" ++ (show ir) ++ " FieldAddress=" ++ (show fa) ++ " FormField=" ++ (show ft)
 execInputHandler _ _ _ _ = return ()
 
 -- execute the event handler using the data received from user
@@ -446,15 +445,16 @@ delVictoryRule rn = do
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
 instance Show Game where
-   show g@(Game gn _ rs ps vs es _ _ _ t) =
+   show g@(Game gn _ rs ps vs es _ _ l t) =
       "Game Name = "      ++ show gn ++
-      "\n Rules = "       ++ (intercalate "\n " $ map show rs) ++
-      "\n Players = "     ++ show ps ++
-      "\n Variables = "   ++ show vs ++
-      "\n Events = "      ++ (intercalate "\n " $ map (displayEvent g) es) ++
-      "\n Outputs = "     ++ show (allOutputs g) ++
-      "\n Victory = "     ++ show (getVictorious g) ++
-      "\n currentTime = " ++ show t ++ "\n"
+      "\n\n Rules = "       ++ (intercalate "\n " $ map show rs) ++
+      "\n\n Players = "     ++ show ps ++
+      "\n\n Variables = "   ++ show vs ++
+      "\n\n Events = "      ++ (intercalate "\n " $ map (displayEvent g) es) ++ "\n" ++
+      "\n\n Outputs = "     ++ show (allOutputs g) ++
+      "\n\n Victory = "     ++ show (getVictorious g) ++
+      "\n\n currentTime = " ++ show t ++ "\n" ++
+      "\n\n logs = " ++ show l ++ "\n"
 
 
 displayEvent :: Game -> EventInfo -> String

@@ -15,22 +15,24 @@ import Control.Monad.Reader
 import Control.Category
 import Data.Typeable
 import Data.Lens
+import Data.List
 import Data.Maybe
 import Control.Applicative
 import Control.Monad.Error
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
+import Safe
 
 -- find a field result in an environment
--- TODO simplify?
 lookupField :: Typeable a => Field a -> FieldAddress -> [FieldResult] -> Maybe a
-lookupField _ _ [] = Nothing
-lookupField fi fa ((FieldResult a r fa1) : ers) = case (cast (a,r)) of
-   Just (a',r') -> if (a' == fi && maybe True (== fa) fa1)
-                      then Just r'
-                      else lookupField fi fa ers
-   Nothing      -> lookupField fi fa ers
+lookupField fi fa frs = headMay $ mapMaybe (maybeField fi fa) frs
+
+--return the field result if it matches with the input field and address
+maybeField :: Typeable a => Field a -> FieldAddress -> FieldResult -> Maybe a
+maybeField fi fa (FieldResult fi' res fa') = do
+   ((fi'', res') :: (Field a, a)) <- cast (fi', res)
+   if (fi'' == fi) && maybe True (== fa) fa' then (Just res') else Nothing
 
 errorHandler :: EventNumber -> String -> Evaluate ()
 errorHandler en s = do
