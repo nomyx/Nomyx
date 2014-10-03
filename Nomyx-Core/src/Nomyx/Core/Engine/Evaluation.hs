@@ -342,7 +342,7 @@ getEventResult' (PureEvent a)   _   _  = return $ Done a
 getEventResult'  EmptyEvent     _   _  = return $ Todo []
 getEventResult' (SumEvent a b)  ers fa = liftM2 (<|>) (getEventResult' a ers (fa ++ [SumL])) (getEventResult' b ers (fa ++ [SumR]))
 getEventResult' (AppEvent f b)  ers fa = liftM2 (<*>) (getEventResult' f ers (fa ++ [AppL])) (getEventResult' b ers (fa ++ [AppR]))
-getEventResult' (LiftNomexNE a) _   _  = evalNomexNE a >>= return . Done
+getEventResult' (LiftEvent a)   _   _  = evalNomexNE a >>= return . Done
 getEventResult' (BindEvent a f) ers fa = do
    er <- getEventResult' a ers (fa ++ [BindL])
    case er of
