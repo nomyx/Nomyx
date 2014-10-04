@@ -107,6 +107,12 @@ data Output = Output { _outputNumber  :: OutputNumber,         -- number of the 
                        _oStatus       :: Status}               -- status of the output
                        deriving (Show)
 
+instance Eq Output where
+   (Output {_outputNumber=on1}) == (Output {_outputNumber=on2}) = on1 == on2
+
+instance Ord Output where
+     (Output {_outputNumber=r1}) <= (Output {_outputNumber=r2}) = r1 <= r2
+
 -- * Logs
 
 data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,

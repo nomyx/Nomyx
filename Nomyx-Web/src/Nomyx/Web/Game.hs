@@ -17,7 +17,6 @@ import Data.String
 import Data.List
 import Data.Text (Text)
 import Data.Time
-import Data.Lens
 import Text.Printf
 import System.Locale
 import Language.Nomyx
@@ -35,7 +34,6 @@ import qualified Nomyx.Web.Help as Help
 import Nomyx.Web.Common as NWC
 import Nomyx.Core.Types as T
 import Nomyx.Core.Mail
-import Nomyx.Core.Utils
 import Nomyx.Core.Engine
 import Nomyx.Core.Session as S
 import Nomyx.Core.Profile as Profile
@@ -226,11 +224,11 @@ viewInputsRule pn rn ehs g = do
 
 viewOutputsRule :: PlayerNumber -> RuleNumber -> Game -> Maybe Html
 viewOutputsRule pn rn g = do
-   let filtered = filter (\o -> _oRuleNumber o == rn) (_outputs g)
-   let myos = filter (isPn pn) (reverse filtered)
+   let filtered = filter (\o -> _oRuleNumber o == rn && _oStatus o == SActive) (_outputs g)
+   let myos = filter (isPn pn) (sort filtered)
    case myos of
       [] -> Nothing
-      os -> Just $ mapM_ (viewOutput g) os
+      os -> Just $ sequence_ $ mapMaybe (viewOutput g) os
 
 isPn pn (Output _ _ (Just mypn) _ SActive) = mypn == pn
 isPn _  (Output _ _ Nothing _ SActive) = True
@@ -254,8 +252,9 @@ viewInput' me gn en (fa, ev@(SomeField (Input pn title _))) | me == pn = do
      blazeForm lf link ! A.id "InputForm"
 viewInput' _ _ _ _ = return Nothing
 
-viewOutput :: Game -> Output -> Html
-viewOutput g o = pre $ fromString (evalOutput g o) >> br
+viewOutput :: Game -> Output -> Maybe Html
+viewOutput g o = if (s /= "") then Just (pre $ fromString s >> br) else Nothing where
+   s =  (evalOutput g o)
 
 viewVars :: [Var] -> Html
 viewVars vs = table ! class_ "table" $ do
