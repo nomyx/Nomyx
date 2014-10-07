@@ -19,6 +19,7 @@ import Control.Monad.Error (ErrorT(..))
 import Control.Monad.State
 import Control.Monad.Reader
 import GHC.Generics
+import System.Random
 
 -- * Evaluation
 
@@ -44,7 +45,8 @@ data Game = Game { _gameName    :: GameName,
                    _outputs     :: [Output],
                    _victory     :: Maybe VictoryInfo,
                    _logs        :: [Log],
-                   _currentTime :: UTCTime}
+                   _currentTime :: UTCTime,
+                   _randomGen   :: StdGen}
                    deriving (Typeable)
 
 data GameDesc = GameDesc { _desc :: String, _agora :: String} deriving (Eq, Show, Read, Ord)
@@ -55,7 +57,7 @@ instance Eq Game where
 instance Ord Game where
    compare (Game {_gameName=gn1}) (Game {_gameName=gn2}) = compare gn1 gn2
 
-emptyGame name desc date = Game {
+emptyGame name desc date gen = Game {
    _gameName      = name,
    _gameDesc      = desc,
    _rules         = [],
@@ -65,6 +67,7 @@ emptyGame name desc date = Game {
    _outputs       = [],
    _victory       = Nothing,
    _logs          = [],
+   _randomGen     = gen,
    _currentTime   = date}
 
 

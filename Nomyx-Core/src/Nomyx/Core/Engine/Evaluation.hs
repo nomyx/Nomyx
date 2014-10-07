@@ -28,6 +28,7 @@ import Nomyx.Core.Engine.Types hiding (_vRuleNumber)
 import Nomyx.Core.Engine.EvalUtils
 import Nomyx.Core.Engine.Utils
 import Safe
+import System.Random
 
 
 -- * Evaluation
@@ -57,6 +58,7 @@ evalNomex (ThrowError s)          = throwError s
 evalNomex (CatchError n h)        = catchError (evalNomex n) (\a -> evalNomex (h a))
 evalNomex (Return a)              = return a
 evalNomex (Bind exp f)            = evalNomex exp >>= \e -> evalNomex (f e)
+evalNomex (GetRandomNumber r)     = evGetRandomNumber r
 
 -- | evaluate an effectless expression.
 evalNomexNE :: NomexNE a -> EvaluateNE a
@@ -70,6 +72,8 @@ evalNomexNE (CurrentTime)   = _currentTime <$> asks _eGame
 evalNomexNE (Return a)      = return a
 evalNomexNE (Bind exp f)    = evalNomexNE exp >>= \e -> evalNomexNE (f e)
 evalNomexNE (Simu sim ev)   = evSimu sim ev
+
+
 
 --TODO should we also give a rule number to simulate the Nomex with?
 -- currently we use the simulating rule number
@@ -269,6 +273,15 @@ evReadVar (V name) = do
           Just v -> return $ Just v
           Nothing -> return Nothing
 
+evGetRandomNumber :: Random a => (a, a) -> Evaluate a
+evGetRandomNumber r = do
+   g <- access (eGame >>> randomGen)
+   let (a, g') = randomR r g
+   (eGame >>> randomGen) ~= g'
+   return a
+
+
+
 -- * Events
 
 
@@ -404,6 +417,8 @@ execInputHandler' (RadioData i)     (SomeField e@(Input _ _ (Radio cs)))    fa e
 execInputHandler' (CheckboxData is) (SomeField e@(Input _ _ (Checkbox cs))) fa ei = triggerEvent' (FieldResult e (fst <$> cs `sel` is) (Just fa)) [ei]
 execInputHandler' _ _ _ _ = return ()
 
+
+
 -- * misc
 
 getVictorious :: Game -> [PlayerNumber]
@@ -445,7 +460,7 @@ delVictoryRule rn = do
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
 instance Show Game where
-   show g@(Game gn _ rs ps vs es _ _ l t) =
+   show g@(Game gn _ rs ps vs es _ _ l t _) =
       "Game Name = "      ++ show gn ++
       "\n\n Rules = "       ++ (intercalate "\n " $ map show rs) ++
       "\n\n Players = "     ++ show ps ++

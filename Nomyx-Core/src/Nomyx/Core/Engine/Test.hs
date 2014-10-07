@@ -24,6 +24,7 @@ import Data.Maybe
 import Control.Applicative
 import Control.Category hiding ((.))
 import Control.Shortcut
+import System.Random
 
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
 date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
@@ -38,7 +39,8 @@ testGame = Game { _gameName      = "test",
                   _outputs       = [],
                   _victory       = Nothing,
                   _logs          = [],
-                  _currentTime   = date1}
+                  _currentTime   = date1,
+                  _randomGen     = mkStdGen 0}
 
 testRule = RuleInfo  { _rNumber       = 0,
                       _rName         = "test",
@@ -403,7 +405,7 @@ testMonadicEventEx = isOutput "coco2" g where
 
 testMonadicEvent2 :: Rule
 testMonadicEvent2 = do
-   let displayMsg a = void $ newOutput_ Nothing "coco2"
+   let displayMsg a = void $ newOutput_ Nothing a
    let e = do
        playerEvent Arrive
        inputText 1 ""
