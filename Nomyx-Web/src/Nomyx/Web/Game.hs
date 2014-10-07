@@ -66,9 +66,7 @@ viewGameDesc g playAs gameAdmin = do
       p $ do
         h3 $ fromString $ "Viewing game: " ++ _gameName g
         when (isJust playAs) $ h4 $ fromString $ "You are playing as player " ++ (show $ fromJust playAs)
-      p $ do
-         h4 "Description:"
-         pre $ fromString (_desc $ _gameDesc g)
+      p $ pre $ fromString (_desc $ _gameDesc g)
       p $ h4 $ "This game is discussed in the " >> a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g)) >> "."
       p $ h4 "Players in game:"
       when gameAdmin "(click on a player name to \"play as\" this player)"

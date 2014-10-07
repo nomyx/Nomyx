@@ -93,7 +93,7 @@ viewGamesTab gis isAdmin saveDir mpn = do
       H.a "Rules examples"    ! (href "/html/Language-Nomyx-Examples.html") ! target "_blank" >> br
       H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br
       when (fmods /= []) $ do
-         br >> "Uploaded files:" >> br
+         br >> b "Uploaded files:" >> br
          mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : uploadDir </> f)) >> br) (sort fmods)
       br >> b "Settings:" >> br
       H.a "Player settings" ! (href $ toValue settingsLink) >> br

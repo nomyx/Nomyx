@@ -15,7 +15,6 @@ import Control.Monad.Reader
 import Control.Category
 import Data.Typeable
 import Data.Lens
-import Data.List
 import Data.Maybe
 import Control.Applicative
 import Control.Monad.Error
