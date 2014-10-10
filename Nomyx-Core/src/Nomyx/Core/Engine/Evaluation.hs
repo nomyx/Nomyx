@@ -171,7 +171,7 @@ evAddRule rule = do
          return True
       Just _ -> return False
 
---TODO: clean and execute new rule
+
 evModifyRule :: RuleNumber -> RuleInfo -> Evaluate Bool
 evModifyRule rn rule = do
    (rs, _) <- accessGame rules

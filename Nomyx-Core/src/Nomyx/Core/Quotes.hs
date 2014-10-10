@@ -22,7 +22,7 @@ import Language.Haskell.Interpreter hiding (get)
 import Nomyx.Core.Context
 
 
--- This quasi quoter allows to type check a string as a Nomyx rule (a RuleFunc).
+-- This quasi quoter allows to type check a string as a Nomyx rule.
 -- this gives additionnal safety at compile time.
 #ifdef NO_INTERPRET_QUOTES
 cr :: QuasiQuoter
