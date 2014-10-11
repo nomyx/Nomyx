@@ -461,13 +461,13 @@ delVictoryRule rn = do
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
 instance Show Game where
-   show g@(Game gn _ rs ps vs es _ _ l t _) =
+   show g@(Game gn _ rs ps vs es os _ l t _) =
       "Game Name = "      ++ show gn ++
       "\n\n Rules = "       ++ (intercalate "\n " $ map show rs) ++
       "\n\n Players = "     ++ show ps ++
       "\n\n Variables = "   ++ show vs ++
       "\n\n Events = "      ++ (intercalate "\n " $ map (displayEvent g) es) ++ "\n" ++
-      "\n\n Outputs = "     ++ show (allOutputs g) ++
+      "\n\n Outputs = "     ++ (intercalate "\n " $ map (displayOutput g) os) ++ "\n" ++
       "\n\n Victory = "     ++ show (getVictorious g) ++
       "\n\n currentTime = " ++ show t ++ "\n" ++
       "\n\n logs = " ++ show l ++ "\n"
@@ -479,6 +479,14 @@ displayEvent g ei@(EventInfo en rn _ _ s env) =
    ", rule num: " ++ (show rn) ++
    ", event fields: " ++ (show $ getEventFields ei g) ++ --TODO: display also event result?
    ", envs: " ++ (show env) ++
+   ", status: " ++ (show s)
+
+displayOutput :: Game -> Output -> String
+displayOutput g o@(Output on rn mpn _ s) =
+   "output num: " ++ (show on) ++
+   ", rule num: " ++ (show rn) ++
+   ", by pn: " ++ (show mpn) ++
+   ", output: " ++ (show $ evalOutput g o) ++
    ", status: " ++ (show s)
 
 displayEvent' :: EventInfo -> EvaluateNE String
