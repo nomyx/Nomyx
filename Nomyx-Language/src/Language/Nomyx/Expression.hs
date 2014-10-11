@@ -22,6 +22,7 @@ import Control.Applicative hiding (Const)
 import Data.Lens.Template
 import Control.Monad.Error
 import Control.Shortcut
+import System.Random
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -54,42 +55,43 @@ type NomexNE = Exp NoEffect
 
 data Exp :: Eff -> * -> *   where
    --Variables management
-   NewVar         :: (Typeable a, Show a) => VarName -> a -> Nomex (Maybe (V a))
-   ReadVar        :: (Typeable a, Show a) => V a -> NomexNE (Maybe a)
-   WriteVar       :: (Typeable a, Show a) => V a -> a -> Nomex Bool
-   DelVar         :: (V a) -> Nomex Bool
+   NewVar          :: (Typeable a, Show a) => VarName -> a -> Nomex (Maybe (V a))
+   ReadVar         :: (Typeable a, Show a) => V a -> NomexNE (Maybe a)
+   WriteVar        :: (Typeable a, Show a) => V a -> a -> Nomex Bool
+   DelVar          :: (V a) -> Nomex Bool
    --Events management
-   OnEvent        :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
-   DelEvent       :: EventNumber -> Nomex Bool
-   GetEvents      :: NomexNE [EventInfo]
-   SendMessage    :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
+   OnEvent         :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
+   DelEvent        :: EventNumber -> Nomex Bool
+   GetEvents       :: NomexNE [EventInfo]
+   SendMessage     :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
    --Rules management
-   ProposeRule    :: RuleInfo -> Nomex Bool
-   ActivateRule   :: RuleNumber -> Nomex Bool
-   RejectRule     :: RuleNumber -> Nomex Bool
-   AddRule        :: RuleInfo -> Nomex Bool
-   ModifyRule     :: RuleNumber -> RuleInfo -> Nomex Bool
-   GetRules       :: NomexNE [RuleInfo]
+   ProposeRule     :: RuleInfo -> Nomex Bool
+   ActivateRule    :: RuleNumber -> Nomex Bool
+   RejectRule      :: RuleNumber -> Nomex Bool
+   AddRule         :: RuleInfo -> Nomex Bool
+   ModifyRule      :: RuleNumber -> RuleInfo -> Nomex Bool
+   GetRules        :: NomexNE [RuleInfo]
    --Players management
-   GetPlayers     :: NomexNE [PlayerInfo]
-   SetPlayerName  :: PlayerNumber -> PlayerName -> Nomex Bool
-   DelPlayer      :: PlayerNumber -> Nomex Bool
+   GetPlayers      :: NomexNE [PlayerInfo]
+   SetPlayerName   :: PlayerNumber -> PlayerName -> Nomex Bool
+   DelPlayer       :: PlayerNumber -> Nomex Bool
    --Outputs
-   NewOutput      :: Maybe PlayerNumber -> NomexNE String -> Nomex OutputNumber
-   GetOutput      :: OutputNumber -> NomexNE (Maybe String)
-   UpdateOutput   :: OutputNumber -> NomexNE String -> Nomex Bool
-   DelOutput      :: OutputNumber -> Nomex Bool
+   NewOutput       :: Maybe PlayerNumber -> NomexNE String -> Nomex OutputNumber
+   GetOutput       :: OutputNumber -> NomexNE (Maybe String)
+   UpdateOutput    :: OutputNumber -> NomexNE String -> Nomex Bool
+   DelOutput       :: OutputNumber -> Nomex Bool
    --Mileacenous
-   SetVictory     :: NomexNE [PlayerNumber] -> Nomex ()
-   CurrentTime    :: NomexNE UTCTime
-   SelfRuleNumber :: NomexNE RuleNumber
+   SetVictory      :: NomexNE [PlayerNumber] -> Nomex ()
+   CurrentTime     :: NomexNE UTCTime
+   SelfRuleNumber  :: NomexNE RuleNumber
+   GetRandomNumber :: Random a => (a, a) -> Nomex a
    --Monadic bindings
-   Return         :: a -> Exp e a
-   Bind           :: Exp e a -> (a -> Exp e b) -> Exp e b
-   ThrowError     :: String -> Exp Effect a
-   CatchError     :: Nomex a -> (String -> Nomex a) -> Nomex a
-   LiftEffect     :: NomexNE a -> Nomex a
-   Simu           :: Nomex a -> NomexNE Bool -> NomexNE Bool
+   Return          :: a -> Exp e a
+   Bind            :: Exp e a -> (a -> Exp e b) -> Exp e b
+   ThrowError      :: String -> Exp Effect a
+   CatchError      :: Nomex a -> (String -> Nomex a) -> Nomex a
+   LiftEffect      :: NomexNE a -> Nomex a
+   Simu            :: Nomex a -> NomexNE Bool -> NomexNE Bool
 
 
 #if __GLASGOW_HASKELL__ >= 708

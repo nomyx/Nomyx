@@ -11,6 +11,7 @@ import Data.Lens
 import Data.Time as T
 import Data.List
 import qualified Data.Acid.Advanced as A (update', query')
+import Happstack.Auth.Core.Auth
 import Control.Category hiding ((.))
 import Control.Monad.State
 import Control.Concurrent.STM
@@ -28,6 +29,7 @@ import Nomyx.Core.Engine as G
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
 newPlayer uid ms = do
    s <- get
+   void $ A.update' (acidAuth $ _profiles s) (SetDefaultSessionTimeout $ 3600 * 24 * 7 *25)
    void $ A.update' (acidProfileData $ _profiles s) (NewProfileData uid ms)
 
 -- | starts a new game

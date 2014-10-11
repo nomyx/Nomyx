@@ -42,6 +42,7 @@ unQualImports =  ["Language.Nomyx",
                   "Data.Monoid",
                   "Data.Ord",
                   "Data.Ratio",
+                  "Data.Semigroup",
                   "Data.Tree",
                   "Data.Tuple",
                   "Data.Typeable",
@@ -53,7 +54,8 @@ defaultPackages = ["Nomyx-Language",
                    "array",
                    "base",
                    "bytestring",
-                   "containers"]
+                   "containers",
+                   "text"]
 
 qualImports :: [(String, Maybe String)]
 qualImports = [("Control.Category", Just "C"),
@@ -67,4 +69,5 @@ qualImports = [("Control.Category", Just "C"),
                ("Data.Map", Just "M"),
                ("Data.Sequence", Just "Data.Sequence"),
                ("Data.Set", Just "S"),
-               ("Data.Traversable", Just "Data.Traversable") ]
+               ("Data.Text", Just "T"),
+               ("Data.Traversable", Just "Data.Traversable")]

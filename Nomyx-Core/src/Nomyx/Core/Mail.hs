@@ -72,8 +72,9 @@ newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 sendMailsNewRule :: Session -> SubmitRule -> PlayerNumber -> IO ()
 sendMailsNewRule s sr pn = when (_sendMails $ _mSettings $ _multi s) $ do
    putStrLn "Sending mails"
-   gn <- fromJustNote "sendMailsNewRule" <$> getPlayersGame pn s
-   let sendMailsTo = delete pn (map _playerNumber (_players $ _game $ _loggedGame gn))
+   gi <- fromJustNote "sendMailsNewRule" <$> getPlayersGame pn s
+   guard (_isPublic gi)
+   let sendMailsTo = delete pn (map _playerNumber (_players $ _game $ _loggedGame gi))
    proposer <- Nomyx.Core.Profile.getPlayerName pn s
    profiles <- mapM (getProfile s) sendMailsTo
    mapM_ (send proposer (_net $ _mSettings $ _multi s) sr) (_pPlayerSettings <$> catMaybes profiles)

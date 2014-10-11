@@ -217,7 +217,7 @@ numberOfGamesOwned :: [GameInfo] -> PlayerNumber -> Int
 numberOfGamesOwned gis pn = length $ filter (maybe False (==pn) . _ownedBy) gis
 
 getFirstGame :: Session -> Maybe GameInfo
-getFirstGame = headMay . _gameInfos . _multi
+getFirstGame = headMay . (filter _isPublic) ._gameInfos . _multi
 
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]

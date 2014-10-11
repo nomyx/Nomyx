@@ -20,6 +20,7 @@ import Data.Lens
 import Data.Maybe
 import Data.Todo
 import Data.Either
+import Data.Function (on)
 import Control.Category hiding (id)
 import Control.Applicative
 import Control.Monad.Error.Class (MonadError(..))
@@ -28,6 +29,8 @@ import Nomyx.Core.Engine.Types hiding (_vRuleNumber)
 import Nomyx.Core.Engine.EvalUtils
 import Nomyx.Core.Engine.Utils
 import Safe
+import System.Random
+
 
 -- * Evaluation
 
@@ -56,6 +59,7 @@ evalNomex (ThrowError s)          = throwError s
 evalNomex (CatchError n h)        = catchError (evalNomex n) (\a -> evalNomex (h a))
 evalNomex (Return a)              = return a
 evalNomex (Bind exp f)            = evalNomex exp >>= \e -> evalNomex (f e)
+evalNomex (GetRandomNumber r)     = evGetRandomNumber r
 
 -- | evaluate an effectless expression.
 evalNomexNE :: NomexNE a -> EvaluateNE a
@@ -69,6 +73,8 @@ evalNomexNE (CurrentTime)   = _currentTime <$> asks _eGame
 evalNomexNE (Return a)      = return a
 evalNomexNE (Bind exp f)    = evalNomexNE exp >>= \e -> evalNomexNE (f e)
 evalNomexNE (Simu sim ev)   = evSimu sim ev
+
+
 
 --TODO should we also give a rule number to simulate the Nomex with?
 -- currently we use the simulating rule number
@@ -166,7 +172,7 @@ evAddRule rule = do
          return True
       Just _ -> return False
 
---TODO: clean and execute new rule
+
 evModifyRule :: RuleNumber -> RuleInfo -> Evaluate Bool
 evModifyRule rn rule = do
    (rs, _) <- accessGame rules
@@ -268,12 +274,20 @@ evReadVar (V name) = do
           Just v -> return $ Just v
           Nothing -> return Nothing
 
+evGetRandomNumber :: Random a => (a, a) -> Evaluate a
+evGetRandomNumber r = do
+   g <- access (eGame >>> randomGen)
+   let (a, g') = randomR r g
+   (eGame >>> randomGen) ~= g'
+   return a
+
+
+
 -- * Events
 
 
 
 -- | Get the field at a certain address
---TODO: should we check that the field is not already completed?
 findField :: EventInfo -> FieldAddress -> FormField -> EvaluateNE (Maybe SomeField)
 findField (EventInfo _ _ e _ _ er) addr ft = findField' addr e er ft
 
@@ -288,10 +302,10 @@ findField' (AppL:as)  (AppEvent e1 _)  frs ft = findField' as e1 (filterPath App
 findField' (AppR:as)  (AppEvent _ e2)  frs ft = findField' as e2 (filterPath AppR frs) ft
 findField' (BindL:as) (BindEvent e1 _) frs ft = findField' as e1 (filterPath BindL frs) ft
 findField' (BindR:as) (BindEvent e1 f) frs ft = do
-   er <- getEventResult e1 (filterPath BindL frs)
-   case er of
+   ter <- getEventResult e1 (filterPath BindL frs) --
+   case ter of
       Done e2 -> findField' as (f e2) (filterPath BindR frs) ft
-      Todo _  -> return Nothing
+      Todo _  -> return $ Nothing
 findField' (Shortcut:as) (ShortcutEvents es _) frs ft = do
    msfs <- mapM (\e-> findField' as e frs ft) es
    return $ headMay $ catMaybes msfs  -- returning the first field that matches
@@ -301,8 +315,7 @@ findField' fa _ _ _ = error $ "findField: wrong field address: " ++ (show fa)
 filterPath :: FieldAddressElem -> [FieldResult] -> [FieldResult]
 filterPath fa frs = mapMaybe f frs where
    f (FieldResult fe fr (Just (fa':fas))) | fa == fa' = Just $ FieldResult fe fr (Just fas)
-   f _ = Nothing
-
+   f fr = Just fr
 
 getFormField :: SomeField -> Maybe FormField
 getFormField (SomeField (Input pn s (Radio choices)))    = Just $ RadioField pn s (zip [0..] (snd <$> choices))
@@ -354,9 +367,9 @@ triggerEvent e dat = access (eGame >>> events) >>= triggerEvent' (FieldResult e 
 -- trigger some specific events
 triggerEvent' :: FieldResult -> [EventInfo] -> Evaluate ()
 triggerEvent' res evs = do
-   evs' <- mapM (liftEval . (updateEventInfo res)) evs  -- get all the EventInfos updated with the field
-   (eGame >>> events) %= union (map fst evs')           -- store them
-   void $ mapM triggerIfComplete evs'                   -- trigger the handlers for completed events
+   evs' <- mapM (liftEval . (updateEventInfo res)) (sortBy (compare `on` _ruleNumber) evs)  -- get all the EventInfos updated with the field
+   (eGame >>> events) %= union (map fst evs')                                               -- store them
+   void $ mapM triggerIfComplete evs'                                                       -- trigger the handlers for completed events
 
 -- if the event is complete, trigger its handler
 triggerIfComplete :: (EventInfo, Maybe SomeData) -> Evaluate ()
@@ -393,7 +406,7 @@ execInputHandler ir fa ft ei@(EventInfo _ _ _ _ SActive _) = do
    i <- liftEval $ findField ei fa ft
    case i of
       Just sf -> execInputHandler' ir sf fa ei
-      Nothing -> logAll "Input not found"
+      Nothing -> logAll $ "Input not found, InputData=" ++ (show ir) ++ " FieldAddress=" ++ (show fa) ++ " FormField=" ++ (show ft)
 execInputHandler _ _ _ _ = return ()
 
 -- execute the event handler using the data received from user
@@ -404,6 +417,8 @@ execInputHandler' (ButtonData)      (SomeField e@(Input _ _ (Button)))      fa e
 execInputHandler' (RadioData i)     (SomeField e@(Input _ _ (Radio cs)))    fa ei = triggerEvent' (FieldResult e (fst $ cs!!i)         (Just fa)) [ei]
 execInputHandler' (CheckboxData is) (SomeField e@(Input _ _ (Checkbox cs))) fa ei = triggerEvent' (FieldResult e (fst <$> cs `sel` is) (Just fa)) [ei]
 execInputHandler' _ _ _ _ = return ()
+
+
 
 -- * misc
 
@@ -446,15 +461,16 @@ delVictoryRule rn = do
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
 instance Show Game where
-   show g@(Game gn _ rs ps vs es _ _ _ t) =
+   show g@(Game gn _ rs ps vs es _ _ l t _) =
       "Game Name = "      ++ show gn ++
-      "\n Rules = "       ++ (intercalate "\n " $ map show rs) ++
-      "\n Players = "     ++ show ps ++
-      "\n Variables = "   ++ show vs ++
-      "\n Events = "      ++ (intercalate "\n " $ map (displayEvent g) es) ++
-      "\n Outputs = "     ++ show (allOutputs g) ++
-      "\n Victory = "     ++ show (getVictorious g) ++
-      "\n currentTime = " ++ show t ++ "\n"
+      "\n\n Rules = "       ++ (intercalate "\n " $ map show rs) ++
+      "\n\n Players = "     ++ show ps ++
+      "\n\n Variables = "   ++ show vs ++
+      "\n\n Events = "      ++ (intercalate "\n " $ map (displayEvent g) es) ++ "\n" ++
+      "\n\n Outputs = "     ++ show (allOutputs g) ++
+      "\n\n Victory = "     ++ show (getVictorious g) ++
+      "\n\n currentTime = " ++ show t ++ "\n" ++
+      "\n\n logs = " ++ show l ++ "\n"
 
 
 displayEvent :: Game -> EventInfo -> String

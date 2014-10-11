@@ -18,6 +18,7 @@ import Nomyx.Core.Utils
 import Nomyx.Core.Types
 import Nomyx.Core.Interpret
 import Nomyx.Core.Quotes (cr)
+import System.Random
 
 triggerTimeEvent :: UTCTime -> StateT Multi IO ()
 triggerTimeEvent t = do
@@ -62,7 +63,8 @@ initialGame sh = focus loggedGame $ mapM_ addR [rVoteUnanimity, rVictory5Rules]
 
 initialGameInfo :: GameName -> GameDesc -> Bool -> Maybe PlayerNumber -> UTCTime -> ServerHandle -> IO GameInfo
 initialGameInfo name desc isPublic mpn date sh = do
-   let lg = GameInfo { _loggedGame = LoggedGame (emptyGame name desc date) [],
+   let gen = mkStdGen 0
+   let lg = GameInfo { _loggedGame = LoggedGame (emptyGame name desc date gen) [],
                        _ownedBy    = mpn,
                        _forkedFromGame = Nothing,
                        _isPublic = isPublic,

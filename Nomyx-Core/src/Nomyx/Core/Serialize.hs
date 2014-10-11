@@ -19,6 +19,7 @@ import Nomyx.Core.Utils
 import Nomyx.Core.Interpret
 import Nomyx.Core.Engine
 import Nomyx.Core.Engine.GameEvents
+import System.Random
 
 save :: Multi -> IO ()
 save m = BL.writeFile (getSaveFile $ _mSettings m) (encode m)
@@ -52,7 +53,7 @@ updateLoggedGame f (LoggedGame g log) = getLoggedGame g f log
 time0 = posixSecondsToUTCTime 0
 
 instance ToJSON Game where
-   toJSON (Game name desc _ _ _ _ _ _ _ _) =
+   toJSON (Game name desc _ _ _ _ _ _ _ _ _) =
       object ["gameName" .= name,
               "gameDesc" .= desc]
 
@@ -67,8 +68,8 @@ instance FromJSON Game where
       pure [] <*>
       pure Nothing <*>
       pure [] <*>
-      pure time0
-   -- A non-Object value is of the wrong type, so fail.
+      pure time0  <*>
+      pure (mkStdGen 0)
    parseJSON _ = mzero
 
 
@@ -84,4 +85,5 @@ $(deriveJSON defaultOptions ''GameEvent)
 $(deriveJSON defaultOptions ''InputData)
 $(deriveJSON defaultOptions ''SubmitRule)
 $(deriveJSON defaultOptions ''GameDesc)
+$(deriveJSON defaultOptions ''StdGen)
 

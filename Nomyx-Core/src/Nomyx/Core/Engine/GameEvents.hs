@@ -20,8 +20,7 @@ import Data.Time
 import Data.Maybe
 
 -- | a list of possible events affecting a game
-data GameEvent = GameSettings      GameName GameDesc UTCTime
-               | JoinGame          PlayerNumber PlayerName
+data GameEvent = JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     PlayerNumber SubmitRule
                | InputResult       PlayerNumber EventNumber FieldAddress FormField InputData
@@ -47,7 +46,6 @@ $( makeLens ''LoggedGame)
 
 -- | perform a game event
 enactEvent :: GameEvent -> Maybe (RuleCode -> IO Rule) -> StateT Game IO ()
-enactEvent (GameSettings name desc date) _    = mapStateIO $ gameSettings name desc date
 enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
 enactEvent (LeaveGame pn) _                   = mapStateIO $ leaveGame pn
 enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
@@ -76,7 +74,7 @@ execGameEvent = execGameEvent' Nothing
 
 execGameEvent' :: Maybe (RuleCode -> IO Rule) -> GameEvent -> StateT LoggedGame IO ()
 execGameEvent' inter ge = do
-   t <- access $ game >>> currentTime
+   t <- access (game >>> currentTime)
    let te = TimedEvent t ge
    gameLog %= \gl -> gl ++ [te]
    focus game $ enactTimedEvent inter te
@@ -86,14 +84,6 @@ getLoggedGame g mInter tes = do
    let a = mapM_ (enactTimedEvent (Just mInter)) tes
    g' <- execStateT a g
    return $ LoggedGame g' tes
-
--- | initialize the game.
-gameSettings :: GameName -> GameDesc -> UTCTime -> State Game ()
-gameSettings name desc date = do
-   gameName ~= name
-   gameDesc ~= desc
-   currentTime ~= date
-   return ()
 
 -- | join the game.
 joinGame :: PlayerName -> PlayerNumber -> State Game ()
