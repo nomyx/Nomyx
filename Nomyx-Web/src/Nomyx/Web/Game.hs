@@ -132,35 +132,42 @@ viewRules nrs title visible g = showHideTitle title visible (null nrs) (h4 $ toH
       td ! class_ "td" $ "#"
       td ! class_ "td" $ "Name"
       td ! class_ "td" $ "Description"
-      td ! class_ "td" $ "Proposed by"
       td ! class_ "td" $ "Code of the rule"
-      td ! class_ "td" $ "Assessed by"
    forM_ nrs (viewRule g)
 
 viewRule :: Game -> RuleInfo -> Html
-viewRule g nr = tr $ do
-   let pl = fromMaybe ("Player " ++ (show $ _rProposedBy nr)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy nr))
-   td ! class_ "td" $ fromString . show $ _rNumber nr
-   td ! class_ "td" $ fromString $ _rName nr
-   td ! class_ "td" $ fromString $ _rDescription nr
-   td ! class_ "td" $ fromString $ if _rProposedBy nr == 0 then "System" else pl
-   td ! class_ "codetd" $ viewRuleFunc nr
-   td ! class_ "td" $ fromString $ case _rAssessedBy nr of
-      Nothing -> "Not assessed"
-      Just 0  -> "System"
-      Just a  -> "Rule " ++ show a
+viewRule g ri = tr $ do
+   let pl = fromMaybe ("Player " ++ (show $ _rProposedBy ri)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy ri))
+   td ! class_ "td" $ p (fromString . show $ _rNumber ri) ! A.id "ruleNumber"
+   td ! class_ "td" $ do
+      div ! A.id "ruleName" $ (fromString $ _rName ri)
+      br
+      div ! A.id "proposedBy" $ (fromString $ "by "  ++ (if _rProposedBy ri == 0 then "System" else pl))
+   td ! class_ "td" $ fromString $ _rDescription ri
+   td ! class_ "td" $ viewRuleFunc ri
 
 viewRuleFunc :: RuleInfo -> Html
-viewRuleFunc nr = do
-   let code = displayCode $ _rRuleCode nr
-   let ref = "openModalCode" ++ (show $ _rNumber nr)
-   div ! A.id "showCodeLink" $ a ! (href $ toValue $ "#" ++ ref)  $ "show code" >> br
-   code
+viewRuleFunc ri = do
+   let code = lines $ _rRuleCode ri
+   let ref = "openModalCode" ++ (show $ _rNumber ri)
+   let assessedBy = case _rAssessedBy ri of
+        Nothing -> "not assessed"
+        Just 0  -> "the system"
+        Just a  -> "rule " ++ show a
+   div ! A.id "showCodeLink" $ a ! (href $ toValue $ "#" ++ ref)  $ "show more..." >> br
+   div ! A.id "codeDiv" $ displayCode $ unlines $ take 10 code
+   div $ when (length code >= 10) $ fromString "(...)"
    div ! A.id (toValue ref) ! class_ "modalDialog" $ do
       div $ do
          p "Code of the rule:"
          a ! href "#close" ! title "Close" ! class_ "close" $ "X"
-         div ! A.id "modalCode" $ code
+         div ! A.id "modalCode" $ do
+            displayCode $ unlines code
+            br
+            case _rStatus ri of
+               Active -> (fromString $ "This rule was activated by " ++ assessedBy ++ ".") ! A.id "assessedBy"
+               Reject -> (fromString $ "This rule was deleted by " ++ assessedBy ++ ".") ! A.id "assessedBy"
+               Pending -> return ()
 
 viewDetails :: PlayerNumber -> Game -> Html
 viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
