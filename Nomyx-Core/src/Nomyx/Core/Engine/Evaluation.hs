@@ -20,6 +20,7 @@ import Data.Lens
 import Data.Maybe
 import Data.Todo
 import Data.Either
+import Data.Function (on)
 import Control.Category hiding (id)
 import Control.Applicative
 import Control.Monad.Error.Class (MonadError(..))
@@ -366,9 +367,9 @@ triggerEvent e dat = access (eGame >>> events) >>= triggerEvent' (FieldResult e 
 -- trigger some specific events
 triggerEvent' :: FieldResult -> [EventInfo] -> Evaluate ()
 triggerEvent' res evs = do
-   evs' <- mapM (liftEval . (updateEventInfo res)) evs  -- get all the EventInfos updated with the field
-   (eGame >>> events) %= union (map fst evs')           -- store them
-   void $ mapM triggerIfComplete evs'                   -- trigger the handlers for completed events
+   evs' <- mapM (liftEval . (updateEventInfo res)) (sortBy (compare `on` _ruleNumber) evs)  -- get all the EventInfos updated with the field
+   (eGame >>> events) %= union (map fst evs')                                               -- store them
+   void $ mapM triggerIfComplete evs'                                                       -- trigger the handlers for completed events
 
 -- if the event is complete, trigger its handler
 triggerIfComplete :: (EventInfo, Maybe SomeData) -> Evaluate ()
