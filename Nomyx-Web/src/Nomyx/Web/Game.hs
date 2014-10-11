@@ -149,14 +149,15 @@ viewRule g ri = tr $ do
 viewRuleFunc :: RuleInfo -> Html
 viewRuleFunc ri = do
    let code = lines $ _rRuleCode ri
+   let codeCutLines = 7
    let ref = "openModalCode" ++ (show $ _rNumber ri)
    let assessedBy = case _rAssessedBy ri of
         Nothing -> "not assessed"
         Just 0  -> "the system"
         Just a  -> "rule " ++ show a
    div ! A.id "showCodeLink" $ a ! (href $ toValue $ "#" ++ ref)  $ "show more..." >> br
-   div ! A.id "codeDiv" $ displayCode $ unlines $ take 10 code
-   div $ when (length code >= 10) $ fromString "(...)"
+   div ! A.id "codeDiv" $ displayCode $ unlines $ take codeCutLines code
+   div $ when (length code >= codeCutLines) $ fromString "(...)"
    div ! A.id (toValue ref) ! class_ "modalDialog" $ do
       div $ do
          p "Code of the rule:"
