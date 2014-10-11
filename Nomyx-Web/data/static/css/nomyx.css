@@ -265,4 +265,12 @@ pre {
    color: blue;
 }
 
+.ruleCode {
+    width:100%;
+}
+ 
+.ruleDescr {
+    width:50%;
+}
+
 
