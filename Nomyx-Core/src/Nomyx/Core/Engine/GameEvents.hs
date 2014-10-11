@@ -142,7 +142,7 @@ getTime :: SomeField -> Maybe UTCTime
 getTime (SomeField (Time t)) = Just t
 getTime _                    = Nothing
 
--- | A helper function to use the state transformer GameState.
+-- | A helper function to run the game state.
 -- It additionally sets the current time.
 execWithGame :: UTCTime -> State LoggedGame () -> LoggedGame -> LoggedGame
 execWithGame t gs g = execState gs $ (game >>> currentTime) `setL` t $ g
