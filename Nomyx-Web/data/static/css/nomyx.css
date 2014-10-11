@@ -39,6 +39,8 @@ h3{
    padding-top:0px;
    margin-bottom:10px;
    display: block;
+   max-height:450pt;
+   overflow-y:auto;
 }
 
 .table {
