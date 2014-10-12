@@ -43,13 +43,13 @@ testGame = Game { _gameName      = "test",
                   _randomGen     = mkStdGen 0}
 
 testRule = RuleInfo  { _rNumber       = 0,
-                      _rName         = "test",
-                      _rDescription  = "test",
-                      _rProposedBy   = 0,
-                      _rRuleCode     = "",
-                      _rRule         = return (),
-                      _rStatus       = Pending,
-                      _rAssessedBy   = Nothing}
+                       _rName         = "test",
+                       _rDescription  = "test",
+                       _rProposedBy   = 0,
+                       _rRuleCode     = "",
+                       _rRule         = return (),
+                       _rStatus       = Pending,
+                       _rAssessedBy   = Nothing}
 
 execRuleEvent :: (Show e, Typeable e) => Nomex a -> Field e -> e -> Game
 execRuleEvent r f d = execState (runSystemEval' $ evalNomex r >> triggerEvent f d) testGame
@@ -173,7 +173,7 @@ testVar5 = do
       Just (a::[Int]) -> void $ writeVar var (2:a)
       Nothing         -> void $ newOutput (Just 1) (return "nok")
 
-testVarEx5 = True --_variables (execRuleFunc testVar5) == [(Var 0 "toto" ([2,1]::[Int]))]
+testVarEx5 = (show $ head $ _variables $ execRule testVar5) == "Rule number = 0, Name = \"toto\", Value = [2,1]\n"
 
 data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 
@@ -248,6 +248,14 @@ testActivateRule = do
 testActivateRuleEx = _rStatus (head $ _rules (execRuleGame testActivateRule testGame {_rules=[testRule]}))  == Active
 
 testAutoActivateEx = _rStatus (head $ _rules (execRuleEventGame autoActivate (RuleEv Proposed) testRule (testGame {_rules=[testRule]})))  == Active
+
+--testAutoDelete :: Rule
+--testAutoDelete = do
+--   outputAll_ "before"
+--   autoDelete
+--   outputAll_ "after"
+--
+--testAutoDeleteEx = isOutput "ok" (execRuleGame testAutoDelete testGame {_rules=[testRule {_rNumber = 1}]})
 
 --Time tests
 
