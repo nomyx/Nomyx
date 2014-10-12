@@ -16,6 +16,7 @@ import Control.Category
 import Data.Typeable
 import Data.Lens
 import Data.Maybe
+import Data.List
 import Control.Applicative
 import Control.Monad.Error
 import Language.Nomyx.Expression
@@ -81,11 +82,32 @@ runSystemEval' e = runEvalError 0 Nothing e
 focusGame :: State Game a -> Evaluate a
 focusGame = lift . (focus eGame)
 
-accessGame :: Lens Game a -> Evaluate (a, PlayerNumber)
+accessGame :: Lens Game a -> Evaluate (a, RuleNumber)
 accessGame l = do
    a <- access (eGame >>> l)
-   pn <- access eRuleNumber
-   return (a, pn)
+   rn <- access eRuleNumber
+   return (a, rn)
+
+putGame :: Lens Game a -> a -> Evaluate ()
+putGame l a = do
+   ruleActive <- evalRuleActive
+   when ruleActive $ void $ (eGame >>> l) ~= a
+
+modifyGame :: Lens Game a -> (a -> a) -> Evaluate ()
+modifyGame l f = do
+   ruleActive <- evalRuleActive
+   when ruleActive $ void $ (eGame >>> l) %= f
+
+evalRuleActive :: Evaluate Bool
+evalRuleActive = do
+   rn <- access eRuleNumber
+   rs <- access (eGame >>> rules)
+   return $ if rn == 0
+      then True
+      else case find (\r -> _rNumber r == rn) rs of
+         Just r -> _rStatus r == Active
+         Nothing -> True --TODO why should there be an evaluating rule not in the list?
+
 
 --replace temporarily the rule number used for evaluation
 withRN :: RuleNumber -> Evaluate a -> Evaluate a
