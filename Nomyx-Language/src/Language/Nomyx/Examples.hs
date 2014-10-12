@@ -4,6 +4,7 @@
 
 -- | This file gives a list of example rules that the players can submit.
 --You can copy-paste them in the field "Code" of the web GUI.
+--You can copy either the name of the function (i.e. "helloWorld") or its body (i.e. "outputAll_ "hello, world!""), but NOT both.
 --Don't hesitate to get inspiration from there and create your own rules!
 module Language.Nomyx.Examples(
    nothing,
@@ -89,7 +90,7 @@ moneyTransfer :: Rule
 moneyTransfer = do
    let askAmount :: PlayerNumber -> Event (PlayerNumber, Int)
        askAmount src = do
-          pls <- liftNomexNE getAllPlayerNumbers
+          pls <- liftEvent getAllPlayerNumbers
           guard (length pls >= 2) >> do
              dst <- inputRadio' src "Transfer money to player: " (delete src $ sort pls)
              amount <- inputText src ("Select Amount to transfert to player " ++ show dst ++ ": ")
@@ -103,8 +104,8 @@ transfer src (dst, amount) = do
    if (amount > 0 && fromJust balance >= amount) then do
       modifyValueOfPlayer dst accounts (\a -> a + amount)
       modifyValueOfPlayer src accounts (\a -> a - amount)
-      void $ newOutput_ (Just src) ("You gave " ++ (show amount) ++ " ecus to player " ++ show dst)
-      void $ newOutput_ (Just dst) ("Player " ++ show src ++ " gave you " ++ (show amount) ++ "ecus")
+      void $ newOutput_ (Just src) ("You gave " ++ (show amount) ++ " ecu(s) to player " ++ show dst)
+      void $ newOutput_ (Just dst) ("Player " ++ show src ++ " gave you " ++ (show amount) ++ " ecu(s)")
    else void $ newOutput_ (Just src) ("Insufficient balance or wrong amount")
 
 -- | delete a rule
@@ -215,7 +216,7 @@ helloButton = do
    let displayMsg a = void $ newOutput_ Nothing ("Msg: " ++ a)
    --create a button for me, which will display the output when clicked
    let button = do
-       all <- liftNomexNE getPlayers
+       all <- liftEvent getPlayers
        guard (length all >= 2) >> inputText me "send a message"
    void $ onEvent_ button displayMsg
 

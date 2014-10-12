@@ -16,21 +16,23 @@ import Control.Category
 import Data.Typeable
 import Data.Lens
 import Data.Maybe
+import Data.List
 import Control.Applicative
 import Control.Monad.Error
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
+import Safe
 
 -- find a field result in an environment
--- TODO simplify?
 lookupField :: Typeable a => Field a -> FieldAddress -> [FieldResult] -> Maybe a
-lookupField _ _ [] = Nothing
-lookupField fi fa ((FieldResult a r fa1) : ers) = case (cast (a,r)) of
-   Just (a',r') -> if (a' == fi && maybe True (== fa) fa1)
-                      then Just r'
-                      else lookupField fi fa ers
-   Nothing      -> lookupField fi fa ers
+lookupField fi fa frs = headMay $ mapMaybe (maybeField fi fa) frs
+
+--return the field result if it matches with the input field and address
+maybeField :: Typeable a => Field a -> FieldAddress -> FieldResult -> Maybe a
+maybeField fi fa (FieldResult fi' res fa') = do
+   ((fi'', res') :: (Field a, a)) <- cast (fi', res)
+   if (fi'' == fi) && maybe True (== fa) fa' then (Just res') else Nothing
 
 errorHandler :: EventNumber -> String -> Evaluate ()
 errorHandler en s = do
@@ -80,11 +82,32 @@ runSystemEval' e = runEvalError 0 Nothing e
 focusGame :: State Game a -> Evaluate a
 focusGame = lift . (focus eGame)
 
-accessGame :: Lens Game a -> Evaluate (a, PlayerNumber)
+accessGame :: Lens Game a -> Evaluate (a, RuleNumber)
 accessGame l = do
    a <- access (eGame >>> l)
-   pn <- access eRuleNumber
-   return (a, pn)
+   rn <- access eRuleNumber
+   return (a, rn)
+
+putGame :: Lens Game a -> a -> Evaluate ()
+putGame l a = do
+   ruleActive <- evalRuleActive
+   when ruleActive $ void $ (eGame >>> l) ~= a
+
+modifyGame :: Lens Game a -> (a -> a) -> Evaluate ()
+modifyGame l f = do
+   ruleActive <- evalRuleActive
+   when ruleActive $ void $ (eGame >>> l) %= f
+
+evalRuleActive :: Evaluate Bool
+evalRuleActive = do
+   rn <- access eRuleNumber
+   rs <- access (eGame >>> rules)
+   return $ if rn == 0
+      then True
+      else case find (\r -> _rNumber r == rn) rs of
+         Just r -> _rStatus r == Active
+         Nothing -> True --TODO why should there be an evaluating rule not in the list?
+
 
 --replace temporarily the rule number used for evaluation
 withRN :: RuleNumber -> Evaluate a -> Evaluate a

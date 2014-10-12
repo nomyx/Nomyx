@@ -1,6 +1,15 @@
 
-module Nomyx.Core.Engine.Utils where
-
+module Nomyx.Core.Engine.Utils(
+   (===),
+   replaceWith,
+   tracePN,
+   traceData,
+   parse822Time,
+   sndMaybe,
+   mapStateIO, 
+   getFreeNumber,
+   sel,
+   module Debug.Trace) where
 
 import Data.Time
 import Data.Typeable (cast, Typeable)

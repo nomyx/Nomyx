@@ -26,7 +26,8 @@ module Language.Nomyx.Players (
    showPlayer,
    getProposerNumber, getProposerNumber_,
    setVictory, 
-   giveVictory
+   giveVictory,
+   getRandomNumber
    ) where
 
 import Language.Nomyx.Expression
@@ -39,6 +40,7 @@ import Data.Lens
 import Control.Applicative
 import Control.Arrow
 import Control.Monad
+import System.Random
 
 -- * Players
 
@@ -149,3 +151,9 @@ getProposerNumber = _rProposedBy <$> getSelfRule
 
 getProposerNumber_ :: Nomex PlayerNumber
 getProposerNumber_ = liftEffect getProposerNumber
+
+-- | get a random number uniformly distributed in the closed interval [lo,hi]
+-- resets the number generator
+getRandomNumber :: Random a => (a, a) -> Nomex a
+getRandomNumber = GetRandomNumber
+

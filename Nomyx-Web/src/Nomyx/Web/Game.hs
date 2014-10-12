@@ -15,9 +15,9 @@ import Data.Monoid
 import Data.Maybe
 import Data.String
 import Data.List
+import Data.List.Split
 import Data.Text (Text)
 import Data.Time
-import Data.Lens
 import Text.Printf
 import System.Locale
 import Language.Nomyx
@@ -35,7 +35,6 @@ import qualified Nomyx.Web.Help as Help
 import Nomyx.Web.Common as NWC
 import Nomyx.Core.Types as T
 import Nomyx.Core.Mail
-import Nomyx.Core.Utils
 import Nomyx.Core.Engine
 import Nomyx.Core.Session as S
 import Nomyx.Core.Profile as Profile
@@ -68,9 +67,7 @@ viewGameDesc g playAs gameAdmin = do
       p $ do
         h3 $ fromString $ "Viewing game: " ++ _gameName g
         when (isJust playAs) $ h4 $ fromString $ "You are playing as player " ++ (show $ fromJust playAs)
-      p $ do
-         h4 "Description:"
-         fromString (_desc $ _gameDesc g)
+      p $ pre $ fromString (_desc $ _gameDesc g)
       p $ h4 $ "This game is discussed in the " >> a "Agora" ! (A.href $ toValue (_agora $ _gameDesc g)) >> "."
       p $ h4 "Players in game:"
       when gameAdmin "(click on a player name to \"play as\" this player)"
@@ -80,19 +77,23 @@ viewGameDesc g playAs gameAdmin = do
 
 viewPlayers :: [PlayerInfo] -> GameName -> Bool -> RoutedNomyxServer Html
 viewPlayers pis gn gameAdmin = do
-   vp <- mapM (viewPlayer gn gameAdmin) (sort pis)
+   let plChunks = transpose $ chunksOf 15 (sort pis)
+   vp <- mapM mkRow plChunks
    ok $ table $ mconcat vp
-      --let plChunks = transpose $ chunksOf (1 + (length pis) `Prelude.div` 3) (sort pis)
-      --table $ mapM_ (\row -> tr $ mapM_ (viewPlayer pn) row) plChunks
+   where mkRow :: [PlayerInfo] -> RoutedNomyxServer Html
+         mkRow row = do
+         r <- mapM (viewPlayer gn gameAdmin) row
+         ok $ tr $ mconcat r
 
 
 viewPlayer :: GameName -> Bool -> PlayerInfo -> RoutedNomyxServer Html
 viewPlayer gn gameAdmin (PlayerInfo pn name _) = do
    pad <- playAsDiv pn gn
-   ok $ tr $ do
-    let inf = fromString (show pn ++ "\t" ++ name)
+   let inf = fromString name
+   ok $ do
     pad
-    td $ if gameAdmin
+    td $ div ! A.id "playerNumber" $ fromString $ show pn
+    td $ div ! A.id "playerName" $ if gameAdmin
        then a inf ! (href $ toValue $ "#openModalPlayAs" ++ show pn)
        else inf
 
@@ -136,35 +137,43 @@ viewRules nrs title visible g = showHideTitle title visible (null nrs) (h4 $ toH
       td ! class_ "td" $ "#"
       td ! class_ "td" $ "Name"
       td ! class_ "td" $ "Description"
-      td ! class_ "td" $ "Proposed by"
       td ! class_ "td" $ "Code of the rule"
-      td ! class_ "td" $ "Assessed by"
    forM_ nrs (viewRule g)
 
 viewRule :: Game -> RuleInfo -> Html
-viewRule g nr = tr $ do
-   let pl = fromMaybe ("Player " ++ (show $ _rProposedBy nr)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy nr))
-   td ! class_ "td" $ fromString . show $ _rNumber nr
-   td ! class_ "td" $ fromString $ _rName nr
-   td ! class_ "td" $ fromString $ _rDescription nr
-   td ! class_ "td" $ fromString $ if _rProposedBy nr == 0 then "System" else pl
-   td ! class_ "codetd" $ viewRuleFunc nr
-   td ! class_ "td" $ fromString $ case _rAssessedBy nr of
-      Nothing -> "Not assessed"
-      Just 0  -> "System"
-      Just a  -> "Rule " ++ show a
+viewRule g ri = tr $ do
+   let pl = fromMaybe ("Player " ++ (show $ _rProposedBy ri)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy ri))
+   td ! class_ "td" $ p (fromString . show $ _rNumber ri) ! A.id "ruleNumber"
+   td ! class_ "td" $ do
+      div ! A.id "ruleName" $ (fromString $ _rName ri)
+      br
+      div ! A.id "proposedBy" $ (fromString $ "by "  ++ (if _rProposedBy ri == 0 then "System" else pl))
+   td ! class_ "td" $ fromString $ _rDescription ri
+   td ! class_ "td" $ viewRuleFunc ri
 
 viewRuleFunc :: RuleInfo -> Html
-viewRuleFunc nr = do
-   let code = displayCode $ _rRuleCode nr
-   let ref = "openModalCode" ++ (show $ _rNumber nr)
-   div ! A.id "showCodeLink" $ a ! (href $ toValue $ "#" ++ ref)  $ "show code" >> br
-   code
+viewRuleFunc ri = do
+   let code = lines $ _rRuleCode ri
+   let codeCutLines = 7
+   let ref = "openModalCode" ++ (show $ _rNumber ri)
+   let assessedBy = case _rAssessedBy ri of
+        Nothing -> "not assessed"
+        Just 0  -> "the system"
+        Just a  -> "rule " ++ show a
+   div ! A.id "showCodeLink" $ a ! (href $ toValue $ "#" ++ ref)  $ "show more..." >> br
+   div ! A.id "codeDiv" $ displayCode $ unlines $ take codeCutLines code
+   div $ when (length code >= codeCutLines) $ fromString "(...)"
    div ! A.id (toValue ref) ! class_ "modalDialog" $ do
       div $ do
          p "Code of the rule:"
          a ! href "#close" ! title "Close" ! class_ "close" $ "X"
-         div ! A.id "modalCode" $ code
+         div ! A.id "modalCode" $ do
+            displayCode $ unlines code
+            br
+            case _rStatus ri of
+               Active -> (fromString $ "This rule was activated by " ++ assessedBy ++ ".") ! A.id "assessedBy"
+               Reject -> (fromString $ "This rule was deleted by " ++ assessedBy ++ ".") ! A.id "assessedBy"
+               Pending -> return ()
 
 viewDetails :: PlayerNumber -> Game -> Html
 viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
@@ -226,11 +235,11 @@ viewInputsRule pn rn ehs g = do
 
 viewOutputsRule :: PlayerNumber -> RuleNumber -> Game -> Maybe Html
 viewOutputsRule pn rn g = do
-   let filtered = filter (\o -> _oRuleNumber o == rn) (_outputs g)
-   let myos = filter (isPn pn) (reverse filtered)
+   let filtered = filter (\o -> _oRuleNumber o == rn && _oStatus o == SActive) (_outputs g)
+   let myos = filter (isPn pn) (sort filtered)
    case myos of
       [] -> Nothing
-      os -> Just $ mapM_ (viewOutput g) os
+      os -> Just $ sequence_ $ mapMaybe (viewOutput g) os
 
 isPn pn (Output _ _ (Just mypn) _ SActive) = mypn == pn
 isPn _  (Output _ _ Nothing _ SActive) = True
@@ -254,8 +263,9 @@ viewInput' me gn en (fa, ev@(SomeField (Input pn title _))) | me == pn = do
      blazeForm lf link ! A.id "InputForm"
 viewInput' _ _ _ _ = return Nothing
 
-viewOutput :: Game -> Output -> Html
-viewOutput g o = pre $ fromString (evalOutput g o) >> br
+viewOutput :: Game -> Output -> Maybe Html
+viewOutput g o = if (s /= "") then Just (pre $ fromString s >> br) else Nothing where
+   s =  (evalOutput g o)
 
 viewVars :: [Var] -> Html
 viewVars vs = table ! class_ "table" $ do

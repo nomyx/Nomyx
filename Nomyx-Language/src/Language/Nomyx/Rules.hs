@@ -52,7 +52,7 @@ activateRule = ActivateRule
 activateRule_ :: RuleNumber -> Nomex ()
 activateRule_ r = activateRule r >> return ()
 
--- | reject a rule: change its state to Suppressed and suppresses all its environment (events, variables, inputs)
+-- | reject a rule: change its state to Suppressed and suppresses all its environment (events, variables, inputs, victory)
 -- the rule can be activated again later
 rejectRule :: RuleNumber -> Nomex Bool
 rejectRule = RejectRule

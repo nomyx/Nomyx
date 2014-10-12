@@ -109,7 +109,7 @@ readMsgVar_ :: (Typeable a, Show a) => MsgVar a -> Nomex a
 readMsgVar_ mv = partial "readMsgVar_: variable not existing" (liftEffect $ readMsgVar mv)
 
 modifyMsgVar :: (Typeable a, Show a) => MsgVar a -> (a -> a) -> Nomex Bool
-modifyMsgVar mv f = writeMsgVar mv . f =<< readMsgVar_ mv
+modifyMsgVar mv f = readMsgVar_ mv >>= writeMsgVar mv . f 
 
 delMsgVar :: (Typeable a, Show a) => MsgVar a -> Nomex Bool
 delMsgVar (MsgVar m v) = do
