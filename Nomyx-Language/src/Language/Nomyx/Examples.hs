@@ -104,8 +104,8 @@ transfer src (dst, amount) = do
    if (amount > 0 && fromJust balance >= amount) then do
       modifyValueOfPlayer dst accounts (\a -> a + amount)
       modifyValueOfPlayer src accounts (\a -> a - amount)
-      void $ newOutput_ (Just src) ("You gave " ++ (show amount) ++ " ecus to player " ++ show dst)
-      void $ newOutput_ (Just dst) ("Player " ++ show src ++ " gave you " ++ (show amount) ++ "ecus")
+      void $ newOutput_ (Just src) ("You gave " ++ (show amount) ++ " ecu(s) to player " ++ show dst)
+      void $ newOutput_ (Just dst) ("Player " ++ show src ++ " gave you " ++ (show amount) ++ " ecu(s)")
    else void $ newOutput_ (Just src) ("Insufficient balance or wrong amount")
 
 -- | delete a rule
