@@ -15,6 +15,7 @@ import Data.Monoid
 import Data.Maybe
 import Data.String
 import Data.List
+import Data.List.Split
 import Data.Text (Text)
 import Data.Time
 import Text.Printf
@@ -76,19 +77,23 @@ viewGameDesc g playAs gameAdmin = do
 
 viewPlayers :: [PlayerInfo] -> GameName -> Bool -> RoutedNomyxServer Html
 viewPlayers pis gn gameAdmin = do
-   vp <- mapM (viewPlayer gn gameAdmin) (sort pis)
+   let plChunks = transpose $ chunksOf 15 (sort pis)
+   vp <- mapM mkRow plChunks
    ok $ table $ mconcat vp
-      --let plChunks = transpose $ chunksOf (1 + (length pis) `Prelude.div` 3) (sort pis)
-      --table $ mapM_ (\row -> tr $ mapM_ (viewPlayer pn) row) plChunks
+   where mkRow :: [PlayerInfo] -> RoutedNomyxServer Html
+         mkRow row = do
+         r <- mapM (viewPlayer gn gameAdmin) row
+         ok $ tr $ mconcat r
 
 
 viewPlayer :: GameName -> Bool -> PlayerInfo -> RoutedNomyxServer Html
 viewPlayer gn gameAdmin (PlayerInfo pn name _) = do
    pad <- playAsDiv pn gn
-   ok $ tr $ do
-    let inf = fromString (show pn ++ "\t" ++ name)
+   let inf = fromString name
+   ok $ do
     pad
-    td $ if gameAdmin
+    td $ div ! A.id "playerNumber" $ fromString $ show pn
+    td $ div ! A.id "playerName" $ if gameAdmin
        then a inf ! (href $ toValue $ "#openModalPlayAs" ++ show pn)
        else inf
 
