@@ -1,8 +1,8 @@
-version := 0.7.0
+version := 0.7.2
 installroot := Nomyx-$(version)/
 deployroot := /home/cdupont/tmp/Nomyx
 
-cibuild: cabalinstall deb
+cibuild: cabalinstall tar deploy
 
 test:
 	./Nomyx/tests.sh
@@ -18,12 +18,11 @@ tar:
 	cp cabal.sandbox.config $(installroot)
 	cp launchNomyx.sh $(installroot)
 	tar -czvf Nomyx-$(version).tar.gz $(installroot)
-	#cd install_root && fpm -s dir -t deb -n nomyx -v $(version) -d aptitude --prefix / .
         
 
 upload:
 	scp Nomyx-$(version).tar.gz kau@www.nomyx.net:
       
 deploy:
-	ssh kau@www.nomyx.net "tar -xzvf $(installroot).tar.gz; mv $(installroot) $(deployroot); cd $(deployroot); ./launchNomyx.sh"
+	ssh kau@www.nomyx.net "tar -xzvf Nomyx-$(version).tar.gz; mv $(deployroot) $(deployroot)-sav; mv Nomyx $(deployroot);"
 
