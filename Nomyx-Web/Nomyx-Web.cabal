@@ -1,5 +1,5 @@
 name: Nomyx-Web
-version: 0.7.1
+version: 0.7.2
 cabal-version: >=1.6
 build-type: Simple
 license: BSD3
@@ -16,8 +16,8 @@ data-dir: data
 extra-source-files: README.md
  
 library
-    build-depends: Nomyx-Language         == 0.7.1,
-                   Nomyx-Core             == 0.7.1,
+    build-depends: Nomyx-Language         == 0.7.2,
+                   Nomyx-Core             == 0.7.2,
                    base                   >= 4.6 && <5,
                    blaze-html             == 0.7.*,
                    blaze-markup           == 0.6.*,
@@ -35,6 +35,7 @@ library
                    reform-blaze           == 0.2.*,
                    reform-happstack       == 0.2.*,
                    safe                   == 0.3.*,
+                   split                  == 0.2.*,
                    stm                    == 2.4.*,
                    text                   == 1.1.*,
                    time                   == 1.4.*,
