@@ -91,7 +91,7 @@ evNewVar name def = do
    (vars, rn) <- accessGame variables
    case find ((== name) . getL vName) vars of
       Nothing -> do
-         (eGame >>> variables) %= (Var rn name def : )
+         modifyGame variables (Var rn name def : )
          return $ Just (V name)
       Just _ -> return Nothing
 
@@ -101,7 +101,7 @@ evDelVar (V name) = do
    case find ((== name) . getL vName) vars of
       Nothing -> return False
       Just _ -> do
-         (eGame >>> variables) %= filter ((/= name) . getL vName)
+         modifyGame variables $ filter ((/= name) . getL vName)
          return True
 
 evWriteVar :: (Typeable a, Show a) => V a -> a -> Evaluate Bool
@@ -110,14 +110,14 @@ evWriteVar (V name) val = do
    case find (\(Var _ myName _) -> myName == name) vars of
       Nothing -> return False
       Just (Var rn myName _) -> do
-         (eGame >>> variables) %= replaceWith ((== name) . getL vName) (Var rn myName val)
+         modifyGame variables $ replaceWith ((== name) . getL vName) (Var rn myName val)
          return True
 
 evOnEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Evaluate EventNumber
 evOnEvent event handler = do
    (evs, rn) <- accessGame events
    let en = getFreeNumber (map _eventNumber evs)
-   (eGame >>> events) %= (EventInfo en rn event handler SActive [] : )
+   modifyGame events (EventInfo en rn event handler SActive [] : )
    return en
 
 evSendMessage :: (Typeable a, Show a) => Msg a -> a -> Evaluate ()
@@ -128,7 +128,7 @@ evProposeRule rule = do
    (rs, _) <- accessGame rules
    case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
       Nothing -> do
-         (eGame >>> rules) %= (rule:)
+         modifyGame rules (rule:)
          triggerEvent (RuleEv Proposed) rule
          return True
       Just _ -> return False
@@ -140,8 +140,7 @@ evActivateRule rn = do
    case find (\r -> _rNumber r == rn && _rStatus r /= Active) rs of
       Nothing -> return False
       Just r -> do
-         let newrules = replaceWith ((== rn) . getL rNumber) r{_rStatus = Active, _rAssessedBy = Just by} rs
-         (eGame >>> rules) ~= newrules
+         putGame rules $ replaceWith ((== rn) . getL rNumber) r{_rStatus = Active, _rAssessedBy = Just by} rs
          --execute the rule
          withRN (_rNumber r) $ evalNomex (_rRule r)
          triggerEvent (RuleEv Activated) r
@@ -153,13 +152,12 @@ evRejectRule rn = do
    case find (\r -> _rNumber r == rn && _rStatus r /= Reject) rs of
       Nothing -> return False
       Just r -> do
-         let newrules = replaceWith ((== rn) . getL rNumber) r{_rStatus = Reject, _rAssessedBy = Just by} rs
-         (eGame >>> rules) ~= newrules
-         triggerEvent (RuleEv Rejected) r
          delVarsRule rn
          delEventsRule rn
          delOutputsRule rn
          delVictoryRule rn
+         putGame rules $ replaceWith ((== rn) . getL rNumber) r{_rStatus = Reject, _rAssessedBy = Just by} rs
+         triggerEvent (RuleEv Rejected) r
          return True
 
 evAddRule :: RuleInfo -> Evaluate Bool
@@ -167,7 +165,7 @@ evAddRule rule = do
    (rs, _) <- accessGame rules
    case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
       Nothing -> do
-         (eGame >>> rules) %= (rule:)
+         modifyGame rules (rule:)
          triggerEvent (RuleEv Added) rule
          return True
       Just _ -> return False
@@ -180,7 +178,7 @@ evModifyRule rn rule = do
    case find ((== rn) . getL rNumber) rs of
       Nothing -> return False
       Just r ->  do
-         (eGame >>> rules) ~= newRules
+         putGame rules newRules
          triggerEvent (RuleEv Modified) r
          return True
 
@@ -192,7 +190,7 @@ evDelPlayer pn = do
          tracePN pn "not in game!"
          return False
       Just pi -> do
-         (eGame >>> players) %= filter ((/= pn) . getL playerNumber)
+         modifyGame players $ filter ((/= pn) . getL playerNumber)
          triggerEvent (Player Leave) pi
          tracePN pn $ "leaving the game: " ++ _gameName g
          return True
@@ -203,7 +201,7 @@ evChangeName pn name = do
    case find ((== pn) . getL playerNumber) pls of
       Nothing -> return False
       Just pi -> do
-         (eGame >>> players) ~= replaceWith ((== pn) . getL playerNumber) (pi {_playerName = name}) pls
+         putGame players $ replaceWith ((== pn) . getL playerNumber) (pi {_playerName = name}) pls
          return True
 
 evDelEvent :: EventNumber -> Evaluate Bool
@@ -213,8 +211,7 @@ evDelEvent en = do
       Nothing -> return False
       Just eh -> case _evStatus eh of
          SActive -> do
-            let newEvents = replaceWith ((== en) . getL eventNumber) eh{_evStatus = SDeleted} evs
-            (eGame >>> events) ~= newEvents
+            putGame events $ replaceWith ((== en) . getL eventNumber) eh{_evStatus = SDeleted} evs
             return True
          SDeleted -> return False
 
@@ -225,7 +222,7 @@ evNewOutput :: Maybe PlayerNumber -> NomexNE String -> Evaluate OutputNumber
 evNewOutput pn s = do
    (ops, rn) <- accessGame outputs
    let on = getFreeNumber (map _outputNumber ops)
-   (eGame >>> outputs) %= (Output on rn pn s SActive : )
+   modifyGame outputs (Output on rn pn s SActive : )
    return on
 
 evGetOutput :: OutputNumber -> EvaluateNE (Maybe String)
@@ -243,7 +240,7 @@ evUpdateOutput on s = do
    case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of
       Nothing -> return False
       Just (Output _ rn pn _ _) -> do
-         (eGame >>> outputs) %= replaceWith ((== on) . getL outputNumber) (Output on rn pn s SActive)
+         modifyGame outputs $ replaceWith ((== on) . getL outputNumber) (Output on rn pn s SActive)
          return True
 
 evDelOutput :: OutputNumber -> Evaluate Bool
@@ -253,15 +250,14 @@ evDelOutput on = do
       Nothing -> return False
       Just o -> case _oStatus o of
          SActive -> do
-            let newOutputs = replaceWith ((== on) . getL outputNumber) o{_oStatus = SDeleted} ops
-            (eGame >>> outputs) ~= newOutputs
+            putGame outputs $ replaceWith ((== on) . getL outputNumber) o{_oStatus = SDeleted} ops
             return True
          SDeleted -> return False
 
 evSetVictory :: NomexNE [PlayerNumber] -> Evaluate ()
 evSetVictory ps = do
    rn <- access eRuleNumber
-   void $ (eGame >>> victory) ~= (Just $ VictoryInfo rn ps)
+   putGame victory (Just $ VictoryInfo rn ps)
    triggerEvent Victory (VictoryInfo rn ps)
 
 evReadVar :: (Typeable a, Show a) => V a -> EvaluateNE (Maybe a)
@@ -278,7 +274,7 @@ evGetRandomNumber :: Random a => (a, a) -> Evaluate a
 evGetRandomNumber r = do
    g <- access (eGame >>> randomGen)
    let (a, g') = randomR r g
-   (eGame >>> randomGen) ~= g'
+   putGame randomGen g'
    return a
 
 
