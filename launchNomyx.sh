@@ -1,8 +1,7 @@
 
+version=0.7.2
+cmd="cabal exec .cabal-sandbox/bin/Nomyx -- -h www.nomyx.net -p 8000 -r ~/Nomyx/ -f ./.cabal-sandbox/share/x86_64-linux-ghc-7.6.2/Nomyx-Web-$(version)/ -s ./.cabal-sandbox/share/doc/x86_64-linux-ghc-7.6.2/Nomyx-Language-$(version)/ -a XXXX -m"
 
-cmd="cabal exec .cabal-sandbox/bin/Nomyx -- -h www.nomyx.net -p 9998 -r ~/Nomyx/ -f ./.cabal-sandbox/share/x86_64-linux-ghc-7.6.2/Nomyx-Web-0.7.0/ -s ./.cabal-sandbox/share/doc/x86_64-linux-ghc-7.6.2/Nomyx-Language-0.7.0/ -a NXPSD"
-
-screen -S nomyx -X quit
-screen -dmS nomyx $cmd
+screen -S nomyx $cmd
 
 
