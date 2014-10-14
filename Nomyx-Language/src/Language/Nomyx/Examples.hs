@@ -9,7 +9,7 @@ module Language.Nomyx.Examples(
    nothing,
    helloWorld,
    accounts,
-   createBankAccount,
+   createBankAccounts,
    winXEcuPerDay,
    winXEcuOnRuleAccepted,
    moneyTransfer,
@@ -61,8 +61,8 @@ accounts :: MsgVar [(PlayerNumber, Int)]
 accounts = msgVar "Accounts"
 
 -- | Create a bank account for each players
-createBankAccount :: Rule
-createBankAccount = void $ createValueForEachPlayer_ accounts
+createBankAccounts :: Rule
+createBankAccounts = void $ createValueForEachPlayer_ accounts
 
 -- | Permanently display the bank accounts
 displayBankAccount :: Rule

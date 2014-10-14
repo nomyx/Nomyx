@@ -35,7 +35,6 @@ import System.Random
 -- * Evaluation
 
 -- | evaluate an effecful expression.
--- The rule number passed is the number of the rule containing the expression.
 evalNomex :: Nomex a -> Evaluate a
 evalNomex (NewVar v a)            = evNewVar v a
 evalNomex (DelVar v)              = evDelVar v
@@ -74,17 +73,6 @@ evalNomexNE (Return a)      = return a
 evalNomexNE (Bind exp f)    = evalNomexNE exp >>= \e -> evalNomexNE (f e)
 evalNomexNE (Simu sim ev)   = evSimu sim ev
 
-
-
---TODO should we also give a rule number to simulate the Nomex with?
--- currently we use the simulating rule number
-evSimu :: Nomex a -> NomexNE Bool -> EvaluateNE Bool
-evSimu sim ev = do
-   rn <- asks _eRuleNumber
-   let s = runEvalError rn Nothing (evalNomex sim)
-   g <- asks _eGame
-   let g' = execState s g
-   return $ runEvaluateNE g' rn (evalNomexNE ev)
 
 evNewVar :: (Typeable a, Show a) => VarName -> a -> Evaluate (Maybe (V a))
 evNewVar name def = do
@@ -276,6 +264,16 @@ evGetRandomNumber r = do
    let (a, g') = randomR r g
    putGame randomGen g'
    return a
+
+--TODO should we also give a rule number to simulate the Nomex with?
+-- currently we use the simulating rule number
+evSimu :: Nomex a -> NomexNE Bool -> EvaluateNE Bool
+evSimu sim ev = do
+   rn <- asks _eRuleNumber
+   let s = runEvalError rn Nothing (evalNomex sim)
+   g <- asks _eGame
+   let g' = execState s g
+   return $ runEvaluateNE g' rn (evalNomexNE ev)
 
 
 
