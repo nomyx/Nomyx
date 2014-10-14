@@ -23,6 +23,7 @@ import Control.Arrow
 import Control.Applicative
 import Control.Shortcut
 import Data.List
+import System.Locale
 import qualified Data.Map as M
 
 -- | a vote assessing function (such as unanimity, majority...)
@@ -35,9 +36,30 @@ data VoteStats = VoteStats { voteCounts     :: M.Map Bool Int,
                              voteFinished   :: Bool}
                              deriving (Show, Typeable)
 
+-- | information broadcasted when a vote begins
+data VoteBegin = VoteBegin { vbRule        :: RuleInfo,
+                             vbEndAt       :: UTCTime,
+                             vbEventNumber :: EventNumber }
+                             deriving (Show, Eq, Ord, Typeable)
+
+-- | information broadcasted when a vote ends
+data VoteEnd = VoteEnd { veRule   :: RuleInfo,
+                         veVotes  :: [(PlayerNumber, Maybe Bool)],
+                         vePassed :: Bool,
+                         veFinishedAt :: UTCTime}
+                         deriving (Show, Eq, Ord, Typeable)
+
+voteBegin :: Msg VoteBegin
+voteBegin = Msg "VoteBegin"
+
+voteEnd :: Msg VoteEnd
+voteEnd = Msg "VoteEnd"
+
 -- | vote at unanimity every incoming rule
 unanimityVote :: Nomex ()
-unanimityVote = onRuleProposed $ callVoteRule unanimity oneDay
+unanimityVote = do
+   onRuleProposed $ callVoteRule unanimity oneDay
+   displayVotes
 
 -- | call a vote on a rule for every players, with an assessing function and a delay
 callVoteRule :: AssessFunction -> NominalDiffTime -> RuleInfo -> Nomex ()
@@ -46,22 +68,24 @@ callVoteRule assess delay ri = do
    callVoteRule' assess endTime ri
 
 callVoteRule' :: AssessFunction -> UTCTime -> RuleInfo -> Nomex ()
-callVoteRule' assess endTime ri = callVote assess endTime (_rName ri) (_rNumber ri) (finishVote assess ri)
+callVoteRule' assess endTime ri = do
+   en <- callVote assess endTime (_rName ri) (_rNumber ri) (finishVote assess ri)
+   sendMessage voteBegin (VoteBegin ri endTime en)
 
 -- | actions to do when the vote is finished
 finishVote :: AssessFunction -> RuleInfo -> [(PlayerNumber, Maybe Bool)] -> Nomex ()
 finishVote assess ri vs = do
    let passed = fromJust $ assess $ getVoteStats (map snd vs) True
    activateOrRejectRule ri passed
-   void $ outputAll $ showFinishedVote (_rNumber ri) passed vs
-
+   end <- liftEffect getCurrentTime
+   sendMessage voteEnd (VoteEnd ri vs passed end)
 
 -- | call a vote for every players, with an assessing function, a delay and a function to run on the result
-callVote :: AssessFunction -> UTCTime -> String -> RuleNumber -> ([(PlayerNumber, Maybe Bool)] -> Nomex ()) -> Nomex ()
+callVote :: AssessFunction -> UTCTime -> String -> RuleNumber -> ([(PlayerNumber, Maybe Bool)] -> Nomex ()) -> Nomex EventNumber
 callVote assess endTime name rn payload = do
    let title = "Vote for rule: \"" ++ name ++ "\" (#" ++ (show rn) ++ "):"
-   en <- onEventOnce (voteWith endTime assess title) payload
-   displayVote en rn
+   onEventOnce (voteWith endTime assess title) payload
+
 
 -- | vote with a function able to assess the ongoing votes.
 -- | the vote can be concluded as soon as the result is known.
@@ -73,6 +97,12 @@ voteWith timeLimit assess title = do
    let isFinished votes timer = isJust $ assess $ getVoteStats votes timer
    (vs, _)<- shortcut2b voteEvents timerEvent isFinished
    return $ zip pns vs
+
+-- | display the votes (ongoing and finished)
+displayVotes :: Nomex ()
+displayVotes = do
+   void $ onMessage voteEnd displayFinishedVote
+   void $ onMessage voteBegin displayOnGoingVote
 
 -- trigger the display of a radio button choice on the player screen, yelding either True or False.
 -- after the time limit, the value sent back is Nothing.
@@ -131,13 +161,14 @@ voted, notVoted :: VoteStats -> Int
 notVoted    vs = (nbParticipants vs) - (voted vs)
 voted       vs = M.findWithDefault 0 True (voteCounts vs) + M.findWithDefault 0 False (voteCounts vs)
 
-displayVote :: EventNumber -> RuleNumber -> Nomex ()
-displayVote en rn = void $ outputAll $ do
+-- | display an on going vote
+displayOnGoingVote :: VoteBegin -> Nomex ()
+displayOnGoingVote (VoteBegin ri endTime en) = void $ outputAll $ do
    mds <- getIntermediateResults en
    let mbs = map getBooleanResult <$> mds
    pns <- getAllPlayerNumbers
    case mbs of
-      Just bs -> showOnGoingVote (getVotes pns bs) rn
+      Just bs -> showOnGoingVote (getVotes pns bs) (_rNumber ri) endTime
       Nothing -> return ""
 
 getVotes :: [PlayerNumber] -> [(PlayerNumber, Bool)] -> [(PlayerNumber, Maybe Bool)]
@@ -152,14 +183,20 @@ getBooleanResult (pn, SomeData sd) = case (cast sd) of
    Just a  -> (pn, a)
    Nothing -> error "incorrect vote field"
 
-showOnGoingVote :: [(PlayerNumber, Maybe Bool)] -> RuleNumber -> NomexNE String
-showOnGoingVote [] rn = return $ "Votes for rule #" ++ (show rn) ++ ": Nobody voted yet"
-showOnGoingVote listVotes rn = do
+showOnGoingVote :: [(PlayerNumber, Maybe Bool)] -> RuleNumber -> UTCTime -> NomexNE String
+showOnGoingVote [] rn _ = return $ "Nobody voted yet for rule #" ++ (show rn) ++ "."
+showOnGoingVote listVotes rn endTime = do
    list <- mapM showVote listVotes
-   return $ "Votes for rule #" ++ (show rn) ++ ":" ++ "\n" ++ concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
+   let timeString = formatTime defaultTimeLocale "on %d/%m at %H:%M UTC" endTime
+   return $ "Votes for rule #" ++ (show rn) ++ ", finishing " ++ timeString ++ "\n" ++
+            concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
 
-showFinishedVote :: RuleNumber -> Bool -> [(PlayerNumber, Maybe Bool)] -> NomexNE String
-showFinishedVote rn passed l = do
+-- | display a finished vote
+displayFinishedVote :: VoteEnd -> Nomex ()
+displayFinishedVote (VoteEnd ri vs passed end) = void $ outputAll $ showFinishedVote (_rNumber ri) passed vs end
+
+showFinishedVote :: RuleNumber -> Bool -> [(PlayerNumber, Maybe Bool)] -> UTCTime -> NomexNE String
+showFinishedVote rn passed l _ = do
    let title = "Vote finished for rule #" ++ (show rn) ++ ", passed: " ++ (show passed)
    let voted = filter (\(_, r) -> isJust r) l
    votes <- mapM showVote voted
