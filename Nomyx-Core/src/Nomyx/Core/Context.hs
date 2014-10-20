@@ -55,7 +55,8 @@ defaultPackages = ["Nomyx-Language",
                    "base",
                    "bytestring",
                    "containers",
-                   "text"]
+                   "text",
+                   "time"]
 
 qualImports :: [(String, Maybe String)]
 qualImports = [("Control.Category", Just "C"),
