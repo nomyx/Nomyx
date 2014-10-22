@@ -140,7 +140,7 @@ evalWithWatchdog s f = do
    mvar <- newEmptyMVar
    hSetBuffering stdout NoBuffering
    --start evaluation thread
-   id <- forkOS $ do
+   id <- forkIO $ do
       s' <- f s
       s'' <- evaluate s'
       writeFile nullFileName $ show s''
@@ -154,7 +154,7 @@ evalWithWatchdog' s = do
    mvar <- newEmptyMVar
    hSetBuffering stdout NoBuffering
    --start evaluation thread
-   id <- forkOS $ do
+   id <- forkIO $ do
       s' <- s
       let s'' = force s'
       putMVar mvar (Just s'')
