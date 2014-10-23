@@ -113,6 +113,10 @@ suppressAllRules = do
 modifyRule :: RuleNumber -> RuleInfo -> Nomex Bool
 modifyRule rn r = ModifyRule rn r
 
+-- | propose a rule that will need to be voted on.
+proposeRule :: RuleInfo -> Nomex Bool
+proposeRule = ProposeRule
+
 -- | allows a rule to retrieve its own number (for auto-deleting for example)
 getSelfRuleNumber :: NomexNE RuleNumber
 getSelfRuleNumber = SelfRuleNumber
