@@ -58,10 +58,10 @@ execRuleEvents :: (Show e, Typeable e) => Nomex a -> [(Signal e, e)] -> Game
 execRuleEvents f eds = execState (runSystemEval' $ evalNomex f >> mapM (\(a,b) -> triggerEvent a b) eds) testGame
 
 execRuleInput :: Nomex a -> EventNumber -> SignalAddress -> FormField -> InputData -> Game
-execRuleInput r en fa ft d = execState (runSystemEval' $ evalNomex r >> triggerInput en fa ft d) testGame
+execRuleInput r en sa ff id = execState (runSystemEval' $ evalNomex r >> triggerInput ff id sa en) testGame
 
 execRuleInputs :: Nomex a -> EventNumber -> [(SignalAddress, FormField, InputData)] -> Game
-execRuleInputs r en fads = execState (runSystemEval' $ evalNomex r >> mapM (\(fa, ft, d) -> triggerInput en fa ft d) fads) testGame
+execRuleInputs r en fads = execState (runSystemEval' $ evalNomex r >> mapM (\(sa, ff, id) -> triggerInput ff id sa en) fads) testGame
 
 execRuleGame :: Nomex a -> Game -> Game
 execRuleGame r g = execState (runSystemEval' $ void $ evalNomex r) g
@@ -314,7 +314,7 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
 
 --Trigger a vote event (0 for positive, 1 for negative), using event details
 triggerVote :: Int -> (EventNumber, SignalAddress, PlayerNumber, String) -> Evaluate ()
-triggerVote res (en, fa, pn, t) = triggerInput en fa (RadioField pn t [(0,"For"),(1,"Against")]) (RadioData res)
+triggerVote res (en, sa, pn, t) = triggerInput (RadioField pn t [(0,"For"),(1,"Against")]) (RadioData res) sa en
 
 voteGame' :: Int -> Int -> Int -> Bool -> Rule -> Game
 voteGame' positives negatives notVoted timeEvent rf  = voteGameActions positives negatives notVoted timeEvent $ addActivateRule rf 1
@@ -423,7 +423,7 @@ testMonadicEvent2PlayerArrive :: Game
 testMonadicEvent2PlayerArrive = flip execState testGame {_players = []} $ runSystemEval' $ do
     addActivateRule testMonadicEvent2 1
     addPlayer (PlayerInfo 1 "coco 1" Nothing)
-    triggerInput 1 [BindR] (TextField 1 "") (TextData "coco2")
+    triggerInput (TextField 1 "") (TextData "coco2") [BindR] 1
 
 testMonadicEventEx2 = isOutput "coco2" testMonadicEvent2PlayerArrive
 

@@ -127,9 +127,9 @@ logGame s mpn = do
 
 -- | the user has provided an input result
 inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> FormField -> InputData -> State Game ()
-inputResult pn en fa ft ir = do
-   tracePN pn $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show fa ++ ", Form " ++ show ft ++ ", choice " ++ show ir
-   runSystemEval pn $ triggerInput en fa ft ir
+inputResult pn en sa ff id = do
+   tracePN pn $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show sa ++ ", Form " ++ show ff ++ ", choice " ++ show id
+   runSystemEval pn $ triggerInput ff id sa en
 
 getGameTimes :: Game -> [UTCTime]
 getGameTimes g = concatMap (\ei -> getTimes ei g) (_events g)

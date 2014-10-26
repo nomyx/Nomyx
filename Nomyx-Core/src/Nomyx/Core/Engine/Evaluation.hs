@@ -283,7 +283,7 @@ evSimu sim ev = do
 
 -- trigger an event
 triggerEvent :: (Typeable e, Show e) => Signal e -> e -> Evaluate ()
-triggerEvent e dat = access (eGame >>> events) >>= triggerEvent' (SignalOccurence e dat Nothing)
+triggerEvent s dat = access (eGame >>> events) >>= triggerEvent' (SignalOccurence s dat Nothing)
 
 -- trigger some specific signal
 triggerEvent' :: SignalOccurence -> [EventInfo] -> Evaluate ()
@@ -353,67 +353,67 @@ getEventResult' (ShortcutEvents es f) ers fa = do
 
 
 -- trigger the input signal with the input data
-triggerInput :: EventNumber -> SignalAddress -> FormField -> InputData -> Evaluate ()
-triggerInput en fa ft ir = do
+triggerInput :: FormField -> InputData -> SignalAddress -> EventNumber -> Evaluate ()
+triggerInput ff id sa en = do
    evs <- access (eGame >>> events)
    let mei = find ((== en) . getL eventNumber) evs
-   when (isJust mei) $ execInputHandler ir fa ft (fromJust mei)
+   when (isJust mei) $ triggerInputSignal id sa ff (fromJust mei)
 
 -- execute the corresponding handler
 triggerInputSignal :: InputData -> SignalAddress -> FormField -> EventInfo -> Evaluate ()
-triggerInputSignal ir fa ft ei@(EventInfo _ _ _ _ SActive _) = do
-   i <- liftEval $ findField ft fa ei
+triggerInputSignal id sa ff ei@(EventInfo _ _ _ _ SActive _) = do
+   i <- liftEval $ findField ff sa ei
    case i of
-      Just sf -> triggerInputSignal' ir sf fa ei
-      Nothing -> logAll $ "Input not found, InputData=" ++ (show ir) ++ " SignalAddress=" ++ (show fa) ++ " FormField=" ++ (show ft)
+      Just sf -> triggerInputSignal' id sf sa ei
+      Nothing -> logAll $ "Input not found, InputData=" ++ (show id) ++ " SignalAddress=" ++ (show sa) ++ " FormField=" ++ (show ff)
 triggerInputSignal _ _ _ _ = return ()
 
 -- execute the event handler using the data received from user
 triggerInputSignal' :: InputData -> SomeSignal -> SignalAddress -> EventInfo -> Evaluate ()
-triggerInputSignal' (TextData s)      (SomeSignal e@(Input _ _ (Text)))        fa ei = triggerEvent' (SignalOccurence e s                     (Just fa)) [ei]
-triggerInputSignal' (TextAreaData s)  (SomeSignal e@(Input _ _ (TextArea)))    fa ei = triggerEvent' (SignalOccurence e s                     (Just fa)) [ei]
-triggerInputSignal' (ButtonData)      (SomeSignal e@(Input _ _ (Button)))      fa ei = triggerEvent' (SignalOccurence e ()                    (Just fa)) [ei]
-triggerInputSignal' (RadioData i)     (SomeSignal e@(Input _ _ (Radio cs)))    fa ei = triggerEvent' (SignalOccurence e (fst $ cs!!i)         (Just fa)) [ei]
-triggerInputSignal' (CheckboxData is) (SomeSignal e@(Input _ _ (Checkbox cs))) fa ei = triggerEvent' (SignalOccurence e (fst <$> cs `sel` is) (Just fa)) [ei]
+triggerInputSignal' (TextData s)      (SomeSignal e@(Input _ _ (Text)))        sa ei = triggerEvent' (SignalOccurence e s                     (Just sa)) [ei]
+triggerInputSignal' (TextAreaData s)  (SomeSignal e@(Input _ _ (TextArea)))    sa ei = triggerEvent' (SignalOccurence e s                     (Just sa)) [ei]
+triggerInputSignal' (ButtonData)      (SomeSignal e@(Input _ _ (Button)))      sa ei = triggerEvent' (SignalOccurence e ()                    (Just sa)) [ei]
+triggerInputSignal' (RadioData i)     (SomeSignal e@(Input _ _ (Radio cs)))    sa ei = triggerEvent' (SignalOccurence e (fst $ cs!!i)         (Just sa)) [ei]
+triggerInputSignal' (CheckboxData is) (SomeSignal e@(Input _ _ (Checkbox cs))) sa ei = triggerEvent' (SignalOccurence e (fst <$> cs `sel` is) (Just sa)) [ei]
 triggerInputSignal' _ _ _ _ = return ()
 
 
 -- | Get the form field at a certain address
 findField :: FormField -> SignalAddress -> EventInfo -> EvaluateNE (Maybe SomeSignal)
-findField ft addr (EventInfo _ _ e _ _ er) = findField' addr e er ft
+findField ff addr (EventInfo _ _ e _ _ env) = findField' addr e env ff
 
 findField' :: SignalAddress -> Event e -> [SignalOccurence] -> FormField -> EvaluateNE (Maybe SomeSignal)
-findField' []         (SignalEvent f)    _   ft = return $ do
-   ft' <- getFormField (SomeSignal f)
-   guard (ft' == ft)
+findField' []         (SignalEvent f)    _   ff = return $ do
+   ff' <- getFormField (SomeSignal f)
+   guard (ff' == ff)
    return $ SomeSignal f
-findField' (SumL:as)  (SumEvent e1 _)  frs ft = findField' as e1 (filterPath SumL frs) ft
-findField' (SumR:as)  (SumEvent _ e2)  frs ft = findField' as e2 (filterPath SumR frs) ft
-findField' (AppL:as)  (AppEvent e1 _)  frs ft = findField' as e1 (filterPath AppL frs) ft
-findField' (AppR:as)  (AppEvent _ e2)  frs ft = findField' as e2 (filterPath AppR frs) ft
-findField' (BindL:as) (BindEvent e1 _) frs ft = findField' as e1 (filterPath BindL frs) ft
-findField' (BindR:as) (BindEvent e1 f) frs ft = do
-   ter <- getEventResult e1 (filterPath BindL frs) --
+findField' (SumL:as)  (SumEvent e1 _)  env ff = findField' as e1 (filterPath SumL env) ff
+findField' (SumR:as)  (SumEvent _ e2)  env ff = findField' as e2 (filterPath SumR env) ff
+findField' (AppL:as)  (AppEvent e1 _)  env ff = findField' as e1 (filterPath AppL env) ff
+findField' (AppR:as)  (AppEvent _ e2)  env ff = findField' as e2 (filterPath AppR env) ff
+findField' (BindL:as) (BindEvent e1 _) env ff = findField' as e1 (filterPath BindL env) ff
+findField' (BindR:as) (BindEvent e1 f) env ff = do
+   ter <- getEventResult e1 (filterPath BindL env)
    case ter of
-      Done e2 -> findField' as (f e2) (filterPath BindR frs) ft
+      Done e2 -> findField' as (f e2) (filterPath BindR env) ff
       Todo _  -> return $ Nothing
-findField' (Shortcut:as) (ShortcutEvents es _) frs ft = do
-   msfs <- mapM (\e-> findField' as e frs ft) es
+findField' (Shortcut:as) (ShortcutEvents es _) env ff = do
+   msfs <- mapM (\e-> findField' as e env ff) es
    return $ headMay $ catMaybes msfs  -- returning the first field that matches
 
 findField' fa _ _ _ = error $ "findField: wrong field address: " ++ (show fa)
 
--- | removes one element of signal path
+-- | removes one element of signal address for all signal occurences
 filterPath :: SignalAddressElem -> [SignalOccurence] -> [SignalOccurence]
-filterPath fa frs = mapMaybe f frs where
+filterPath fa env = mapMaybe f env where
    f (SignalOccurence fe fr (Just (fa':fas))) | fa == fa' = Just $ SignalOccurence fe fr (Just fas)
    f fr = Just fr
 
 getFormField :: SomeSignal -> Maybe FormField
-getFormField (SomeSignal (Input pn s (Radio choices)))    = Just $ RadioField pn s (zip [0..] (snd <$> choices))
-getFormField (SomeSignal (Input pn s Text))               = Just $ TextField pn s
+getFormField (SomeSignal (Input pn s (Radio choices)))    = Just $ RadioField    pn s (zip [0..] (snd <$> choices))
+getFormField (SomeSignal (Input pn s Text))               = Just $ TextField     pn s
 getFormField (SomeSignal (Input pn s TextArea))           = Just $ TextAreaField pn s
-getFormField (SomeSignal (Input pn s Button))             = Just $ ButtonField pn s
+getFormField (SomeSignal (Input pn s Button))             = Just $ ButtonField   pn s
 getFormField (SomeSignal (Input pn s (Checkbox choices))) = Just $ CheckboxField pn s (zip [0..] (snd <$> choices))
 getFormField _ = Nothing
 
