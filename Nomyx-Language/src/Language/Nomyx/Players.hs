@@ -54,11 +54,19 @@ getPlayer pn = do
    pls <- GetPlayers
    return $ find ((== pn) . getL playerNumber) pls
 
--- | Set the name of a player
+-- | Get the name of a player
 getPlayerName :: PlayerNumber -> NomexNE (Maybe PlayerName)
 getPlayerName pn = do
   p <- getPlayer pn
   return $ _playerName <$> p
+
+-- | Get the name of a player, his number if not found
+getPlayerName' :: PlayerNumber -> NomexNE PlayerName
+getPlayerName' pn = do
+  mp <- getPlayer pn
+  return $ case mp of
+     Just p -> _playerName p
+     Nothing -> "Player " ++ (show pn)
 
 -- | Set the name of a player
 setPlayerName :: PlayerNumber -> PlayerName -> Nomex Bool
