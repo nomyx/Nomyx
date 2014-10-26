@@ -73,6 +73,7 @@ regularTests = [("hello World",           gameHelloWorld,         condHelloWorld
          ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
          ("Test file 1",           testFile1,              condNRules 3),
          ("Test file 2",           testFile2,              condNRules 3),
+         ("Test import Data.Time", testFileTime,           condNRules 3),
          ("load file twice",       testFileTwice,          condNRules 3),
          ("load file twice 2",     testFileTwice',         condNRules 4),
          ("load file unsafe",      testFileUnsafeIO,       condNRules 2)] ++
@@ -281,6 +282,12 @@ testFile2 = do
    onePlayerOneGame
    void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
 
+
+--module that imports Data.Time (should be Safe in recent versions)
+testFileTime :: StateT Session IO ()
+testFileTime = do
+   onePlayerOneGame
+   void $ testFile "TestTime.hs" "TestTime.myRule"
 
 --loading two modules with the same name is forbidden
 testFileTwice :: StateT Session IO ()
