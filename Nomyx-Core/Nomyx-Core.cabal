@@ -31,7 +31,7 @@ library
                    either-unwrap          == 1.1.*,
                    exceptions             == 0.6.*,
                    filepath               == 1.3.*,
-                   happstack-authenticate == 0.10.14.1,
+                   happstack-authenticate == 0.10.15,
                    hint                   == 0.4.*,
                    hint-server            == 1.4.*,
                    hscolour               == 1.20.*,
