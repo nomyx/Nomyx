@@ -41,7 +41,7 @@ getTimeEvents :: UTCTime -> Multi -> IO [UTCTime]
 getTimeEvents now m = do
    let games = map (_game . _loggedGame) (_gameInfos m)
    let times = concatMap getGameTimes games
-   return $ filter (\t -> t <= now && t > (-2) `addUTCTime` now) times
+   return $ filter (\t -> t <= now && t > (-32) `addUTCTime` now) times
 
 -- | the initial rule set for a game.
 rVoteUnanimity = SubmitRule "Unanimity Vote"

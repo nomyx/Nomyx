@@ -258,7 +258,7 @@ launchTimeEvents tm = do
     timeEvents <- getTimeEvents now m
     when (not $ null timeEvents) $ putStrLn "found time event(s)"
     mapM_ (Main.triggerTimeEvent tm) timeEvents
-    --sleep 1 second roughly
-    threadDelay 1000000
+    --sleep 30 second roughly
+    threadDelay 30000000
     launchTimeEvents tm
 
