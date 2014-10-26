@@ -23,7 +23,7 @@ import Data.Maybe
 data GameEvent = JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     PlayerNumber SubmitRule
-               | InputResult       PlayerNumber EventNumber FieldAddress FormField InputData
+               | InputResult       PlayerNumber EventNumber SignalAddress FormField InputData
                | GLog              (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
                | SystemAddRule     SubmitRule
@@ -126,20 +126,20 @@ logGame s mpn = do
    void $ logs %= (Log mpn time s : )
 
 -- | the user has provided an input result
-inputResult :: PlayerNumber -> EventNumber -> FieldAddress -> FormField -> InputData -> State Game ()
+inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> FormField -> InputData -> State Game ()
 inputResult pn en fa ft ir = do
-   tracePN pn $ "input result: EventNumber " ++ show en ++ ", FieldAddress " ++ show fa ++ ", Form " ++ show ft ++ ", choice " ++ show ir
+   tracePN pn $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show fa ++ ", Form " ++ show ft ++ ", choice " ++ show ir
    runSystemEval pn $ triggerInput en fa ft ir
 
 getGameTimes :: Game -> [UTCTime]
 getGameTimes g = concatMap (\ei -> getTimes ei g) (_events g)
 
 getTimes :: EventInfo -> Game -> [UTCTime]
-getTimes ei g = mapMaybe getTime (map snd $ getEventFields ei g)
+getTimes ei g = mapMaybe getTime (map snd $ getRemainingSignals ei g)
 
 
-getTime :: SomeField -> Maybe UTCTime
-getTime (SomeField (Time t)) = Just t
+getTime :: SomeSignal -> Maybe UTCTime
+getTime (SomeSignal (Time t)) = Just t
 getTime _                    = Nothing
 
 -- | A helper function to run the game state.

@@ -74,7 +74,7 @@ data PlayerCommand = NotLogged
                    | LeaveGame GameName
                    | DelGame   GameName
                    | ForkGame  GameName
-                   | DoInput   EventNumber FieldAddress FormField GameName
+                   | DoInput   EventNumber SignalAddress FormField GameName
                    | NewRule   GameName
                    | NewGame
                    | SubmitNewGame
@@ -95,8 +95,8 @@ inputAnchor = "Input"
 type RoutedNomyxServer a = RouteT PlayerCommand (ServerPartT IO) a
 
 
-instance PathInfo FieldAddressElem
-instance PathInfo FieldAddress
+instance PathInfo SignalAddressElem
+instance PathInfo SignalAddress
 instance PathInfo FormField
 instance PathInfo (Int, String)
 instance PathInfo [(Int, String)]

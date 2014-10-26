@@ -12,7 +12,7 @@ module Language.Nomyx.Events (
    getCurrentTime,
    oneWeek, oneDay, oneHour, oneMinute,
    timeEvent, messageEvent, victoryEvent, playerEvent, ruleEvent,
-   baseEvent, baseInputEvent,
+   signalEvent, inputFormSignal,
    liftEvent
    ) where
 
@@ -60,8 +60,8 @@ getIntermediateResults en = do
       Just ev -> return $ Just $ mapMaybe getInputResult (_env ev)
       Nothing -> return Nothing
 
-getInputResult :: FieldResult -> Maybe (PlayerNumber, SomeData)
-getInputResult (FieldResult (Input pn _ _) r _) = Just (pn, SomeData r)
+getInputResult :: SignalOccurence -> Maybe (PlayerNumber, SomeData)
+getInputResult (SignalOccurence (Input pn _ _) r _) = Just (pn, SomeData r)
 getInputResult _ = Nothing
 
 -- | broadcast a message that can be catched by another rule
@@ -117,8 +117,36 @@ executeAndScheduleNext' f sched now = do
 schedule'_ :: [UTCTime] -> Nomex () -> Nomex ()
 schedule'_ ts f = schedule' ts (const f)
 
+-- | get the current time as UTCTime
 getCurrentTime :: NomexNE UTCTime
 getCurrentTime = CurrentTime
+
+-- * Individual events
+
+-- | Build an event firing at a specific time
+timeEvent :: UTCTime -> Event UTCTime
+timeEvent = SignalEvent . Time
+
+-- | Build a event firing when the victory condition is changed
+victoryEvent :: Event VictoryInfo
+victoryEvent = SignalEvent Victory
+
+-- | Build a event firing when a player arrives or leaves
+playerEvent :: Player -> Event PlayerInfo
+playerEvent = SignalEvent . Player
+
+-- | Build a event firing when an action is made on a rule
+ruleEvent :: RuleEvent -> Event RuleInfo
+ruleEvent re = SignalEvent $ RuleEv re
+
+-- | Build a message event, that can be intercepted by another rule
+-- this is useful for message-passing style of communication
+messageEvent :: (Typeable a) => Msg a -> Event a
+messageEvent = SignalEvent . Message
+
+-- | Build a event firing immediatly, yelding the value of the NomexNE
+liftEvent :: NomexNE a -> Event a
+liftEvent = LiftEvent
 
 -- | duration
 oneWeek, oneDay, oneHour, oneMinute :: NominalDiffTime
@@ -127,26 +155,10 @@ oneDay = 24 * oneHour
 oneHour = 60 * oneMinute
 oneMinute = 60
 
-baseEvent :: (Typeable a) => Field a -> Event a
-baseEvent = BaseEvent
+-- * internals
 
-timeEvent :: UTCTime -> Event UTCTime
-timeEvent = BaseEvent . Time
+inputFormSignal :: (Typeable a) => PlayerNumber -> String -> (InputForm a) -> Signal a
+inputFormSignal pn s iform = Input pn s iform
 
-messageEvent :: (Typeable a) => Msg a -> Event a
-messageEvent = BaseEvent . Message
-
-victoryEvent :: Event VictoryInfo
-victoryEvent = BaseEvent Victory
-
-playerEvent :: Player -> Event PlayerInfo
-playerEvent = BaseEvent . Player
-
-ruleEvent :: RuleEvent -> Event RuleInfo
-ruleEvent re = BaseEvent $ RuleEv re
-
-baseInputEvent :: (Typeable a) => PlayerNumber -> String -> (InputForm a) -> Field a
-baseInputEvent pn s iform = Input pn s iform
-
-liftEvent :: NomexNE a -> Event a
-liftEvent = LiftEvent
+signalEvent :: (Typeable a) => Signal a -> Event a
+signalEvent = SignalEvent

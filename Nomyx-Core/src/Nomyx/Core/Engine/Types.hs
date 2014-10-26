@@ -85,17 +85,17 @@ instance Show Var where
 -- * Events
 
 -- a form field
-data FormField = RadioField PlayerNumber String [(Int, String)]
-               | TextField PlayerNumber String
+data FormField = RadioField    PlayerNumber String [(Int, String)]
+               | TextField     PlayerNumber String
                | TextAreaField PlayerNumber String
-               | ButtonField PlayerNumber String
+               | ButtonField   PlayerNumber String
                | CheckboxField PlayerNumber String [(Int, String)]
                  deriving (Show, Read, Ord, Eq, Generic)
 
 -- data sent back by the form fields
-data InputData = RadioData Int
+data InputData = RadioData    Int
                | CheckboxData [Int]
-               | TextData String
+               | TextData     String
                | TextAreaData String
                | ButtonData
                  deriving (Show, Read, Eq, Ord)

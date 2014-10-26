@@ -51,22 +51,22 @@ testRule = RuleInfo  { _rNumber       = 0,
                        _rStatus       = Pending,
                        _rAssessedBy   = Nothing}
 
-execRuleEvent :: (Show e, Typeable e) => Nomex a -> Field e -> e -> Game
+execRuleEvent :: (Show e, Typeable e) => Nomex a -> Signal e -> e -> Game
 execRuleEvent r f d = execState (runSystemEval' $ evalNomex r >> triggerEvent f d) testGame
 
-execRuleEvents :: (Show e, Typeable e) => Nomex a -> [(Field e, e)] -> Game
+execRuleEvents :: (Show e, Typeable e) => Nomex a -> [(Signal e, e)] -> Game
 execRuleEvents f eds = execState (runSystemEval' $ evalNomex f >> mapM (\(a,b) -> triggerEvent a b) eds) testGame
 
-execRuleInput :: Nomex a -> EventNumber -> FieldAddress -> FormField -> InputData -> Game
+execRuleInput :: Nomex a -> EventNumber -> SignalAddress -> FormField -> InputData -> Game
 execRuleInput r en fa ft d = execState (runSystemEval' $ evalNomex r >> triggerInput en fa ft d) testGame
 
-execRuleInputs :: Nomex a -> EventNumber -> [(FieldAddress, FormField, InputData)] -> Game
+execRuleInputs :: Nomex a -> EventNumber -> [(SignalAddress, FormField, InputData)] -> Game
 execRuleInputs r en fads = execState (runSystemEval' $ evalNomex r >> mapM (\(fa, ft, d) -> triggerInput en fa ft d) fads) testGame
 
 execRuleGame :: Nomex a -> Game -> Game
 execRuleGame r g = execState (runSystemEval' $ void $ evalNomex r) g
 
-execRuleEventGame :: (Show e, Typeable e) => Nomex a -> Field e -> e -> Game -> Game
+execRuleEventGame :: (Show e, Typeable e) => Nomex a -> Signal e -> e -> Game -> Game
 execRuleEventGame r f d g = execState (runSystemEval' $ evalNomex r >> (triggerEvent f d)) g
 
 execRule :: Nomex a -> Game
@@ -224,7 +224,7 @@ testUserInputWrite :: Rule
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (messageEvent (Msg "voted" :: Msg ())) h2
-    void $ onEvent_ (BaseEvent $ Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
+    void $ onEvent_ (SignalEvent $ Input 1 "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
         h1 a = do
             writeVar (V "vote") (Just a)
             SendMessage (Msg "voted") ()
@@ -313,7 +313,7 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     when timeEvent $ evTriggerTime date2
 
 --Trigger a vote event (0 for positive, 1 for negative), using event details
-triggerVote :: Int -> (EventNumber, FieldAddress, PlayerNumber, String) -> Evaluate ()
+triggerVote :: Int -> (EventNumber, SignalAddress, PlayerNumber, String) -> Evaluate ()
 triggerVote res (en, fa, pn, t) = triggerInput en fa (RadioField pn t [(0,"For"),(1,"Against")]) (RadioData res)
 
 voteGame' :: Int -> Int -> Int -> Bool -> Rule -> Game
@@ -441,29 +441,29 @@ testShorcutEventEx = isOutput "coco1" g where
 
 
 --Get all event numbers of type choice (radio button)
-getChoiceEvents :: State EvalEnv [(EventNumber, FieldAddress, PlayerNumber, String)]
+getChoiceEvents :: State EvalEnv [(EventNumber, SignalAddress, PlayerNumber, String)]
 getChoiceEvents = do
    evs <- access (eGame >>> events)
    g <- access eGame
    return $ [(_eventNumber ev, fa, pn, t) | ev <- evs, (fa, pn, t) <- getInputChoices ev g]
 
-getInputChoices :: EventInfo -> Game -> [(FieldAddress, PlayerNumber, String)]
-getInputChoices ei g = mapMaybe isInput (getEventFields ei g) where
-   isInput :: (FieldAddress, SomeField) -> Maybe (FieldAddress, PlayerNumber, String)
-   isInput (fa, (SomeField (Input pn t (Radio _)))) = Just (fa, pn, t)
+getInputChoices :: EventInfo -> Game -> [(SignalAddress, PlayerNumber, String)]
+getInputChoices ei g = mapMaybe isInput (getRemainingSignals ei g) where
+   isInput :: (SignalAddress, SomeSignal) -> Maybe (SignalAddress, PlayerNumber, String)
+   isInput (fa, (SomeSignal (Input pn t (Radio _)))) = Just (fa, pn, t)
    isInput _ = Nothing
 
 --Get all event numbers of type text (text field)
-getTextEvents :: State Game [(EventNumber, FieldAddress)]
+getTextEvents :: State Game [(EventNumber, SignalAddress)]
 getTextEvents = do
    evs <- access events
    g <- get
    return $ [(_eventNumber ev, fa) | ev <- evs, fa <- getInputTexts ev g]
 
-getInputTexts :: EventInfo -> Game -> [FieldAddress]
-getInputTexts ei g = mapMaybe isInput (getEventFields ei g) where
-   isInput :: (t, SomeField) -> Maybe t
-   isInput (fa, (SomeField (Input _ _ Text))) = Just fa
+getInputTexts :: EventInfo -> Game -> [SignalAddress]
+getInputTexts ei g = mapMaybe isInput (getRemainingSignals ei g) where
+   isInput :: (t, SomeSignal) -> Maybe t
+   isInput (fa, (SomeSignal (Input _ _ Text))) = Just fa
    isInput _ = Nothing
 
 addPlayer :: PlayerInfo -> Evaluate Bool
