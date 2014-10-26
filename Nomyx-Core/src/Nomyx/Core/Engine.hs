@@ -28,7 +28,7 @@ module Nomyx.Core.Engine(
 
    -- * Events management
    events,
-   getEventFields,
+   getRemainingSignals,
    getEventInfo,
    getFormField,
 

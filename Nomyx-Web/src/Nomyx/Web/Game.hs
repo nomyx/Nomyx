@@ -6,7 +6,6 @@
 module Nomyx.Web.Game where
 
 import Prelude hiding (div)
-import qualified Prelude
 import Control.Monad
 import Control.Monad.State
 import Control.Concurrent.STM
@@ -197,7 +196,7 @@ viewEvent g ei@(EventInfo eventNumber ruleNumber _ _ status _) = if status == SA
    disp = tr $ do
       td ! class_ "td" $ fromString . show $ eventNumber
       td ! class_ "td" $ fromString . show $ ruleNumber
-      td ! class_ "td" $ fromString . show $ getEventFields ei g
+      td ! class_ "td" $ fromString . show $ getRemainingSignals ei g
 
 viewIOs :: PlayerNumber -> Game -> RoutedNomyxServer Html
 viewIOs pn g = do
@@ -247,14 +246,14 @@ isPn _ _ = False
 
 viewInput :: PlayerNumber -> Game -> EventInfo -> RoutedNomyxServer (Maybe Html)
 viewInput me g ei@(EventInfo en _ _ _ SActive _) = do
-   ds <- mapMaybeM (viewInput' me (_gameName g) en) (getEventFields ei g)
+   ds <- mapMaybeM (viewInput' me (_gameName g) en) (getRemainingSignals ei g)
    return $ if null ds
       then Nothing
       else Just $ sequence_ ds
 viewInput _ _ _ = return Nothing
 
-viewInput' :: PlayerNumber -> GameName -> EventNumber -> (FieldAddress, SomeField) -> RoutedNomyxServer (Maybe Html)
-viewInput' me gn en (fa, ev@(SomeField (Input pn title _))) | me == pn = do
+viewInput' :: PlayerNumber -> GameName -> EventNumber -> (SignalAddress, SomeSignal) -> RoutedNomyxServer (Maybe Html)
+viewInput' me gn en (fa, ev@(SomeSignal (Input pn title _))) | me == pn = do
   lf  <- lift $ viewForm "user" $ inputForm ev
   link <- showURL (DoInput en fa (fromJust $ getFormField ev) gn)
   return $ Just $ tr $ td $ do
@@ -343,7 +342,7 @@ viewLog (Log _ t s) = tr $ do
    td $ p $ fromString s
 
 -- | a form result has been sent
-newInput :: EventNumber -> FieldAddress -> FormField -> GameName -> TVar Session -> RoutedNomyxServer Response
+newInput :: EventNumber -> SignalAddress -> FormField -> GameName -> TVar Session -> RoutedNomyxServer Response
 newInput en fa ft gn ts = toResponse <$> do
    pn <- fromJust <$> getPlayerNumber ts
    link <- showURL MainPage
@@ -368,13 +367,13 @@ newPlayAs gn ts = toResponse <$> do
          settingsLink <- showURL $ SubmitPlayAs gn
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
 
--- TODO: merge SomeField and FormField...
-inputForm :: SomeField -> NomyxForm InputData
-inputForm (SomeField (Input _ _ (Radio choices)))    = RadioData    <$> NWC.inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label (" " :: String)
-inputForm (SomeField (Input _ _ Text))               = TextData     <$> RB.inputText "" <++ label (" " :: String)
-inputForm (SomeField (Input _ _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
-inputForm (SomeField (Input _ _ Button))             = pure ButtonData
-inputForm (SomeField (Input _ _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label (" " :: String)
+-- TODO: merge SomeSignal and FormField...
+inputForm :: SomeSignal -> NomyxForm InputData
+inputForm (SomeSignal (Input _ _ (Radio choices)))    = RadioData    <$> NWC.inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label (" " :: String)
+inputForm (SomeSignal (Input _ _ Text))               = TextData     <$> RB.inputText "" <++ label (" " :: String)
+inputForm (SomeSignal (Input _ _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
+inputForm (SomeSignal (Input _ _ Button))             = pure ButtonData
+inputForm (SomeSignal (Input _ _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label (" " :: String)
 inputForm _ = error "Not an input form"
 
 

@@ -159,22 +159,22 @@ data Event a where
    EmptyEvent     :: Event a                                              -- An event that is never fired.
    BindEvent      :: Event a -> (a -> Event b) -> Event b                 -- A First event should fire, then a second event is constructed
    ShortcutEvents :: [Event a] -> ([Maybe a] -> Bool) -> Event [Maybe a]  -- Return the intermediate results as soon as the function evaluates to True, dismissing the events that hasn't fired yet
-   BaseEvent      :: (Typeable a) => Field a -> Event a                   -- Embed a base event
+   SignalEvent    :: (Typeable a) => Signal a -> Event a                  -- Embed a single Signal as an Event
    LiftEvent      :: NomexNE a -> Event a                                 -- create an event containing the result of the NomexNE.
    deriving Typeable
 
--- | Base events
-data Field a where
-   Input   :: PlayerNumber -> String -> (InputForm a) -> Field a
-   Player  :: Player    -> Field PlayerInfo
-   RuleEv  :: RuleEvent -> Field RuleInfo
-   Time    :: UTCTime   -> Field UTCTime
-   Message :: Msg a     -> Field a
-   Victory ::              Field VictoryInfo
+-- | Signals
+data Signal a where
+   Input   :: PlayerNumber -> String -> (InputForm a) -> Signal a
+   Player  :: Player    -> Signal PlayerInfo
+   RuleEv  :: RuleEvent -> Signal RuleInfo
+   Time    :: UTCTime   -> Signal UTCTime
+   Message :: Msg a     -> Signal a
+   Victory ::              Signal VictoryInfo
    deriving Typeable
 
 -- | Type agnostic base event
-data SomeField = forall a. (Typeable a) => SomeField (Field a)
+data SomeSignal = forall a. (Typeable a) => SomeSignal (Signal a)
 
 -- | Type agnostic result data
 data SomeData = forall e. (Typeable e, Show e) => SomeData e
@@ -195,9 +195,9 @@ data InputForm a where
    deriving Typeable
 
 deriving instance Show (InputForm a)
-deriving instance Show (Field a)
-deriving instance Show SomeField
-deriving instance Eq (Field e)
+deriving instance Show (Signal a)
+deriving instance Show SomeSignal
+deriving instance Eq (Signal e)
 deriving instance Eq (InputForm e)
 deriving instance Eq (Msg e)
 
@@ -231,19 +231,19 @@ data EventInfo = forall e. (Typeable e, Show e) =>
               event        :: Event e,
               handler      :: EventHandler e,
               _evStatus    :: Status,
-              _env         :: [FieldResult]}
+              _env         :: [SignalOccurence]}
 
-data FieldAddressElem = SumR | SumL | AppR | AppL | BindR | BindL | Shortcut deriving (Show, Read, Ord, Eq, Generic)
-type FieldAddress = [FieldAddressElem]
+data SignalAddressElem = SumR | SumL | AppR | AppL | BindR | BindL | Shortcut deriving (Show, Read, Ord, Eq, Generic)
+type SignalAddress = [SignalAddressElem]
 
-data FieldResult = forall e. (Typeable e, Show e) =>
-   FieldResult {field         :: Field e,
-                fieldResult   :: e,
-                _fieldAddress :: Maybe FieldAddress}
+data SignalOccurence = forall e. (Typeable e, Show e) =>
+   SignalOccurence {signal         :: Signal e,
+                    signalData     :: e,
+                    _signalAddress :: Maybe SignalAddress}
 
 type EventHandler e = (EventNumber, e) -> Nomex ()
 
-deriving instance Show FieldResult
+deriving instance Show SignalOccurence
 
 data Status = SActive | SDeleted deriving (Eq, Show)
 
@@ -309,5 +309,5 @@ partial s nm = do
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
 
-$( makeLenses [''RuleInfo, ''PlayerInfo, ''EventInfo, ''FieldResult] )
+$( makeLenses [''RuleInfo, ''PlayerInfo, ''EventInfo, ''SignalOccurence] )
 

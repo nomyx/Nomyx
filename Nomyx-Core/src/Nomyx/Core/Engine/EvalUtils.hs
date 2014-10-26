@@ -24,14 +24,14 @@ import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
 import Safe
 
--- find a field result in an environment
-lookupField :: Typeable a => Field a -> FieldAddress -> [FieldResult] -> Maybe a
-lookupField fi fa frs = headMay $ mapMaybe (maybeField fi fa) frs
+-- find a signal occurence in an environment
+lookupSignal :: Typeable a => Signal a -> SignalAddress -> [SignalOccurence] -> Maybe a
+lookupSignal fi fa frs = headMay $ mapMaybe (getSignalData fi fa) frs
 
---return the field result if it matches with the input field and address
-maybeField :: Typeable a => Field a -> FieldAddress -> FieldResult -> Maybe a
-maybeField fi fa (FieldResult fi' res fa') = do
-   ((fi'', res') :: (Field a, a)) <- cast (fi', res)
+--get the signal data from the signal occurence
+getSignalData :: Typeable a => Signal a -> SignalAddress -> SignalOccurence -> Maybe a
+getSignalData fi fa (SignalOccurence fi' res fa') = do
+   ((fi'', res') :: (Signal a, a)) <- cast (fi', res)
    if (fi'' == fi) && maybe True (== fa) fa' then (Just res') else Nothing
 
 errorHandler :: EventNumber -> String -> Evaluate ()
@@ -118,8 +118,8 @@ withRN rn eval = do
    eRuleNumber ~= oldRn
    return a
 
-instance Eq SomeField where
-  (SomeField e1) == (SomeField e2) = e1 === e2
+instance Eq SomeSignal where
+  (SomeSignal e1) == (SomeSignal e2) = e1 === e2
 
 instance Show EventInfo where
    show (EventInfo en rn _ _ s env) =
