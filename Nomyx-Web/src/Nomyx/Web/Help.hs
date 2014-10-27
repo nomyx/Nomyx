@@ -1,16 +1,3 @@
------------------------------------------------------------------------------
---
--- Module      :  Help
--- Copyright   :
--- License     :  OtherLicense
---
--- Maintainer  :  corentin.dupont@gmail.com
--- Stability   :
--- Portability :
---
--- |
---
------------------------------------------------------------------------------
 
 module Nomyx.Web.Help where
 upload = "In the following form you can upload your file containing custom rules. The file must be a haskell .hs file containing a module, \n" ++

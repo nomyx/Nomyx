@@ -1,16 +1,4 @@
------------------------------------------------------------------------------
---
--- Module      :  Test
--- Copyright   :
--- License     :  BSD3
---
--- Maintainer  :  corentin.dupont@gmail.com
--- Stability   :
--- Portability :
---
--- |
---
------------------------------------------------------------------------------
+
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE QuasiQuotes #-}

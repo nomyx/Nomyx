@@ -1,16 +1,4 @@
------------------------------------------------------------------------------
---
--- Module      :  Main
--- Copyright   :
--- License     :  AllRightsReserved
---
--- Maintainer  :
--- Stability   :
--- Portability :
---
--- |
---
------------------------------------------------------------------------------
+
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DoAndIfThenElse #-}
 {-# LANGUAGE ScopedTypeVariables #-}
