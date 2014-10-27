@@ -1,16 +1,4 @@
------------------------------------------------------------------------------
---
--- Module      :  Quotes
--- Copyright   :
--- License     :  BSD3
---
--- Maintainer  :  corentin.dupont@gmail.com
--- Stability   :
--- Portability :
---
--- |
---
------------------------------------------------------------------------------
+
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
 
@@ -47,9 +35,9 @@ quoteRuleFunc s = do
       Right "Exp Effect ()"  -> [| s |]
       Right "Nomex ()"       -> [| s |]
       Right "Exp 'Effect ()" -> [| s |]
-      Right "Rule" -> [| s |]
+      Right "Rule"           -> [| s |]
       Right a -> fail $ "Rule doesn't typecheck: " ++ show a
-      Left e -> fail $ show e
+      Left  e -> fail $ show e
 
 
 
