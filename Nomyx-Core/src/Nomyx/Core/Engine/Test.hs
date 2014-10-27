@@ -13,7 +13,7 @@ import Language.Nomyx.Inputs
 import Language.Nomyx.Vote
 import Language.Nomyx.Examples
 import Nomyx.Core.Engine.Evaluation
-import Nomyx.Core.Engine.EvalUtils
+import Nomyx.Core.Engine.EventEval
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
 import Control.Monad.State

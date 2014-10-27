@@ -18,7 +18,6 @@ import Data.Lens
 import Data.Maybe
 import Data.List
 import Control.Applicative
-import Control.Monad.Error
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
@@ -53,31 +52,7 @@ log mpn s = focusGame $ do
 liftEval :: EvaluateNE a -> Evaluate a
 liftEval r = runReader r <$> get
 
---extract the game state from an Evaluate
---knowing the rule number performing the evaluation (0 if by the system)
---and the player number to whom display errors (set to Nothing for all players)
---TODO: clean
-runEvalError :: RuleNumber -> (Maybe PlayerNumber) -> Evaluate a -> State Game ()
-runEvalError rn mpn egs = modify (\g -> _eGame $ execState (runEvalError' mpn egs) (EvalEnv rn g))
 
-runEvalError' :: (Maybe PlayerNumber) -> Evaluate a -> State EvalEnv ()
-runEvalError' mpn egs = do
-   e <- runErrorT egs
-   case e of
-      Right _ -> return ()
-      Left e' -> do
-         tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
-         void $ runErrorT $ log mpn "Error: "
-
-
-runEvaluateNE :: Game -> RuleNumber -> EvaluateNE a -> a
-runEvaluateNE g rn ev = runReader ev (EvalEnv rn g)
-
-runSystemEval :: PlayerNumber -> Evaluate a -> State Game ()
-runSystemEval pn e = runEvalError 0 (Just pn) e
-
-runSystemEval' :: Evaluate a -> State Game ()
-runSystemEval' e = runEvalError 0 Nothing e
 
 focusGame :: State Game a -> Evaluate a
 focusGame = lift . (focus eGame)

@@ -1,10 +1,4 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DoAndIfThenElse #-}
 
 -- | Evaluation of a Nomyx expression
 module Nomyx.Core.Engine.Evaluation where
@@ -19,17 +13,16 @@ import Data.Time
 import Data.Lens
 import Data.Maybe
 import Data.Todo
-import Data.Either
-import Data.Function (on)
 import Control.Category hiding (id)
 import Control.Applicative
-import Control.Monad.Error.Class (MonadError(..))
+import Control.Monad.Error
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Types hiding (_vRuleNumber)
+import Nomyx.Core.Engine.EventEval
 import Nomyx.Core.Engine.EvalUtils
 import Nomyx.Core.Engine.Utils
-import Safe
 import System.Random
+
 
 
 -- * Evaluation
@@ -275,148 +268,6 @@ evSimu sim ev = do
    let g' = execState s g
    return $ runEvaluateNE g' rn (evalNomexNE ev)
 
-
-
--- * Events
-
-
-
--- trigger an event
-triggerEvent :: (Typeable e, Show e) => Signal e -> e -> Evaluate ()
-triggerEvent s dat = access (eGame >>> events) >>= triggerEvent' (SignalOccurence s dat Nothing)
-
--- trigger some specific signal
-triggerEvent' :: SignalOccurence -> [EventInfo] -> Evaluate ()
-triggerEvent' res evs = do
-   evs' <- mapM (liftEval . (updateEventInfo res)) (sortBy (compare `on` _ruleNumber) evs)  -- get all the EventInfos updated with the field
-   (eGame >>> events) %= union (map fst evs')                                               -- store them
-   void $ mapM triggerIfComplete evs'                                                       -- trigger the handlers for completed events
-
--- if the event is complete, trigger its handler
-triggerIfComplete :: (EventInfo, Maybe SomeData) -> Evaluate ()
-triggerIfComplete (EventInfo en rn _ h SActive _, Just (SomeData val)) = case (cast val) of
-   Just a ->  void $ withRN rn $ (evalNomex $ h (en, a)) `catchError` (errorHandler en)
-   Nothing -> error "Bad trigger data type"
-triggerIfComplete _ = return ()
-
--- update the EventInfo with the signal data.
--- get the event result if all signals are completed
-updateEventInfo :: SignalOccurence -> EventInfo -> EvaluateNE (EventInfo, Maybe SomeData)
-updateEventInfo (SignalOccurence signal dat addr) ei@(EventInfo _ _ ev _ _ envi) = do
-   g <- asks _eGame
-   let eventRes = SignalOccurence signal dat addr
-   er <- getEventResult ev (eventRes : envi)
-   return $ case er of                                                      -- check if the event will be complete
-      Todo _ ->
-         if (SomeSignal signal) `elem` (map snd $ getRemainingSignals ei g) -- is yes, check if our signal is really a missing signal of the event
-            then (env ^=  (eventRes : envi) $ ei, Nothing)                  -- some signals are left to complete: add ours in the environment
-            else (ei, Nothing)                                              -- signal not found: do nothing
-      Done a -> (env ^=  [] $ ei, Just $ SomeData a)                        -- the event is complete: empty the environment and output the result
-
-
---get the signals left to be completed in an event
-getRemainingSignals :: EventInfo -> Game -> [(SignalAddress, SomeSignal)]
-getRemainingSignals (EventInfo _ rn e _ _ env) g = case runEvaluateNE g rn $ getEventResult e env of
-   Done _ -> []
-   Todo a -> a
-
--- compute the result of an event given an environment.
--- in the case the event cannot be computed because some signals results are pending, return that list instead.
-getEventResult :: Event a -> [SignalOccurence] -> EvaluateNE (Todo (SignalAddress, SomeSignal) a)
-getEventResult e frs = getEventResult' e frs []
-
-getEventResult' :: Event a -> [SignalOccurence] -> SignalAddress -> EvaluateNE (Todo (SignalAddress, SomeSignal) a)
-getEventResult' (PureEvent a)   _   _  = return $ Done a
-getEventResult'  EmptyEvent     _   _  = return $ Todo []
-getEventResult' (SumEvent a b)  ers fa = liftM2 (<|>) (getEventResult' a ers (fa ++ [SumL])) (getEventResult' b ers (fa ++ [SumR]))
-getEventResult' (AppEvent f b)  ers fa = liftM2 (<*>) (getEventResult' f ers (fa ++ [AppL])) (getEventResult' b ers (fa ++ [AppR]))
-getEventResult' (LiftEvent a)   _   _  = evalNomexNE a >>= return . Done
-getEventResult' (BindEvent a f) ers fa = do
-   er <- getEventResult' a ers (fa ++ [BindL])
-   case er of
-      Done a' -> getEventResult' (f a') ers (fa ++ [BindR])
-      Todo bs -> return $ Todo bs
-
-getEventResult' (SignalEvent a)  ers fa = return $ case lookupSignal a fa ers of
-   Just r  -> Done r
-   Nothing -> Todo [(fa, SomeSignal a)]
-
-getEventResult' (ShortcutEvents es f) ers fa = do
-  (ers :: [Todo (SignalAddress, SomeSignal) a]) <- mapM (\e -> getEventResult' e ers (fa ++ [Shortcut])) es -- get the result for each event in the list
-  return $ case f (toMaybe <$> ers) of                                                                      -- apply f to the event results that we already have
-     True  -> Done $ toMaybe <$> ers                                                                        -- if the result is true, we are done. Return the list of maybe results
-     False -> Todo $ join $ lefts $ toEither <$> ers                                                        -- otherwise, return the list of remaining fields to complete from each event
-
-
-
--- * Input triggers
-
-
--- trigger the input signal with the input data
-triggerInput :: FormField -> InputData -> SignalAddress -> EventNumber -> Evaluate ()
-triggerInput ff id sa en = do
-   evs <- access (eGame >>> events)
-   let mei = find ((== en) . getL eventNumber) evs
-   when (isJust mei) $ triggerInputSignal id sa ff (fromJust mei)
-
--- execute the corresponding handler
-triggerInputSignal :: InputData -> SignalAddress -> FormField -> EventInfo -> Evaluate ()
-triggerInputSignal id sa ff ei@(EventInfo _ _ _ _ SActive _) = do
-   i <- liftEval $ findField ff sa ei
-   case i of
-      Just sf -> triggerInputSignal' id sf sa ei
-      Nothing -> logAll $ "Input not found, InputData=" ++ (show id) ++ " SignalAddress=" ++ (show sa) ++ " FormField=" ++ (show ff)
-triggerInputSignal _ _ _ _ = return ()
-
--- execute the event handler using the data received from user
-triggerInputSignal' :: InputData -> SomeSignal -> SignalAddress -> EventInfo -> Evaluate ()
-triggerInputSignal' (TextData s)      (SomeSignal e@(Input _ _ (Text)))        sa ei = triggerEvent' (SignalOccurence e s                     (Just sa)) [ei]
-triggerInputSignal' (TextAreaData s)  (SomeSignal e@(Input _ _ (TextArea)))    sa ei = triggerEvent' (SignalOccurence e s                     (Just sa)) [ei]
-triggerInputSignal' (ButtonData)      (SomeSignal e@(Input _ _ (Button)))      sa ei = triggerEvent' (SignalOccurence e ()                    (Just sa)) [ei]
-triggerInputSignal' (RadioData i)     (SomeSignal e@(Input _ _ (Radio cs)))    sa ei = triggerEvent' (SignalOccurence e (fst $ cs!!i)         (Just sa)) [ei]
-triggerInputSignal' (CheckboxData is) (SomeSignal e@(Input _ _ (Checkbox cs))) sa ei = triggerEvent' (SignalOccurence e (fst <$> cs `sel` is) (Just sa)) [ei]
-triggerInputSignal' _ _ _ _ = return ()
-
-
--- | Get the form field at a certain address
-findField :: FormField -> SignalAddress -> EventInfo -> EvaluateNE (Maybe SomeSignal)
-findField ff addr (EventInfo _ _ e _ _ env) = findField' addr e env ff
-
-findField' :: SignalAddress -> Event e -> [SignalOccurence] -> FormField -> EvaluateNE (Maybe SomeSignal)
-findField' []         (SignalEvent f)    _   ff = return $ do
-   ff' <- getFormField (SomeSignal f)
-   guard (ff' == ff)
-   return $ SomeSignal f
-findField' (SumL:as)  (SumEvent e1 _)  env ff = findField' as e1 (filterPath SumL env) ff
-findField' (SumR:as)  (SumEvent _ e2)  env ff = findField' as e2 (filterPath SumR env) ff
-findField' (AppL:as)  (AppEvent e1 _)  env ff = findField' as e1 (filterPath AppL env) ff
-findField' (AppR:as)  (AppEvent _ e2)  env ff = findField' as e2 (filterPath AppR env) ff
-findField' (BindL:as) (BindEvent e1 _) env ff = findField' as e1 (filterPath BindL env) ff
-findField' (BindR:as) (BindEvent e1 f) env ff = do
-   ter <- getEventResult e1 (filterPath BindL env)
-   case ter of
-      Done e2 -> findField' as (f e2) (filterPath BindR env) ff
-      Todo _  -> return $ Nothing
-findField' (Shortcut:as) (ShortcutEvents es _) env ff = do
-   msfs <- mapM (\e-> findField' as e env ff) es
-   return $ headMay $ catMaybes msfs  -- returning the first field that matches
-
-findField' fa _ _ _ = error $ "findField: wrong field address: " ++ (show fa)
-
--- | removes one element of signal address for all signal occurences
-filterPath :: SignalAddressElem -> [SignalOccurence] -> [SignalOccurence]
-filterPath fa env = mapMaybe f env where
-   f (SignalOccurence fe fr (Just (fa':fas))) | fa == fa' = Just $ SignalOccurence fe fr (Just fas)
-   f fr = Just fr
-
-getFormField :: SomeSignal -> Maybe FormField
-getFormField (SomeSignal (Input pn s (Radio choices)))    = Just $ RadioField    pn s (zip [0..] (snd <$> choices))
-getFormField (SomeSignal (Input pn s Text))               = Just $ TextField     pn s
-getFormField (SomeSignal (Input pn s TextArea))           = Just $ TextAreaField pn s
-getFormField (SomeSignal (Input pn s Button))             = Just $ ButtonField   pn s
-getFormField (SomeSignal (Input pn s (Checkbox choices))) = Just $ CheckboxField pn s (zip [0..] (snd <$> choices))
-getFormField _ = Nothing
-
 -- * misc
 
 getVictorious :: Game -> [PlayerNumber]
@@ -454,6 +305,39 @@ delVictoryRule rn = do
    vic <- access (eGame >>> victory)
    when (isJust vic && _vRuleNumber (fromJust vic) == rn) $ void $ (eGame >>> victory) ~= Nothing
 
+--extract the game state from an Evaluate
+--knowing the rule number performing the evaluation (0 if by the system)
+--and the player number to whom display errors (set to Nothing for all players)
+--TODO: clean
+runEvalError :: RuleNumber -> (Maybe PlayerNumber) -> Evaluate a -> State Game ()
+runEvalError rn mpn egs = modify (\g -> _eGame $ execState (runEvalError' mpn egs) (EvalEnv rn g evalNomex evalNomexNE))
+
+runEvalError' :: (Maybe PlayerNumber) -> Evaluate a -> State EvalEnv ()
+runEvalError' mpn egs = do
+   e <- runErrorT egs
+   case e of
+      Right _ -> return ()
+      Left e' -> do
+         tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
+         void $ runErrorT $ log mpn "Error: "
+
+runSystemEval :: PlayerNumber -> Evaluate a -> State Game ()
+runSystemEval pn e = runEvalError 0 (Just pn) e
+
+runSystemEval' :: Evaluate a -> State Game ()
+runSystemEval' e = runEvalError 0 Nothing e
+
+--get the signals left to be completed in an event
+getRemainingSignals :: EventInfo -> Game -> [(SignalAddress, SomeSignal)]
+getRemainingSignals (EventInfo _ rn e _ _ env) g = case runEvaluateNE g rn (getEventResult e env) of
+   Done _ -> []
+   Todo a -> a
+
+runEvaluateNE :: Game -> RuleNumber -> EvaluateNE a -> a
+runEvaluateNE g rn ev = runReader ev (EvalEnv rn g evalNomex evalNomexNE)
+
+runEvaluate :: Game -> RuleNumber -> State EvalEnv a -> a
+runEvaluate g rn ev = evalState ev (EvalEnv rn g evalNomex evalNomexNE)
 
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
@@ -485,8 +369,3 @@ displayOutput g o@(Output on rn mpn _ s) =
    ", by pn: " ++ (show mpn) ++
    ", output: " ++ (show $ evalOutput g o) ++
    ", status: " ++ (show s)
-
-displayEvent' :: EventInfo -> EvaluateNE String
-displayEvent' ei = do
-   (EvalEnv _ g) <- ask
-   return $ displayEvent g ei

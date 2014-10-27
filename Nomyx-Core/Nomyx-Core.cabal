@@ -72,6 +72,7 @@ library
                      Nomyx.Core.Test
                      Nomyx.Core.Engine
                      Nomyx.Core.Engine.Evaluation
+                     Nomyx.Core.Engine.EventEval
                      Nomyx.Core.Engine.EvalUtils
                      Nomyx.Core.Engine.Types
                      Nomyx.Core.Engine.GameEvents

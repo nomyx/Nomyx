@@ -51,10 +51,12 @@ module Nomyx.Core.Engine(
    tracePN,
    replaceWith,
    getChoiceEvents,
-   getTextEvents
+   getTextEvents,
+   runEvaluate
    ) where
 
 import Nomyx.Core.Engine.Evaluation
+import Nomyx.Core.Engine.EventEval
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.GameEvents
 import Nomyx.Core.Engine.Utils
