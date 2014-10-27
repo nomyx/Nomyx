@@ -7,8 +7,6 @@
 module Nomyx.Core.Profile where
 
 import Language.Nomyx
-
-
 import Control.Monad.Reader.Class (MonadReader(..))
 import Control.Monad.Catch (bracket)
 import Control.Concurrent.STM

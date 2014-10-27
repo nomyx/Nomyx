@@ -9,7 +9,7 @@ import Control.Monad.State
 import Data.List
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Evaluation
-import Nomyx.Core.Engine.EvalUtils
+import Nomyx.Core.Engine.EventEval
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
 import Data.Lens

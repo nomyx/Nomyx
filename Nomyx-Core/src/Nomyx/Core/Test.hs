@@ -45,7 +45,6 @@ import Nomyx.Core.Utils
 import Nomyx.Core.Profile
 import Nomyx.Core.Quotes
 import Nomyx.Core.Engine
-import Nomyx.Core.Engine.Types
 import qualified Nomyx.Core.Engine as G
 
 playTests :: FilePath -> ServerHandle -> Maybe String -> IO [(String, Bool)]
@@ -317,11 +316,12 @@ testFileUnsafeIO = do
 isOutput' :: String -> Multi -> Bool
 isOutput' s m = any (isOutput s . _game . _loggedGame) (_gameInfos m)
 
+
 -- select a choice for all radio buttons
 inputAllRadios :: Int -> StateT Session IO ()
 inputAllRadios choice = do
    s <- get
-   let evs = evalState getChoiceEvents (EvalEnv 0 (firstGame $ _multi s))
+   let evs = runEvaluate (firstGame $ _multi s) 0 getChoiceEvents
    mapM_ (\(en, fa, pn, t) -> inputResult pn en fa (RadioField pn t [(0,"For"),(1,"Against")]) (RadioData choice) "test") evs
 
 -- input text for all text fields
