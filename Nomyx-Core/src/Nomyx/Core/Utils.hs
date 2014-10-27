@@ -133,7 +133,7 @@ evalWithWatchdog s f = do
       writeFile nullFileName $ show s''
       putMVar mvar (Just s'')
    --start watchdog thread
-   forkIO $ watchDog 3 id mvar
+   forkIO $ watchDog 5 id mvar
    takeMVar mvar
 
 evalWithWatchdog' :: NFData a => IO a -> IO (Maybe a)
@@ -146,15 +146,16 @@ evalWithWatchdog' s = do
       let s'' = force s'
       putMVar mvar (Just s'')
    --start watchdog thread
-   forkIO $ watchDog 3 id mvar
+   forkIO $ watchDog 5 id mvar
    takeMVar mvar
 
 
--- | Fork off a thread which will sleep and then kill off the specified thread.
+-- | Fork off a thread which will sleep n seconds and then kill off the specified thread.
 watchDog :: Int -> ThreadId -> MVar (Maybe a) -> IO ()
-watchDog tout tid mvar = do
-   threadDelay (tout * 1000000)
+watchDog n tid mvar = do
+   threadDelay (n * 1000000)
    killThread tid
+   threadDelay 1000000 --give some time to kill the thread
    putMVar mvar Nothing
 
 gameNameLens :: Lens GameInfo GameName
