@@ -440,6 +440,23 @@ testShorcutEventEx = isOutput "coco1" g where
    g = execRuleInputs testShorcutEvent 1 [([Shortcut], (TextField 1 "a"), TextData "coco1")]
 
 
+testDoubleEvent :: Rule
+testDoubleEvent = do
+   let displayMsg a = void $ newOutput_ Nothing (_playerName a)
+   let e :: Event PlayerInfo
+       e = do
+       playerEvent Arrive
+       playerEvent Arrive
+   void $ onEvent_ e displayMsg
+
+testDoubleEvent2PlayerArrive :: Game
+testDoubleEvent2PlayerArrive = flip execState testGame {_players = []} $ runSystemEval' $ do
+    addActivateRule testDoubleEvent 1
+    addPlayer (PlayerInfo 1 "coco1" Nothing)
+    --addPlayer (PlayerInfo 2 "coco2" Nothing)
+
+testDoubleEventEx = isOutput "coco2" testDoubleEvent2PlayerArrive
+
 --Get all event numbers of type choice (radio button)
 getChoiceEvents :: State EvalEnv [(EventNumber, SignalAddress, PlayerNumber, String)]
 getChoiceEvents = do
