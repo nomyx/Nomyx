@@ -28,14 +28,29 @@ import Safe
 
 -- trigger an event
 triggerEvent :: (Typeable e, Show e) => Signal e -> e -> Evaluate ()
-triggerEvent s dat = access (eGame >>> events) >>= triggerEvent' (SignalOccurence s dat Nothing)
+triggerEvent s dat = do
+   evs <- access (eGame >>> events)
+   triggerEvent' (SignalOccurence s dat Nothing) evs
 
 -- trigger some specific signal
 triggerEvent' :: SignalOccurence -> [EventInfo] -> Evaluate ()
-triggerEvent' res evs = do
-   evs' <- mapM (liftEval . (updateEventInfo res)) (sortBy (compare `on` _ruleNumber) evs)  -- get all the EventInfos updated with the field
+triggerEvent' s evs = do
+   evs' <- mapM (liftEval . (updateEventInfo s)) (sortBy (compare `on` _ruleNumber) evs)  -- get all the EventInfos updated with the field
    (eGame >>> events) %= union (map fst evs')                                               -- store them
    void $ mapM triggerIfComplete evs'                                                       -- trigger the handlers for completed events
+
+-- update the EventInfo with the signal data.
+-- get the event result if all signals are completed
+updateEventInfo :: SignalOccurence -> EventInfo -> EvaluateNE (EventInfo, Maybe SomeData)
+updateEventInfo so@(SignalOccurence signal dat addr) ei@(EventInfo _ _ ev _ _ envi) = do
+   er <- getEventResult ev (so : envi)
+   case er of                                                      -- check if the event will be complete
+      Todo _ -> do
+         r <- getRemainingSignals' ei
+         case find (\(sa, ss) -> ss == (SomeSignal signal)) r of                 -- is yes, check if our signal is really a missing signal of the event
+            Just (sa, ss) -> return (env ^=  ((SignalOccurence signal dat (Just sa)) : envi) $ ei, Nothing)  -- some signals are left to complete: add ours in the environment
+            Nothing       -> return (ei, Nothing)                              -- signal not found: do nothing
+      Done a -> return (env ^=  [] $ ei, Just $ SomeData a)        -- the event is complete: empty the environment and output the result
 
 -- if the event is complete, trigger its handler
 triggerIfComplete :: (EventInfo, Maybe SomeData) -> Evaluate ()
@@ -46,23 +61,8 @@ triggerIfComplete (EventInfo en rn _ h SActive _, Just (SomeData val)) = case (c
    Nothing -> error "Bad trigger data type"
 triggerIfComplete _ = return ()
 
--- update the EventInfo with the signal data.
--- get the event result if all signals are completed
-updateEventInfo :: SignalOccurence -> EventInfo -> EvaluateNE (EventInfo, Maybe SomeData)
-updateEventInfo (SignalOccurence signal dat addr) ei@(EventInfo _ _ ev _ _ envi) = do
-   let eventRes = SignalOccurence signal dat addr
-   er <- getEventResult ev (eventRes : envi)
-   case er of                                                      -- check if the event will be complete
-      Todo _ -> do
-         r <- getRemainingSignals' ei
-         if (SomeSignal signal) `elem` (map snd $ r) -- is yes, check if our signal is really a missing signal of the event
-            then return (env ^=  (eventRes : envi) $ ei, Nothing)                  -- some signals are left to complete: add ours in the environment
-            else return (ei, Nothing)                                              -- signal not found: do nothing
-      Done a -> return (env ^=  [] $ ei, Just $ SomeData a)                        -- the event is complete: empty the environment and output the result
-
-
 --get the signals left to be completed in an event
-getRemainingSignals' :: EventInfo -> EvaluateNE [(SignalAddress, SomeSignal)]
+getRemainingSignals' :: EventInfo -> Evaluate [(SignalAddress, SomeSignal)]
 getRemainingSignals' (EventInfo _ _ e _ _ env) = do
    tr <- getEventResult e env
    return $ case tr of
@@ -71,10 +71,11 @@ getRemainingSignals' (EventInfo _ _ e _ _ env) = do
 
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some signals results are pending, return that list instead.
-getEventResult :: Event a -> [SignalOccurence] -> EvaluateNE (Todo (SignalAddress, SomeSignal) a)
+getEventResult :: Event a -> [SignalOccurence] -> Evaluate (Todo (SignalAddress, SomeSignal) a)
 getEventResult e frs = getEventResult' e frs []
 
-getEventResult' :: Event a -> [SignalOccurence] -> SignalAddress -> EvaluateNE (Todo (SignalAddress, SomeSignal) a)
+-- compute the result of an event given an environment. The third argument is used to know where we are in the event tree.
+getEventResult' :: Event a -> [SignalOccurence] -> SignalAddress -> Evaluate (Todo (SignalAddress, SomeSignal) a)
 getEventResult' (PureEvent a)   _   _  = return $ Done a
 getEventResult'  EmptyEvent     _   _  = return $ Todo []
 getEventResult' (SumEvent a b)  ers fa = liftM2 (<|>) (getEventResult' a ers (fa ++ [SumL])) (getEventResult' b ers (fa ++ [SumR]))
@@ -102,14 +103,14 @@ getEventResult' (ShortcutEvents es f) ers fa = do
 
 -- * Input triggers
 
--- trigger the input signal with the input data
+-- trigger the input form with the input data
 triggerInput :: FormField -> InputData -> SignalAddress -> EventNumber -> Evaluate ()
 triggerInput ff id sa en = do
    evs <- access (eGame >>> events)
    let mei = find ((== en) . getL eventNumber) evs
    when (isJust mei) $ triggerInputSignal id sa ff (fromJust mei)
 
--- execute the corresponding handler
+-- trigger the input signal with the input data
 triggerInputSignal :: InputData -> SignalAddress -> FormField -> EventInfo -> Evaluate ()
 triggerInputSignal id sa ff ei@(EventInfo _ _ _ _ SActive _) = do
    i <- liftEval $ findField ff sa ei
@@ -118,7 +119,7 @@ triggerInputSignal id sa ff ei@(EventInfo _ _ _ _ SActive _) = do
       Nothing -> logAll $ "Input not found, InputData=" ++ (show id) ++ " SignalAddress=" ++ (show sa) ++ " FormField=" ++ (show ff)
 triggerInputSignal _ _ _ _ = return ()
 
--- execute the event handler using the data received from user
+-- trigger the input signal with the input data
 triggerInputSignal' :: InputData -> SomeSignal -> SignalAddress -> EventInfo -> Evaluate ()
 triggerInputSignal' (TextData s)      (SomeSignal e@(Input _ _ (Text)))        sa ei = triggerEvent' (SignalOccurence e s                     (Just sa)) [ei]
 triggerInputSignal' (TextAreaData s)  (SomeSignal e@(Input _ _ (TextArea)))    sa ei = triggerEvent' (SignalOccurence e s                     (Just sa)) [ei]

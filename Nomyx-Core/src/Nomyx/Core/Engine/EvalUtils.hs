@@ -25,13 +25,13 @@ import Safe
 
 -- find a signal occurence in an environment
 lookupSignal :: Typeable a => Signal a -> SignalAddress -> [SignalOccurence] -> Maybe a
-lookupSignal fi fa frs = headMay $ mapMaybe (getSignalData fi fa) frs
+lookupSignal s sa env = headMay $ mapMaybe (getSignalData s sa) env
 
 --get the signal data from the signal occurence
 getSignalData :: Typeable a => Signal a -> SignalAddress -> SignalOccurence -> Maybe a
-getSignalData fi fa (SignalOccurence fi' res fa') = do
-   ((fi'', res') :: (Signal a, a)) <- cast (fi', res)
-   if (fi'' == fi) && maybe True (== fa) fa' then (Just res') else Nothing
+getSignalData s sa (SignalOccurence s' res sa') = do
+   ((s'', res') :: (Signal a, a)) <- cast (s', res)
+   if (s'' == s) && maybe True (== sa) sa' then (Just res') else Nothing
 
 errorHandler :: EventNumber -> String -> Evaluate ()
 errorHandler en s = do
