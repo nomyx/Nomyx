@@ -35,9 +35,10 @@ triggerEvent s dat = do
 -- trigger some specific signal
 triggerEvent' :: SignalData -> Maybe SignalAddress -> [EventInfo] -> Evaluate ()
 triggerEvent' sd msa evs = do
-   evs' <- mapM (liftEval . (updateEventInfo sd msa)) (sortBy (compare `on` _ruleNumber) evs)  -- get all the EventInfos updated with the field
-   (eGame >>> events) %= union (map fst evs')                                               -- store them
-   void $ mapM triggerIfComplete evs'                                                       -- trigger the handlers for completed events
+   let evs' = sortBy (compare `on` _ruleNumber) evs
+   eids <- mapM (liftEval . (getUpdatedEventInfo sd msa)) evs'  -- get all the EventInfos updated with the field
+   (eGame >>> events) %= union (map fst eids)                   -- store them
+   void $ mapM triggerIfComplete eids                           -- trigger the handlers for completed events
 
 -- if the event is complete, trigger its handler
 triggerIfComplete :: (EventInfo, Maybe SomeData) -> Evaluate ()
@@ -48,20 +49,20 @@ triggerIfComplete (EventInfo en rn _ h SActive _, Just (SomeData val)) = case (c
    Nothing -> error "Bad trigger data type"
 triggerIfComplete _ = return ()
 
--- update the EventInfo with the signal data.
+-- get update the EventInfo updated with the signal data.
 -- get the event result if all signals are completed
-updateEventInfo :: SignalData -> Maybe SignalAddress -> EventInfo -> EvaluateNE (EventInfo, Maybe SomeData)
-updateEventInfo sd@(SignalData signal _) addr ei@(EventInfo _ _ ev _ _ envi) = do
+getUpdatedEventInfo :: SignalData -> Maybe SignalAddress -> EventInfo -> EvaluateNE (EventInfo, Maybe SomeData)
+getUpdatedEventInfo sd@(SignalData signal _) addr ei@(EventInfo _ _ ev _ _ envi) = do
    trs <- getEventResult ev envi
    case trs of
-      Todo rs -> case find (\(sa, ss) -> (ss == SomeSignal signal) && maybe True (==sa) addr) rs of  -- check if our signal match one of the remaining signals
+      Todo rs -> case find (\(sa, ss) -> (ss == SomeSignal signal) && maybe True (==sa) addr) rs of -- check if our signal match one of the remaining signals
          Just (sa, _) -> do
-            let so = (SignalOccurence sd sa)
-            er <- getEventResult ev (so : envi)                                           -- add our event to the environment and get the result
+            let envi' = (SignalOccurence sd sa) : envi
+            er <- getEventResult ev envi'                                                           -- add our event to the environment and get the result
             return $ case er of
-               Todo _ -> (env ^=  (so : envi) $ ei, Nothing)                              -- some other signals are left to complete: add ours in the environment
-               Done a -> (env ^=  [] $ ei, Just $ SomeData a)                             -- event complete: return the final data result
-         Nothing -> return (ei, Nothing)                                                  -- our signal does not belong to this event.
+               Todo _ -> (env ^=  envi' $ ei, Nothing)                                              -- some other signals are left to complete: add ours in the environment
+               Done a -> (env ^=  [] $ ei, Just $ SomeData a)                                       -- event complete: return the final data result
+         Nothing -> return (ei, Nothing)                                                            -- our signal does not belong to this event.
       Done a -> return (env ^=  [] $ ei, Just $ SomeData a)
 
 --get the signals left to be completed in an event
