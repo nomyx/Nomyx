@@ -13,7 +13,6 @@ import qualified Text.Blaze.Html5 as H
 import Text.Blaze.Html.Renderer.String
 import Network.Mail.Mime hiding (mailTo)
 import Safe
-import Data.List
 import Data.Text(Text, pack)
 import Data.Maybe
 import qualified Data.Text.Lazy as B
