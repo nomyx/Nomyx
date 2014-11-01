@@ -61,7 +61,7 @@ getIntermediateResults en = do
       Nothing -> return Nothing
 
 getInputResult :: SignalOccurence -> Maybe (PlayerNumber, SomeData)
-getInputResult (SignalOccurence (Input pn _ _) r _) = Just (pn, SomeData r)
+getInputResult (SignalOccurence (SignalData (Input pn _ _) r) _) = Just (pn, SomeData r)
 getInputResult _ = Nothing
 
 -- | broadcast a message that can be catched by another rule

@@ -31,8 +31,7 @@ import System.Random
 data EvalEnv = EvalEnv { _eRuleNumber :: RuleNumber,                             -- number of the rule requesting the evaluation
                          _eGame :: Game,                                         -- game to be read/modified
                          evalNomexFunc :: forall a. Nomex a -> Evaluate a,       -- evaluation function
-                         evalNomexNEFunc :: forall b. NomexNE b -> EvaluateNE b, -- evaluation function without effect
-                         eventEnv :: [SignalOccurence]}
+                         evalNomexNEFunc :: forall b. NomexNE b -> EvaluateNE b} -- evaluation function without effect
 
 -- | Environment necessary for the evaluation of Nomex
 type Evaluate   a = ErrorT String (State EvalEnv ) a

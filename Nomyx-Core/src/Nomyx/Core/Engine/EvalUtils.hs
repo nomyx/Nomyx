@@ -29,9 +29,10 @@ lookupSignal s sa env = headMay $ mapMaybe (getSignalData s sa) env
 
 --get the signal data from the signal occurence
 getSignalData :: Typeable a => Signal a -> SignalAddress -> SignalOccurence -> Maybe a
-getSignalData s sa (SignalOccurence s' res sa') = do
+getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
    ((s'', res') :: (Signal a, a)) <- cast (s', res)
-   if (s'' == s) && maybe True (== sa) sa' then (Just res') else Nothing
+   if (s'' == s) && (sa' == sa) then (Just res') else Nothing
+
 
 errorHandler :: EventNumber -> String -> Evaluate ()
 errorHandler en s = do
