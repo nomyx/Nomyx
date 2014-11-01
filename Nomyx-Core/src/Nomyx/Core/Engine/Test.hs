@@ -118,7 +118,8 @@ tests = [("test var 1", testVarEx1),
          ("test two separate events", testTwoEventsEx),
          ("test monadic event", testMonadicEventEx),
          ("test monadic event2", testMonadicEventEx2),
-         ("test shortcut event", testShorcutEventEx)
+         ("test shortcut event", testShorcutEventEx),
+         ("test double event", testDoubleEventEx)
          ]
 
 allTests = all snd tests
@@ -439,7 +440,7 @@ testShorcutEvent = do
 testShorcutEventEx = isOutput "coco1" g where
    g = execRuleInputs testShorcutEvent 1 [([Shortcut], (TextField 1 "a"), TextData "coco1")]
 
-
+--This event waits for two identical signals to fire
 testDoubleEvent :: Rule
 testDoubleEvent = do
    let displayMsg a = void $ newOutput_ Nothing (_playerName a)
@@ -453,7 +454,7 @@ testDoubleEvent2PlayerArrive :: Game
 testDoubleEvent2PlayerArrive = flip execState testGame {_players = []} $ runSystemEval' $ do
     addActivateRule testDoubleEvent 1
     addPlayer (PlayerInfo 1 "coco1" Nothing)
-    --addPlayer (PlayerInfo 2 "coco2" Nothing)
+    addPlayer (PlayerInfo 2 "coco2" Nothing)
 
 testDoubleEventEx = isOutput "coco2" testDoubleEvent2PlayerArrive
 
