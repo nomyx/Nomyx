@@ -236,13 +236,16 @@ data EventInfo = forall e. (Typeable e, Show e) =>
 data SignalAddressElem = SumR | SumL | AppR | AppL | BindR | BindL | Shortcut deriving (Show, Read, Ord, Eq, Generic)
 type SignalAddress = [SignalAddressElem]
 
-data SignalOccurence = forall e. (Typeable e, Show e) =>
-   SignalOccurence {signal         :: Signal e,
-                    signalData     :: e,
-                    _signalAddress :: Maybe SignalAddress}
+data SignalData = forall e. (Typeable e, Show e) =>
+   SignalData {signal     :: Signal e,
+               signalData :: e}
+
+data SignalOccurence = SignalOccurence {_signalOccData    :: SignalData,
+                                        _signalOccAddress :: SignalAddress}
 
 type EventHandler e = (EventNumber, e) -> Nomex ()
 
+deriving instance Show SignalData
 deriving instance Show SignalOccurence
 
 data Status = SActive | SDeleted deriving (Eq, Show)

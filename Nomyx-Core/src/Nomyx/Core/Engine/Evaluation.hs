@@ -310,7 +310,7 @@ delVictoryRule rn = do
 --and the player number to whom display errors (set to Nothing for all players)
 --TODO: clean
 runEvalError :: RuleNumber -> (Maybe PlayerNumber) -> Evaluate a -> State Game ()
-runEvalError rn mpn egs = modify (\g -> _eGame $ execState (runEvalError' mpn egs) (EvalEnv rn g evalNomex evalNomexNE []))
+runEvalError rn mpn egs = modify (\g -> _eGame $ execState (runEvalError' mpn egs) (EvalEnv rn g evalNomex evalNomexNE))
 
 runEvalError' :: (Maybe PlayerNumber) -> Evaluate a -> State EvalEnv ()
 runEvalError' mpn egs = do
@@ -334,10 +334,10 @@ getRemainingSignals (EventInfo _ rn e _ _ env) g = case runEvaluateNE g rn (getE
    Todo a -> a
 
 runEvaluateNE :: Game -> RuleNumber -> EvaluateNE a -> a
-runEvaluateNE g rn ev = runReader ev (EvalEnv rn g evalNomex evalNomexNE [])
+runEvaluateNE g rn ev = runReader ev (EvalEnv rn g evalNomex evalNomexNE)
 
 runEvaluate :: Game -> RuleNumber -> State EvalEnv a -> a
-runEvaluate g rn ev = evalState ev (EvalEnv rn g evalNomex evalNomexNE [])
+runEvaluate g rn ev = evalState ev (EvalEnv rn g evalNomex evalNomexNE)
 
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
