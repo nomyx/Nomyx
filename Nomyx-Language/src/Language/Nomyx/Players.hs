@@ -14,7 +14,7 @@ module Language.Nomyx.Players (
    Player(..),
    playerEvent,
    playerNumber, playerName,
-   getPlayers, getPlayer, getPlayerName,
+   getPlayers, getPlayer, getPlayerName, getPlayerName',
    setPlayerName,
    modifyPlayerName,
    getPlayersNumber, getAllPlayerNumbers,
