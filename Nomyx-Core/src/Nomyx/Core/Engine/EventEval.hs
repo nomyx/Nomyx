@@ -52,26 +52,17 @@ triggerIfComplete _ = return ()
 -- get the event result if all signals are completed
 updateEventInfo :: SignalData -> Maybe SignalAddress -> EventInfo -> EvaluateNE (EventInfo, Maybe SomeData)
 updateEventInfo sd@(SignalData signal _) addr ei@(EventInfo _ _ ev _ _ envi) = do
---   let eventRes = SignalOccurence signal dat addr
---   er <- getEventResult ev (eventRes : envi)
---   case er of                                                      -- check if the event will be complete if we add the new signal
---      Todo _ -> do                                                 -- not complete: some signals missing
---         r <- getRemainingSignals' ei
---         if (SomeSignal signal) `elem` (map snd $ r)               -- check if our signal is really a missing signal of the event
---            then return (env ^=  (eventRes : envi) $ ei, Nothing)  -- yes: add ours in the environment
---            else return (ei, Nothing)                              -- no: do nothing
---      Done a -> return (env ^=  [] $ ei, Just $ SomeData a)        -- the event is complete: empty the environment and output the result
---   let eventRes = SignalOccurence signal dat addr
-   rs <- getRemainingSignals' ei
-   case find (\(sa, ss) -> (ss == SomeSignal signal) && maybe True (==sa) addr) rs of  -- check if our signal match one of the remaining signals
-      Just (sa, _) -> do
-         let so = (SignalOccurence sd sa)
-         er <- getEventResult ev (so : envi)                                           -- add our event to the environment and get the result
-         return $ case er of
-            Todo _ -> (env ^=  (so : envi) $ ei, Nothing)                              -- some other signals are left to complete: add ours in the environment
-            Done a -> (env ^=  [] $ ei, Just $ SomeData a)                             -- event complete: return the final data result
-      Nothing -> return (ei, Nothing)                                                  -- our signal does not belong to this event.
-
+   trs <- getEventResult ev envi
+   case trs of
+      Todo rs -> case find (\(sa, ss) -> (ss == SomeSignal signal) && maybe True (==sa) addr) rs of  -- check if our signal match one of the remaining signals
+         Just (sa, _) -> do
+            let so = (SignalOccurence sd sa)
+            er <- getEventResult ev (so : envi)                                           -- add our event to the environment and get the result
+            return $ case er of
+               Todo _ -> (env ^=  (so : envi) $ ei, Nothing)                              -- some other signals are left to complete: add ours in the environment
+               Done a -> (env ^=  [] $ ei, Just $ SomeData a)                             -- event complete: return the final data result
+         Nothing -> return (ei, Nothing)                                                  -- our signal does not belong to this event.
+      Done a -> return (env ^=  [] $ ei, Just $ SomeData a)
 
 --get the signals left to be completed in an event
 getRemainingSignals' :: EventInfo -> EvaluateNE [(SignalAddress, SomeSignal)]
