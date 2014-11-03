@@ -12,7 +12,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
 
--- | This module containt the type definitions necessary to build a Nomic rule. 
+-- | This module contains the type definitions necessary to build a Nomic rule.
 module Language.Nomyx.Expression where
 
 import Data.Typeable
@@ -46,10 +46,10 @@ type Effect = 'Effect
 type NoEffect = 'NoEffect
 
 -- | A Nomex (Nomyx Expression) allows the players to write rules.
--- within the rules, you can access and modify the state of the game.
+-- Within the rules, you can access and modify the state of the game.
 type Nomex = Exp Effect
 
--- | A NomexNE (Nomyx Expression No Effect) is a specialisation of the type that guaranties
+-- | A NomexNE (Nomyx Expression No Effect) is a specialisation of the type that guarantees
 -- that the instructions will have no effects.
 type NomexNE = Exp NoEffect
 
