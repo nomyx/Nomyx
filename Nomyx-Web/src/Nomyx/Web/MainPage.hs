@@ -70,7 +70,7 @@ viewGamesTab :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> Routed
 viewGamesTab gis isAdmin saveDir mpn = do
    let canCreateGame = maybe False (\pn -> isAdmin || numberOfGamesOwned gis pn < 1) mpn
    let publicPrivate = partition ((== True) . _isPublic) gis
-   let vgi = viewGameName isAdmin canCreateGame mpn
+   let vgi = viewGameName isAdmin mpn
    let defLink a = if (isJust mpn) then showURL a else showURL (Auth $ AuthURL A_Login)
    public <- mapM vgi (fst publicPrivate)
    private <- mapM vgi (snd publicPrivate)
@@ -107,13 +107,11 @@ viewGamesTab gis isAdmin saveDir mpn = do
       H.a "Logout"          ! (href $ toValue logoutURL) >> br
       H.a "Login"           ! (href $ toValue loginURL) >> br
 
-
-viewGameName :: Bool -> Bool -> (Maybe PlayerNumber) -> GameInfo -> RoutedNomyxServer Html
-viewGameName isAdmin canCreateGame mpn gi = do
+viewGameName :: Bool -> (Maybe PlayerNumber) -> GameInfo -> RoutedNomyxServer Html
+viewGameName isAdmin mpn gi = do
    let g = getGame gi
    let isGameAdmin = isAdmin || maybe False (==mpn) (Just $ _ownedBy gi)
    let gn = _gameName g
-   let canFork = canCreateGame
    let canDel = isGameAdmin
    let canView = isGameAdmin || _isPublic gi
    let link a = if (isJust mpn) then showURL a else showURL (Auth $ AuthURL A_Login)
@@ -122,7 +120,6 @@ viewGameName isAdmin canCreateGame mpn gi = do
    leave <- link (W.LeaveGame gn)
    view  <- link (W.ViewGame gn)
    del   <- link (W.DelGame gn)
-   fork  <- link (W.ForkGame gn)
    ok $ if canView then tr $ do
       let cancel = H.a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
       td ! A.id "gameName" $ fromString (gn ++ "   ")
@@ -130,7 +127,6 @@ viewGameName isAdmin canCreateGame mpn gi = do
       td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.joinGame)
       td $ H.a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn)
       when canDel $ td $ H.a "Del"   ! (href $ toValue del)
-      when canFork $ td $ H.a "Fork"  ! (href $ toValue $ "#openModalFork" ++ gn)
       div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
             h2 $ fromString $ "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n" ++
@@ -142,14 +138,7 @@ viewGameName isAdmin canCreateGame mpn gi = do
             h2 "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
             cancel
             H.a "Leave" ! (href $ toValue leave) ! A.class_ "modalButton"
-      div ! A.id (toValue $ "openModalFork" ++ gn) ! A.class_ "modalWindow" $ do
-         div $ do
-            h2 $ fromString $ "Fork game \"" ++ gn ++ "\"? This will create a new game based on the previous one. You will be able to test \n" ++
-               "your new rules independently of the original game. The new game is completely private: you will be alone. Please delete it when finished."
-            cancel
-            H.a "Fork" ! (href $ toValue fork) ! A.class_ "modalButton"
    else ""
-
 
 viewGamePlayer :: GameName -> TVar Session -> RoutedNomyxServer Response
 viewGamePlayer gn ts = do
@@ -157,7 +146,6 @@ viewGamePlayer gn ts = do
    webCommand ts (S.viewGamePlayer gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
-
 
 joinGame :: GameName -> TVar Session -> RoutedNomyxServer Response
 joinGame gn ts = do
@@ -178,7 +166,6 @@ delGame gn ts = do
    webCommand ts (S.delGame gn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
-
 
 viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> RoutedNomyxServer Html
 viewGameInfo gi mpn mlr isAdmin = do
@@ -226,7 +213,6 @@ routedNomyxCommands (W.JoinGame game)     = joinGame          game
 routedNomyxCommands (W.LeaveGame game)    = leaveGame         game
 routedNomyxCommands (ViewGame game)       = viewGamePlayer    game
 routedNomyxCommands (DelGame game)        = delGame           game
-routedNomyxCommands (ForkGame game)       = forkGame          game
 routedNomyxCommands (NewRule game)        = newRule           game
 routedNomyxCommands NewGame               = newGamePage
 routedNomyxCommands SubmitNewGame         = newGamePost

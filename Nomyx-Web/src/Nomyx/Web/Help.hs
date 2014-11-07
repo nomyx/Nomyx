@@ -22,6 +22,10 @@ variables = "Variables: Rules can create variables to store data. For example, a
 view = "Only view a game. You will not be able to propose new rules."
 joinGame = "Be part of the game. You will be able to propose new rules, vote etc. Please register in the game's agora (see the link on game page) to follow the game."
 
+fork = "This will create a new game based on the previous one. You will be able to test \n" ++
+        "your new rules independently of the original game. The new game is completely private: you will be alone. Please delete it when finished."
+
+
 getSaveFile = "With the following link, you can download the save file of the game. This allows you to load it in a local instance of the game.\n" ++
               "This way, you will be able to compose and test the effects of your new rules locally, without affecting the online game. \n" ++
               "The procedure is: \n" ++
