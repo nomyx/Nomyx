@@ -175,18 +175,18 @@ getNewPlayerNumber = do
    pfd <- A.query' (acidProfileData $ _profiles s) AskProfileDataNumber
    return $ pfd + 1
 
-forkGame :: GameName -> PlayerNumber -> StateT Session IO ()
-forkGame gn pn = focus multi $ do
+forkGame :: GameName -> GameName -> Bool -> PlayerNumber -> StateT Session IO ()
+forkGame gn newgn isPublic pn = focus multi $ do
    gms <- access gameInfos
    case filter ((== gn) . getL gameNameLens) gms of
       gi:[] -> do
          tracePN pn $ "Forking game: " ++ gn
          time <- liftIO T.getCurrentTime
          let gi' = GameInfo {
-            _loggedGame     = (game >>> gameName) `setL` ("Forked " ++ gn) $ _loggedGame gi,
+            _loggedGame     = (game >>> gameName) `setL` (newgn) $ _loggedGame gi,
             _ownedBy        = Just pn,
             _forkedFromGame = Just gn,
-            _isPublic       = False,
+            _isPublic       = isPublic,
             _startedAt      = time}
          void $ gameInfos %= (gi' : )
       _ -> tracePN pn $ "Creating a simulation game: no game by that name: " ++ gn

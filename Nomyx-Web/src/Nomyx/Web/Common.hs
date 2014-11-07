@@ -11,7 +11,6 @@
 
 module Nomyx.Web.Common where
 
-
 import           Prelude hiding (div)
 import           Safe
 import           Text.Blaze.Html5 hiding (map, output, base)
@@ -74,7 +73,6 @@ data PlayerCommand = NotLogged
                    | JoinGame  GameName
                    | LeaveGame GameName
                    | DelGame   GameName
-                   | ForkGame  GameName
                    | DoInput   EventNumber SignalAddress FormField GameName
                    | NewRule   GameName
                    | NewGame
@@ -200,6 +198,12 @@ getIsAdmin ts = do
             Just pf -> return $ _pIsAdmin pf
             Nothing -> return False
       Nothing -> return False
+
+getPublicGames :: TVar Session -> RoutedNomyxServer [GameName]
+getPublicGames ts = do
+   (T.Session _ m _) <- liftIO $ readTVarIO ts
+   return $ map (_gameName . _game . _loggedGame) $ filter ((== True) . _isPublic) (_gameInfos $ m)
+
 
 fieldRequired :: NomyxError -> String -> Either NomyxError String
 fieldRequired a []  = Left a
