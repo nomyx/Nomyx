@@ -32,22 +32,22 @@ import Nomyx.Core.Profile as Profile
 default (Integer, Double, Data.Text.Text)
 
 newRuleForm :: Maybe SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
-newRuleForm (Just sr) isAdmin = newRuleForm' sr isAdmin
-newRuleForm Nothing isAdmin = newRuleForm' (SubmitRule "" "" "") isAdmin
+newRuleForm (Just sr) isGameAdmin = newRuleForm' sr isGameAdmin
+newRuleForm Nothing isGameAdmin = newRuleForm' (SubmitRule "" "" "") isGameAdmin
 
 newRuleForm' :: SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
-newRuleForm' (SubmitRule name desc code) isAdmin =
+newRuleForm' (SubmitRule name desc code) isGameAdmin =
    (,,) <$> (SubmitRule <$> label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
                         <*> (label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
                         <*> label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule")
        <*> inputSubmit "Check"
-       <*> if isAdmin then inputSubmit "Admin submit" else pure Nothing
+       <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 
 
 viewRuleForm :: Maybe LastRule -> Bool -> Bool -> GameName -> RoutedNomyxServer Html
-viewRuleForm mlr inGame isAdmin gn = do
+viewRuleForm mlr inGame isGameAdmin gn = do
    link <- showURL (NewRule gn)
-   lf  <- lift $ viewForm "user" (newRuleForm (fst <$> mlr) isAdmin)
+   lf  <- lift $ viewForm "user" (newRuleForm (fst <$> mlr) isGameAdmin)
    ok $ do
       a "" ! A.id (toValue ruleFormAnchor)
       titleWithHelpIcon (h3 "Propose a new rule:") Help.code
