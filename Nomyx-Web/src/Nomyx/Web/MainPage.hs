@@ -190,7 +190,7 @@ viewGameInfo gi mpn mlr isAdmin = do
          let playAs = maybe Nothing _playAs pi
          return (pi, isGameAdmin, playAs, pn)
       Nothing -> return (Nothing, False, Nothing, 0)
-   rf <- viewRuleForm mlr (isJust pi) isAdmin (_gameName g)
+   rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g playAs isGameAdmin
    ok $ table $ do
