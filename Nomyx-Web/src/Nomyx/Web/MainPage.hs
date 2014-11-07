@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE DoAndIfThenElse #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -23,11 +24,20 @@ import Language.Nomyx
 import Happstack.Server as HS
 import System.FilePath
 import qualified Nomyx.Web.Help as Help
-import Nomyx.Web.Game
 import Nomyx.Web.Common as W
 import Nomyx.Web.Settings
 import Nomyx.Web.NewGame
 import Nomyx.Web.Login
+import Nomyx.Web.Game.Infos
+import Nomyx.Web.Game.Rules
+import Nomyx.Web.Game.IOs
+import Nomyx.Web.Game.NewRule
+import Nomyx.Web.Game.Details
+import Nomyx.Core.Profile as Profile
+import Nomyx.Core.Utils
+import Nomyx.Core.Types as T
+import Nomyx.Core.Engine
+import qualified Nomyx.Core.Session as S
 import Data.List
 import Data.Text(Text, pack)
 import Happstack.Auth
@@ -35,10 +45,6 @@ import Paths_Nomyx_Language
 import Control.Monad.Error
 import Control.Applicative
 import Safe
-import Nomyx.Core.Profile as Profile
-import Nomyx.Core.Utils
-import Nomyx.Core.Types as T
-import Nomyx.Core.Engine
 
 default (Integer, Double, Data.Text.Text)
 
@@ -121,7 +127,7 @@ viewGameName isAdmin canCreateGame mpn gi = do
       let cancel = H.a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
       td ! A.id "gameName" $ fromString (gn ++ "   ")
       td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
-      td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.join)
+      td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.joinGame)
       td $ H.a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn)
       when canDel $ td $ H.a "Del"   ! (href $ toValue del)
       when canFork $ td $ H.a "Fork"  ! (href $ toValue $ "#openModalFork" ++ gn)
@@ -130,7 +136,7 @@ viewGameName isAdmin canCreateGame mpn gi = do
             h2 $ fromString $ "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n" ++
                "If you do not whish to play, you can just view the game."
             cancel
-            H.a "Join" ! (href $ toValue join) ! A.class_ "modalButton" ! (A.title $ toValue Help.join)
+            H.a "Join" ! (href $ toValue join) ! A.class_ "modalButton" ! (A.title $ toValue Help.joinGame)
       div ! A.id (toValue $ "openModalLeave" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
             h2 "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
@@ -143,6 +149,56 @@ viewGameName isAdmin canCreateGame mpn gi = do
             cancel
             H.a "Fork" ! (href $ toValue fork) ! A.class_ "modalButton"
    else ""
+
+
+viewGamePlayer :: GameName -> TVar Session -> RoutedNomyxServer Response
+viewGamePlayer gn ts = do
+   pn <- fromJust <$> getPlayerNumber ts
+   webCommand ts (S.viewGamePlayer gn pn)
+   link <- showURL MainPage
+   seeOther link $ toResponse "Redirecting..."
+
+
+joinGame :: GameName -> TVar Session -> RoutedNomyxServer Response
+joinGame gn ts = do
+   pn <- fromJust <$> getPlayerNumber ts
+   webCommand ts (S.joinGame gn pn)
+   link <- showURL MainPage
+   seeOther link $ toResponse "Redirecting..."
+
+leaveGame :: GameName -> TVar Session -> RoutedNomyxServer Response
+leaveGame gn ts = do
+   pn <- fromJust <$> getPlayerNumber ts
+   webCommand ts (S.leaveGame gn pn)
+   link <- showURL MainPage
+   seeOther link $ toResponse "Redirecting..."
+
+delGame :: GameName -> TVar Session -> RoutedNomyxServer Response
+delGame gn ts = do
+   webCommand ts (S.delGame gn)
+   link <- showURL MainPage
+   seeOther link $ toResponse "Redirecting..."
+
+
+viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> RoutedNomyxServer Html
+viewGameInfo gi mpn mlr isAdmin = do
+   let g = getGame gi
+   (pi, isGameAdmin, playAs, pn) <- case mpn of
+      Just pn -> do
+         let pi = Profile.getPlayerInfo g pn
+         let isGameAdmin = isAdmin || maybe False (== pn) (_ownedBy gi)
+         let playAs = maybe Nothing _playAs pi
+         return (pi, isGameAdmin, playAs, pn)
+      Nothing -> return (Nothing, False, Nothing, 0)
+   rf <- viewRuleForm mlr (isJust pi) isAdmin (_gameName g)
+   vios <- viewIOs (fromMaybe pn playAs) g
+   vgd <- viewGameDesc g playAs isGameAdmin
+   ok $ table $ do
+      tr $ td $ div ! A.id "gameDesc" $ vgd
+      tr $ td $ div ! A.id "rules"    $ viewAllRules g
+      tr $ td $ div ! A.id "ios"      $ vios
+      tr $ td $ div ! A.id "newRule"  $ rf
+      tr $ td $ div ! A.id "details"  $ viewDetails pn g
 
 nomyxPage :: TVar Session -> RoutedNomyxServer Response
 nomyxPage ts = do

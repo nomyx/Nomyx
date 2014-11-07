@@ -20,7 +20,7 @@ events = "Rules can register on events, in order to be triggered when the event 
 variables = "Variables: Rules can create variables to store data. For example, a rule creating a bank account with instruction \"newVar\" will make a new variable appear here."
 
 view = "Only view a game. You will not be able to propose new rules."
-join = "Be part of the game. You will be able to propose new rules, vote etc. Please register in the game's agora (see the link on game page) to follow the game."
+joinGame = "Be part of the game. You will be able to propose new rules, vote etc. Please register in the game's agora (see the link on game page) to follow the game."
 
 getSaveFile = "With the following link, you can download the save file of the game. This allows you to load it in a local instance of the game.\n" ++
               "This way, you will be able to compose and test the effects of your new rules locally, without affecting the online game. \n" ++
