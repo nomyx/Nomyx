@@ -31,6 +31,7 @@ import qualified Data.ByteString.Char8 as C
 import           Data.Maybe
 import           Data.Text (unpack, append, Text, pack)
 import           Data.String
+import           Text.Printf
 import           Text.Reform.Happstack()
 import           Text.Reform
 import           Text.Reform.Blaze.String()
@@ -218,6 +219,21 @@ numberOfGamesOwned gis pn = length $ filter (maybe False (==pn) . _ownedBy) gis
 
 getFirstGame :: Session -> Maybe GameInfo
 getFirstGame = headMay . (filter _isPublic) ._gameInfos . _multi
+
+showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
+showHideTitle id visible empty title rest = do
+   div ! onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id id) $ table ! width "100%" $ tr $ do
+      td $ title ! width "80%"
+      td ! A.style "text-align:right;" $ h5 (if visible then "[Click to hide]" else "[Click to show]") ! A.id (fromString $ printf "%sShow" id) ! width "20%"
+   div ! A.id (fromString $ printf "%sBody" id) ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
+      if empty then toHtml $ "No " ++ id else rest
+
+
+titleWithHelpIcon :: Html -> String -> Html
+titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
+   td ! A.style "text-align:left;" $ myTitle
+   td ! A.style "text-align:right;" $ img ! src "/static/pictures/help.jpg" ! A.title (toValue help)
+
 
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]

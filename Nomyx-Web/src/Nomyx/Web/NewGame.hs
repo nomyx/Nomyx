@@ -18,7 +18,7 @@ import Data.Text(Text)
 import Data.Maybe
 import Nomyx.Core.Engine
 import Nomyx.Web.Common
-import Nomyx.Core.Session
+import Nomyx.Core.Session as S
 import Nomyx.Core.Types
 default (Integer, Double, Data.Text.Text)
 
@@ -61,3 +61,10 @@ newGamePost ts = toResponse <$> do
       Right (NewGameForm name desc isPublic) -> do
          webCommand ts $ newGame name desc pn isPublic
          seeOther link "Redirecting..."
+
+forkGame :: GameName -> TVar Session -> RoutedNomyxServer Response
+forkGame gn ts = do
+   pn <- fromJust <$> getPlayerNumber ts
+   webCommand ts $ S.forkGame gn pn
+   link <- showURL MainPage
+   seeOther link $ toResponse "Redirecting..."
