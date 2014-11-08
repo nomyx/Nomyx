@@ -98,16 +98,26 @@ data Exp :: Eff -> * -> *   where
 deriving instance Typeable Exp
 deriving instance Typeable 'Effect
 deriving instance Typeable 'NoEffect
+
+instance Typeable a => Show (Exp NoEffect a) where
+   show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
+
+instance Typeable a => Show (Exp Effect a) where
+   show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
+
 #else
 instance Typeable1 (Exp NoEffect) where
     typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp NoEffect") []
 
 instance Typeable1 (Exp Effect) where
     typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp Effect") []
-#endif
 
-liftEffect :: NomexNE a -> Nomex a
-liftEffect = LiftEffect  
+instance Typeable a => Show (Exp NoEffect a) where
+   show e = "<" ++ (show $ typeOf e) ++ ">"
+
+instance Typeable a => Show (Exp Effect a) where
+   show e = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
+#endif
 
 instance Monad (Exp a) where
    return = Return
@@ -127,22 +137,8 @@ instance MonadError String Nomex where
    throwError = ThrowError
    catchError = CatchError
 
-instance Typeable a => Show (Exp NoEffect a) where
-#if __GLASGOW_HASKELL__ < 708
-   show e = "<" ++ (show $ typeOf e) ++ ">"
-#else
-   show e = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
-#endif
-
-instance Typeable a => Show (Exp Effect a) where
-#if __GLASGOW_HASKELL__ < 708
-   show e = "<" ++ (show $ typeOf e) ++ ">"
-#else
-   show e = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
-#endif
-
-instance (Typeable a, Typeable b) => Show (a -> b) where
-    show e = '<' : (show . typeOf) e ++ ">"
+liftEffect :: NomexNE a -> Nomex a
+liftEffect = LiftEffect
 
 -- * Variables
 
@@ -302,6 +298,8 @@ data VictoryInfo = VictoryInfo { _vRuleNumber :: RuleNumber,
                                  _vCond :: NomexNE [PlayerNumber]}
                                  deriving (Show, Typeable)
 
+-- * Miscellaneous
+
 partial :: String -> Nomex (Maybe a) -> Nomex a
 partial s nm = do
    m <- nm
@@ -311,6 +309,10 @@ partial s nm = do
 
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
+
+instance (Typeable a, Typeable b) => Show (a -> b) where
+    show e = '<' : (show . typeOf) e ++ ">"
+
 
 $( makeLenses [''RuleInfo, ''PlayerInfo, ''EventInfo, ''SignalOccurence] )
 
