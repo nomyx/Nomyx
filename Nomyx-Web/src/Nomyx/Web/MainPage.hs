@@ -129,7 +129,7 @@ viewGameName isAdmin mpn gi = do
       when canDel $ td $ H.a "Del"   ! (href $ toValue del)
       div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
-            h2 $ fromString $ "Joining the game. Please register in the Agora (see the link) and introduce yourself to the other players! \n" ++
+            h2 $ fromString $ "Joining the game. Please register in the forum (see the link) and introduce yourself to the other players! \n" ++
                "If you do not whish to play, you can just view the game."
             cancel
             H.a "Join" ! (href $ toValue join) ! A.class_ "modalButton" ! (A.title $ toValue Help.joinGame)

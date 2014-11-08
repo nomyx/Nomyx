@@ -33,7 +33,7 @@ newGameForm admin gns = pure NewGameForm
 
 newGameDesc :: NomyxForm GameDesc
 newGameDesc = pure GameDesc <*> label "Enter game description:" ++> br ++> textarea 40 3 "" `RBC.setAttr` placeholder "Enter game description" `RBC.setAttr` class_ "gameDesc" <++ br <++ br
-                            <*> label "Enter a link to an agora (e.g. a forum, a mailing list...) where the players can discuss their rules: " ++> br ++> RB.inputText "" `RBC.setAttr` placeholder "Agora URL (including http://...)" `RBC.setAttr` class_ "agora" <++ br <++ br
+                            <*> label "Enter a link to a place where the players can discuss their rules (e.g. a forum, a mailing list...): " ++> br ++> RB.inputText "" `RBC.setAttr` placeholder "Forum URL (including http://...)" `RBC.setAttr` class_ "forum" <++ br <++ br
 
 gameNameRequired :: String -> Either NomyxError String
 gameNameRequired = fieldRequired GameNameRequired
