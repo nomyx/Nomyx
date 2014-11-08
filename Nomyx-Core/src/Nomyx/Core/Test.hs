@@ -60,7 +60,10 @@ regularTests = [("hello World",           gameHelloWorld,         condHelloWorld
          ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
          ("Test file 1",           testFile1,              condNRules 3),
          ("Test file 2",           testFile2,              condNRules 3),
+#if __GLASGOW_HASKELL__ >= 708
+         --Data.Time is Safe only in recent versions
          ("Test import Data.Time", testFileTime,           condNRules 3),
+#endif
          ("load file twice",       testFileTwice,          condNRules 3),
          ("load file twice 2",     testFileTwice',         condNRules 4),
          ("load file unsafe",      testFileUnsafeIO,       condNRules 2)] ++
