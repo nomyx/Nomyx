@@ -49,6 +49,24 @@ newGame' name desc pn isPublic sh = do
          void $ gameInfos %= (lg : )
       else tracePN pn "this name is already used"
 
+forkGame :: GameName -> GameName -> GameDesc -> Bool -> PlayerNumber -> StateT Session IO ()
+forkGame fromgn newgn desc isPublic pn = focus multi $ do
+   gms <- access gameInfos
+   case filter ((== fromgn) . getL gameNameLens) gms of
+      gi:[] -> do
+         tracePN pn $ "Forking game: " ++ fromgn
+         time <- liftIO T.getCurrentTime
+         let lg = ((game >>> gameName) `setL` (newgn)) .
+                  ((game >>> gameDesc) `setL` (desc)) $ _loggedGame gi
+         let gi' = GameInfo {
+            _loggedGame     = lg,
+            _ownedBy        = Just pn,
+            _forkedFromGame = Just fromgn,
+            _isPublic       = isPublic,
+            _startedAt      = time}
+         void $ gameInfos %= (gi' : )
+      _ -> tracePN pn $ "Forking game: no game by that name: " ++ fromgn
+
 -- | view a game.
 viewGamePlayer :: GameName -> PlayerNumber -> StateT Session IO ()
 viewGamePlayer gn pn = do
@@ -174,23 +192,6 @@ getNewPlayerNumber = do
    s <- get
    pfd <- A.query' (acidProfileData $ _profiles s) AskProfileDataNumber
    return $ pfd + 1
-
-forkGame :: GameName -> GameName -> Bool -> PlayerNumber -> StateT Session IO ()
-forkGame gn newgn isPublic pn = focus multi $ do
-   gms <- access gameInfos
-   case filter ((== gn) . getL gameNameLens) gms of
-      gi:[] -> do
-         tracePN pn $ "Forking game: " ++ gn
-         time <- liftIO T.getCurrentTime
-         let gi' = GameInfo {
-            _loggedGame     = (game >>> gameName) `setL` (newgn) $ _loggedGame gi,
-            _ownedBy        = Just pn,
-            _forkedFromGame = Just gn,
-            _isPublic       = isPublic,
-            _startedAt      = time}
-         void $ gameInfos %= (gi' : )
-      _ -> tracePN pn $ "Creating a simulation game: no game by that name: " ++ gn
-
 
 -- | this function apply the given game actions to the game the player is in.
 inPlayersGameDo :: PlayerNumber -> StateT LoggedGame IO a -> StateT Session IO (Maybe a)
