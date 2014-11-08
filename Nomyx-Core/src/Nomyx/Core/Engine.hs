@@ -2,7 +2,6 @@
 -- | Warning: Nomyx internals (not required to compose rules and play the game)
 -- This module implements game engine.
 -- the module manages the effects of rules over each others.
--- This module is not required
 module Nomyx.Core.Engine(
    -- * Game management
    GameEvent(..),
@@ -15,7 +14,7 @@ module Nomyx.Core.Engine(
    game,
    emptyGame,
    getLoggedGame,
-   gameName,
+   gameName, gameDesc,
    players,
    getVictorious,
 

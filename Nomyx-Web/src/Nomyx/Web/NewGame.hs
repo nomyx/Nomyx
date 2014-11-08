@@ -63,6 +63,6 @@ newGamePost ts = toResponse <$> do
       Left errorForm -> mainPage  "New game" "New game" (blazeForm errorForm newGameLink) False True
       Right (NewGameForm name desc isPublic mforkFrom) -> do
          case mforkFrom of
-            Nothing -> webCommand ts $ S.newGame name desc pn isPublic
-            Just forkFrom -> webCommand ts $ S.forkGame forkFrom name False pn
+            Nothing       -> webCommand ts $ S.newGame name desc pn isPublic
+            Just forkFrom -> webCommand ts $ S.forkGame forkFrom name desc False pn
          seeOther link "Redirecting..."
