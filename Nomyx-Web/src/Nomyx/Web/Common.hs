@@ -188,8 +188,8 @@ getPlayerNumber ts = do
 webCommand :: TVar Session -> StateT Session IO () -> RoutedNomyxServer ()
 webCommand ts ss = liftIO $ updateSession ts ss
 
-getIsAdmin :: TVar Session -> RoutedNomyxServer Bool
-getIsAdmin ts = do
+isAdmin :: TVar Session -> RoutedNomyxServer Bool
+isAdmin ts = do
    mpn <- getPlayerNumber ts
    case mpn of
       Just pn -> do
@@ -199,10 +199,21 @@ getIsAdmin ts = do
             Nothing -> return False
       Nothing -> return False
 
-getPublicGames :: TVar Session -> RoutedNomyxServer [GameName]
+isGameAdmin :: TVar Session -> RoutedNomyxServer Bool
+isGameAdmin ts = do
+   mpn <- getPlayerNumber ts
+   s <- liftIO $ readTVarIO ts
+   admin <- isAdmin ts
+   case mpn of
+      Just pn -> do
+         mgi <- liftRouteT $ lift $ getPlayersGame pn s
+         return $ admin || maybe False (\gi -> _ownedBy gi == Just pn) mgi
+      Nothing -> return False
+
+getPublicGames :: TVar Session -> RoutedNomyxServer [GameInfo]
 getPublicGames ts = do
    (T.Session _ m _) <- liftIO $ readTVarIO ts
-   return $ map (_gameName . _game . _loggedGame) $ filter ((== True) . _isPublic) (_gameInfos $ m)
+   return $ filter ((== True) . _isPublic) (_gameInfos $ m)
 
 
 fieldRequired :: NomyxError -> String -> Either NomyxError String
