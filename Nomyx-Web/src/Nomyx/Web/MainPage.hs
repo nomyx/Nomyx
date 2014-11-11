@@ -10,6 +10,7 @@ import Text.Blaze.Html5 hiding (map)
 import Text.Blaze.Html5.Attributes hiding (dir)
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
+import           Text.Printf
 import Web.Routes.Site
 import Web.Routes.PathInfo
 import Web.Routes.Happstack
@@ -50,21 +51,19 @@ default (Integer, Double, Data.Text.Text)
 
 viewMulti :: (Maybe PlayerNumber) -> FilePath -> Session -> RoutedNomyxServer Html
 viewMulti mpn saveDir s = do
-   (isAdmin, mgi, lr) <- case mpn of
+   (isAdmin, lr) <- case mpn of
       Just pn -> do
          pfd <- getProfile s pn
          let isAdmin = _pIsAdmin $ fromJustNote "viewMulti" pfd
-         mgi <- liftRouteT $ lift $ getPlayersGame pn s
          let lr = _pLastRule $ fromJustNote "viewMulti" pfd
-         return (isAdmin, mgi, lr)
-      Nothing -> return (False, getFirstGame s, Nothing)
+         return (isAdmin, lr)
+      Nothing -> return (False, Nothing)
+   let gis = _gameInfos $ _multi s
    gns <- viewGamesTab (_gameInfos $ _multi s) isAdmin saveDir mpn
-   vg <- case mgi of
-            Just gi -> viewGameInfo gi mpn lr isAdmin
-            Nothing -> ok $ h3 "Not viewing any game"
+   vgs <- mapM (\gi -> viewGameInfo gi mpn lr isAdmin) gis
    ok $ do
       div ! A.id "gameList" $ gns
-      div ! A.id "game" $ vg
+      sequence_ vgs
 
 viewGamesTab :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNomyxServer Html
 viewGamesTab gis isAdmin saveDir mpn = do
@@ -107,6 +106,27 @@ viewGamesTab gis isAdmin saveDir mpn = do
       H.a "Logout"          ! (href $ toValue logoutURL) >> br
       H.a "Login"           ! (href $ toValue loginURL) >> br
 
+
+viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> RoutedNomyxServer Html
+viewGameInfo gi mpn mlr isAdmin = do
+   let g = getGame gi
+   (pi, isGameAdmin, playAs, pn) <- case mpn of
+      Just pn -> do
+         let pi = Profile.getPlayerInfo g pn
+         let isGameAdmin = isAdmin || maybe False (== pn) (_ownedBy gi)
+         let playAs = maybe Nothing _playAs pi
+         return (pi, isGameAdmin, playAs, pn)
+      Nothing -> return (Nothing, False, Nothing, 0)
+   rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
+   vios <- viewIOs (fromMaybe pn playAs) g
+   vgd <- viewGameDesc g playAs isGameAdmin
+   ok $ div ! A.class_ "game" ! (A.id $ fromString ("game_" ++ (_gameName g))) $ table $ do
+      tr $ td $ div ! A.id "gameDesc" $ vgd
+      tr $ td $ div ! A.id "rules"    $ viewAllRules g
+      tr $ td $ div ! A.id "ios"      $ vios
+      tr $ td $ div ! A.id "newRule"  $ rf
+      tr $ td $ div ! A.id "details"  $ viewDetails pn g
+
 viewGameName :: Bool -> (Maybe PlayerNumber) -> GameInfo -> RoutedNomyxServer Html
 viewGameName isAdmin mpn gi = do
    let g = getGame gi
@@ -118,12 +138,10 @@ viewGameName isAdmin mpn gi = do
    main  <- showURL W.MainPage
    join  <- link (W.JoinGame gn)
    leave <- link (W.LeaveGame gn)
-   view  <- link (W.ViewGame gn)
    del   <- link (W.DelGame gn)
    ok $ if canView then tr $ do
       let cancel = H.a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
-      td ! A.id "gameName" $ fromString (gn ++ "   ")
-      td $ H.a "View"  ! (href $ toValue view) ! (A.title $ toValue Help.view)
+      td $ H.a (fromString (gn ++ "   ")) ! A.id "gameName" ! onclick (fromString $ printf "div_visibility('game_%s', '%s')" gn ("game" :: String)) ! (A.title $ toValue Help.view)
       td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.joinGame)
       td $ H.a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn)
       when canDel $ td $ H.a "Del"   ! (href $ toValue del)
@@ -166,26 +184,6 @@ delGame gn ts = do
    webCommand ts (S.delGame gn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
-
-viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> RoutedNomyxServer Html
-viewGameInfo gi mpn mlr isAdmin = do
-   let g = getGame gi
-   (pi, isGameAdmin, playAs, pn) <- case mpn of
-      Just pn -> do
-         let pi = Profile.getPlayerInfo g pn
-         let isGameAdmin = isAdmin || maybe False (== pn) (_ownedBy gi)
-         let playAs = maybe Nothing _playAs pi
-         return (pi, isGameAdmin, playAs, pn)
-      Nothing -> return (Nothing, False, Nothing, 0)
-   rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
-   vios <- viewIOs (fromMaybe pn playAs) g
-   vgd <- viewGameDesc g playAs isGameAdmin
-   ok $ table $ do
-      tr $ td $ div ! A.id "gameDesc" $ vgd
-      tr $ td $ div ! A.id "rules"    $ viewAllRules g
-      tr $ td $ div ! A.id "ios"      $ vios
-      tr $ td $ div ! A.id "newRule"  $ rf
-      tr $ td $ div ! A.id "details"  $ viewDetails pn g
 
 nomyxPage :: TVar Session -> RoutedNomyxServer Response
 nomyxPage ts = do

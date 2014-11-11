@@ -40,10 +40,11 @@ gameNameRequired = fieldRequired GameNameRequired
 
 newGamePage :: TVar Session -> RoutedNomyxServer Response
 newGamePage ts = toResponse <$> do
-   admin <- getIsAdmin ts
-   pgns <- getPublicGames ts
+   admin <- isAdmin ts
+   gis <- getPublicGames ts
+   let gameNames = map (_gameName . _game . _loggedGame) gis
    newGameLink <- showURL SubmitNewGame
-   mf <- lift $ viewForm "user" $ newGameForm admin pgns
+   mf <- lift $ viewForm "user" $ newGameForm admin gameNames
    mainPage "New game"
             "New game"
             (blazeForm mf newGameLink)
@@ -53,9 +54,10 @@ newGamePage ts = toResponse <$> do
 newGamePost :: TVar Session -> RoutedNomyxServer Response
 newGamePost ts = toResponse <$> do
    methodM POST
-   admin <- getIsAdmin ts
-   pgns <- getPublicGames ts
-   r <- liftRouteT $ eitherForm environment "user" (newGameForm admin pgns)
+   admin <- isAdmin ts
+   gis <- getPublicGames ts
+   let gameNames = map (_gameName . _game . _loggedGame) gis
+   r <- liftRouteT $ eitherForm environment "user" (newGameForm admin gameNames)
    link <- showURL MainPage
    newGameLink <- showURL SubmitNewGame
    pn <- fromJust <$> getPlayerNumber ts
