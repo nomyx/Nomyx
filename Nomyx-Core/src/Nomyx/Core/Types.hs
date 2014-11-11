@@ -68,7 +68,6 @@ data GameInfo = GameInfo { _loggedGame     :: LoggedGame,
 data ProfileData =
     ProfileData { _pPlayerNumber   :: PlayerNumber, -- ^ same as UserId
                   _pPlayerSettings :: PlayerSettings,
-                  _pViewingGame    :: Maybe GameName,
                   _pLastRule       :: Maybe LastRule,
                   _pLastUpload     :: LastUpload,
                   _pIsAdmin        :: Bool

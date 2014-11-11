@@ -158,13 +158,6 @@ viewGameName isAdmin mpn gi = do
             H.a "Leave" ! (href $ toValue leave) ! A.class_ "modalButton"
    else ""
 
-viewGamePlayer :: GameName -> TVar Session -> RoutedNomyxServer Response
-viewGamePlayer gn ts = do
-   pn <- fromJust <$> getPlayerNumber ts
-   webCommand ts (S.viewGamePlayer gn pn)
-   link <- showURL MainPage
-   seeOther link $ toResponse "Redirecting..."
-
 joinGame :: GameName -> TVar Session -> RoutedNomyxServer Response
 joinGame gn ts = do
    pn <- fromJust <$> getPlayerNumber ts
@@ -209,7 +202,6 @@ routedNomyxCommands PostAuth              = postAuthenticate
 routedNomyxCommands MainPage              = nomyxPage
 routedNomyxCommands (W.JoinGame game)     = joinGame          game
 routedNomyxCommands (W.LeaveGame game)    = leaveGame         game
-routedNomyxCommands (ViewGame game)       = viewGamePlayer    game
 routedNomyxCommands (DelGame game)        = delGame           game
 routedNomyxCommands (NewRule game)        = newRule           game
 routedNomyxCommands NewGame               = newGamePage

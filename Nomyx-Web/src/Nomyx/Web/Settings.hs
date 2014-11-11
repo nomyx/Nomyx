@@ -173,7 +173,6 @@ advancedPage mlu isAdmin settings pfds = do
                   td ! A.class_ "td" $ "Name"
                   td ! A.class_ "td" $ "mail"
                   td ! A.class_ "td" $ "send mails"
-                  td ! A.class_ "td" $ "viewing game"
                   td ! A.class_ "td" $ "last rule"
                   td ! A.class_ "td" $ "last upload"
                   td ! A.class_ "td" $ "is admin"
@@ -182,13 +181,12 @@ advancedPage mlu isAdmin settings pfds = do
 
 
 viewProfile :: ProfileData -> Html
-viewProfile (ProfileData pn (Types.PlayerSettings playerName mail _ mailNewRule _ _) viewingGame lastRule lastUpload isAdmin) =
+viewProfile (ProfileData pn (Types.PlayerSettings playerName mail _ mailNewRule _ _) lastRule lastUpload isAdmin) =
    tr $ do
       td ! A.class_ "td" $ fromString $ show pn
       td ! A.class_ "td" $ fromString playerName
       td ! A.class_ "td" $ fromString mail
       td ! A.class_ "td" $ fromString $ show mailNewRule
-      td ! A.class_ "td" $ fromString $ show viewingGame
       td ! A.class_ "td" $ fromString $ show lastRule
       td ! A.class_ "td" $ fromString $ show lastUpload
       td ! A.class_ "td" $ fromString $ show isAdmin
