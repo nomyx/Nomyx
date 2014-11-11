@@ -61,15 +61,15 @@ newRule :: GameName -> TVar Session -> RoutedNomyxServer Response
 newRule gn ts = toResponse <$> do
    methodM POST
    s@(T.Session sh _ _) <- liftIO $ readTVarIO ts
-   admin <- getIsAdmin ts
+   admin <- isGameAdmin ts
    r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing admin)
    link <- showURL MainPage
    pn <- fromJust <$> getPlayerNumber ts
    case r of
        Right (sr, Nothing, Nothing) -> do
           webCommand ts $ submitRule sr pn gn sh
-          liftIO $ do
-             s' <- readTVarIO ts  --TODO clean this
+          liftIO $ do -- send mails only if rule set has changed (TODO clean)
+             s' <- readTVarIO ts
              gn <- getPlayersGame pn s
              gn' <- getPlayersGame pn s'
              let rs = _rules $ _game $ _loggedGame $ fromJustNote "newRule" gn
