@@ -69,7 +69,6 @@ data PlayerCommand = NotLogged
                    | Auth AuthProfileURL
                    | PostAuth
                    | MainPage
-                   | ViewGame  GameName
                    | JoinGame  GameName
                    | LeaveGame GameName
                    | DelGame   GameName

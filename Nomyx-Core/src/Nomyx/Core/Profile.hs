@@ -43,10 +43,9 @@ askProfileData uid = do
    let pfs = toList profilesData
    let filtered = filter (\a -> _pPlayerNumber a == uid) pfs
    return $ headMay filtered
-   --return $ getOne $ profilesData @= uid
 
 initialProfileData :: PlayerNumber -> PlayerSettings -> ProfileData
-initialProfileData uid ps = ProfileData uid ps Nothing (Just (exampleRule, "")) NoUpload False
+initialProfileData uid ps = ProfileData uid ps (Just (exampleRule, "")) NoUpload False
 
 exampleRule :: SubmitRule
 exampleRule = SubmitRule "" "" [cr|
@@ -125,15 +124,6 @@ getPlayerInGameName :: Game -> PlayerNumber -> PlayerName
 getPlayerInGameName g pn = case find ((==pn) . getL playerNumber) (_players g) of
    Nothing -> error "getPlayersName': No player by that number in that game"
    Just pm -> _playerName pm
-
--- | returns the game the player is in
-getPlayersGame :: PlayerNumber -> Session -> IO (Maybe GameInfo)
-getPlayersGame pn s = do
-   pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
-   let mgn = _pViewingGame $ fromJustNote "getPlayersGame" pfd
-   return $ do
-      gn <- mgn
-      find ((== gn) . getL gameNameLens) (_gameInfos $ _multi s) --checks if any game by that name exists
 
 getAllProfiles :: Session -> IO [ProfileData]
 getAllProfiles s = A.query' (acidProfileData $ _profiles s) AskProfilesData

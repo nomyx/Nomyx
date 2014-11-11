@@ -67,25 +67,12 @@ forkGame fromgn newgn desc isPublic pn = focus multi $ do
          void $ gameInfos %= (gi' : )
       _ -> tracePN pn $ "Forking game: no game by that name: " ++ fromgn
 
--- | view a game.
-viewGamePlayer :: GameName -> PlayerNumber -> StateT Session IO ()
-viewGamePlayer gn pn = do
-   mg <- focus multi $ getGameByName gn
-   case mg of
-      Nothing -> tracePN pn "No game by that name"
-      Just _ -> modifyProfile pn (pViewingGame ^= Just gn)
-
--- | unview a game.
-unviewGamePlayer :: PlayerNumber -> StateT Session IO ()
-unviewGamePlayer pn = modifyProfile pn (pViewingGame ^= Nothing)
-
 -- | join a game (also view it for conveniency)
 joinGame :: GameName -> PlayerNumber -> StateT Session IO ()
 joinGame gn pn = do
    s <- get
    name <- lift $ Nomyx.Core.Profile.getPlayerName pn s
    inGameDo gn $ G.execGameEvent $ JoinGame pn name
-   viewGamePlayer gn pn
 
 -- | delete a game.
 delGame :: GameName -> StateT Session IO ()

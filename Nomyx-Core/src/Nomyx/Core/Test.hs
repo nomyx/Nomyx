@@ -113,14 +113,12 @@ onePlayerOneGame = do
    newPlayer 1 PlayerSettings {_pPlayerName = "Player 1", _mail = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}
    newGame "test" (GameDesc "" "") 1 True
    joinGame "test" 1
-   viewGamePlayer "test" 1
 
 twoPlayersOneGame :: StateT Session IO ()
 twoPlayersOneGame = do
    onePlayerOneGame
    newPlayer 2 PlayerSettings {_pPlayerName = "Player 2", _mail = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}
    joinGame "test" 2
-   viewGamePlayer "test" 2
 
 submitR :: String -> StateT Session IO ()
 submitR r = do
