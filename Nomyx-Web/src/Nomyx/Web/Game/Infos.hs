@@ -49,9 +49,9 @@ viewGameDesc g logged playAs gameAdmin = do
       when gameAdmin "(click on a player name to \"play as\" this player)"
       vp
       p $ viewVictory g
-      a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (title $ toValue Help.joinGame)
-      a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn)
-      when gameAdmin $ td $ a "Del"   ! (href $ toValue del)
+      a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! A.class_ "button" ! (title $ toValue Help.joinGame)
+      a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn) ! A.class_ "button"
+      when gameAdmin $ a "Del"   ! (href $ toValue del) ! A.class_ "button"
       modJoin
       modLeave
 
