@@ -10,6 +10,7 @@ import Debug.Trace.Helpers
 import Data.Lens
 import Data.Time as T
 import Data.List
+import Data.Maybe
 import qualified Data.Acid.Advanced as A (update', query')
 import Happstack.Auth.Core.Auth
 import Control.Category hiding ((.))
@@ -24,6 +25,7 @@ import Nomyx.Core.Profile
 import Nomyx.Core.Interpret
 import Nomyx.Core.Serialize
 import Nomyx.Core.Engine as G
+import Nomyx.Core.Mail
 
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
@@ -78,7 +80,6 @@ joinGame gn pn = do
 delGame :: GameName -> StateT Session IO ()
 delGame name = focus multi $ void $ gameInfos %= filter ((/= name) . getL gameNameLens)
 
-
 -- | leave a game.
 leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
 leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
@@ -88,6 +89,8 @@ submitRule :: SubmitRule -> PlayerNumber -> GameName -> ServerHandle -> StateT S
 submitRule sr@(SubmitRule _ _ code) pn gn sh = do
    tracePN pn $ "proposed " ++ show sr
    mrr <- liftIO $ interpretRule code sh
+   s <- get
+   let gi = getGameByName gn s
    case mrr of
       Right _ -> do
          tracePN pn "proposed rule compiled OK "
@@ -138,13 +141,13 @@ inputUpload pn temp mod sh = do
    tracePN pn $ " uploaded " ++ show mod
    case m of
       Nothing -> do
-         inPlayersGameDo pn $ execGameEvent $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
+         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
          tracePN pn "upload success"
          modifyProfile pn (pLastUpload ^= UploadSuccess)
          return True
       Just e -> do
          let errorMsg = showInterpreterError e
-         inPlayersGameDo pn $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
+         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
          tracePN pn $ "upload failed: \n" ++ show e
          modifyProfile pn (pLastUpload ^= UploadFailure (temp, errorMsg))
          return False
@@ -182,17 +185,13 @@ getNewPlayerNumber = do
    return $ pfd + 1
 
 -- | this function apply the given game actions to the game the player is in.
-inPlayersGameDo :: PlayerNumber -> StateT LoggedGame IO a -> StateT Session IO (Maybe a)
-inPlayersGameDo pn action = do
-   s <- get
+inAllGamesDo :: StateT LoggedGame IO a -> StateT Session IO ()
+inAllGamesDo action = do
    t <- lift T.getCurrentTime
-   mg <- lift $ getPlayersGame pn s
-   case mg of
-      Nothing -> tracePN pn "You must be in a game" >> return Nothing
-      Just gi -> do
+   gis <- access (multi >>> gameInfos)
+   forM_ gis $ \gi -> do
          (a, mylg) <- lift $ runStateT action (setL (game >>> currentTime) t (_loggedGame gi))
          focus multi $ modifyGame (gi {_loggedGame = mylg})
-         return (Just a)
 
 inGameDo :: GameName -> StateT LoggedGame IO  () -> StateT Session IO ()
 inGameDo gn action = focus multi $ do
@@ -216,10 +215,11 @@ updateSession ts sm = do
          save $ _multi s
       Nothing -> putStrLn "thread timed out, session discarded"
 
-
 evalSession :: StateT Session IO () -> Session -> IO Session
 evalSession sm s = do
    s' <- execStateT sm s
    writeFile nullFileName $ show $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
    return s'
 
+getGameByName :: GameName -> Session -> Maybe GameInfo
+getGameByName gn s = find ((==gn) . getL (loggedGame >>> game >>> gameName)) (_gameInfos $ _multi s)
