@@ -16,25 +16,32 @@ import Data.List.Split
 import Data.Text (Text)
 import Language.Nomyx
 import Text.Blaze.Html5                    (Html, div, (!), p, table, td, tr, h2, h3, h4, pre, toValue, br, a)
-import Text.Blaze.Html5.Attributes as A    (id, class_, href)
+import Text.Blaze.Html5.Attributes as A    (id, class_, href, title)
 import Text.Reform.Blaze.String            (inputHidden)
 import Text.Reform                         (viewForm, eitherForm)
 import Text.Reform.Happstack               (environment)
 import Happstack.Server                    (Response, Method(..), seeOther, toResponse, methodM, ok)
+import Happstack.Auth                      (AuthProfileURL(..), AuthURL(..))
 import Web.Routes.RouteT                   (showURL, liftRouteT)
 import Nomyx.Web.Common as NWC
+import Nomyx.Web.Help as Help
 import Nomyx.Core.Types as T
 import Nomyx.Core.Engine
 import Nomyx.Core.Session as S
 import Nomyx.Core.Profile as Profile
+
 default (Integer, Double, Data.Text.Text)
 
-viewGameDesc :: Game -> Maybe PlayerNumber -> Bool -> RoutedNomyxServer Html
-viewGameDesc g playAs gameAdmin = do
-   vp <- viewPlayers (_players g) (_gameName g) gameAdmin
+viewGameDesc :: Game -> Bool -> Maybe PlayerNumber -> Bool -> RoutedNomyxServer Html
+viewGameDesc g logged playAs gameAdmin = do
+   let gn = _gameName g
+   vp    <- viewPlayers (_players g) gn gameAdmin
+   del   <- defLink (NWC.DelGame gn) logged
+   modJoin <- modalJoin gn logged
+   modLeave <- modalLeave gn logged
    ok $ do
       p $ do
-        h3 $ fromString $ "Viewing game: " ++ _gameName g
+        h3 $ fromString $ _gameName g
         when (isJust playAs) $ h4 $ fromString $ "You are playing as player " ++ (show $ fromJust playAs)
       p $ pre $ fromString (_desc $ _gameDesc g)
       p $ h4 $ "This game is discussed in the " >> a "Forum" ! (A.href $ toValue (_forumURL $ _gameDesc g)) >> "."
@@ -42,6 +49,39 @@ viewGameDesc g playAs gameAdmin = do
       when gameAdmin "(click on a player name to \"play as\" this player)"
       vp
       p $ viewVictory g
+      a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (title $ toValue Help.joinGame)
+      a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn)
+      when gameAdmin $ td $ a "Del"   ! (href $ toValue del)
+      modJoin
+      modLeave
+
+defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
+defLink a logged = if logged then showURL a else showURL (Auth $ AuthURL A_Login)
+
+modalLeave :: GameName -> Bool -> RoutedNomyxServer Html
+modalLeave gn notLogged = do
+   main  <- defLink NWC.MainPage notLogged
+   leave <- defLink (NWC.LeaveGame gn) notLogged
+   let cancel = a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
+   ok $ do
+      div ! A.id (toValue $ "openModalLeave" ++ gn) ! A.class_ "modalWindow" $ do
+         div $ do
+            h2 "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
+            cancel
+            a "Leave" ! (href $ toValue leave) ! A.class_ "modalButton"
+
+modalJoin :: GameName -> Bool -> RoutedNomyxServer Html
+modalJoin gn notLogged = do
+   join  <- defLink (NWC.JoinGame gn) notLogged
+   main  <- defLink NWC.MainPage notLogged
+   let cancel = a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
+   ok $
+      div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
+         div $ do
+            h2 $ fromString $ "Joining the game. Please register in the forum (see the link) and introduce yourself to the other players! \n" ++
+               "If you do not whish to play, you can just view the game."
+            cancel
+            a "Join" ! (href $ toValue join) ! A.class_ "modalButton" ! (title $ toValue Help.joinGame)
 
 viewPlayers :: [PlayerInfo] -> GameName -> Bool -> RoutedNomyxServer Html
 viewPlayers pis gn gameAdmin = do

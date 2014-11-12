@@ -106,7 +106,6 @@ viewGamesTab gis isAdmin saveDir mpn = do
       H.a "Logout"          ! (href $ toValue logoutURL) >> br
       H.a "Login"           ! (href $ toValue loginURL) >> br
 
-
 viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> RoutedNomyxServer Html
 viewGameInfo gi mpn mlr isAdmin = do
    let g = getGame gi
@@ -119,7 +118,7 @@ viewGameInfo gi mpn mlr isAdmin = do
       Nothing -> return (Nothing, False, Nothing, 0)
    rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
-   vgd <- viewGameDesc g playAs isGameAdmin
+   vgd <- viewGameDesc g  (isJust mpn) playAs isGameAdmin
    ok $ div ! A.class_ "game" ! (A.id $ fromString ("game_" ++ (_gameName g))) $ table $ do
       tr $ td $ div ! A.id "gameDesc" $ vgd
       tr $ td $ div ! A.id "rules"    $ viewAllRules g
@@ -132,31 +131,10 @@ viewGameName isAdmin mpn gi = do
    let g = getGame gi
    let isGameAdmin = isAdmin || maybe False (==mpn) (Just $ _ownedBy gi)
    let gn = _gameName g
-   let canDel = isGameAdmin
    let canView = isGameAdmin || _isPublic gi
-   let link a = if (isJust mpn) then showURL a else showURL (Auth $ AuthURL A_Login)
-   main  <- showURL W.MainPage
-   join  <- link (W.JoinGame gn)
-   leave <- link (W.LeaveGame gn)
-   del   <- link (W.DelGame gn)
-   ok $ if canView then tr $ do
-      let cancel = H.a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
-      td $ H.a (fromString (gn ++ "   ")) ! A.id "gameName" ! onclick (fromString $ printf "div_visibility('game_%s', '%s')" gn ("game" :: String)) ! (A.title $ toValue Help.view)
-      td $ H.a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! (A.title $ toValue Help.joinGame)
-      td $ H.a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn)
-      when canDel $ td $ H.a "Del"   ! (href $ toValue del)
-      div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
-         div $ do
-            h2 $ fromString $ "Joining the game. Please register in the forum (see the link) and introduce yourself to the other players! \n" ++
-               "If you do not whish to play, you can just view the game."
-            cancel
-            H.a "Join" ! (href $ toValue join) ! A.class_ "modalButton" ! (A.title $ toValue Help.joinGame)
-      div ! A.id (toValue $ "openModalLeave" ++ gn) ! A.class_ "modalWindow" $ do
-         div $ do
-            h2 "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
-            cancel
-            H.a "Leave" ! (href $ toValue leave) ! A.class_ "modalButton"
-   else ""
+   ok $ if canView
+      then tr $ td $ H.a (fromString (gn ++ "   ")) ! A.id "gameName" ! onclick (fromString $ printf "div_visibility('game_%s', '%s')" gn ("game" :: String)) ! (A.title $ toValue Help.view)
+      else ""
 
 joinGame :: GameName -> TVar Session -> RoutedNomyxServer Response
 joinGame gn ts = do
