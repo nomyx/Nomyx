@@ -66,18 +66,10 @@ newRule gn ts = toResponse <$> do
    link <- showURL MainPage
    pn <- fromJust <$> getPlayerNumber ts
    case r of
-       Right (sr, Nothing, Nothing) -> do
-          webCommand ts $ submitRule sr pn gn sh
-          liftIO $ do -- send mails only if rule set has changed (TODO clean)
-             s' <- readTVarIO ts
-             gn <- getPlayersGame pn s
-             gn' <- getPlayersGame pn s'
-             let rs = _rules $ _game $ _loggedGame $ fromJustNote "newRule" gn
-             let rs' = _rules $ _game $ _loggedGame $ fromJustNote "newRule" gn'
-             when (length rs' > length rs) $ sendMailsNewRule s' sr pn
-       Right (sr, Just _, Nothing) -> webCommand ts $ checkRule sr pn sh
-       Right (sr, Nothing, Just _) -> webCommand ts $ adminSubmitRule sr pn gn sh
-       Right (_,  Just _, Just _)  -> error "Impossible new rule form result"
-       (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
+      Right (sr, Nothing, Nothing) -> webCommand ts $ submitRule sr pn gn sh
+      Right (sr, Just _, Nothing)  -> webCommand ts $ checkRule sr pn sh
+      Right (sr, Nothing, Just _)  -> webCommand ts $ adminSubmitRule sr pn gn sh
+      Right (_,  Just _, Just _)   -> error "Impossible new rule form result"
+      (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
    seeOther (link `appendAnchor` ruleFormAnchor) $ "Redirecting..."
 
