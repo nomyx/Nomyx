@@ -239,12 +239,13 @@ showHideTitle id visible empty title rest = do
    div ! A.id (fromString $ printf "%sBody" id) ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
       if empty then toHtml $ "No " ++ id else rest
 
-
 titleWithHelpIcon :: Html -> String -> Html
 titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
    td ! A.style "text-align:left;" $ myTitle
    td ! A.style "text-align:right;" $ img ! src "/static/pictures/help.jpg" ! A.title (toValue help)
 
+divVisibility :: String -> String -> String
+divVisibility id clas = printf "div_visibility('%s', '%s')" id clas
 
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]
