@@ -19,7 +19,7 @@ default (Integer, Double, Data.Text.Text)
 
 
 viewDetails :: PlayerNumber -> Game -> Html
-viewDetails pn g = showHideTitle "Details" False False (h3 "Details") $ do
+viewDetails pn g = do
    p $ titleWithHelpIcon (h4 "Variables:") Help.variables
    viewVars   (_variables g)
    p $ titleWithHelpIcon (h4 "Events:") Help.events
