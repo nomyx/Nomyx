@@ -6,7 +6,7 @@ h3{
    position:absolute;
    background-color:#F4F4F4;
    border:1px solid black;
-   width:250px;
+   width:180px;
    padding:10px;
    top:60px;
    left:10px;
@@ -23,7 +23,7 @@ h3{
    background-color:#FFFFFF;
    height:90%;
    top:57px;
-   left:288px;
+   left:218px;
    right:10px;
    padding-right:23px;
    overflow: auto;
@@ -89,7 +89,7 @@ thead {
    padding-left:10px;
    padding-right:10px;
    padding-bottom:10px;
-   width:100%;
+   width:98%;
    margin-bottom:5px;
 }
 
