@@ -21,14 +21,11 @@ import Text.Reform                         ((<++), (++>), viewForm, eitherForm)
 import Text.Reform.Blaze.Common            (setAttr)
 import Happstack.Server                    (Response, Method(..), seeOther, toResponse, methodM, ok)
 import Web.Routes.RouteT                   (showURL, liftRouteT)
-import Safe
 import qualified Nomyx.Web.Help as Help
 import Nomyx.Web.Common as NWC
 import Nomyx.Core.Types as T
-import Nomyx.Core.Mail
 import Nomyx.Core.Engine
 import Nomyx.Core.Session as S
-import Nomyx.Core.Profile as Profile
 default (Integer, Double, Data.Text.Text)
 
 newRuleForm :: Maybe SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
@@ -37,12 +34,15 @@ newRuleForm Nothing isGameAdmin = newRuleForm' (SubmitRule "" "" "") isGameAdmin
 
 newRuleForm' :: SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
 newRuleForm' (SubmitRule name desc code) isGameAdmin =
-   (,,) <$> (SubmitRule <$> label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
-                        <*> (label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
-                        <*> label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule")
-       <*> inputSubmit "Check"
-       <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
+   (,,) <$> submitRuleForm name desc code
+        <*> inputSubmit "Check"
+        <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 
+submitRuleForm :: String -> String -> String -> NomyxForm SubmitRule
+submitRuleForm name desc code =
+   SubmitRule <$> label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
+              <*> (label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
+              <*> label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
 
 viewRuleForm :: Maybe LastRule -> Bool -> Bool -> GameName -> RoutedNomyxServer Html
 viewRuleForm mlr inGame isGameAdmin gn = do
@@ -61,7 +61,8 @@ newRule :: GameName -> TVar Session -> RoutedNomyxServer Response
 newRule gn ts = toResponse <$> do
    methodM POST
    s@(T.Session sh _ _) <- liftIO $ readTVarIO ts
-   admin <- isGameAdmin ts
+   let gi = getGameByName gn s
+   admin <- isGameAdmin (fromJust gi) ts
    r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing admin)
    link <- showURL MainPage
    pn <- fromJust <$> getPlayerNumber ts

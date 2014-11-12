@@ -74,9 +74,6 @@ initialGameInfo name desc isPublic mpn date sh = do
 
    execStateT (initialGame sh) lg
 
-getGameByName :: GameName -> StateT Multi IO (Maybe GameInfo)
-getGameByName gn =  find ((==gn) . getL gameNameLens) <$> access gameInfos
-
 defaultMulti :: Settings -> Multi
 defaultMulti = Multi []
 

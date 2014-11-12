@@ -198,16 +198,13 @@ isAdmin ts = do
             Nothing -> return False
       Nothing -> return False
 
-isGameAdmin :: TVar Session -> RoutedNomyxServer Bool
-isGameAdmin ts = do
+isGameAdmin :: GameInfo -> TVar Session -> RoutedNomyxServer Bool
+isGameAdmin gi ts = do
    mpn <- getPlayerNumber ts
-   s <- liftIO $ readTVarIO ts
    admin <- isAdmin ts
-   case mpn of
-      Just pn -> do
-         mgi <- liftRouteT $ lift $ getPlayersGame pn s
-         return $ admin || maybe False (\gi -> _ownedBy gi == Just pn) mgi
-      Nothing -> return False
+   return $ case mpn of
+      Just pn -> admin || (_ownedBy gi == Just pn)
+      Nothing -> False
 
 getPublicGames :: TVar Session -> RoutedNomyxServer [GameInfo]
 getPublicGames ts = do
