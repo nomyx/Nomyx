@@ -259,7 +259,7 @@ instance Ord EventInfo where
 type Rule = Nomex ()
   
 -- | An informationnal structure about a rule
-data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
+data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the rule (must be unique)
                            _rName        :: RuleName,         -- short name of the rule 
                            _rDescription :: String,           -- description of the rule
                            _rProposedBy  :: PlayerNumber,     -- player proposing the rule
