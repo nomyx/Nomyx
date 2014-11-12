@@ -90,7 +90,7 @@ thead {
    text-align:right;
 }
 
-#gameName {
+.button {
    text-decoration: none;
    background-color: #EEEEEE;
    color: #333333;

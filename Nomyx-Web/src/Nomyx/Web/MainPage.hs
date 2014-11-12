@@ -133,7 +133,7 @@ viewGameName isAdmin mpn gi = do
    let gn = _gameName g
    let canView = isGameAdmin || _isPublic gi
    ok $ if canView
-      then tr $ td $ H.a (fromString (gn ++ "   ")) ! A.id "gameName" ! onclick (fromString $ printf "div_visibility('game_%s', '%s')" gn ("game" :: String)) ! (A.title $ toValue Help.view)
+      then tr $ td $ H.a (fromString (gn ++ "   ")) ! A.id "gameName" ! A.class_ "button" ! onclick (fromString $ printf "div_visibility('game_%s', '%s')" gn ("game" :: String)) ! (A.title $ toValue Help.view)
       else ""
 
 joinGame :: GameName -> TVar Session -> RoutedNomyxServer Response
