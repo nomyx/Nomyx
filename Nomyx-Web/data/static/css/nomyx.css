@@ -13,6 +13,11 @@ h3{
    overflow: auto;
 }
 
+#titleBar {
+   padding-top:7px;
+   padding-bottom:10px;
+}
+
 .game {
    position:absolute;
    background-color:#FFFFFF;
@@ -76,12 +81,14 @@ thead {
    padding:10px;
 }
 
-#ios, #details, #rules, #newRule, #gameDesc  {
+.gameBox  {
+   position:absolute;
    float:left;
    background-color:#F4F4F4;
    border:1px solid black;
    padding-left:10px;
    padding-right:10px;
+   padding-bottom:10px;
    width:100%;
    margin-bottom:5px;
 }
@@ -99,6 +106,7 @@ thead {
    border-right: 1px solid #333333;
    border-bottom: 1px solid #333333;
    border-left: 1px solid #CCCCCC;
+   margin:3px;
 }
 
 #header {

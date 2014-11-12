@@ -10,7 +10,6 @@ import Text.Blaze.Html5 hiding (map)
 import Text.Blaze.Html5.Attributes hiding (dir)
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
-import           Text.Printf
 import Web.Routes.Site
 import Web.Routes.PathInfo
 import Web.Routes.Happstack
@@ -109,6 +108,7 @@ viewGamesTab gis isAdmin saveDir mpn = do
 viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> RoutedNomyxServer Html
 viewGameInfo gi mpn mlr isAdmin = do
    let g = getGame gi
+   let gn = _gameName g
    (pi, isGameAdmin, playAs, pn) <- case mpn of
       Just pn -> do
          let pi = Profile.getPlayerInfo g pn
@@ -119,12 +119,18 @@ viewGameInfo gi mpn mlr isAdmin = do
    rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g  (isJust mpn) playAs isGameAdmin
-   ok $ div ! A.class_ "game" ! (A.id $ fromString ("game_" ++ (_gameName g))) $ table $ do
-      tr $ td $ div ! A.id "gameDesc" $ vgd
-      tr $ td $ div ! A.id "rules"    $ viewAllRules g
-      tr $ td $ div ! A.id "ios"      $ vios
-      tr $ td $ div ! A.id "newRule"  $ rf
-      tr $ td $ div ! A.id "details"  $ viewDetails pn g
+   ok $ div ! A.class_ "game" ! (A.id $ fromString ("game_" ++ (_gameName g))) $ do
+      div ! A.id "titleBar" $ do
+         H.a "Description "    ! A.class_ "button" ! onclick (fromString $ divVisibility (gn ++ "_gameDesc") "gameBox")
+         H.a "Rules "          ! A.class_ "button" ! onclick (fromString $ divVisibility (gn ++ "_rules")    "gameBox")
+         H.a "Inputs/Outputs " ! A.class_ "button" ! onclick (fromString $ divVisibility (gn ++ "_ios")      "gameBox")
+         H.a "New rule "       ! A.class_ "button" ! onclick (fromString $ divVisibility (gn ++ "_newRule")  "gameBox")
+         H.a "Details "        ! A.class_ "button" ! onclick (fromString $ divVisibility (gn ++ "_details")  "gameBox")
+      div ! A.id (fromString $ gn ++ "_gameDesc") ! A.class_ "gameBox" ! A.style "display:inline;" $ vgd
+      div ! A.id (fromString $ gn ++ "_rules")    ! A.class_ "gameBox" ! A.style "display:none;" $ viewAllRules g
+      div ! A.id (fromString $ gn ++ "_ios")      ! A.class_ "gameBox" ! A.style "display:none;" $ vios
+      div ! A.id (fromString $ gn ++ "_newRule")  ! A.class_ "gameBox" ! A.style "display:none;" $ rf
+      div ! A.id (fromString $ gn ++ "_details")  ! A.class_ "gameBox" ! A.style "display:none;" $ viewDetails pn g
 
 viewGameName :: Bool -> (Maybe PlayerNumber) -> GameInfo -> RoutedNomyxServer Html
 viewGameName isAdmin mpn gi = do
@@ -133,7 +139,7 @@ viewGameName isAdmin mpn gi = do
    let gn = _gameName g
    let canView = isGameAdmin || _isPublic gi
    ok $ if canView
-      then tr $ td $ H.a (fromString (gn ++ "   ")) ! A.id "gameName" ! A.class_ "button" ! onclick (fromString $ printf "div_visibility('game_%s', '%s')" gn ("game" :: String)) ! (A.title $ toValue Help.view)
+      then tr $ td $ H.a (fromString (gn ++ "   ")) ! A.id "gameName" ! A.class_ "button" ! onclick (fromString $ divVisibility ("game_" ++ gn) "game") ! (A.title $ toValue Help.view)
       else ""
 
 joinGame :: GameName -> TVar Session -> RoutedNomyxServer Response
