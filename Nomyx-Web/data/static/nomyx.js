@@ -22,11 +22,11 @@ function div_visibility(id_name, class_name)
    //push back every divs
    var divs = document.getElementsByClassName(class_name);
    for (i = 0; i < divs.length; i++) {
-      divs[i].style.zIndex = 0;
+      divs[i].style.display = 'none';
    }
 
    //pull front our div
    var myDiv = document.getElementById(id_name);
-   myDiv.style.zIndex = 1;
+   myDiv.style.display = 'inline';
 
 }
