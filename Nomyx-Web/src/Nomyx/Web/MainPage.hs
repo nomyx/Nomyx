@@ -69,13 +69,12 @@ viewGamesTab gis isAdmin saveDir mpn = do
    let canCreateGame = maybe False (\pn -> isAdmin || numberOfGamesOwned gis pn < 1) mpn
    let publicPrivate = partition ((== True) . _isPublic) gis
    let vgi = viewGameName isAdmin mpn
-   let defLink a = if (isJust mpn) then showURL a else showURL (Auth $ AuthURL A_Login)
    public <- mapM vgi (fst publicPrivate)
    private <- mapM vgi (snd publicPrivate)
-   newGameLink  <- defLink NewGame
-   settingsLink <- defLink W.PlayerSettings
-   advLink      <- defLink Advanced
-   logoutURL    <- defLink (Auth $ AuthURL A_Logout)
+   newGameLink  <- defLink NewGame (isJust mpn)
+   settingsLink <- defLink W.PlayerSettings (isJust mpn)
+   advLink      <- defLink Advanced (isJust mpn)
+   logoutURL    <- defLink (Auth $ AuthURL A_Logout) (isJust mpn)
    loginURL     <- showURL (Auth $ AuthURL A_Login)
    fmods <- liftIO $ getUploadedModules saveDir
    ok $ do

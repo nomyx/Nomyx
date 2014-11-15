@@ -25,7 +25,7 @@ import           Web.Routes.Happstack()
 import           Control.Monad.State
 import           Control.Concurrent.STM
 import           Happstack.Server as HS
-import           Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
+import           Happstack.Auth (UserId(..), getUserId, AuthProfileURL(..), AuthURL(..))
 import qualified Data.ByteString.Char8 as C
 import           Data.Maybe
 import           Data.Text (unpack, append, Text, pack)
@@ -258,6 +258,9 @@ getIdBox       gn boxName   = gn ++ "IdBox" ++ boxName
 getClassBox    gn className = gn ++ "ClassBox" ++ className
 getIdButton    gn boxName   = gn ++ "IdButton" ++ boxName
 getClassButton gn className = gn ++ "ClassButton" ++ className
+
+defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
+defLink a logged = if logged then showURL a else showURL (Auth $ AuthURL A_Login)
 
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]
