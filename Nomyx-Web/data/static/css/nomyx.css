@@ -18,6 +18,10 @@ h3{
    padding-bottom:10px;
 }
 
+#titleBar > a:first-child {
+   font-weight:bold;
+}
+
 .game {
    position:absolute;
    background-color:#FFFFFF;
@@ -86,9 +90,7 @@ thead {
    float:left;
    background-color:#F4F4F4;
    border:1px solid black;
-   padding-left:10px;
-   padding-right:10px;
-   padding-bottom:10px;
+   padding:10px;
    width:98%;
    margin-bottom:5px;
 }

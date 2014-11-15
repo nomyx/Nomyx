@@ -81,9 +81,11 @@ viewGamesTab gis isAdmin saveDir mpn = do
       h3 "Main menu" >> br
       case public of
          [] -> b "No public games"
-         p -> do
+         p:ps -> do
             b "Public games:"
-            table $ sequence_ p
+            table $ do
+               p ! A.style "font-weight:bold;"
+               sequence_ ps
       br
       case private of
          [] -> ""
