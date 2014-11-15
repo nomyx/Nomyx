@@ -119,18 +119,21 @@ viewGameInfo gi mpn mlr isAdmin = do
    rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g  (isJust mpn) playAs isGameAdmin
-   ok $ div ! A.class_ "game" ! (A.id $ fromString ("game_" ++ (_gameName g))) $ do
+   ok $ div ! A.id (fromString $ getIdBox "" gn) ! A.class_ (fromString $ (getClassBox "" "game") ++ " game") $ do
       div ! A.id "titleBar" $ do
-         H.a "Description "    ! A.class_ "button" ! onclick (fromString $ divVisibility (gn ++ "_gameDesc") "gameBox")
-         H.a "Rules "          ! A.class_ "button" ! onclick (fromString $ divVisibility (gn ++ "_rules")    "gameBox")
-         H.a "Inputs/Outputs " ! A.class_ "button" ! onclick (fromString $ divVisibility (gn ++ "_ios")      "gameBox")
-         H.a "New rule "       ! A.class_ "button" ! onclick (fromString $ divVisibility (gn ++ "_newRule")  "gameBox")
-         H.a "Details "        ! A.class_ "button" ! onclick (fromString $ divVisibility (gn ++ "_details")  "gameBox")
-      div ! A.id (fromString $ gn ++ "_gameDesc") ! A.class_ "gameBox" ! A.style "display:inline;" $ vgd
-      div ! A.id (fromString $ gn ++ "_rules")    ! A.class_ "gameBox" ! A.style "display:none;" $ viewAllRules g
-      div ! A.id (fromString $ gn ++ "_ios")      ! A.class_ "gameBox" ! A.style "display:none;" $ vios
-      div ! A.id (fromString $ gn ++ "_newRule")  ! A.class_ "gameBox" ! A.style "display:none;" $ rf
-      div ! A.id (fromString $ gn ++ "_details")  ! A.class_ "gameBox" ! A.style "display:none;" $ viewDetails pn g
+         let attr :: String -> Attribute
+             attr name = A.id (fromString $ getIdButton gn name) <> A.class_ (fromString $ (getClassButton gn "gameBox") ++ " button") <> onclick (fromString $ divVisibility gn name "gameBox")
+         H.a "Description "    ! attr "gameDesc" ! A.style "fontWeight:bold;"
+         H.a "Rules "          ! attr "rules"
+         H.a "Inputs/Outputs " ! attr "ios"
+         H.a "New rule "       ! attr "newRule"
+         H.a "Details "        ! attr "details"
+      let attr name = A.id (fromString $ getIdBox gn name) <> A.class_ (fromString $ (getClassBox gn "gameBox") ++ " gameBox")
+      div ! attr "gameDesc" ! A.style "display:inline;" $ vgd
+      div ! attr "rules"    ! A.style "display:none;"   $ viewAllRules g
+      div ! attr "ios"      ! A.style "display:none;"   $ vios
+      div ! attr "newRule"  ! A.style "display:none;"   $ rf
+      div ! attr "details"  ! A.style "display:none;"   $ viewDetails pn g
 
 viewGameName :: Bool -> (Maybe PlayerNumber) -> GameInfo -> RoutedNomyxServer Html
 viewGameName isAdmin mpn gi = do
@@ -138,9 +141,10 @@ viewGameName isAdmin mpn gi = do
    let isGameAdmin = isAdmin || maybe False (==mpn) (Just $ _ownedBy gi)
    let gn = _gameName g
    let canView = isGameAdmin || _isPublic gi
-   ok $ if canView
-      then tr $ td $ H.a (fromString (gn ++ "   ")) ! A.id "gameName" ! A.class_ "button" ! onclick (fromString $ divVisibility ("game_" ++ gn) "game") ! (A.title $ toValue Help.view)
-      else ""
+   ok $ when canView $ do
+      let attr = A.id (fromString $ getIdButton "" gn) <> A.class_ (fromString $ (getClassButton "" "game") ++ " button") <> onclick (fromString $ divVisibility "" gn "game")
+      tr $ td $ H.a (fromString (gn ++ "   ")) ! (A.title $ toValue Help.view) ! attr
+
 
 joinGame :: GameName -> TVar Session -> RoutedNomyxServer Response
 joinGame gn ts = do

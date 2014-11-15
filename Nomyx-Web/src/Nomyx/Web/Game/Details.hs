@@ -10,7 +10,7 @@ import Data.Text (Text)
 import Data.Time
 import System.Locale
 import Language.Nomyx
-import Text.Blaze.Html5                    (Html, (!), p, table, thead, td, tr, h3, h4)
+import Text.Blaze.Html5                    (Html, (!), p, table, thead, td, tr, h4)
 import Text.Blaze.Html5.Attributes as A    (style, class_)
 import qualified Nomyx.Web.Help as Help
 import Nomyx.Web.Common as NWC

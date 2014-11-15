@@ -244,8 +244,20 @@ titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
    td ! A.style "text-align:left;" $ myTitle
    td ! A.style "text-align:right;" $ img ! src "/static/pictures/help.jpg" ! A.title (toValue help)
 
-divVisibility :: String -> String -> String
-divVisibility id clas = printf "div_visibility('%s', '%s')" id clas
+--mapping for the javascript function.
+divVisibility :: GameName -> String -> String -> String
+divVisibility gn boxName className =
+   printf "div_visibility('%s', '%s', '%s', '%s')"
+      (getIdBox gn boxName)
+      (getClassBox gn className)
+      (getIdButton gn boxName)
+      (getClassButton gn className)
+
+getIdBox, getClassBox, getIdButton, getClassButton :: String -> String -> String
+getIdBox       gn boxName   = gn ++ "IdBox" ++ boxName
+getClassBox    gn className = gn ++ "ClassBox" ++ className
+getIdButton    gn boxName   = gn ++ "IdButton" ++ boxName
+getClassButton gn className = gn ++ "ClassButton" ++ className
 
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]
