@@ -17,16 +17,26 @@ function toggle_visibility(id_events, id_show)
 //toggle visibility for overlapping divs
 //all elements with the class name will be pushed back, 
 //while only the element with the id name is put on front
-function div_visibility(id_name, class_name)
+function div_visibility(id_box, class_box, id_button, class_button)
 {
    //push back every divs
-   var divs = document.getElementsByClassName(class_name);
-   for (i = 0; i < divs.length; i++) {
-      divs[i].style.display = 'none';
+   var boxes = document.getElementsByClassName(class_box);
+   for (i = 0; i < boxes.length; i++) {
+      boxes[i].style.display = 'none';
    }
 
    //pull front our div
-   var myDiv = document.getElementById(id_name);
-   myDiv.style.display = 'inline';
+   var myBox = document.getElementById(id_box);
+   myBox.style.display = 'inline';
+
+   //unbold the text in the buttons
+   var buttons = document.getElementsByClassName(class_button);
+   for (i = 0; i < buttons.length; i++) {
+      buttons[i].style.fontWeight = 'normal';
+   }
+
+   //pull front our div
+   var myButton = document.getElementById(id_button);
+   myButton.style.fontWeight = 'bold';
 
 }
