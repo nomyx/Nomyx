@@ -21,7 +21,7 @@ import Text.Reform.Blaze.String            (inputHidden)
 import Text.Reform                         (viewForm, eitherForm)
 import Text.Reform.Happstack               (environment)
 import Happstack.Server                    (Response, Method(..), seeOther, toResponse, methodM, ok)
-import Happstack.Auth                      (AuthProfileURL(..), AuthURL(..))
+import Happstack.Auth                      (AuthProfileURL(..))
 import Web.Routes.RouteT                   (showURL, liftRouteT)
 import Nomyx.Web.Common as NWC
 import Nomyx.Web.Help as Help
@@ -55,33 +55,28 @@ viewGameDesc g logged playAs gameAdmin = do
       modJoin
       modLeave
 
-defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
-defLink a logged = if logged then showURL a else showURL (Auth $ AuthURL A_Login)
-
 modalLeave :: GameName -> Bool -> RoutedNomyxServer Html
 modalLeave gn notLogged = do
-   main  <- defLink NWC.MainPage notLogged
    leave <- defLink (NWC.LeaveGame gn) notLogged
-   let cancel = a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
+   main  <- showURL NWC.MainPage
    ok $ do
       div ! A.id (toValue $ "openModalLeave" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
             h2 "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
-            cancel
+            a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
             a "Leave" ! (href $ toValue leave) ! A.class_ "modalButton"
 
 modalJoin :: GameName -> Bool -> RoutedNomyxServer Html
 modalJoin gn notLogged = do
    join  <- defLink (NWC.JoinGame gn) notLogged
-   main  <- defLink NWC.MainPage notLogged
-   let cancel = a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
+   main  <- showURL NWC.MainPage
    ok $
       div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
          div $ do
             h2 $ fromString $ "Joining the game. Please register in the forum (see the link) and introduce yourself to the other players! \n" ++
                "If you do not whish to play, you can just view the game."
-            cancel
-            a "Join" ! (href $ toValue join) ! A.class_ "modalButton" ! (title $ toValue Help.joinGame)
+            a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
+            a "Join"   ! (href $ toValue join) ! A.class_ "modalButton" ! (title $ toValue Help.joinGame)
 
 viewPlayers :: [PlayerInfo] -> GameName -> Bool -> RoutedNomyxServer Html
 viewPlayers pis gn gameAdmin = do
