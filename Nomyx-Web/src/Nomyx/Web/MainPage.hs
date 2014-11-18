@@ -119,7 +119,7 @@ viewGameInfo gi mpn mlr isAdmin = do
       Nothing -> return (Nothing, False, Nothing, 0)
    rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
-   vgd <- viewGameDesc g  (isJust mpn) playAs isGameAdmin
+   vgd <- viewGameDesc g  mpn playAs isGameAdmin
    ok $ div ! A.id (fromString $ getIdBox "" gn) ! A.class_ (fromString $ (getClassBox "" "game") ++ " game") $ do
       div ! A.id "titleBar" $ do
          let attr :: String -> Attribute
