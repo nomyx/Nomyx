@@ -21,7 +21,6 @@ import Text.Reform.Blaze.String            (inputHidden)
 import Text.Reform                         (viewForm, eitherForm)
 import Text.Reform.Happstack               (environment)
 import Happstack.Server                    (Response, Method(..), seeOther, toResponse, methodM, ok)
-import Happstack.Auth                      (AuthProfileURL(..))
 import Web.Routes.RouteT                   (showURL, liftRouteT)
 import Nomyx.Web.Common as NWC
 import Nomyx.Web.Help as Help
@@ -29,16 +28,17 @@ import Nomyx.Core.Types as T
 import Nomyx.Core.Engine
 import Nomyx.Core.Session as S
 import Nomyx.Core.Profile as Profile
-
 default (Integer, Double, Data.Text.Text)
 
-viewGameDesc :: Game -> Bool -> Maybe PlayerNumber -> Bool -> RoutedNomyxServer Html
-viewGameDesc g logged playAs gameAdmin = do
+viewGameDesc :: Game -> Maybe PlayerNumber -> Maybe PlayerNumber -> Bool -> RoutedNomyxServer Html
+viewGameDesc g mpn playAs gameAdmin = do
    let gn = _gameName g
+   let logged = isJust mpn
    vp    <- viewPlayers (_players g) gn gameAdmin
-   del   <- defLink (NWC.DelGame gn) logged
    modJoin <- modalJoin gn logged
    modLeave <- modalLeave gn logged
+   modDel <- modalDel gn logged
+   let isInGame = maybe False (\pn -> pn `elem` (_playerNumber <$> _players g)) mpn
    ok $ do
       p $ do
         h3 $ fromString $ _gameName g
@@ -49,34 +49,45 @@ viewGameDesc g logged playAs gameAdmin = do
       when gameAdmin "(click on a player name to \"play as\" this player)"
       vp
       p $ viewVictory g
-      a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn) ! A.class_ "button" ! (title $ toValue Help.joinGame)
-      a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn) ! A.class_ "button"
-      when gameAdmin $ a "Del"   ! (href $ toValue del) ! A.class_ "button"
-      modJoin
-      modLeave
+      if isInGame
+         then a "Leave" ! (href $ toValue $ "#openModalLeave" ++ gn) ! A.class_ "button"
+         else a "Join"  ! (href $ toValue $ "#openModalJoin" ++ gn)  ! A.class_ "button" ! (title $ toValue Help.joinGame)
+      when gameAdmin $ a "Del"   ! (href $ toValue $ "#openModalDel" ++ gn) ! A.class_ "button"
+      modJoin >> modLeave >> modDel
 
-modalLeave :: GameName -> Bool -> RoutedNomyxServer Html
-modalLeave gn notLogged = do
-   leave <- defLink (NWC.LeaveGame gn) notLogged
+modalWindow :: Text -> String -> String -> String -> RoutedNomyxServer Html
+modalWindow link buttonTitle question modelRef = do
    main  <- showURL NWC.MainPage
    ok $ do
-      div ! A.id (toValue $ "openModalLeave" ++ gn) ! A.class_ "modalWindow" $ do
+      div ! A.id (toValue $ modelRef) ! A.class_ "modalWindow" $ do
          div $ do
-            h2 "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
-            a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
-            a "Leave" ! (href $ toValue leave) ! A.class_ "modalButton"
+            h2 (fromString question)
+            a "Cancel"                 ! (href $ toValue main) ! A.class_ "modalButton"
+            a (fromString buttonTitle) ! (href $ toValue link) ! A.class_ "modalButton"
+
+modalLeave :: GameName -> Bool -> RoutedNomyxServer Html
+modalLeave gn logged = do
+   leave <- defLink (NWC.LeaveGame gn) logged
+   modalWindow leave
+               "Leave"
+               "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
+               ("openModalLeave" ++ gn)
 
 modalJoin :: GameName -> Bool -> RoutedNomyxServer Html
-modalJoin gn notLogged = do
-   join  <- defLink (NWC.JoinGame gn) notLogged
-   main  <- showURL NWC.MainPage
-   ok $
-      div ! A.id (toValue $ "openModalJoin" ++ gn) ! A.class_ "modalWindow" $ do
-         div $ do
-            h2 $ fromString $ "Joining the game. Please register in the forum (see the link) and introduce yourself to the other players! \n" ++
-               "If you do not whish to play, you can just view the game."
-            a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
-            a "Join"   ! (href $ toValue join) ! A.class_ "modalButton" ! (title $ toValue Help.joinGame)
+modalJoin gn logged = do
+   join  <- defLink (NWC.JoinGame gn) logged
+   modalWindow join
+               "Join"
+               "Joining the game. Please register in the forum (see the link) and introduce yourself to the other players! If you do not whish to play, you can just view the game."
+               ("openModalJoin" ++ gn)
+
+modalDel :: GameName -> Bool -> RoutedNomyxServer Html
+modalDel gn logged = do
+   del   <- defLink (NWC.DelGame gn) logged
+   modalWindow del
+               "Delete"
+               ("Delete the game " ++ gn ++ " ?")
+               ("openModalDel" ++ gn)
 
 viewPlayers :: [PlayerInfo] -> GameName -> Bool -> RoutedNomyxServer Html
 viewPlayers pis gn gameAdmin = do
