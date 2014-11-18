@@ -26,7 +26,6 @@ import Happstack.Auth.Core.Profile (initialProfileState)
 import System.FilePath ((</>))
 import Nomyx.Core.Quotes
 import Nomyx.Core.Types
-import Nomyx.Core.Utils
 import Nomyx.Core.Engine
 
 -- | set 'ProfileData' for UserId
