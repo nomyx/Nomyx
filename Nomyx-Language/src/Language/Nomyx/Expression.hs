@@ -116,7 +116,7 @@ instance Typeable a => Show (Exp NoEffect a) where
    show e = "<" ++ (show $ typeOf e) ++ ">"
 
 instance Typeable a => Show (Exp Effect a) where
-   show e = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
+   show e = "<" ++ (show $ typeOf e) ++ ">"
 #endif
 
 instance Monad (Exp a) where
