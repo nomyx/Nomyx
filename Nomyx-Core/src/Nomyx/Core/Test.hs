@@ -271,6 +271,12 @@ testFile2 = do
    void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
 
 
+--module that imports Data.Time (should be Safe in recent versions)
+testFileTime :: StateT Session IO ()
+testFileTime = do
+   onePlayerOneGame
+   void $ testFile "TestTime.hs" "TestTime.myRule"
+
 --loading two modules with the same name is forbidden
 testFileTwice :: StateT Session IO ()
 testFileTwice = do
