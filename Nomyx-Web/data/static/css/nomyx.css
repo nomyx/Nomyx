@@ -108,7 +108,8 @@ thead {
    border-right: 1px solid #333333;
    border-bottom: 1px solid #333333;
    border-left: 1px solid #CCCCCC;
-   margin:3px;
+   margin: 3px;
+   cursor: pointer;
 }
 
 #header {
