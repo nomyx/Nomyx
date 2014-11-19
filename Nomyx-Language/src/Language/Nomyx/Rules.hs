@@ -19,7 +19,7 @@ module Language.Nomyx.Rules (
    addRule, addRule_, addRule',
    getFreeRuleNumber,
    suppressRule, suppressRule_, suppressAllRules,
-   proposeRule, modifyRule,
+   modifyRule,
    autoActivate,
    activateOrRejectRule,
    simulate,
