@@ -165,7 +165,7 @@ gameMoneyTransfer :: StateT Session IO ()
 gameMoneyTransfer = do
    sh <- access sh
    twoPlayersOneGame
-   submitRule (SubmitRule "" "" [cr|createBankAccount|]) 1 "test" sh
+   submitRule (SubmitRule "" "" [cr|createBankAccounts|]) 1 "test" sh
    submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 "test" sh
    submitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2 "test" sh
    inputAllRadios 0

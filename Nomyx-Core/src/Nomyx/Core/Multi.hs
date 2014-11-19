@@ -46,7 +46,9 @@ getTimeEvents now m = do
 -- | the initial rule set for a game.
 rVoteUnanimity = SubmitRule "Unanimity Vote"
                             "A proposed rule will be activated if all players vote for it"
-                            [cr|onRuleProposed $ callVoteRule unanimity oneDay|]
+                            [cr|do
+   onRuleProposed $ callVoteRule unanimity oneDay
+   displayVotes|]
 
 rVictory5Rules = SubmitRule "Victory 5 accepted rules"
                             "Victory is achieved if you have 5 active rules"

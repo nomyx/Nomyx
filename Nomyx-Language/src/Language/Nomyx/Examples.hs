@@ -10,7 +10,8 @@ module Language.Nomyx.Examples(
    nothing,
    helloWorld,
    accounts,
-   createBankAccount,
+   createBankAccounts,
+   displayBankAccounts,
    winXEcuPerDay,
    winXEcuOnRuleAccepted,
    moneyTransfer,
@@ -34,7 +35,6 @@ module Language.Nomyx.Examples(
    gameMaster,
    bravoButton,
    enterHaiku,
-   displayBankAccount,
    helloButton,
    module X) where
 
@@ -62,12 +62,12 @@ accounts :: MsgVar [(PlayerNumber, Int)]
 accounts = msgVar "Accounts"
 
 -- | Create a bank account for each players
-createBankAccount :: Rule
-createBankAccount = void $ createValueForEachPlayer_ accounts
+createBankAccounts :: Rule
+createBankAccounts = void $ createValueForEachPlayer_ accounts
 
 -- | Permanently display the bank accounts
-displayBankAccount :: Rule
-displayBankAccount = do
+displayBankAccounts :: Rule
+displayBankAccounts = do
    let displayOneAccount (account_pn, a) = do
         name <- showPlayer account_pn
         return $ name ++ "\t" ++ show a ++ "\n"
