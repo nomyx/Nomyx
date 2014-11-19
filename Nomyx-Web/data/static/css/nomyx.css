@@ -112,6 +112,11 @@ thead {
    cursor: pointer;
 }
 
+.showHide {
+   position: absolute;
+   right: 15px;
+}
+
 #header {
    border-top:1px solid silver;
    border-bottom:1px solid silver;

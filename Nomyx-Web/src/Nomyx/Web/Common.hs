@@ -233,10 +233,11 @@ getFirstGame = headMay . (filter _isPublic) ._gameInfos . _multi
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do
-   div ! onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id id) $ table ! width "100%" $ tr $ do
-      td $ title ! width "80%"
-      td ! A.style "text-align:right;" $ h5 (if visible then "[Click to hide]" else "[Click to show]") ! A.id (fromString $ printf "%sShow" id) ! width "20%"
-   div ! A.id (fromString $ printf "%sBody" id) ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
+   let id' = trim id
+   div ! onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id' id') $ table ! width "100%" $ tr $ do
+      td $ div $ title
+      td $ div $ a (if visible then "Click to hide" else "Click to show") ! A.id (fromString $ id' ++ "Show") ! A.class_ "button showHide"
+   div ! A.id (fromString $ id' ++ "Body") ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
       if empty then toHtml $ "No " ++ id else rest
 
 titleWithHelpIcon :: Html -> String -> Html
@@ -261,6 +262,8 @@ getClassButton gn className = gn ++ "ClassButton" ++ className
 
 defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
 defLink a logged = if logged then showURL a else showURL (Auth $ AuthURL A_Login)
+
+trim = unwords . words
 
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]
