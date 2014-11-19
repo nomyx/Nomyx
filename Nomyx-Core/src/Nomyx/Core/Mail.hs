@@ -14,6 +14,7 @@ import Text.Blaze.Html.Renderer.String
 import Network.Mail.Mime hiding (mailTo)
 import Safe
 import Data.Text(Text, pack)
+import Data.List
 import Data.Maybe
 import qualified Data.Text.Lazy as B
 import Control.Concurrent
