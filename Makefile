@@ -24,5 +24,5 @@ upload:
 	scp Nomyx-$(version).tar.gz kau@www.nomyx.net:
       
 deploy:
-	ssh kau@www.nomyx.net upload.sh
+	ssh kau@www.nomyx.net 'bash -s' < deploy.sh
 
