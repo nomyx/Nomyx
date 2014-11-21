@@ -12,7 +12,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
 
--- | This module containt the type definitions necessary to build a Nomic rule. 
+-- | This module contains the type definitions necessary to build a Nomic rule.
 module Language.Nomyx.Expression where
 
 import Data.Typeable
@@ -46,10 +46,10 @@ type Effect = 'Effect
 type NoEffect = 'NoEffect
 
 -- | A Nomex (Nomyx Expression) allows the players to write rules.
--- within the rules, you can access and modify the state of the game.
+-- Within the rules, you can access and modify the state of the game.
 type Nomex = Exp Effect
 
--- | A NomexNE (Nomyx Expression No Effect) is a specialisation of the type that guaranties
+-- | A NomexNE (Nomyx Expression No Effect) is a specialisation of the type that guarantees
 -- that the instructions will have no effects.
 type NomexNE = Exp NoEffect
 
@@ -98,16 +98,26 @@ data Exp :: Eff -> * -> *   where
 deriving instance Typeable Exp
 deriving instance Typeable 'Effect
 deriving instance Typeable 'NoEffect
+
+instance Typeable a => Show (Exp NoEffect a) where
+   show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
+
+instance Typeable a => Show (Exp Effect a) where
+   show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
+
 #else
 instance Typeable1 (Exp NoEffect) where
     typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp NoEffect") []
 
 instance Typeable1 (Exp Effect) where
     typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp Effect") []
-#endif
 
-liftEffect :: NomexNE a -> Nomex a
-liftEffect = LiftEffect  
+instance Typeable a => Show (Exp NoEffect a) where
+   show e = "<" ++ (show $ typeOf e) ++ ">"
+
+instance Typeable a => Show (Exp Effect a) where
+   show e = "<" ++ (show $ typeOf e) ++ ">"
+#endif
 
 instance Monad (Exp a) where
    return = Return
@@ -127,22 +137,8 @@ instance MonadError String Nomex where
    throwError = ThrowError
    catchError = CatchError
 
-instance Typeable a => Show (Exp NoEffect a) where
-#if __GLASGOW_HASKELL__ < 708
-   show e = "<" ++ (show $ typeOf e) ++ ">"
-#else
-   show e = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
-#endif
-
-instance Typeable a => Show (Exp Effect a) where
-#if __GLASGOW_HASKELL__ < 708
-   show e = "<" ++ (show $ typeOf e) ++ ">"
-#else
-   show e = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
-#endif
-
-instance (Typeable a, Typeable b) => Show (a -> b) where
-    show e = '<' : (show . typeOf) e ++ ">"
+liftEffect :: NomexNE a -> Nomex a
+liftEffect = LiftEffect
 
 -- * Variables
 
@@ -263,7 +259,7 @@ instance Ord EventInfo where
 type Rule = Nomex ()
   
 -- | An informationnal structure about a rule
-data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the rule (must be unique) TO CHECK
+data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the rule (must be unique)
                            _rName        :: RuleName,         -- short name of the rule 
                            _rDescription :: String,           -- description of the rule
                            _rProposedBy  :: PlayerNumber,     -- player proposing the rule
@@ -302,6 +298,8 @@ data VictoryInfo = VictoryInfo { _vRuleNumber :: RuleNumber,
                                  _vCond :: NomexNE [PlayerNumber]}
                                  deriving (Show, Typeable)
 
+-- * Miscellaneous
+
 partial :: String -> Nomex (Maybe a) -> Nomex a
 partial s nm = do
    m <- nm
@@ -311,6 +309,10 @@ partial s nm = do
 
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
+
+instance (Typeable a, Typeable b) => Show (a -> b) where
+    show e = '<' : (show . typeOf) e ++ ">"
+
 
 $( makeLenses [''RuleInfo, ''PlayerInfo, ''EventInfo, ''SignalOccurence] )
 

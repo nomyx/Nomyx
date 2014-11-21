@@ -6,19 +6,28 @@ h3{
    position:absolute;
    background-color:#F4F4F4;
    border:1px solid black;
-   width:250px;
+   width:180px;
    padding:10px;
    top:60px;
    left:10px;
    overflow: auto;
 }
 
-#game {
+#titleBar {
+   padding-top:7px;
+   padding-bottom:10px;
+}
+
+#titleBar > a:first-child {
+   font-weight:bold;
+}
+
+.game {
    position:absolute;
    background-color:#FFFFFF;
    height:90%;
    top:57px;
-   left:288px;
+   left:218px;
    right:10px;
    padding-right:23px;
    overflow: auto;
@@ -76,13 +85,13 @@ thead {
    padding:10px;
 }
 
-#ios, #details, #rules, #newRule, #gameDesc  {
+.gameBox  {
+   position:absolute;
    float:left;
    background-color:#F4F4F4;
    border:1px solid black;
-   padding-left:10px;
-   padding-right:10px;
-   width:100%;
+   padding:10px;
+   width:98%;
    margin-bottom:5px;
 }
 
@@ -90,8 +99,22 @@ thead {
    text-align:right;
 }
 
-#gameName {
-   padding-right: 10px;
+.button {
+   text-decoration: none;
+   background-color: #EEEEEE;
+   color: #333333;
+   padding: 2px 6px 2px 6px;
+   border-top: 1px solid #CCCCCC;
+   border-right: 1px solid #333333;
+   border-bottom: 1px solid #333333;
+   border-left: 1px solid #CCCCCC;
+   margin: 3px;
+   cursor: pointer;
+}
+
+.showHide {
+   position: absolute;
+   right: 15px;
 }
 
 #header {

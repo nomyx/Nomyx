@@ -8,9 +8,9 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE ExtendedDefaultRules #-}
 
 module Nomyx.Web.Common where
-
 
 import           Prelude hiding (div)
 import           Safe
@@ -26,11 +26,12 @@ import           Web.Routes.Happstack()
 import           Control.Monad.State
 import           Control.Concurrent.STM
 import           Happstack.Server as HS
-import           Happstack.Auth (UserId(..), getUserId, AuthProfileURL)
+import           Happstack.Auth (UserId(..), getUserId, AuthProfileURL(..), AuthURL(..))
 import qualified Data.ByteString.Char8 as C
 import           Data.Maybe
 import           Data.Text (unpack, append, Text, pack)
 import           Data.String
+import           Text.Printf
 import           Text.Reform.Happstack()
 import           Text.Reform
 import           Text.Reform.Blaze.String()
@@ -69,11 +70,9 @@ data PlayerCommand = NotLogged
                    | Auth AuthProfileURL
                    | PostAuth
                    | MainPage
-                   | ViewGame  GameName
                    | JoinGame  GameName
                    | LeaveGame GameName
                    | DelGame   GameName
-                   | ForkGame  GameName
                    | DoInput   EventNumber SignalAddress FormField GameName
                    | NewRule   GameName
                    | NewGame
@@ -189,8 +188,8 @@ getPlayerNumber ts = do
 webCommand :: TVar Session -> StateT Session IO () -> RoutedNomyxServer ()
 webCommand ts ss = liftIO $ updateSession ts ss
 
-getIsAdmin :: TVar Session -> RoutedNomyxServer Bool
-getIsAdmin ts = do
+isAdmin :: TVar Session -> RoutedNomyxServer Bool
+isAdmin ts = do
    mpn <- getPlayerNumber ts
    case mpn of
       Just pn -> do
@@ -199,6 +198,20 @@ getIsAdmin ts = do
             Just pf -> return $ _pIsAdmin pf
             Nothing -> return False
       Nothing -> return False
+
+isGameAdmin :: GameInfo -> TVar Session -> RoutedNomyxServer Bool
+isGameAdmin gi ts = do
+   mpn <- getPlayerNumber ts
+   admin <- isAdmin ts
+   return $ case mpn of
+      Just pn -> admin || (_ownedBy gi == Just pn)
+      Nothing -> False
+
+getPublicGames :: TVar Session -> RoutedNomyxServer [GameInfo]
+getPublicGames ts = do
+   (T.Session _ m _) <- liftIO $ readTVarIO ts
+   return $ filter ((== True) . _isPublic) (_gameInfos $ m)
+
 
 fieldRequired :: NomyxError -> String -> Either NomyxError String
 fieldRequired a []  = Left a
@@ -218,6 +231,38 @@ numberOfGamesOwned gis pn = length $ filter (maybe False (==pn) . _ownedBy) gis
 
 getFirstGame :: Session -> Maybe GameInfo
 getFirstGame = headMay . (filter _isPublic) ._gameInfos . _multi
+
+showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
+showHideTitle id visible empty title rest = do
+   let id' = filter (/=' ') id
+   div $ table ! width "100%" $ tr $ do
+      td $ div $ title
+      td $ div $ a (if visible then "Click to hide" else "Click to show") ! A.id (fromString $ id' ++ "Show") ! A.class_ "button showHide" ! onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id' id')
+   div ! A.id (fromString $ id' ++ "Body") ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
+      if empty then (toHtml "No Rules") else rest
+
+titleWithHelpIcon :: Html -> String -> Html
+titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
+   td ! A.style "text-align:left;" $ myTitle
+   td ! A.style "text-align:right;" $ img ! src "/static/pictures/help.jpg" ! A.title (toValue help)
+
+--mapping for the javascript function.
+divVisibility :: GameName -> String -> String -> String
+divVisibility gn boxName className =
+   printf "div_visibility('%s', '%s', '%s', '%s')"
+      (getIdBox gn boxName)
+      (getClassBox gn className)
+      (getIdButton gn boxName)
+      (getClassButton gn className)
+
+getIdBox, getClassBox, getIdButton, getClassButton :: String -> String -> String
+getIdBox       gn boxName   = gn ++ "IdBox" ++ boxName
+getClassBox    gn className = gn ++ "ClassBox" ++ className
+getIdButton    gn boxName   = gn ++ "IdButton" ++ boxName
+getClassButton gn className = gn ++ "ClassButton" ++ className
+
+defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
+defLink a logged = if logged then showURL a else showURL (Auth $ AuthURL A_Login)
 
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]

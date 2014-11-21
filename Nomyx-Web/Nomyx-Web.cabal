@@ -1,5 +1,5 @@
 name: Nomyx-Web
-version: 0.7.2
+version: 0.7.3
 cabal-version: >=1.6
 build-type: Simple
 license: BSD3
@@ -16,8 +16,8 @@ data-dir: data
 extra-source-files: README.md
  
 library
-    build-depends: Nomyx-Language         == 0.7.2,
-                   Nomyx-Core             == 0.7.2,
+    build-depends: Nomyx-Language         == 0.7.3,
+                   Nomyx-Core             == 0.7.3,
                    base                   >= 4.6 && <5,
                    blaze-html             == 0.7.*,
                    blaze-markup           == 0.6.*,
@@ -50,10 +50,14 @@ library
                     Paths_Nomyx_Web
     other-modules: Nomyx.Web.Common
                    Nomyx.Web.Help
-                   Nomyx.Web.NewGame
-                   Nomyx.Web.Game
+                   Nomyx.Web.Game.Infos
+                   Nomyx.Web.Game.Rules
+                   Nomyx.Web.Game.IOs
+                   Nomyx.Web.Game.NewRule
+                   Nomyx.Web.Game.Details
                    Nomyx.Web.Login
                    Nomyx.Web.Settings
+                   Nomyx.Web.NewGame
     ghc-options: -W -threaded
  
 source-repository head

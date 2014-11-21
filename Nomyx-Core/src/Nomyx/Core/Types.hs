@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Nomyx.Core.Types where
 
@@ -11,7 +12,7 @@ import Data.Lens.Template
 import Data.Acid (AcidState)
 import Data.Data (Data)
 import Data.IxSet (inferIxSet, noCalcs)
-import Data.SafeCopy (base, deriveSafeCopy)
+import Data.SafeCopy (base, extension, deriveSafeCopy, Migrate(..))
 import Data.Time
 import Language.Nomyx
 import Nomyx.Core.Engine
@@ -66,15 +67,31 @@ data GameInfo = GameInfo { _loggedGame     :: LoggedGame,
 
 -- | 'ProfileData' contains application specific
 data ProfileData =
-    ProfileData { _pPlayerNumber   :: PlayerNumber, -- ^ same as UserId
+    ProfileData { _pPlayerNumber   :: PlayerNumber, -- same as UserId
                   _pPlayerSettings :: PlayerSettings,
-                  _pViewingGame    :: Maybe GameName,
                   _pLastRule       :: Maybe LastRule,
                   _pLastUpload     :: LastUpload,
                   _pIsAdmin        :: Bool
                   }
     deriving (Eq, Ord, Read, Show, Typeable, Data)
-$(deriveSafeCopy 1 'base ''ProfileData)
+
+data ProfileDataOld =
+    ProfileDataOld { _pPlayerNumberOld   :: PlayerNumber, -- same as UserId
+                     _pPlayerSettingsOld :: PlayerSettings,
+                     _pViewingGameOld    :: Maybe GameName,
+                     _pLastRuleOld       :: Maybe LastRule,
+                     _pLastUploadOld     :: LastUpload,
+                     _pIsAdminOld        :: Bool
+                   }
+
+$(deriveSafeCopy 2 'extension ''ProfileData)
+$(deriveSafeCopy 1 'base ''ProfileDataOld)
+
+instance Migrate ProfileData where
+  type MigrateFrom ProfileData = ProfileDataOld
+  migrate (ProfileDataOld a b c d e f) = (ProfileData a b d e f)
+
+
 $(deriveSafeCopy 1 'base ''SubmitRule)
 
 $(inferIxSet "ProfilesData" ''ProfileData 'noCalcs [''PlayerNumber]) -- , ''Text

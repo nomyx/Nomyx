@@ -10,6 +10,7 @@ import Debug.Trace.Helpers
 import Data.Lens
 import Data.Time as T
 import Data.List
+import Data.Maybe
 import qualified Data.Acid.Advanced as A (update', query')
 import Happstack.Auth.Core.Auth
 import Control.Category hiding ((.))
@@ -24,6 +25,7 @@ import Nomyx.Core.Profile
 import Nomyx.Core.Interpret
 import Nomyx.Core.Serialize
 import Nomyx.Core.Engine as G
+import Nomyx.Core.Mail
 
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
@@ -49,17 +51,23 @@ newGame' name desc pn isPublic sh = do
          void $ gameInfos %= (lg : )
       else tracePN pn "this name is already used"
 
--- | view a game.
-viewGamePlayer :: GameName -> PlayerNumber -> StateT Session IO ()
-viewGamePlayer gn pn = do
-   mg <- focus multi $ getGameByName gn
-   case mg of
-      Nothing -> tracePN pn "No game by that name"
-      Just _ -> modifyProfile pn (pViewingGame ^= Just gn)
-
--- | unview a game.
-unviewGamePlayer :: PlayerNumber -> StateT Session IO ()
-unviewGamePlayer pn = modifyProfile pn (pViewingGame ^= Nothing)
+forkGame :: GameName -> GameName -> GameDesc -> Bool -> PlayerNumber -> StateT Session IO ()
+forkGame fromgn newgn desc isPublic pn = focus multi $ do
+   gms <- access gameInfos
+   case filter ((== fromgn) . getL gameNameLens) gms of
+      gi:[] -> do
+         tracePN pn $ "Forking game: " ++ fromgn
+         time <- liftIO T.getCurrentTime
+         let lg = ((game >>> gameName) `setL` (newgn)) .
+                  ((game >>> gameDesc) `setL` (desc)) $ _loggedGame gi
+         let gi' = GameInfo {
+            _loggedGame     = lg,
+            _ownedBy        = Just pn,
+            _forkedFromGame = Just fromgn,
+            _isPublic       = isPublic,
+            _startedAt      = time}
+         void $ gameInfos %= (gi' : )
+      _ -> tracePN pn $ "Forking game: no game by that name: " ++ fromgn
 
 -- | join a game (also view it for conveniency)
 joinGame :: GameName -> PlayerNumber -> StateT Session IO ()
@@ -67,12 +75,10 @@ joinGame gn pn = do
    s <- get
    name <- lift $ Nomyx.Core.Profile.getPlayerName pn s
    inGameDo gn $ G.execGameEvent $ JoinGame pn name
-   viewGamePlayer gn pn
 
 -- | delete a game.
 delGame :: GameName -> StateT Session IO ()
 delGame name = focus multi $ void $ gameInfos %= filter ((/= name) . getL gameNameLens)
-
 
 -- | leave a game.
 leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
@@ -83,11 +89,14 @@ submitRule :: SubmitRule -> PlayerNumber -> GameName -> ServerHandle -> StateT S
 submitRule sr@(SubmitRule _ _ code) pn gn sh = do
    tracePN pn $ "proposed " ++ show sr
    mrr <- liftIO $ interpretRule code sh
+   s <- get
+   let gi = getGameByName gn s
    case mrr of
       Right _ -> do
          tracePN pn "proposed rule compiled OK "
          inGameDo gn $ G.execGameEvent' (Just $ getRuleFunc sh) (ProposeRuleEv pn sr)
          modifyProfile pn (pLastRule ^= Just (sr, "Rule submitted OK!"))
+         liftIO $ sendMailsNewRule s sr pn (fromJust gi)
       Left e -> submitRuleError sr pn gn e
 
 adminSubmitRule :: SubmitRule -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
@@ -132,13 +141,13 @@ inputUpload pn temp mod sh = do
    tracePN pn $ " uploaded " ++ show mod
    case m of
       Nothing -> do
-         inPlayersGameDo pn $ execGameEvent $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
+         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
          tracePN pn "upload success"
          modifyProfile pn (pLastUpload ^= UploadSuccess)
          return True
       Just e -> do
          let errorMsg = showInterpreterError e
-         inPlayersGameDo pn $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
+         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
          tracePN pn $ "upload failed: \n" ++ show e
          modifyProfile pn (pLastUpload ^= UploadFailure (temp, errorMsg))
          return False
@@ -175,35 +184,14 @@ getNewPlayerNumber = do
    pfd <- A.query' (acidProfileData $ _profiles s) AskProfileDataNumber
    return $ pfd + 1
 
-forkGame :: GameName -> PlayerNumber -> StateT Session IO ()
-forkGame gn pn = focus multi $ do
-   gms <- access gameInfos
-   case filter ((== gn) . getL gameNameLens) gms of
-      gi:[] -> do
-         tracePN pn $ "Forking game: " ++ gn
-         time <- liftIO T.getCurrentTime
-         let gi' = GameInfo {
-            _loggedGame     = (game >>> gameName) `setL` ("Forked " ++ gn) $ _loggedGame gi,
-            _ownedBy        = Just pn,
-            _forkedFromGame = Just gn,
-            _isPublic       = False,
-            _startedAt      = time}
-         void $ gameInfos %= (gi' : )
-      _ -> tracePN pn $ "Creating a simulation game: no game by that name: " ++ gn
-
-
 -- | this function apply the given game actions to the game the player is in.
-inPlayersGameDo :: PlayerNumber -> StateT LoggedGame IO a -> StateT Session IO (Maybe a)
-inPlayersGameDo pn action = do
-   s <- get
+inAllGamesDo :: StateT LoggedGame IO a -> StateT Session IO ()
+inAllGamesDo action = do
    t <- lift T.getCurrentTime
-   mg <- lift $ getPlayersGame pn s
-   case mg of
-      Nothing -> tracePN pn "You must be in a game" >> return Nothing
-      Just gi -> do
+   gis <- access (multi >>> gameInfos)
+   forM_ gis $ \gi -> do
          (a, mylg) <- lift $ runStateT action (setL (game >>> currentTime) t (_loggedGame gi))
          focus multi $ modifyGame (gi {_loggedGame = mylg})
-         return (Just a)
 
 inGameDo :: GameName -> StateT LoggedGame IO  () -> StateT Session IO ()
 inGameDo gn action = focus multi $ do
@@ -227,10 +215,11 @@ updateSession ts sm = do
          save $ _multi s
       Nothing -> putStrLn "thread timed out, session discarded"
 
-
 evalSession :: StateT Session IO () -> Session -> IO Session
 evalSession sm s = do
    s' <- execStateT sm s
    writeFile nullFileName $ show $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
    return s'
 
+getGameByName :: GameName -> Session -> Maybe GameInfo
+getGameByName gn s = find ((==gn) . getL (loggedGame >>> game >>> gameName)) (_gameInfos $ _multi s)

@@ -60,6 +60,10 @@ regularTests = [("hello World",           gameHelloWorld,         condHelloWorld
          ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
          ("Test file 1",           testFile1,              condNRules 3),
          ("Test file 2",           testFile2,              condNRules 3),
+#if __GLASGOW_HASKELL__ >= 708
+         --Data.Time is Safe only in recent versions
+         ("Test import Data.Time", testFileTime,           condNRules 3),
+#endif
          ("load file twice",       testFileTwice,          condNRules 3),
          ("load file twice 2",     testFileTwice',         condNRules 4),
          ("load file unsafe",      testFileUnsafeIO,       condNRules 2)] ++
@@ -109,14 +113,12 @@ onePlayerOneGame = do
    newPlayer 1 PlayerSettings {_pPlayerName = "Player 1", _mail = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}
    newGame "test" (GameDesc "" "") 1 True
    joinGame "test" 1
-   viewGamePlayer "test" 1
 
 twoPlayersOneGame :: StateT Session IO ()
 twoPlayersOneGame = do
    onePlayerOneGame
    newPlayer 2 PlayerSettings {_pPlayerName = "Player 2", _mail = "", _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}
    joinGame "test" 2
-   viewGamePlayer "test" 2
 
 submitR :: String -> StateT Session IO ()
 submitR r = do
@@ -268,6 +270,12 @@ testFile2 = do
    onePlayerOneGame
    void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
 
+
+--module that imports Data.Time (should be Safe in recent versions)
+testFileTime :: StateT Session IO ()
+testFileTime = do
+   onePlayerOneGame
+   void $ testFile "TestTime.hs" "TestTime.myRule"
 
 --loading two modules with the same name is forbidden
 testFileTwice :: StateT Session IO ()

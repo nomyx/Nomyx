@@ -57,7 +57,7 @@ data Game = Game { _gameName    :: GameName,
                    _randomGen   :: StdGen}
                    deriving (Typeable)
 
-data GameDesc = GameDesc { _desc :: String, _agora :: String} deriving (Eq, Show, Read, Ord)
+data GameDesc = GameDesc { _desc :: String, _forumURL :: String} deriving (Eq, Show, Read, Ord)
 
 instance Eq Game where
    (Game {_gameName=gn1}) == (Game {_gameName=gn2}) = gn1 == gn2

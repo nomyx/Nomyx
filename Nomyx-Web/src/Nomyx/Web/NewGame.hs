@@ -18,30 +18,33 @@ import Data.Text(Text)
 import Data.Maybe
 import Nomyx.Core.Engine
 import Nomyx.Web.Common
-import Nomyx.Core.Session
+import qualified Nomyx.Core.Session as S
 import Nomyx.Core.Types
 default (Integer, Double, Data.Text.Text)
 
+data NewGameForm = NewGameForm GameName GameDesc Bool (Maybe GameName)
 
-data NewGameForm = NewGameForm GameName GameDesc Bool
-
-newGameForm :: Bool -> NomyxForm NewGameForm
-newGameForm admin = pure NewGameForm <*> (br ++> errorList ++> label "Enter new game name: " ++> RB.inputText "" `transformEither` fieldRequired GameNameRequired `RBC.setAttr` placeholder "Game name"  <++ br <++ br)
-                               <*> newGameDesc
-                               <*> if admin then label "Public game? " ++> (RB.inputCheckbox True) else pure False
+newGameForm :: Bool -> [GameName] -> NomyxForm NewGameForm
+newGameForm admin gns = pure NewGameForm
+   <*> (br ++> errorList ++> label "Enter new game name: " ++> RB.inputText "" `transformEither` fieldRequired GameNameRequired `RBC.setAttr` placeholder "Game name"  <++ br <++ br)
+   <*> newGameDesc
+   <*> (if admin then label "Public game? " ++> (RB.inputCheckbox True) else pure False) <++ br
+   <*> (label "Fork from existing game (optional):" ++> RB.select ((Nothing, "--") : (map (\gn -> (Just gn, gn)) gns)) isNothing) <++ br <++ br
 
 newGameDesc :: NomyxForm GameDesc
 newGameDesc = pure GameDesc <*> label "Enter game description:" ++> br ++> textarea 40 3 "" `RBC.setAttr` placeholder "Enter game description" `RBC.setAttr` class_ "gameDesc" <++ br <++ br
-                            <*> label "Enter a link to an agora (e.g. a forum, a mailing list...) where the players can discuss their rules: " ++> br ++> RB.inputText "" `RBC.setAttr` placeholder "Agora URL (including http://...)" `RBC.setAttr` class_ "agora" <++ br <++ br
+                            <*> label "Enter a link to a place where the players can discuss their rules (e.g. a forum, a mailing list...): " ++> br ++> RB.inputText "" `RBC.setAttr` placeholder "Forum URL (including http://...)" `RBC.setAttr` class_ "forum" <++ br <++ br
 
 gameNameRequired :: String -> Either NomyxError String
 gameNameRequired = fieldRequired GameNameRequired
 
 newGamePage :: TVar Session -> RoutedNomyxServer Response
 newGamePage ts = toResponse <$> do
-   admin <- getIsAdmin ts
+   admin <- isAdmin ts
+   gis <- getPublicGames ts
+   let gameNames = map (_gameName . _game . _loggedGame) gis
    newGameLink <- showURL SubmitNewGame
-   mf <- lift $ viewForm "user" $ newGameForm admin
+   mf <- lift $ viewForm "user" $ newGameForm admin gameNames
    mainPage "New game"
             "New game"
             (blazeForm mf newGameLink)
@@ -51,13 +54,17 @@ newGamePage ts = toResponse <$> do
 newGamePost :: TVar Session -> RoutedNomyxServer Response
 newGamePost ts = toResponse <$> do
    methodM POST
-   admin <- getIsAdmin ts
-   r <- liftRouteT $ eitherForm environment "user" (newGameForm admin)
+   admin <- isAdmin ts
+   gis <- getPublicGames ts
+   let gameNames = map (_gameName . _game . _loggedGame) gis
+   r <- liftRouteT $ eitherForm environment "user" (newGameForm admin gameNames)
    link <- showURL MainPage
    newGameLink <- showURL SubmitNewGame
    pn <- fromJust <$> getPlayerNumber ts
    case r of
       Left errorForm -> mainPage  "New game" "New game" (blazeForm errorForm newGameLink) False True
-      Right (NewGameForm name desc isPublic) -> do
-         webCommand ts $ newGame name desc pn isPublic
+      Right (NewGameForm name desc isPublic mforkFrom) -> do
+         case mforkFrom of
+            Nothing       -> webCommand ts $ S.newGame name desc pn isPublic
+            Just forkFrom -> webCommand ts $ S.forkGame forkFrom name desc False pn
          seeOther link "Redirecting..."
