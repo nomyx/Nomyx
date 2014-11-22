@@ -1,4 +1,4 @@
-version := 0.7.2
+version := 0.7.3
 installroot := Nomyx-$(version)/
 deployroot := /home/cdupont/tmp/Nomyx
 
@@ -24,5 +24,5 @@ upload:
 	scp Nomyx-$(version).tar.gz kau@www.nomyx.net:
       
 deploy:
-	ssh kau@www.nomyx.net upload.sh
+	ssh kau@www.nomyx.net 'bash -s' < deploy.sh
 

@@ -26,7 +26,7 @@ viewAllRules g = do
    viewRules (rejectedRules g) "Suppressed rules" False g >> br
 
 viewRules :: [RuleInfo] -> String -> Bool -> Game -> Html
-viewRules nrs title visible g = showHideTitle title visible (null nrs) (h4 $ toHtml (title ++ ":") ) $ table ! class_ "table" $ do
+viewRules nrs title visible g = showHideTitle ((_gameName g) ++ title) visible (null nrs) (h4 $ toHtml (title ++ ":") ) $ table ! class_ "table" $ do
    thead $ do
       td ! class_ "td" $ "#"
       td ! class_ "td" $ "Name"
@@ -43,13 +43,13 @@ viewRule g ri = tr $ do
       br
       div ! A.id "proposedBy" $ (fromString $ "by "  ++ (if _rProposedBy ri == 0 then "System" else pl))
    td ! class_ "td" $ fromString $ _rDescription ri
-   td ! class_ "td" $ viewRuleFunc ri
+   td ! class_ "td" $ viewRuleFunc ri (_gameName g)
 
-viewRuleFunc :: RuleInfo -> Html
-viewRuleFunc ri = do
+viewRuleFunc :: RuleInfo -> GameName -> Html
+viewRuleFunc ri gn = do
    let code = lines $ _rRuleCode ri
    let codeCutLines = 7
-   let ref = "openModalCode" ++ (show $ _rNumber ri)
+   let ref = "openModalCode" ++ (show $ _rNumber ri) ++ "game" ++ gn
    let assessedBy = case _rAssessedBy ri of
         Nothing -> "not assessed"
         Just 0  -> "the system"

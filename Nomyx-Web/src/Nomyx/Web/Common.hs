@@ -8,6 +8,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE ExtendedDefaultRules #-}
 
 module Nomyx.Web.Common where
 
@@ -233,12 +234,12 @@ getFirstGame = headMay . (filter _isPublic) ._gameInfos . _multi
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do
-   let id' = trim id
-   div ! onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id' id') $ table ! width "100%" $ tr $ do
+   let id' = filter (/=' ') id
+   div $ table ! width "100%" $ tr $ do
       td $ div $ title
-      td $ div $ a (if visible then "Click to hide" else "Click to show") ! A.id (fromString $ id' ++ "Show") ! A.class_ "button showHide"
+      td $ div $ a (if visible then "Click to hide" else "Click to show") ! A.id (fromString $ id' ++ "Show") ! A.class_ "button showHide" ! onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id' id')
    div ! A.id (fromString $ id' ++ "Body") ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
-      if empty then toHtml "No rules" else rest
+      if empty then (toHtml "No Rules") else rest
 
 titleWithHelpIcon :: Html -> String -> Html
 titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
