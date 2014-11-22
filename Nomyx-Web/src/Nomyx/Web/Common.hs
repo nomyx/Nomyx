@@ -238,7 +238,7 @@ showHideTitle id visible empty title rest = do
       td $ div $ title
       td $ div $ a (if visible then "Click to hide" else "Click to show") ! A.id (fromString $ id' ++ "Show") ! A.class_ "button showHide"
    div ! A.id (fromString $ id' ++ "Body") ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
-      if empty then toHtml $ "No " ++ id else rest
+      if empty then toHtml "No rules" else rest
 
 titleWithHelpIcon :: Html -> String -> Html
 titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
