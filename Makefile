@@ -1,4 +1,4 @@
-version := 0.7.2
+version := 0.7.3
 installroot := Nomyx-$(version)/
 deployroot := /home/cdupont/tmp/Nomyx
 
