@@ -160,19 +160,14 @@ appTemplate' title headers body footer link = do
       H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
       H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
       H.script ! A.type_ "text/JavaScript" ! A.src "/static/nomyx.js" $ ""
-   H.body $ H.div ! A.id "container" $ do
+   H.body ! onload "loadDivVisibility()" $ H.div ! A.id "container" $ do
       H.div ! A.id "header" $ table ! width "100%" $ tr $ do
          td headers
          when (isJust link) $ td ! A.style "text-align:right;" $ H.a "Back to main page" ! (href $ toValue $ fromJust link)
       body
       when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012-2013"
 
-appTemplate ::
-    ( Monad m)
-    => String -- ^ title
-    -> Html   -- ^ extra tags to include in \<head\>
-    -> Html   -- ^ contents to put inside \<body\>
-    -> m Response
+appTemplate :: ( Monad m) => String -> Html -> Html -> m Response
 appTemplate title headers body = return $ toResponse $ appTemplate' title headers body True Nothing
 
 -- | return the player number (user ID) based on the session cookie.
@@ -248,12 +243,7 @@ titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
 
 --mapping for the javascript function.
 divVisibility :: GameName -> String -> String -> String
-divVisibility gn boxName className =
-   printf "div_visibility('%s', '%s', '%s', '%s')"
-      (getIdBox gn boxName)
-      (getClassBox gn className)
-      (getIdButton gn boxName)
-      (getClassButton gn className)
+divVisibility gn boxName className = printf "setDivVisibilityAndSave('%s', '%s', '%s')" gn boxName className
 
 getIdBox, getClassBox, getIdButton, getClassButton :: String -> String -> String
 getIdBox       gn boxName   = gn ++ "IdBox" ++ boxName
