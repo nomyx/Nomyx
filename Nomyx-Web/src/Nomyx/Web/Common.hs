@@ -242,14 +242,8 @@ titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
    td ! A.style "text-align:right;" $ img ! src "/static/pictures/help.jpg" ! A.title (toValue help)
 
 --mapping for the javascript function.
-divVisibility :: GameName -> String -> String -> String
-divVisibility gn boxName className = printf "setDivVisibilityAndSave('%s', '%s', '%s')" gn boxName className
-
-getIdBox, getClassBox, getIdButton, getClassButton :: String -> String -> String
-getIdBox       gn boxName   = gn ++ "IdBox" ++ boxName
-getClassBox    gn className = gn ++ "ClassBox" ++ className
-getIdButton    gn boxName   = gn ++ "IdButton" ++ boxName
-getClassButton gn className = gn ++ "ClassButton" ++ className
+setDivVisibilityAndSave :: String -> String -> String
+setDivVisibilityAndSave groupName elementName = printf "setDivVisibilityAndSave('%s', '%s')" groupName elementName
 
 defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
 defLink a logged = if logged then showURL a else showURL (Auth $ AuthURL A_Login)

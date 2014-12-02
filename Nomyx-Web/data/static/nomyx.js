@@ -17,53 +17,60 @@ function toggle_visibility(id_events, id_show)
 //toggle visibility for overlapping divs
 //all elements with the class name will be pushed back, 
 //while only the element with the id name is put on front
-function divBoxvisibility(id_box, class_box, id_button, class_button)
+function divBoxvisibility(idDiv, classDiv, idButton, classButton)
 {
    //push back every divs
-   var boxes = document.getElementsByClassName(class_box);
+   var boxes = document.getElementsByClassName(classDiv);
    for (i = 0; i < boxes.length; i++) {
       boxes[i].style.display = 'none';
    }
 
    //pull front our div
-   var myBox = document.getElementById(id_box);
+   var myBox = document.getElementById(idDiv);
    myBox.style.display = 'inline';
 
    //unbold the text in the buttons
-   var buttons = document.getElementsByClassName(class_button);
+   var buttons = document.getElementsByClassName(classButton);
    for (i = 0; i < buttons.length; i++) {
       buttons[i].style.fontWeight = 'normal';
    }
 
    //pull front our div
-   var myButton = document.getElementById(id_button);
+   var myButton = document.getElementById(idButton);
    myButton.style.fontWeight = 'bold';
 
 }
 
-function setDivVisibility(gn, boxName, className) {
+function setDivVisibility(groupName, elementName) {
 
-   var idBox       = gn + "IdBox" + boxName;
-   var classBox    = gn + "ClassBox" + className;
-   var idButton    = gn + "IdButton" + boxName;
-   var classButton = gn + "ClassButton" + className;
+   var idDiv       = elementName + "Div";
+   var classDiv    = groupName   + "Div";
+   var idButton    = elementName + "Button";
+   var classButton = groupName   + "Button";
 
-   divBoxvisibility(idBox, classBox, idButton, classButton);
+   divBoxvisibility(idDiv, classDiv, idButton, classButton);
 }
 
-function setDivVisibilityAndSave(gn, boxName, className) {
+function setDivVisibilityAndSave(groupName, elementName) {
 
-   setDivVisibility(gn, boxName, className);
-   setCookie("GameBox", gn + "," + boxName + "," + className);
+   setDivVisibility(groupName, elementName);
+   setCookie("divVis" + groupName, elementName);
+
+   console.log("saving div visibility: " + groupName + "=" + elementName);
 }
 
 function loadDivVisibility() {
 
-   val = getCookie("GameBox");
-   vals = val.split(',');
-   setDivVisibility(vals[0], vals[1], vals[2]);
+   cookies = getCookies("divVis");
 
-   console.log(vals[0] + " " + vals[1] + " " + vals[2]);
+   console.log("loadDivVisibility:" + cookies);
+   for(var i=0; i<cookies.length; i++) {
+      element = cookies[i];
+      group = cookies[i].split('-')[0];
+      console.log("setting visibility: group = " + group + " element = " + element);
+      setDivVisibility(group, element);
+      
+   }
 }
 
 function setCookie(cname, cvalue) {
@@ -73,13 +80,17 @@ function setCookie(cname, cvalue) {
     document.cookie = cname + "=" + encodeURIComponent(cvalue) + "; " + expires;
 } 
 
-function getCookie(cname) {
-    var name = cname + "=";
-    var ca = document.cookie.split(';');
-    for(var i=0; i<ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0)==' ') c = c.substring(1);
-        if (c.indexOf(name) != -1) return decodeURIComponent(c.substring(name.length,c.length));
+function getCookies(cname) {
+
+    var allCookies = document.cookie.split(';');
+    console.log("getCookies:" + allCookies);
+    var results = [];
+    for(var i=0; i<allCookies.length; i++) {
+        nameValue = allCookies[i].split('=');
+        console.log("getCookies: nameValue[0]=" + nameValue[0] + " nameValue[1]=" + nameValue[1]);
+        if (nameValue[0].search(cname) != -1) {
+           results.push(nameValue[1]);
+        }
     }
-    return "";
-} 
+    return results;
+

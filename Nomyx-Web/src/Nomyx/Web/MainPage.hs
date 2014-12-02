@@ -120,16 +120,20 @@ viewGameInfo gi mpn mlr isAdmin = do
    rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g  mpn playAs isGameAdmin
-   ok $ div ! A.id (fromString $ getIdBox "" gn) ! A.class_ (fromString $ (getClassBox "" "game") ++ " game") $ do
+   ok $ div ! A.id     (fromString $ (getElementName VisGame gn) ++ "Div")
+            ! A.class_ (fromString $ ((getGroupName VisGame) ++ "Div") ++ " game") $ do
       div ! A.id "titleBar" $ do
          let attr :: String -> Attribute
-             attr name = A.id (fromString $ getIdButton gn name) <> A.class_ (fromString $ (getClassButton gn "gameBox") ++ " button") <> onclick (fromString $ divVisibility gn name "gameBox")
+             attr name = A.id     (fromString $ (getElementName (VisGameTabs gn) name) ++ "Button")
+                      <> A.class_ (fromString $ (getGroupName (VisGameTabs gn)) ++ "Button" ++ " button")
+                      <> onclick  (fromString $ setDivVisibilityAndSave (getGroupName (VisGameTabs gn)) (getElementName (VisGameTabs gn) name))
          H.a "Description "    ! attr "gameDesc" ! A.style "fontWeight:bold;"
          H.a "Rules "          ! attr "rules"
          H.a "Inputs/Outputs " ! attr "ios"
          H.a "New rule "       ! attr "newRule"
          H.a "Details "        ! attr "details"
-      let attr name = A.id (fromString $ getIdBox gn name) <> A.class_ (fromString $ (getClassBox gn "gameBox") ++ " gameBox")
+      let attr name = A.id     (fromString $ (getElementName (VisGameTabs gn) name) ++ "Div")
+                   <> A.class_ (fromString $ (getGroupName (VisGameTabs gn)) ++ "Div" ++ " gameBox")
       div ! attr "gameDesc" ! A.style "display:inline;" $ vgd
       div ! attr "rules"    ! A.style "display:none;"   $ viewAllRules g
       div ! attr "ios"      ! A.style "display:none;"   $ vios
@@ -154,7 +158,9 @@ viewGameName isAdmin mpn gi = do
    let gn = _gameName g
    let canView = isGameAdmin || _isPublic gi
    ok $ when canView $ do
-      let attr = A.id (fromString $ getIdButton "" gn) <> A.class_ (fromString $ (getClassButton "" "game") ++ " button") <> onclick (fromString $ divVisibility "" gn "game")
+      let attr = A.id     (fromString $ ((getElementName VisGame gn) ++ "Button"))
+              <> A.class_ (fromString $ ((getGroupName VisGame) ++ "Button") ++ " button")
+              <> onclick  (fromString $ setDivVisibilityAndSave (getGroupName VisGame) (getElementName VisGame gn))
       tr $ td $ H.a (fromString (gn ++ "   ")) ! (A.title $ toValue Help.view) ! attr
 
 
