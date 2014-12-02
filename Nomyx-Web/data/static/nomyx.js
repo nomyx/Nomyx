@@ -93,4 +93,5 @@ function getCookies(cname) {
         }
     }
     return results;
+}
 
