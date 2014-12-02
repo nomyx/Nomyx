@@ -145,7 +145,7 @@ data VisLevel = VisGame
               deriving (Show)
 
 getElementName :: VisLevel -> String -> String
-getElementName vs name = (getGroupName vs) ++ "-" ++ name
+getElementName vs name = (getGroupName vs) ++ "-" ++ (filter (/=' ') name)
 
 getGroupName :: VisLevel -> String
 getGroupName VisGame = "Game"
