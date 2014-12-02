@@ -136,6 +136,17 @@ viewGameInfo gi mpn mlr isAdmin = do
       div ! attr "newRule"  ! A.style "display:none;"   $ rf
       div ! attr "details"  ! A.style "display:none;"   $ viewDetails pn g
 
+data VisLevel = VisGame
+              | VisGameTabs GameName
+              deriving (Show)
+
+getElementName :: VisLevel -> String -> String
+getElementName vs name = (getGroupName vs) ++ "-" ++ (filter (/=' ') name)
+
+getGroupName :: VisLevel -> String
+getGroupName VisGame = "Game"
+getGroupName (VisGameTabs gn) = "GameTabs" ++ (filter (/=' ') gn)
+
 viewGameName :: Bool -> (Maybe PlayerNumber) -> GameInfo -> RoutedNomyxServer Html
 viewGameName isAdmin mpn gi = do
    let g = getGame gi
