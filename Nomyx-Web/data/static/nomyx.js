@@ -41,7 +41,6 @@ function divBoxvisibility(idDiv, classDiv, idButton, classButton)
 
 }
 
-//function setDivVisibility(gn, divId, divClass) {
 function setDivVisibility(groupName, elementName) {
 
    var idDiv       = elementName + "Div";
@@ -61,8 +60,6 @@ function setDivVisibilityAndSave(groupName, elementName) {
 }
 
 function loadDivVisibility() {
-
-   console.log("loadDivVisibility");
 
    cookies = getCookies("divVis");
 
