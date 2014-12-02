@@ -162,7 +162,7 @@ appTemplate' title headers body footer link = do
       H.script ! A.type_ "text/JavaScript" ! A.src "/static/nomyx.js" $ ""
    H.body ! onload "loadDivVisibility()" $ H.div ! A.id "container" $ do
       H.div ! A.id "header" $ table ! width "100%" $ tr $ do
-         td headers
+         td (p headers ! A.id "headerTitle")
          when (isJust link) $ td ! A.style "text-align:right;" $ H.a "Back to main page" ! (href $ toValue $ fromJust link)
       body
       when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012-2013"

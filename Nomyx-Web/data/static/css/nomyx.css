@@ -1,5 +1,7 @@
 h3{
-   color:#04B404;
+   color:#4D6A8A;
+   font-size: 18;
+   margin-top: 5pt;
 }
 
 #gameList {
@@ -91,8 +93,9 @@ thead {
    background-color:#F4F4F4;
    border:1px solid black;
    padding:10px;
-   width:98%;
+   width:97%;
    margin-bottom:5px;
+   margin-left:3px;
 }
 
 #showCodeLink {
@@ -118,17 +121,10 @@ thead {
 }
 
 #header {
-   border-top:1px solid silver;
-   border-bottom:1px solid silver;
-   margin-top:10px;
-   margin-bottom:10px;
-   color:gray;
-   padding-top:10px;
-   padding-bottom:5px;
-   background-color:#F4F4F4;
-   top:0;
-   position:relative;
-   width:100%;
+   background: #F4F4F4 url(/static/pictures/header-bg.jpg) repeat-x;
+   height:30pt;
+   opacity:0.7;
+   font:
 }
 
 #footer {
@@ -302,3 +298,9 @@ pre {
    padding-right: 20pt;
 }
 
+#headerTitle {
+   color: white;
+   font-size: 18;
+   font-family: verdana;
+   font-weight: bold;
+}

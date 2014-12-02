@@ -40,9 +40,8 @@ viewGameDesc g mpn playAs gameAdmin = do
    modDel <- modalDel gn logged
    let isInGame = maybe False (\pn -> pn `elem` (_playerNumber <$> _players g)) mpn
    ok $ do
-      p $ do
-        h3 $ fromString $ _gameName g
-        when (isJust playAs) $ h4 $ fromString $ "You are playing as player " ++ (show $ fromJust playAs)
+      h3 $ fromString $ _gameName g
+      when (isJust playAs) $ h4 $ fromString $ "You are playing as player " ++ (show $ fromJust playAs)
       p $ pre $ fromString (_desc $ _gameDesc g)
       p $ h4 $ "This game is discussed in the " >> a "Forum" ! (A.href $ toValue (_forumURL $ _gameDesc g)) >> "."
       p $ h4 "Players in game:"
