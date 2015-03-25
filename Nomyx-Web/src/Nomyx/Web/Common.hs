@@ -216,7 +216,7 @@ appendAnchor :: Text -> Text -> Text
 appendAnchor url a = url `append` "#" `append` a
 
 displayCode :: String -> Html
-displayCode s = preEscapedToHtml $ hscolour defaultColourPrefs False s
+displayCode s = preEscapedToHtml $ hscolour defaultColourPrefs False 0 s
 
 getGame :: GameInfo -> Game
 getGame = _game . _loggedGame

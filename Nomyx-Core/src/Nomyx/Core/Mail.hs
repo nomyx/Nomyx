@@ -48,7 +48,7 @@ newRuleHtmlBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ 
    (toHtml $ "a new rule has been proposed by player " ++ prop ++ ".") >> H.br
    (toHtml $ "Name: " ++ name) >> H.br
    (toHtml $ "Description: " ++ desc) >> H.br
-   (toHtml $ "Code: ") >> H.br >> (preEscapedToHtml $ HSC.hscolour defaultColourPrefs False code) >> H.br >> H.br
+   (toHtml $ "Code: ") >> H.br >> (preEscapedToHtml $ HSC.hscolour defaultColourPrefs False 0 code) >> H.br >> H.br
    (toHtml $ "Please login into Nomyx for actions on this rule:") >> H.br
    (toHtml $ nomyxURL net ++ "/Nomyx") >> H.br >> H.br
    (toHtml $ "You received this mail because you subscribed to Nomyx. To stop receiving mails, login to Nomyx with the above address, go to Settings and uncheck the corresponding box.") >> H.br
