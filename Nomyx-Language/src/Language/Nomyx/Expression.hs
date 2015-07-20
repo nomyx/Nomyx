@@ -19,7 +19,7 @@ import Data.Typeable
 import Data.Time
 import GHC.Generics
 import Control.Applicative hiding (Const)
-import Data.Lens.Template
+import Control.Lens
 import Control.Monad.Error
 import Control.Shortcut
 import System.Random
@@ -314,5 +314,8 @@ instance (Typeable a, Typeable b) => Show (a -> b) where
     show e = '<' : (show . typeOf) e ++ ">"
 
 
-$( makeLenses [''RuleInfo, ''PlayerInfo, ''EventInfo, ''SignalOccurence] )
+makeLenses ''RuleInfo
+makeLenses ''PlayerInfo
+makeLenses ''EventInfo
+makeLenses ''SignalOccurence
 

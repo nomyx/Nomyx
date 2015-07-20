@@ -187,7 +187,7 @@ showOnGoingVote :: [(PlayerNumber, Maybe Bool)] -> RuleNumber -> UTCTime -> Nome
 showOnGoingVote [] rn _ = return $ "Nobody voted yet for rule #" ++ (show rn) ++ "."
 showOnGoingVote listVotes rn endTime = do
    list <- mapM showVote listVotes
-   let timeString = formatTime defaultTimeLocale "on %d/%m at %H:%M UTC" endTime
+   let timeString = formatTime Data.Time.defaultTimeLocale "on %d/%m at %H:%M UTC" endTime
    return $ "Votes for rule #" ++ (show rn) ++ ", finishing " ++ timeString ++ "\n" ++
             concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
 

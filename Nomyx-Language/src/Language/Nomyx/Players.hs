@@ -36,7 +36,7 @@ import Language.Nomyx.Variables
 import Language.Nomyx.Rules
 import Data.Typeable
 import Data.List
-import Data.Lens
+import Control.Lens
 import Control.Applicative
 import Control.Arrow
 import Control.Monad
@@ -52,7 +52,7 @@ getPlayers = GetPlayers
 getPlayer :: PlayerNumber -> NomexNE (Maybe PlayerInfo)
 getPlayer pn = do
    pls <- GetPlayers
-   return $ find ((== pn) . getL playerNumber) pls
+   return $ find (\a -> a ^. playerNumber == pn) pls
 
 -- | Get the name of a player
 getPlayerName :: PlayerNumber -> NomexNE (Maybe PlayerName)

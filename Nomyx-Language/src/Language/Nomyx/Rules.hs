@@ -37,7 +37,7 @@ import Language.Nomyx.Expression
 import Language.Nomyx.Events
 import Language.Nomyx.Variables
 import Language.Nomyx.Outputs
-import Data.Lens
+import Control.Lens
 import Control.Monad
 import Data.List
 import Data.Maybe
@@ -69,7 +69,7 @@ getActiveRules = filter ((== Active) . _rStatus) <$> getRules
 getRule :: RuleNumber -> NomexNE (Maybe RuleInfo)
 getRule rn = do
    rs <- GetRules
-   return $ find ((== rn) . getL rNumber) rs
+   return $ find (\a -> a ^. rNumber == rn) rs
 
 getRulesByNumbers :: [RuleNumber] -> NomexNE [RuleInfo]
 getRulesByNumbers rns = mapMaybeM getRule rns
@@ -139,7 +139,7 @@ autoDelete = liftEffect getSelfRuleNumber >>= suppressRule_
 eraseAllRules :: PlayerNumber -> Nomex Bool
 eraseAllRules p = do
     rs <- liftEffect $ getRules
-    let myrs = filter ((== p) . getL rProposedBy) rs
+    let myrs = filter (\a -> a ^. rProposedBy == p) rs
     res <- mapM (suppressRule . _rNumber) myrs
     return $ and res
 
