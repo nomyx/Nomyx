@@ -5,11 +5,12 @@ module Data.Todo where
 import Control.Applicative
 import Data.Typeable
 
+-- A todo list of things left to be done before obtaining a result.
 data Todo a b = Todo [a] | Done b
    deriving (Eq, Ord, Read, Show, Typeable)
 
 instance Alternative (Todo a) where
-   empty             = Todo []
+   empty               = Todo []
    Todo as <|> Todo bs = Todo $ as ++ bs
    Todo _  <|> n       = n
    m       <|> _       = m
