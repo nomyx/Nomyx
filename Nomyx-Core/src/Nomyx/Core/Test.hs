@@ -12,16 +12,16 @@ import Control.Applicative
 import Control.Monad.State
 import Control.Exception as E
 import Control.Arrow ((>>>))
+import Control.Lens
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax as THS hiding (lift)
 import System.IO.Unsafe
-import Data.Lens
 import Data.List
 import Data.Maybe
 import Data.Acid.Memory
 import Data.Time hiding (getCurrentTime)
-import Happstack.Auth.Core.Auth (initialAuthState)
-import Happstack.Auth.Core.Profile (initialProfileState)
+import Happstack.Authenticate.Core (initialAuthenticateState)
+--import Happstack.Auth.Core.Profile (initialProfileState)
 import Paths_Nomyx_Core as PNC
 import System.IO.Temp
 import System.FilePath ((</>))
@@ -98,10 +98,10 @@ testException m e = do
 
 testProfiles :: IO Profiles
 testProfiles = do
-   ias  <- openMemoryState initialAuthState
-   ips  <- openMemoryState initialProfileState
+   ias  <- openMemoryState initialAuthenticateState
+   --ips  <- openMemoryState initialProfileState
    ipds <- openMemoryState initialProfileDataState
-   return $ Profiles ias ips ipds
+   return $ Profiles ias ipds
 
 printRule :: Q THS.Exp -> String
 printRule r = unsafePerformIO $ do
@@ -123,13 +123,13 @@ twoPlayersOneGame = do
 submitR :: String -> StateT Session IO ()
 submitR r = do
    onePlayerOneGame
-   sh <- access sh
+   sh <- use sh
    submitRule (SubmitRule "" "" r) 1 "test" sh
    inputAllRadios 0
 
 testFile' :: FilePath -> FilePath -> String -> StateT Session IO Bool
 testFile' path name func = do
-   sh <- access sh
+   sh <- use sh
    dataDir <- lift PNC.getDataDir
    res <- inputUpload 1 (dataDir </> testDir </> path) name sh
    submitRule (SubmitRule "" "" func) 1 "test" sh
@@ -152,7 +152,7 @@ condHelloWorld = isOutput' "hello, world!"
 gameHelloWorld2Players :: StateT Session IO ()
 gameHelloWorld2Players = do
    twoPlayersOneGame
-   sh <- access sh
+   sh <- use sh
    submitRule (SubmitRule "" "" [cr|helloWorld|]) 1 "test" sh
    inputAllRadios 0
 
@@ -163,7 +163,7 @@ condHelloWorld2Players = isOutput' "hello, world!"
 --TODO fix the text input
 gameMoneyTransfer :: StateT Session IO ()
 gameMoneyTransfer = do
-   sh <- access sh
+   sh <- use sh
    twoPlayersOneGame
    submitRule (SubmitRule "" "" [cr|createBankAccounts|]) 1 "test" sh
    submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 "test" sh
@@ -191,9 +191,9 @@ gamePartialFunction2 :: StateT Session IO ()
 gamePartialFunction2 = do
    onePlayerOneGame
    submitR partialFunction2
-   gs <- (access $ multi >>> gameInfos)
+   gs <- (use $ multi . gameInfos)
    let now = _currentTime $ G._game $ _loggedGame $ head gs
-   focus multi $ triggerTimeEvent (5 `addUTCTime` now)
+   zoom multi $ triggerTimeEvent (5 `addUTCTime` now)
 
 
 -- rule has not been accepted due to exception

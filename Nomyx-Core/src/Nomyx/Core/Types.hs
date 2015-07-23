@@ -6,9 +6,9 @@ module Nomyx.Core.Types where
 
 import Network.BSD
 import Language.Haskell.Interpreter.Server (ServerHandle)
-import Happstack.Auth (ProfileState, AuthState)
+import Happstack.Authenticate.Core (AuthenticateState)
 import Data.Typeable
-import Data.Lens.Template
+import Control.Lens
 import Data.Acid (AcidState)
 import Data.Data (Data)
 import Data.IxSet (inferIxSet, noCalcs)
@@ -104,8 +104,8 @@ $(deriveSafeCopy 1 'base ''ProfileDataState)
 
 -- | 'Acid' holds all the 'AcidState' handles for this site.
 data Profiles = Profiles
-    { acidAuth        :: AcidState AuthState,
-      acidProfile     :: AcidState ProfileState,
+    { acidAuth        :: AcidState AuthenticateState,
+    --  acidProfile     :: AcidState ProfileState,
       acidProfileData :: AcidState ProfileDataState}
 
 data Session = Session { _sh :: ServerHandle,
@@ -115,5 +115,10 @@ data Session = Session { _sh :: ServerHandle,
 instance Show Session where
    show (Session _ m _) = show m
 
-$( makeLenses [''Multi, ''GameInfo, ''Settings, ''Network, ''PlayerSettings, ''Session, ''ProfileData] )
-
+makeLenses ''Multi
+makeLenses ''GameInfo
+makeLenses ''Settings
+makeLenses ''Network
+makeLenses ''PlayerSettings
+makeLenses ''Session
+makeLenses ''ProfileData

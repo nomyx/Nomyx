@@ -32,13 +32,13 @@ library
                    Boolean            == 0.2.*,
                    base               >= 4.6 && < 5,
                    containers         == 0.5.*,
-                   lens               == 4.11.*,
+                   lens               >= 4.7 && < 4.13,
                    ghc                >= 7.6 && < 7.11,
-                   mtl                == 2.2.*,
+                   mtl                >= 2.1 && < 2.3,
                    old-locale         == 1.0.*,
                    random             == 1.1.*,
                    safe               == 0.3.*,
-                   time               == 1.5.*,
+                   time               >= 1.4 && < 1.6,
                    time-recurrence    == 0.9.*
     exposed-modules: Language.Nomyx
                      Language.Nomyx.Expression

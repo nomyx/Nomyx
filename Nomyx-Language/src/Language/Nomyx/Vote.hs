@@ -4,7 +4,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GADTs #-}
-    
+{-# LANGUAGE CPP #-}
+
 -- | Voting system
 module Language.Nomyx.Vote where
 
@@ -116,7 +117,7 @@ unanimity voteStats = voteQuota (nbVoters voteStats) voteStats
 -- | assess the vote results according to an absolute majority (half voters plus one)
 majority :: AssessFunction
 majority voteStats = voteQuota ((nbVoters voteStats) `div` 2 + 1) voteStats
-                       
+
 -- | assess the vote results according to a majority of x (in %)
 majorityWith :: Int -> AssessFunction
 majorityWith x voteStats = voteQuota ((nbVoters voteStats) * x `div` 100 + 1) voteStats
@@ -183,11 +184,17 @@ getBooleanResult (pn, SomeData sd) = case (cast sd) of
    Just a  -> (pn, a)
    Nothing -> error "incorrect vote field"
 
+#if MIN_VERSION_time(1,5,0)
+myDefaultTimeLocale = Data.Time.defaultTimeLocale
+#else
+myDefaultTimeLocale = System.Locale.defaultTimeLocale
+#endif
+
 showOnGoingVote :: [(PlayerNumber, Maybe Bool)] -> RuleNumber -> UTCTime -> NomexNE String
 showOnGoingVote [] rn _ = return $ "Nobody voted yet for rule #" ++ (show rn) ++ "."
 showOnGoingVote listVotes rn endTime = do
    list <- mapM showVote listVotes
-   let timeString = formatTime Data.Time.defaultTimeLocale "on %d/%m at %H:%M UTC" endTime
+   let timeString = formatTime myDefaultTimeLocale "on %d/%m at %H:%M UTC" endTime
    return $ "Votes for rule #" ++ (show rn) ++ ", finishing " ++ timeString ++ "\n" ++
             concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
 

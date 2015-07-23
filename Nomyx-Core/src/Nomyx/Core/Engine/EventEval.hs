@@ -10,7 +10,7 @@ import Control.Monad.State
 import Control.Monad.Reader
 import Data.List
 import Data.Typeable
-import Data.Lens
+import Control.Lens
 import Data.Maybe
 import Data.Todo
 import Data.Either
@@ -29,7 +29,7 @@ import Safe
 -- trigger an event
 triggerEvent :: (Typeable e, Show e) => Signal e -> e -> Evaluate ()
 triggerEvent s dat = do
-   evs <- access (eGame >>> events)
+   evs <- use (eGame . events)
    triggerEvent' (SignalData s dat) Nothing evs
 
 -- trigger some specific signal
@@ -37,7 +37,7 @@ triggerEvent' :: SignalData -> Maybe SignalAddress -> [EventInfo] -> Evaluate ()
 triggerEvent' sd msa evs = do
    let evs' = sortBy (compare `on` _ruleNumber) evs
    eids <- mapM (liftEval . (getUpdatedEventInfo sd msa)) evs'  -- get all the EventInfos updated with the field
-   (eGame >>> events) %= union (map fst eids)                   -- store them
+   (eGame . events) %= union (map fst eids)                   -- store them
    void $ mapM triggerIfComplete eids                           -- trigger the handlers for completed events
 
 -- if the event is complete, trigger its handler
@@ -60,10 +60,10 @@ getUpdatedEventInfo sd@(SignalData signal _) addr ei@(EventInfo _ _ ev _ _ envi)
             let envi' = (SignalOccurence sd sa) : envi
             er <- getEventResult ev envi'                                                           -- add our event to the environment and get the result
             return $ case er of
-               Todo _ -> (env ^=  envi' $ ei, Nothing)                                              -- some other signals are left to complete: add ours in the environment
-               Done a -> (env ^=  [] $ ei, Just $ SomeData a)                                       -- event complete: return the final data result
+               Todo _ -> (env .~ envi' $ ei, Nothing)                                              -- some other signals are left to complete: add ours in the environment
+               Done a -> (env .~  [] $ ei, Just $ SomeData a)                                       -- event complete: return the final data result
          Nothing -> return (ei, Nothing)                                                            -- our signal does not belong to this event.
-      Done a -> return (env ^=  [] $ ei, Just $ SomeData a)
+      Done a -> return (env .~  [] $ ei, Just $ SomeData a)
 
 --get the signals left to be completed in an event
 getRemainingSignals' :: EventInfo -> EvaluateNE [(SignalAddress, SomeSignal)]
@@ -110,8 +110,8 @@ getEventResult' (ShortcutEvents es f) ers fa = do
 -- trigger the input form with the input data
 triggerInput :: FormField -> InputData -> SignalAddress -> EventNumber -> Evaluate ()
 triggerInput ff id sa en = do
-   evs <- access (eGame >>> events)
-   let mei = find ((== en) . getL eventNumber) evs
+   evs <- use (eGame . events)
+   let mei = find (\a -> a ^. eventNumber == en) evs
    when (isJust mei) $ triggerInputSignal id sa ff (fromJust mei)
 
 -- trigger the input signal with the input data

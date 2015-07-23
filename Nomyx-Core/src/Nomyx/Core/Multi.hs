@@ -5,10 +5,10 @@
 module Nomyx.Core.Multi where
 
 import Language.Haskell.Interpreter.Server (ServerHandle)
-import Data.Lens
 import Data.List
 import Data.Time as T
 import Control.Exception
+import Control.Lens
 import Control.Monad.State
 import Control.Applicative
 import Control.Category hiding ((.))
@@ -22,9 +22,9 @@ import System.Random
 
 triggerTimeEvent :: UTCTime -> StateT Multi IO ()
 triggerTimeEvent t = do
-   gs <- access gameInfos
+   gs <- use gameInfos
    gs' <- lift $ mapM (trig' t) gs
-   void $ gameInfos ~= gs'
+   gameInfos .= gs'
 
 trig' :: UTCTime -> GameInfo -> IO GameInfo
 trig' t gi = do
@@ -60,7 +60,7 @@ rVoteMajority = SubmitRule "Majority Vote"
 
 
 initialGame :: ServerHandle -> StateT GameInfo IO ()
-initialGame sh = focus loggedGame $ mapM_ addR [rVoteUnanimity, rVictory5Rules]
+initialGame sh = zoom loggedGame $ mapM_ addR [rVoteUnanimity, rVictory5Rules]
    where addR r = execGameEvent' (Just $ getRuleFunc sh) (SystemAddRule r)
 
 initialGameInfo :: GameName -> GameDesc -> Bool -> Maybe PlayerNumber -> UTCTime -> ServerHandle -> IO GameInfo
@@ -80,16 +80,15 @@ defaultMulti = Multi []
 -- | finds the corresponding game in the multistate and replaces it.
 modifyGame :: GameInfo -> StateT Multi IO ()
 modifyGame gi = do
-   gs <- access gameInfos
+   gs <- use gameInfos
    case find (== gi) gs of
       Nothing -> error "modifyGame: No game by that name"
       Just oldg -> do
          let newgs = replace oldg gi gs
-         gameInfos ~= newgs
-         return ()
+         gameInfos .= newgs
 
 execWithMulti :: UTCTime -> StateT Multi IO () -> Multi -> IO Multi
 execWithMulti t ms m = do
-   let setTime g = (loggedGame >>> game >>> currentTime) ^= t $ g
-   let m' = gameInfos `modL` (map setTime) $ m
+   let setTime g = (loggedGame . game . currentTime) .~ t $ g
+   let m' = over gameInfos (map setTime) m
    execStateT ms m'

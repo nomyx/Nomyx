@@ -14,7 +14,7 @@ import qualified System.Posix.Signals as S
 #endif
 import System.IO
 import System.IO.PlafCompat
-import Data.Lens
+import Control.Lens
 import Data.Maybe
 import Control.Monad.State
 import Control.Exception
@@ -31,7 +31,7 @@ profilesDir = "profiles"
 uploadDir   = "uploads"
 testDir     = "test"
 tarFile     = "Nomyx.tar"
-   
+
 -- | this function will return just a if it can cast it to an a.
 maybeRead :: Read a => String -> Maybe a
 maybeRead = fmap fst . listToMaybe . reads
@@ -158,7 +158,5 @@ watchDog n tid mvar = do
    threadDelay 1000000 --give some time to kill the thread
    putMVar mvar Nothing
 
-gameNameLens :: Lens GameInfo GameName
-gameNameLens = loggedGame >>> game >>> gameName
-
-
+gameNameLens :: Lens' GameInfo GameName
+gameNameLens = loggedGame . game . gameName

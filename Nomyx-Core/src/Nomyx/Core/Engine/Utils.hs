@@ -6,9 +6,10 @@ module Nomyx.Core.Engine.Utils(
    traceData,
    parse822Time,
    sndMaybe,
-   mapStateIO, 
+   mapStateIO,
    getFreeNumber,
    sel,
+   getL,
    module Debug.Trace) where
 
 import Data.Time
@@ -19,6 +20,7 @@ import System.Locale (rfc822DateFormat, defaultTimeLocale)
 import Control.Monad.State
 import Control.Monad.Identity
 import Debug.Trace (trace)
+import Control.Lens hiding (runIdentity)
 
 -- | an equality that tests also the types.
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
@@ -58,3 +60,5 @@ sel :: [a]   -- ^ List of indices to select
     -> [a]   -- ^ List composed of elements selected from original set by indices provided
 sel xs is = map (\i -> xs!!i) is
 
+getL :: Getting a s a -> s -> a
+getL = flip (^.)

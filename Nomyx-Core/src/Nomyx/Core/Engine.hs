@@ -51,7 +51,8 @@ module Nomyx.Core.Engine(
    replaceWith,
    getChoiceEvents,
    getTextEvents,
-   runEvaluate
+   runEvaluate,
+   getL
    ) where
 
 import Nomyx.Core.Engine.Evaluation
@@ -60,4 +61,3 @@ import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.GameEvents
 import Nomyx.Core.Engine.Utils
 import Nomyx.Core.Engine.Test
-

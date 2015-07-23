@@ -17,11 +17,11 @@ import Nomyx.Core.Engine.EventEval
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
 import Control.Monad.State
-import Data.Lens
 import Data.Typeable
 import Data.Function hiding ((.))
 import Data.Maybe
 import Control.Applicative
+import Control.Lens
 import Control.Category hiding ((.))
 import Control.Shortcut
 import System.Random
@@ -461,8 +461,8 @@ testDoubleEventEx = isOutput "coco2" testDoubleEvent2PlayerArrive
 --Get all event numbers of type choice (radio button)
 getChoiceEvents :: State EvalEnv [(EventNumber, SignalAddress, PlayerNumber, String)]
 getChoiceEvents = do
-   evs <- access (eGame >>> events)
-   g <- access eGame
+   evs <- use (eGame . events)
+   g <- use eGame
    return $ [(_eventNumber ev, fa, pn, t) | ev <- evs, (fa, pn, t) <- getInputChoices ev g]
 
 getInputChoices :: EventInfo -> Game -> [(SignalAddress, PlayerNumber, String)]
@@ -474,7 +474,7 @@ getInputChoices ei g = mapMaybe isInput (getRemainingSignals ei g) where
 --Get all event numbers of type text (text field)
 getTextEvents :: State Game [(EventNumber, SignalAddress)]
 getTextEvents = do
-   evs <- access events
+   evs <- use events
    g <- get
    return $ [(_eventNumber ev, fa) | ev <- evs, fa <- getInputTexts ev g]
 
@@ -486,10 +486,10 @@ getInputTexts ei g = mapMaybe isInput (getRemainingSignals ei g) where
 
 addPlayer :: PlayerInfo -> Evaluate Bool
 addPlayer pi = do
-   pls <- access (eGame >>> players)
+   pls <- use (eGame . players)
    let exists = any (((==) `on` _playerNumber) pi) pls
    unless exists $ do
-       (eGame >>> players) %= (pi:)
+       (eGame . players) %= (pi:)
        triggerEvent (Player Arrive) pi
    return $ not exists
 

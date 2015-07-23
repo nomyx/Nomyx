@@ -5,7 +5,6 @@ module Nomyx.Core.Serialize where
 
 import Prelude hiding (log, (.))
 import Language.Haskell.Interpreter.Server
-import Data.Lens
 import Data.Aeson.TH
 import Data.Aeson
 import Data.Time.Clock.POSIX
@@ -13,6 +12,7 @@ import qualified Data.ByteString.Lazy.Char8 as BL
 import Control.Monad.State
 import Control.Applicative
 import Control.Category
+import Control.Lens  hiding ((.=))
 import Language.Nomyx hiding (getCurrentTime)
 import Nomyx.Core.Types
 import Nomyx.Core.Utils
@@ -35,11 +35,11 @@ load fp = do
       Right a -> return a
 
 loadMulti :: Settings -> ServerHandle -> IO Multi
-loadMulti set sh = do
-   m <- load (getSaveFile set)
+loadMulti s sh = do
+   m <- load (getSaveFile s)
    gs' <- mapM (updateGameInfo $ getRuleFunc sh) $ _gameInfos m
-   let m' = gameInfos `setL` gs' $ m
-   let m'' = mSettings `setL` set $ m'
+   let m' = set gameInfos gs' m
+   let m'' = set mSettings s m'
    return m''
 
 updateGameInfo :: (RuleCode -> IO Rule) -> GameInfo -> IO GameInfo
@@ -86,4 +86,3 @@ $(deriveJSON defaultOptions ''InputData)
 $(deriveJSON defaultOptions ''SubmitRule)
 $(deriveJSON defaultOptions ''GameDesc)
 $(deriveJSON defaultOptions ''StdGen)
-

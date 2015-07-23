@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE MultiParamTypeClasses #-} 
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE EmptyDataDecls #-}
@@ -122,7 +122,7 @@ instance Typeable a => Show (Exp Effect a) where
 instance Monad (Exp a) where
    return = Return
    (>>=) = Bind
-   
+
 instance Functor (Exp a) where
    fmap f e = Bind e $ Return . f
 
@@ -229,6 +229,7 @@ data EventInfo = forall e. (Typeable e, Show e) =>
               _evStatus    :: Status,
               _env         :: [SignalOccurence]}
 
+
 data SignalAddressElem = SumR | SumL | AppR | AppL | BindR | BindL | Shortcut deriving (Show, Read, Ord, Eq, Generic)
 type SignalAddress = [SignalAddressElem]
 
@@ -257,10 +258,10 @@ instance Ord EventInfo where
 
 -- | Type of a rule function.
 type Rule = Nomex ()
-  
+
 -- | An informationnal structure about a rule
 data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the rule (must be unique)
-                           _rName        :: RuleName,         -- short name of the rule 
+                           _rName        :: RuleName,         -- short name of the rule
                            _rDescription :: String,           -- description of the rule
                            _rProposedBy  :: PlayerNumber,     -- player proposing the rule
                            _rRuleCode    :: Code,             -- code of the rule as a string
@@ -280,7 +281,7 @@ data RuleStatus = Active      -- Active rules forms the current Constitution
                 | Pending     -- Proposed rules
                 | Reject      -- Rejected rules
                 deriving (Eq, Show, Typeable)
-          
+
 -- * Player
 
 -- | informations on players
@@ -318,4 +319,16 @@ makeLenses ''RuleInfo
 makeLenses ''PlayerInfo
 makeLenses ''EventInfo
 makeLenses ''SignalOccurence
+
+eventNumber :: Lens' EventInfo EventNumber
+eventNumber f (EventInfo e rn ev h evs env) = fmap (\e' -> (EventInfo e' rn ev h evs env)) (f e)
+
+ruleNumber :: Lens' EventInfo RuleNumber
+ruleNumber f (EventInfo e rn ev h evs env) = fmap (\rn' -> (EventInfo e rn' ev h evs env)) (f rn)
+
+evStatusNumber :: Lens' EventInfo Status
+evStatusNumber f (EventInfo e rn ev h evs env) = fmap (\evs' -> (EventInfo e rn ev h evs' env)) (f evs)
+
+env :: Lens' EventInfo [SignalOccurence]
+env f (EventInfo e rn ev h evs env) = fmap (\env' -> (EventInfo e rn ev h evs env')) (f env)
 

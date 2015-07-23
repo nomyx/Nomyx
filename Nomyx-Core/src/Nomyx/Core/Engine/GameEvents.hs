@@ -12,9 +12,8 @@ import Nomyx.Core.Engine.Evaluation
 import Nomyx.Core.Engine.EventEval
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
-import Data.Lens
+import Control.Lens
 import Control.Category ((>>>))
-import Data.Lens.Template
 import Control.Exception as E
 import Data.Time
 import Data.Maybe
@@ -42,7 +41,7 @@ instance Eq LoggedGame where
 instance Ord LoggedGame where
    compare (LoggedGame {_game=g1}) (LoggedGame {_game=g2}) = compare g1 g2
 
-$( makeLens ''LoggedGame)
+makeLenses ''LoggedGame
 
 -- | perform a game event
 enactEvent :: GameEvent -> Maybe (RuleCode -> IO Rule) -> StateT Game IO ()
@@ -58,7 +57,7 @@ enactEvent (SystemAddRule _) Nothing          = error "SystemAddRule: interprete
 
 enactTimedEvent :: Maybe (RuleCode -> IO Rule) -> TimedEvent -> StateT Game IO ()
 enactTimedEvent inter (TimedEvent t ge) = flip stateCatch updateError $ do
-   currentTime ~= t
+   currentTime .= t
    enactEvent ge inter
    lg <- get
    lift $ evaluate lg
@@ -74,10 +73,10 @@ execGameEvent = execGameEvent' Nothing
 
 execGameEvent' :: Maybe (RuleCode -> IO Rule) -> GameEvent -> StateT LoggedGame IO ()
 execGameEvent' inter ge = do
-   t <- access (game >>> currentTime)
+   t <- use (game . currentTime)
    let te = TimedEvent t ge
    gameLog %= \gl -> gl ++ [te]
-   focus game $ enactTimedEvent inter te
+   zoom game $ enactTimedEvent inter te
 
 getLoggedGame :: Game -> (RuleCode -> IO Rule) -> [TimedEvent] -> IO LoggedGame
 getLoggedGame g mInter tes = do
@@ -115,14 +114,14 @@ proposeRule sr pn inter = do
 systemAddRule :: SubmitRule -> (RuleCode -> IO Rule) -> StateT Game IO ()
 systemAddRule sr inter = do
    rule <- createRule sr 0 inter
-   let sysRule = (rStatus ^= Active) >>> (rAssessedBy ^= Just 0)
+   let sysRule = (rStatus .~ Active) >>> (rAssessedBy .~ Just 0)
    rules %= (sysRule rule : )
    mapStateIO $ runEvalError (_rNumber rule) Nothing $ evalNomex (_rRule rule)
 
 -- | insert a log message.
 logGame :: String -> Maybe PlayerNumber -> State Game ()
 logGame s mpn = do
-   time <- access currentTime
+   time <- use currentTime
    void $ logs %= (Log mpn time s : )
 
 -- | the user has provided an input result
@@ -145,10 +144,10 @@ getTime _                    = Nothing
 -- | A helper function to run the game state.
 -- It additionally sets the current time.
 execWithGame :: UTCTime -> State LoggedGame () -> LoggedGame -> LoggedGame
-execWithGame t gs g = execState gs $ (game >>> currentTime) `setL` t $ g
+execWithGame t gs g = execState gs $ set (game . currentTime) t g
 
 execWithGame' :: UTCTime -> StateT LoggedGame IO () -> LoggedGame -> IO LoggedGame
-execWithGame' t gs g = execStateT gs ((game >>> currentTime) `setL` t $ g)
+execWithGame' t gs g = execStateT gs $ set (game . currentTime) t g
 
 
 activeRules :: Game -> [RuleInfo]
@@ -163,7 +162,7 @@ rejectedRules = sort . filter ((==Reject) . getL rStatus) . _rules
 
 createRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO Rule) -> StateT Game IO RuleInfo
 createRule (SubmitRule name desc code) pn inter = do
-   rs <- access rules
+   rs <- use rules
    let rn = getFreeNumber $ map _rNumber rs
    rf <- lift $ inter code
    tracePN pn $ "Creating rule n=" ++ show rn ++ " code=" ++ code

@@ -10,12 +10,12 @@ import Control.Monad.Reader
 import Data.List
 import Data.Typeable
 import Data.Time
-import Data.Lens
 import Data.Maybe
 import Data.Todo
 import Control.Category hiding (id)
 import Control.Applicative
 import Control.Monad.Error
+import Control.Lens
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Types hiding (_vRuleNumber)
 import Nomyx.Core.Engine.EventEval
@@ -107,7 +107,7 @@ evSendMessage (Msg id) d = triggerEvent (Message (Msg id)) d
 evProposeRule :: RuleInfo -> Evaluate Bool
 evProposeRule rule = do
    (rs, _) <- accessGame rules
-   case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
+   case find (\a -> (rule ^. rNumber) == (a ^. rNumber)) rs of
       Nothing -> do
          modifyGame rules (rule:)
          triggerEvent (RuleEv Proposed) rule
@@ -144,7 +144,7 @@ evRejectRule rn = do
 evAddRule :: RuleInfo -> Evaluate Bool
 evAddRule rule = do
    (rs, _) <- accessGame rules
-   case find ((== (rNumber ^$ rule)) . getL rNumber) rs of
+   case find (\a -> (rule ^. rNumber) == (a ^. rNumber)) rs of
       Nothing -> do
          modifyGame rules (rule:)
          triggerEvent (RuleEv Added) rule
@@ -165,20 +165,20 @@ evModifyRule rn rule = do
 
 evDelPlayer :: PlayerNumber -> Evaluate Bool
 evDelPlayer pn = do
-   g <- access eGame
+   g <- use eGame
    case find ((== pn) . getL playerNumber) (_players g) of
       Nothing -> do
          tracePN pn "not in game!"
          return False
       Just pi -> do
-         modifyGame players $ filter ((/= pn) . getL playerNumber)
+         modifyGame players $ filter (\a -> a ^. playerNumber /= pn)
          triggerEvent (Player Leave) pi
          tracePN pn $ "leaving the game: " ++ _gameName g
          return True
 
 evChangeName :: PlayerNumber -> PlayerName -> Evaluate Bool
 evChangeName pn name = do
-   pls <- access (eGame >>> players)
+   pls <- use (eGame . players)
    case find ((== pn) . getL playerNumber) pls of
       Nothing -> return False
       Just pi -> do
@@ -187,7 +187,7 @@ evChangeName pn name = do
 
 evDelEvent :: EventNumber -> Evaluate Bool
 evDelEvent en = do
-   evs <- access (eGame >>> events)
+   evs <- use (eGame . events)
    case find ((== en) . getL eventNumber) evs of
       Nothing -> return False
       Just eh -> case _evStatus eh of
@@ -226,7 +226,7 @@ evUpdateOutput on s = do
 
 evDelOutput :: OutputNumber -> Evaluate Bool
 evDelOutput on = do
-   ops <- access (eGame >>> outputs)
+   ops <- use (eGame . outputs)
    case find ((== on) . getL outputNumber) ops of
       Nothing -> return False
       Just o -> case _oStatus o of
@@ -237,7 +237,7 @@ evDelOutput on = do
 
 evSetVictory :: NomexNE [PlayerNumber] -> Evaluate ()
 evSetVictory ps = do
-   rn <- access eRuleNumber
+   rn <- use eRuleNumber
    putGame victory (Just $ VictoryInfo rn ps)
    triggerEvent Victory (VictoryInfo rn ps)
 
@@ -253,7 +253,7 @@ evReadVar (V name) = do
 
 evGetRandomNumber :: Random a => (a, a) -> Evaluate a
 evGetRandomNumber r = do
-   g <- access (eGame >>> randomGen)
+   g <- use (eGame . randomGen)
    let (a, g') = randomR r g
    putGame randomGen g'
    return a
@@ -283,27 +283,27 @@ allOutputs g = map (evalOutput g) (_outputs g)
 
 --delete all variables of a rule
 delVarsRule :: RuleNumber -> Evaluate ()
-delVarsRule rn = void $ (eGame >>> variables) %= filter ((/= rn) . getL vRuleNumber)
+delVarsRule rn = void $ (eGame . variables) %= filter ((/= rn) . getL vRuleNumber)
 
 --delete all events of a rule
 delEventsRule :: RuleNumber -> Evaluate ()
 delEventsRule rn = do
-   evs <- access (eGame >>> events)
+   evs <- use (eGame . events)
    let toDelete = filter ((== rn) . getL ruleNumber) evs
    mapM_ (evDelEvent . _eventNumber) toDelete
 
 --delete all outputs of a rule
 delOutputsRule :: RuleNumber -> Evaluate ()
 delOutputsRule rn = do
-   os <- access (eGame >>> outputs)
+   os <- use (eGame . outputs)
    let toDelete = filter ((== rn) . getL oRuleNumber) os
    mapM_ (evDelOutput . _outputNumber) toDelete
 
 --delete victory of a rule
 delVictoryRule :: RuleNumber -> Evaluate ()
 delVictoryRule rn = do
-   vic <- access (eGame >>> victory)
-   when (isJust vic && _vRuleNumber (fromJust vic) == rn) $ void $ (eGame >>> victory) ~= Nothing
+   vic <- use (eGame . victory)
+   when (isJust vic && _vRuleNumber (fromJust vic) == rn) $ (eGame . victory) .= Nothing
 
 --extract the game state from an Evaluate
 --knowing the rule number performing the evaluation (0 if by the system)

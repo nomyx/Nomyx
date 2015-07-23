@@ -12,7 +12,7 @@ module Nomyx.Core.Engine.Types where
 
 import Prelude hiding (log)
 import Language.Nomyx.Expression
-import Data.Lens.Template
+import Control.Lens
 import Data.Time
 import Data.Typeable
 import Data.Data
@@ -87,8 +87,16 @@ data Var = forall a . (Typeable a, Show a) =>
          _vName       :: String,
          vData        :: a}
 
+vRuleNumber :: Lens' Var RuleNumber
+vRuleNumber f (Var vr vn vd) = fmap (\vr' -> (Var vr' vn vd)) (f vr)
+
+vName :: Lens' Var String
+vName f (Var vr vn vd) = fmap (\vn' -> (Var vr vn' vd)) (f vn)
+
 instance Show Var where
    show (Var a b c) = "Rule number = " ++ (show a) ++ ", Name = " ++ (show b) ++ ", Value = " ++ (show c) ++ "\n"
+
+
 
 -- * Events
 
@@ -136,9 +144,8 @@ data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
 data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
 
 
-$( makeLenses [''Game, ''GameDesc, ''Var, ''Output, ''EvalEnv] )
-
-
-
-
-
+makeLenses ''Game
+makeLenses ''GameDesc
+makeLenses ''Var
+makeLenses ''Output
+makeLenses ''EvalEnv

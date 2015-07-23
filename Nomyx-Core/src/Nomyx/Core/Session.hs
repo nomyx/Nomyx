@@ -7,12 +7,12 @@ module Nomyx.Core.Session where
 import Language.Haskell.Interpreter.Server (ServerHandle)
 import Language.Haskell.Interpreter (InterpreterError)
 import Debug.Trace.Helpers
-import Data.Lens
+import Control.Lens
 import Data.Time as T
 import Data.List
 import Data.Maybe
 import qualified Data.Acid.Advanced as A (update', query')
-import Happstack.Auth.Core.Auth
+import Happstack.Authenticate.Core
 import Control.Category hiding ((.))
 import Control.Monad.State
 import Control.Concurrent.STM
@@ -37,12 +37,12 @@ newPlayer uid ms = do
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> Bool -> StateT Session IO ()
 newGame name desc pn isPublic = do
-   sh <- access sh
-   focus multi $ newGame' name desc pn isPublic sh
+   sh <- use sh
+   zoom multi $ newGame' name desc pn isPublic sh
 
 newGame' :: GameName -> GameDesc -> PlayerNumber -> Bool -> ServerHandle -> StateT Multi IO ()
 newGame' name desc pn isPublic sh = do
-      gs <- access gameInfos
+      gs <- use gameInfos
       if not $ any ((== name) . getL gameNameLens) gs then do
          tracePN pn $ "Creating a new game with name: " ++ name
          t <- lift T.getCurrentTime
@@ -52,14 +52,14 @@ newGame' name desc pn isPublic sh = do
       else tracePN pn "this name is already used"
 
 forkGame :: GameName -> GameName -> GameDesc -> Bool -> PlayerNumber -> StateT Session IO ()
-forkGame fromgn newgn desc isPublic pn = focus multi $ do
-   gms <- access gameInfos
+forkGame fromgn newgn desc isPublic pn = zoom multi $ do
+   gms <- use gameInfos
    case filter ((== fromgn) . getL gameNameLens) gms of
       gi:[] -> do
          tracePN pn $ "Forking game: " ++ fromgn
          time <- liftIO T.getCurrentTime
-         let lg = ((game >>> gameName) `setL` (newgn)) .
-                  ((game >>> gameDesc) `setL` (desc)) $ _loggedGame gi
+         let lg = ((game . gameName) .~ (newgn)) .
+                  ((game . gameDesc) .~ (desc)) $ _loggedGame gi
          let gi' = GameInfo {
             _loggedGame     = lg,
             _ownedBy        = Just pn,
@@ -78,7 +78,7 @@ joinGame gn pn = do
 
 -- | delete a game.
 delGame :: GameName -> StateT Session IO ()
-delGame name = focus multi $ void $ gameInfos %= filter ((/= name) . getL gameNameLens)
+delGame name = zoom multi $ void $ gameInfos %= filter ((/= name) . getL gameNameLens)
 
 -- | leave a game.
 leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
@@ -95,7 +95,7 @@ submitRule sr@(SubmitRule _ _ code) pn gn sh = do
       Right _ -> do
          tracePN pn "proposed rule compiled OK "
          inGameDo gn $ G.execGameEvent' (Just $ getRuleFunc sh) (ProposeRuleEv pn sr)
-         modifyProfile pn (pLastRule ^= Just (sr, "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."))
+         modifyProfile pn (pLastRule .~ Just (sr, "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."))
          liftIO $ sendMailsNewRule s sr pn (fromJust gi)
       Left e -> submitRuleError sr pn gn e
 
@@ -107,7 +107,7 @@ adminSubmitRule sr@(SubmitRule _ _ code) pn gn sh = do
       Right _ -> do
          tracePN pn "proposed rule compiled OK "
          inGameDo gn $ execGameEvent' (Just $ getRuleFunc sh) (SystemAddRule sr)
-         modifyProfile pn (pLastRule ^= Just (sr, "Admin rule submitted OK!"))
+         modifyProfile pn (pLastRule .~ Just (sr, "Admin rule submitted OK!"))
       Left e -> submitRuleError sr pn gn e
 
 submitRuleError :: SubmitRule -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
@@ -115,7 +115,7 @@ submitRuleError sr pn gn e = do
    let errorMsg = showInterpreterError e
    inGameDo gn $ execGameEvent $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
    tracePN pn ("Error in submitted rule: " ++ errorMsg)
-   modifyProfile pn (pLastRule ^= Just (sr, errorMsg))
+   modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
 checkRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Session IO ()
 checkRule sr@(SubmitRule _ _ code) pn sh = do
@@ -124,11 +124,11 @@ checkRule sr@(SubmitRule _ _ code) pn sh = do
    case mrr of
       Right _ -> do
          tracePN pn "proposed rule compiled OK"
-         modifyProfile pn (pLastRule ^= Just (sr, "Rule compiled OK. Now you can submit it!"))
+         modifyProfile pn (pLastRule .~ Just (sr, "Rule compiled OK. Now you can submit it!"))
       Left e -> do
          let errorMsg = showInterpreterError e
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
-         modifyProfile pn (pLastRule ^= Just (sr, errorMsg))
+         modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
 inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> FormField -> InputData -> GameName -> StateT Session IO ()
 inputResult pn en fa ft ir gn = inGameDo gn $ execGameEvent $ InputResult pn en fa ft ir
@@ -136,45 +136,45 @@ inputResult pn en fa ft ir gn = inGameDo gn $ execGameEvent $ InputResult pn en 
 -- | upload a rule file, given a player number, the full path of the file, the file name and the server handle
 inputUpload :: PlayerNumber -> FilePath -> FilePath -> ServerHandle -> StateT Session IO Bool
 inputUpload pn temp mod sh = do
-   saveDir <- access (multi >>> mSettings >>> saveDir)
+   saveDir <- use (multi . mSettings . saveDir)
    m <- liftIO $ loadModule temp mod sh saveDir
    tracePN pn $ " uploaded " ++ show mod
    case m of
       Nothing -> do
          inAllGamesDo $ execGameEvent $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
          tracePN pn "upload success"
-         modifyProfile pn (pLastUpload ^= UploadSuccess)
+         modifyProfile pn (pLastUpload .~ UploadSuccess)
          return True
       Just e -> do
          let errorMsg = showInterpreterError e
          inAllGamesDo $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
          tracePN pn $ "upload failed: \n" ++ show e
-         modifyProfile pn (pLastUpload ^= UploadFailure (temp, errorMsg))
+         modifyProfile pn (pLastUpload .~ UploadFailure (temp, errorMsg))
          return False
 
 -- | update player settings
 playerSettings :: PlayerSettings -> PlayerNumber -> StateT Session IO ()
-playerSettings playerSettings pn = modifyProfile pn (pPlayerSettings ^= playerSettings)
+playerSettings playerSettings pn = modifyProfile pn (pPlayerSettings .~ playerSettings)
 
 playAs :: Maybe PlayerNumber -> PlayerNumber -> GameName -> StateT Session IO ()
 playAs playAs pn g = inGameDo g $ do
-   pls <- access (game >>> players)
+   pls <- use (game . players)
    case find ((== pn) . getL playerNumber) pls of
       Nothing -> tracePN pn "player not in game"
-      Just pi -> void $ (game >>> players) ~= replaceWith ((== pn) . getL playerNumber) (pi {_playAs = playAs}) pls
+      Just pi -> (game . players) .= replaceWith ((== pn) . getL playerNumber) (pi {_playAs = playAs}) pls
 
 adminPass :: String -> PlayerNumber -> StateT Session IO ()
 adminPass pass pn = do
    s <- get
    if pass == (_adminPassword $ _mSettings $ _multi s) then do
       tracePN pn "getting admin rights"
-      modifyProfile pn $ pIsAdmin ^= True
+      modifyProfile pn $ pIsAdmin .~ True
    else do
       tracePN pn "submitted wrong admin password"
-      modifyProfile pn $ pIsAdmin ^= False
+      modifyProfile pn $ pIsAdmin .~ False
 
 globalSettings :: Bool -> StateT Session IO ()
-globalSettings mails = void $ (multi >>> mSettings >>> sendMails) ~= mails
+globalSettings mails = (multi . mSettings . sendMails) .= mails
 
 -- | Utility functions
 
@@ -188,14 +188,14 @@ getNewPlayerNumber = do
 inAllGamesDo :: StateT LoggedGame IO a -> StateT Session IO ()
 inAllGamesDo action = do
    t <- lift T.getCurrentTime
-   gis <- access (multi >>> gameInfos)
+   gis <- use (multi . gameInfos)
    forM_ gis $ \gi -> do
-         (a, mylg) <- lift $ runStateT action (setL (game >>> currentTime) t (_loggedGame gi))
-         focus multi $ modifyGame (gi {_loggedGame = mylg})
+         (a, mylg) <- lift $ runStateT action (set (game . currentTime) t (_loggedGame gi))
+         zoom multi $ modifyGame (gi {_loggedGame = mylg})
 
 inGameDo :: GameName -> StateT LoggedGame IO  () -> StateT Session IO ()
-inGameDo gn action = focus multi $ do
-   (gs :: [GameInfo]) <- access gameInfos
+inGameDo gn action = zoom multi $ do
+   (gs :: [GameInfo]) <- use gameInfos
    case find ((==gn) . getL gameNameLens) gs of
       Nothing -> traceM "No game by that name"
       Just (gi::GameInfo) -> do
@@ -222,4 +222,4 @@ evalSession sm s = do
    return s'
 
 getGameByName :: GameName -> Session -> Maybe GameInfo
-getGameByName gn s = find ((==gn) . getL (loggedGame >>> game >>> gameName)) (_gameInfos $ _multi s)
+getGameByName gn s = find ((==gn) . getL (loggedGame . game . gameName)) (_gameInfos $ _multi s)

@@ -12,8 +12,8 @@ import Control.Monad.Catch (bracket)
 import Control.Concurrent.STM
 import Control.Monad
 import Control.Monad.State
+import Control.Lens
 import Safe
-import Data.Lens
 import Data.List
 import Data.Maybe
 import Data.IxSet (toList, (@=))
@@ -21,8 +21,8 @@ import qualified Data.IxSet  as IxSet
 import qualified Data.Acid.Advanced as A (update', query')
 import Data.Acid.Local (createCheckpointAndClose)
 import Data.Acid (openLocalStateFrom, makeAcidic, Update, Query)
-import Happstack.Auth.Core.Auth (initialAuthState)
-import Happstack.Auth.Core.Profile (initialProfileState)
+import Happstack.Authenticate.Core (initialAuthenticateState)
+--import Happstack.Auth.Core.Profile (initialProfileState)
 import System.FilePath ((</>))
 import Nomyx.Core.Quotes
 import Nomyx.Core.Types
@@ -135,9 +135,7 @@ withAcid :: Maybe FilePath -- ^ state directory
          -> IO a
 withAcid mBasePath f =
     let basePath = fromMaybe "_state" mBasePath in
-    bracket (openLocalStateFrom (basePath </> "auth")        initialAuthState)        createCheckpointAndClose $ \auth ->
-    bracket (openLocalStateFrom (basePath </> "profile")     initialProfileState)     createCheckpointAndClose $ \profile ->
-    bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState) createCheckpointAndClose $ \profileData ->
-        f (Profiles auth profile profileData)
-
-
+    bracket (openLocalStateFrom (basePath </> "auth")        initialAuthenticateState) createCheckpointAndClose $ \auth ->
+  --  bracket (openLocalStateFrom (basePath </> "profile")     initialProfileState)     createCheckpointAndClose $ \profile ->
+    bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState)  createCheckpointAndClose $ \profileData ->
+        f (Profiles auth profileData)
