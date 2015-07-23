@@ -40,7 +40,10 @@ import Nomyx.Core.Engine
 import qualified Nomyx.Core.Session as S
 import Data.List
 import Data.Text(Text, pack)
-import Happstack.Auth
+import Happstack.Authenticate.Core
+import Happstack.Authenticate.Route (initAuthentication)
+import Happstack.Authenticate.OpenId.Route (initOpenId)
+import Happstack.Authenticate.Password.Route (initPassword)
 import Paths_Nomyx_Language
 import Control.Monad.Error
 import Control.Applicative
@@ -74,8 +77,8 @@ viewGamesTab gis isAdmin saveDir mpn = do
    newGameLink  <- defLink NewGame (isJust mpn)
    settingsLink <- defLink W.PlayerSettings (isJust mpn)
    advLink      <- defLink Advanced (isJust mpn)
-   logoutURL    <- defLink (Auth $ AuthURL A_Logout) (isJust mpn)
-   loginURL     <- showURL (Auth $ AuthURL A_Login)
+   logoutURL    <- defLink (Auth $ Controllers) (isJust mpn)
+   loginURL     <- showURL (Auth $ Controllers)
    fmods <- liftIO $ getUploadedModules saveDir
    ok $ do
       h3 "Main menu" >> br
@@ -198,29 +201,31 @@ nomyxPage ts = do
             (H.div ! A.id "multi" $ m)
             False
 
-nomyxSite :: TVar Session -> Site PlayerCommand (ServerPartT IO Response)
-nomyxSite tm = setDefault MainPage $ mkSitePI (runRouteT $ catchRouteError . flip routedNomyxCommands tm)
+nomyxSite :: TVar Session -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response) -> Site PlayerCommand (ServerPartT IO Response)
+nomyxSite tm routeAuthenticate = do
 
-routedNomyxCommands ::  PlayerCommand -> (TVar Session) -> RoutedNomyxServer Response
-routedNomyxCommands NotLogged             = notLogged
-routedNomyxCommands (Auth auth)           = authenticate      auth
-routedNomyxCommands PostAuth              = postAuthenticate
-routedNomyxCommands MainPage              = nomyxPage
-routedNomyxCommands (W.JoinGame game)     = joinGame          game
-routedNomyxCommands (W.LeaveGame game)    = leaveGame         game
-routedNomyxCommands (DelGame game)        = delGame           game
-routedNomyxCommands (NewRule game)        = newRule           game
-routedNomyxCommands NewGame               = newGamePage
-routedNomyxCommands SubmitNewGame         = newGamePost
-routedNomyxCommands (DoInput en fa ft g)  = newInput en fa ft g
-routedNomyxCommands Upload                = newUpload
-routedNomyxCommands W.PlayerSettings      = playerSettings
-routedNomyxCommands SubmitPlayerSettings  = newPlayerSettings
-routedNomyxCommands Advanced              = advanced
-routedNomyxCommands (SubmitPlayAs game)   = newPlayAs         game
-routedNomyxCommands SubmitAdminPass       = newAdminPass
-routedNomyxCommands SubmitSettings        = newSettings
-routedNomyxCommands SaveFilePage          = saveFilePage
+   setDefault MainPage $ mkSitePI $ runRouteT $ (\r -> catchRouteError $ routedNomyxCommands r routeAuthenticate tm)
+
+routedNomyxCommands ::  PlayerCommand -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response) -> (TVar Session) -> RoutedNomyxServer Response
+routedNomyxCommands NotLogged            _ = notLogged
+routedNomyxCommands (Auth auth)          routeAuthenticate = authenticate      auth routeAuthenticate
+routedNomyxCommands PostAuth             _ = postAuthenticate
+routedNomyxCommands MainPage             _ = nomyxPage
+routedNomyxCommands (W.JoinGame game)    _ = joinGame          game
+routedNomyxCommands (W.LeaveGame game)   _ = leaveGame         game
+routedNomyxCommands (DelGame game)       _ = delGame           game
+routedNomyxCommands (NewRule game)       _ = newRule           game
+routedNomyxCommands NewGame              _ = newGamePage
+routedNomyxCommands SubmitNewGame        _ = newGamePost
+routedNomyxCommands (DoInput en fa ft g) _ = newInput en fa ft g
+routedNomyxCommands Upload               _ = newUpload
+routedNomyxCommands W.PlayerSettings     _ = playerSettings
+routedNomyxCommands SubmitPlayerSettings _ = newPlayerSettings
+routedNomyxCommands Advanced             _ = advanced
+routedNomyxCommands (SubmitPlayAs game)  _ = newPlayAs         game
+routedNomyxCommands SubmitAdminPass      _ = newAdminPass
+routedNomyxCommands SubmitSettings       _ = newSettings
+routedNomyxCommands SaveFilePage         _ = saveFilePage
 
 launchWebServer :: TVar Session -> Network -> IO ()
 launchWebServer tm net = do
@@ -233,13 +238,18 @@ server ts net = do
   s <- liftIO $ atomically $ readTVar ts
   let set = _mSettings $ _multi s
   docdir <- liftIO getDocDir
+
+  (cleanup, routeAuthenticate, authenticateState) <-
+         liftIO $ initAuthentication Nothing (const $ return True)
+           [ initPassword "http://localhost:8000/#resetPassword" "example.org"
+           , initOpenId]
   mconcat [
     serveDirectory EnableBrowsing [] (_saveDir set),
     serveDirectory EnableBrowsing [] docdir,
     serveDirectory EnableBrowsing [] (_webDir set),
     serveDirectory EnableBrowsing [] (_sourceDir set),
     do decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
-       html <- implSite (pack (nomyxURL net)) "/Nomyx" (nomyxSite ts)
+       html <- implSite (pack (nomyxURL net)) "/Nomyx" (nomyxSite ts routeAuthenticate)
        return $ toResponse html]
 
 catchRouteError :: RoutedNomyxServer Response -> RoutedNomyxServer Response
@@ -255,4 +265,3 @@ getDocDir = do
    datadir <- getDataDir
    let (as, _:bs) = break (== "share") $ splitDirectories datadir
    return $ joinPath $ as ++ ["share", "doc"] ++ bs
-

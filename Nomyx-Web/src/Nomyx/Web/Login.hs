@@ -16,8 +16,7 @@ import Web.Routes.Happstack()
 import Web.Routes.RouteT
 import Data.Text hiding (map, zip, concatMap)
 import Data.Maybe
-import Happstack.Auth (AuthProfileURL(..), AuthURL(..), handleAuthProfile)
-import Happstack.Auth.Core.Profile
+import Happstack.Authenticate.Core (AuthenticateURL(..), getUserId, )
 import Facebook (Credentials(..))
 import Nomyx.Core.Profile
 import Nomyx.Core.Types as T hiding (PlayerSettings)
@@ -29,11 +28,11 @@ default (Integer, Double, Data.Text.Text)
 -- | function which generates the homepage
 notLogged :: TVar Session -> RoutedNomyxServer Response
 notLogged ts = do
-   (T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftIO $ readTVarIO ts
-   do mUserId <- getUserId acidAuth acidProfile
+   (T.Session _ _ (Profiles acidAuth acidProfile)) <- liftIO $ readTVarIO ts
+   do mUserId <- getUserId acidAuth
       case mUserId of
          Nothing ->
-            do loginURL <- showURL (Auth $ AuthURL A_Login)
+            do loginURL <- showURL (Auth $ Controllers)
                mainPage' "Nomyx"
                          "Not logged in"
                          (H.div $ p $ do
@@ -59,11 +58,12 @@ postAuthenticate ts = do
          seeOther link $ toResponse ("to settings page" :: String)
 
 
-authenticate :: AuthProfileURL -> TVar Session -> RoutedNomyxServer Response
-authenticate authProfileURL ts = do
-   (T.Session _ _ Profiles{..}) <- liftIO $ atomically $ readTVar ts
-   postPickedURL <- showURL PostAuth
-   nestURL Auth $ handleAuthProfile acidAuth acidProfile appTemplate Nothing Nothing postPickedURL authProfileURL
+authenticate :: AuthenticateURL -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response) -> TVar Session -> RoutedNomyxServer Response
+authenticate authURL routeAuthenticate ts = do
+   nestURL Auth $ routeAuthenticate authURL
+   --(T.Session _ _ Profiles{..}) <- liftIO $ atomically $ readTVar ts
+   --postPickedURL <- showURL PostAuth
+   --nestURL Auth $ handleAuthProfile acidAuth acidProfile appTemplate Nothing Nothing postPickedURL authProfileURL
 
 facebookAuth =
     Credentials {appName = "Nomyx",

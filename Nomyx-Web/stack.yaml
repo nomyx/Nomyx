@@ -1,0 +1,37 @@
+flags: {}
+packages:
+- '.'
+- ../Nomyx-Core
+- ../Nomyx-Language
+- ../../Haskell/hint-server
+extra-deps:
+- Nomyx-Core-0.7.6
+- Nomyx-Language-0.7.6
+- happstack-authenticate-2.1.4
+- reform-0.2.7
+- reform-blaze-0.2.4
+- reform-happstack-0.2.5
+- web-routes-0.27.9
+- web-routes-happstack-0.23.9
+- web-routes-regular-0.19.0
+- web-routes-th-0.22.3
+- DebugTraceHelpers-0.12
+- acid-state-0.12.4
+- boomerang-1.4.5
+- either-unwrap-1.1
+- happstack-hsp-7.3.5
+- happstack-jmacro-7.0.10
+- hint-server-1.4.1
+- hsp-0.10.0
+- hsx-jmacro-7.3.6
+- hsx2hs-0.13.3.2
+- ixset-typed-0.3
+- jwt-0.6.0
+- pwstore-purehaskell-2.1.4
+- time-recurrence-0.9.2
+- web-routes-boomerang-0.28.4
+- web-routes-hsp-0.24.6
+- data-ordlist-0.4.7.0
+- eprocess-1.7.2
+- harp-0.4.1
+resolver: lts-2.19

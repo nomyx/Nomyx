@@ -26,14 +26,14 @@ import           Web.Routes.Happstack()
 import           Control.Monad.State
 import           Control.Concurrent.STM
 import           Happstack.Server as HS
-import           Happstack.Auth (UserId(..), getUserId, AuthProfileURL(..), AuthURL(..))
+import           Happstack.Authenticate.Core (UserId(..), getUserId, AuthenticateURL(..))
 import qualified Data.ByteString.Char8 as C
 import           Data.Maybe
 import           Data.Text (unpack, append, Text, pack)
 import           Data.String
 import           Text.Printf
 import           Text.Reform.Happstack()
-import           Text.Reform
+import           Text.Reform (Form, FormError(..), CommonFormError, FormInput, ErrorInputType)
 import           Text.Reform.Blaze.String()
 import qualified Text.Reform.Generalized as G
 import           Language.Haskell.HsColour.HTML      (hscolour)
@@ -43,6 +43,7 @@ import           Nomyx.Core.Engine
 import           Nomyx.Core.Session
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Types as T
+import           Data.Monoid
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
@@ -67,7 +68,7 @@ data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
 data Server = Server [PlayerClient] deriving (Eq, Show)
 
 data PlayerCommand = NotLogged
-                   | Auth AuthProfileURL
+                   | Auth AuthenticateURL
                    | PostAuth
                    | MainPage
                    | JoinGame  GameName
@@ -173,8 +174,8 @@ appTemplate title headers body = return $ toResponse $ appTemplate' title header
 -- | return the player number (user ID) based on the session cookie.
 getPlayerNumber :: TVar Session -> RoutedNomyxServer (Maybe PlayerNumber)
 getPlayerNumber ts = do
-   (T.Session _ _ (Profiles acidAuth acidProfile _)) <- liftIO $ readTVarIO ts
-   uid <- getUserId acidAuth acidProfile
+   (T.Session _ _ (Profiles acidAuth _)) <- liftIO $ readTVarIO ts
+   uid <- getUserId acidAuth
    case uid of
       Nothing -> return Nothing
       (Just (UserId userID)) -> return $ Just $ fromInteger userID
@@ -246,7 +247,7 @@ setDivVisibilityAndSave :: String -> String -> String
 setDivVisibilityAndSave groupName elementName = printf "setDivVisibilityAndSave('%s', '%s')" groupName elementName
 
 defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
-defLink a logged = if logged then showURL a else showURL (Auth $ AuthURL A_Login)
+defLink a logged = if logged then showURL a else showURL (Auth $ Controllers)
 
 trim = unwords . words
 
@@ -260,5 +261,4 @@ instance ToMarkup NomyxError where
     toMarkup UniqueName         = "Name already taken"
     toMarkup UniqueEmail        = "Email already taken"
     toMarkup (FieldTooLong l)   = fromString $ "Field max length: " ++ show l
-    toMarkup (NomyxCFE e)       = toHtml e
-
+    toMarkup (NomyxCFE e)       = fromString $ show e
