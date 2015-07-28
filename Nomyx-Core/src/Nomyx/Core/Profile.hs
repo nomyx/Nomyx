@@ -18,7 +18,7 @@ import Data.List
 import Data.Maybe
 import Data.IxSet (toList, (@=))
 import qualified Data.IxSet  as IxSet
-import qualified Data.Acid (AcidState)
+import qualified Data.Acid (AcidState(..))
 import qualified Data.Acid.Advanced as A (update', query')
 import Data.Acid.Local (createCheckpointAndClose)
 import Data.Acid (openLocalStateFrom, makeAcidic, Update, Query)
@@ -133,7 +133,7 @@ getPlayerInfo :: Game -> PlayerNumber -> Maybe PlayerInfo
 getPlayerInfo g pn = find ((==pn) . getL playerNumber) (_players g)
 
 withAcid :: Maybe FilePath -- ^ state directory
-         -> AcidState AuthenticateState
+         -> Data.Acid.AcidState AuthenticateState
          -> (Profiles -> IO a) -- ^ action
          -> IO a
 withAcid mBasePath authenticateState f = do

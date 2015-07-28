@@ -80,8 +80,8 @@ viewGamesTab gis isAdmin saveDir mpn = do
    newGameLink  <- defLink NewGame (isJust mpn)
    settingsLink <- defLink W.PlayerSettings (isJust mpn)
    advLink      <- defLink Advanced (isJust mpn)
-   logoutURL    <- defLink (Auth $ Controllers) (isJust mpn)
-   loginURL     <- showURL Login
+   logoutURL    <- showURL Login
+   loginURL     <- showURL Logout
    fmods <- liftIO $ getUploadedModules saveDir
    ok $ do
       h3 "Main menu" >> br
@@ -214,14 +214,13 @@ routedNomyxCommands ::  PlayerCommand
                      -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response)
                      -> (TVar Session)
                      -> RoutedNomyxServer Response
---routedNomyxCommands NotLogged            _ = notLogged
-
-routedNomyxCommands (Auth auth)        routeAuthenticate = authenticate auth routeAuthenticate
-routedNomyxCommands Login                _ = Nomyx.Web.Login.login
+routedNomyxCommands (Auth auth)         ra = authenticate auth ra
+routedNomyxCommands Login                _ = loginPage
+routedNomyxCommands Logout               _ = logout
 routedNomyxCommands ResetPassword        _ = resetPasswordPage
 routedNomyxCommands ChangePassword       _ = changePasswordPanel
 routedNomyxCommands OpenIdRealm          _ = openIdRealmPanel
---routedNomyxCommands PostAuth             _ = postAuthenticate
+routedNomyxCommands PostAuth             _ = postAuthenticate
 routedNomyxCommands MainPage             _ = nomyxPage
 routedNomyxCommands (W.JoinGame game)    _ = joinGame          game
 routedNomyxCommands (W.LeaveGame game)   _ = leaveGame         game

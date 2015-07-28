@@ -29,37 +29,33 @@ import Language.Javascript.JMacro
 default (Integer, Double, Data.Text.Text)
 
 -- | function which generates the login page
-login :: TVar Session -> RoutedNomyxServer Response
-login ts = do
-  (T.Session _ _ (Profiles authenticateState _)) <- liftIO $ atomically $ readTVar ts
-  mUserId <- getUserId authenticateState
-  case mUserId of
-         Nothing -> mainPage' "Nomyx"
-                         "Login page"
-                         True
-                         loginPage
-         (Just _) -> do
-            link <- showURL MainPage
-            seeOther link $ toResponse $ ("to game page" :: String)
+loginPage :: TVar Session -> RoutedNomyxServer Response
+loginPage ts = do
+  postAuth <- showURL PostAuth
+  mainPage' "Nomyx" "Login page" True $ do
+      H.div ! customAttribute "ng-controller" "UsernamePasswordCtrl" $ do
+        H.div ! customAttribute "up-authenticated" "false" $ do
+          h2 "Login"
+          customLeaf (stringTag "up-login-inline") True
+        H.div ! customAttribute "up-authenticated" "true" $ do
+          p "You have successfully logged in!"
+          H.a "Click here to create a new player" ! (href $ toValue postAuth)
+          h2 "Logout"
+          p "Click the link below to logout."
+          customLeaf (stringTag "up-logout") True
+          h2 "Forgotten Password"
+          p "Forgot your password? Request a reset link via email!"
+          customLeaf (stringTag "up-request-reset-password") True
+        h2 "Create A New Account"
+        customLeaf (stringTag "up-signup-password") True
 
-loginPage :: Html
-loginPage = do
-  H.div $ p $ "Welcome to Nomyx!"
-  H.div ! customAttribute "ng-controller" "UsernamePasswordCtrl" $ do
-    H.div ! customAttribute "up-authenticated" "false" $ do
-      h2 "Login"
-      customLeaf (stringTag "up-login-inline") True
-    H.div ! customAttribute "up-authenticated" "true" $ do
-      p "You have successfully logged in!"
-      h2 "Logout"
-      p "Click the link below to logout."
+logout :: TVar Session -> RoutedNomyxServer Response
+logout ts = do
+  main <- showURL MainPage
+  ok $ do
+    H.div ! customAttribute "ng-controller" "UsernamePasswordCtrl" $ do
       customLeaf (stringTag "up-logout") True
-
-      h2 "Forgotten Password"
-      p "Forgot your password? Request a reset link via email!"
-      customLeaf (stringTag "up-request-reset-password") True
-    h2 "Create A New Account"
-    customLeaf (stringTag "up-signup-password") True
+  seeOther main $ toResponse $ ("to game page" :: String)
 
 -- | add a new player if not existing
 postAuthenticate :: TVar Session -> RoutedNomyxServer Response

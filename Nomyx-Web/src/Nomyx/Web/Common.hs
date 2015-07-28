@@ -1,51 +1,51 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DoAndIfThenElse #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE DoAndIfThenElse      #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE GADTs                #-}
+{-# LANGUAGE NamedFieldPuns       #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE QuasiQuotes          #-}
+{-# LANGUAGE StandaloneDeriving   #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module Nomyx.Web.Common where
 
-import           Prelude hiding (div)
-import           Safe
-import           Text.Blaze.Html5 hiding (map, output, base)
-import           Text.Blaze.Html5.Attributes hiding (dir, id)
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
-import           Text.Blaze.Html.Renderer.Utf8 (renderHtml)
-import           Web.Routes.PathInfo
-import           Web.Routes.RouteT
-import           Web.Routes.TH (derivePathInfo)
-import           Web.Routes.Happstack()
-import           Control.Monad.State
 import           Control.Concurrent.STM
-import           Happstack.Server as HS
-import           Happstack.Authenticate.Core (UserId(..), getUserId, AuthenticateURL(..))
-import qualified Data.ByteString.Char8 as C
+import           Control.Monad.State
+import qualified Data.ByteString.Char8               as C
 import           Data.Maybe
-import           Data.Text (unpack, append, Text, pack)
+import           Data.Monoid
 import           Data.String
-import           Text.Printf
-import           Text.Reform.Happstack()
-import           Text.Reform (Form, FormError(..), CommonFormError, FormInput, ErrorInputType)
-import           Text.Reform.Blaze.String()
-import qualified Text.Reform.Generalized as G
-import           Language.Haskell.HsColour.HTML      (hscolour)
+import           Data.Text                           (Text, append, pack, unpack)
+import           Happstack.Authenticate.Core         (AuthenticateURL (..), UserId (..), getUserId)
+import           Happstack.Server                    as HS
 import           Language.Haskell.HsColour.Colourise (defaultColourPrefs)
+import           Language.Haskell.HsColour.HTML      (hscolour)
+import           Language.Javascript.JMacro
 import           Language.Nomyx
 import           Nomyx.Core.Engine
-import           Nomyx.Core.Session
 import           Nomyx.Core.Profile
-import           Nomyx.Core.Types as T
-import           Data.Monoid
-import           Language.Javascript.JMacro
+import           Nomyx.Core.Session
+import           Nomyx.Core.Types                    as T
+import           Prelude                             hiding (div)
+import           Safe
+import           Text.Blaze.Html.Renderer.Utf8       (renderHtml)
+import           Text.Blaze.Html5                    hiding (base, map, output)
+import qualified Text.Blaze.Html5                    as H
+import           Text.Blaze.Html5.Attributes         hiding (dir, id)
+import qualified Text.Blaze.Html5.Attributes         as A
+import           Text.Printf
+import           Text.Reform                         (CommonFormError, ErrorInputType, Form, FormError (..), FormInput)
+import           Text.Reform.Blaze.String            ()
+import qualified Text.Reform.Generalized             as G
+import           Text.Reform.Happstack               ()
+import           Web.Routes.Happstack                ()
+import           Web.Routes.PathInfo
+import           Web.Routes.RouteT
+import           Web.Routes.TH                       (derivePathInfo)
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
@@ -69,9 +69,9 @@ data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
 -- | A structure to hold the active games and players
 data Server = Server [PlayerClient] deriving (Eq, Show)
 
-data PlayerCommand = --NotLogged
-                     Auth AuthenticateURL
+data PlayerCommand = Auth AuthenticateURL
                    | Login
+                   | Logout
                    | ResetPassword
                    | ChangePassword
                    | OpenIdRealm
@@ -168,7 +168,7 @@ appTemplate' title headers body footer link routeFn = do
    H.head $ do
       H.title (fromString title)
       H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"
-      H.link ! rel "stylesheet" ! type_ "text/css" ! href "http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css"
+      --H.link ! rel "stylesheet" ! type_ "text/css" ! href "http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css"
       H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
       H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
       H.script ! A.type_ "text/JavaScript" ! A.src "/static/nomyx.js" $ ""
@@ -184,9 +184,6 @@ appTemplate' title headers body footer link routeFn = do
          when (isJust link) $ td ! A.style "text-align:right;" $ H.a "Back to main page" ! (href $ toValue $ fromJust link)
       body
       when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012-2013"
-
--- appTemplate :: ( Monad m) => String -> Html -> Html -> m Response
--- appTemplate title headers body = return $ toResponse $ appTemplate' title headers body True Nothing
 
 -- | return the player number (user ID) based on the session cookie.
 getPlayerNumber :: TVar Session -> RoutedNomyxServer (Maybe PlayerNumber)
@@ -264,7 +261,7 @@ setDivVisibilityAndSave :: String -> String -> String
 setDivVisibilityAndSave groupName elementName = printf "setDivVisibilityAndSave('%s', '%s')" groupName elementName
 
 defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
-defLink a logged = if logged then showURL a else showURL (Auth $ Controllers)
+defLink a logged = if logged then showURL a else showURL Login
 
 trim = unwords . words
 
