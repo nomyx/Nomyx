@@ -31,7 +31,7 @@ import Nomyx.Core.Mail
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
 newPlayer uid ms = do
    s <- get
-   void $ A.update' (acidAuth $ _profiles s) (SetDefaultSessionTimeout $ 3600 * 24 * 7 *25)
+   --void $ A.update' (acidAuth $ _profiles s) (SetDefaultSessionTimeout $ 3600 * 24 * 7 *25)
    void $ A.update' (acidProfileData $ _profiles s) (NewProfileData uid ms)
 
 -- | starts a new game

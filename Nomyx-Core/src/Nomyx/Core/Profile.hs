@@ -18,15 +18,17 @@ import Data.List
 import Data.Maybe
 import Data.IxSet (toList, (@=))
 import qualified Data.IxSet  as IxSet
+import qualified Data.Acid (AcidState)
 import qualified Data.Acid.Advanced as A (update', query')
 import Data.Acid.Local (createCheckpointAndClose)
 import Data.Acid (openLocalStateFrom, makeAcidic, Update, Query)
-import Happstack.Authenticate.Core (initialAuthenticateState)
+import Happstack.Authenticate.Core (initialAuthenticateState, AuthenticateState)
 --import Happstack.Auth.Core.Profile (initialProfileState)
 import System.FilePath ((</>))
 import Nomyx.Core.Quotes
 import Nomyx.Core.Types
 import Nomyx.Core.Engine
+
 
 -- | set 'ProfileData' for UserId
 setProfileData :: ProfileData -> Update ProfileDataState ProfileData
@@ -131,11 +133,12 @@ getPlayerInfo :: Game -> PlayerNumber -> Maybe PlayerInfo
 getPlayerInfo g pn = find ((==pn) . getL playerNumber) (_players g)
 
 withAcid :: Maybe FilePath -- ^ state directory
+         -> AcidState AuthenticateState
          -> (Profiles -> IO a) -- ^ action
          -> IO a
-withAcid mBasePath f =
-    let basePath = fromMaybe "_state" mBasePath in
-    bracket (openLocalStateFrom (basePath </> "auth")        initialAuthenticateState) createCheckpointAndClose $ \auth ->
+withAcid mBasePath authenticateState f = do
+    let basePath = fromMaybe "_state" mBasePath
+  --  bracket (openLocalStateFrom (basePath </> "auth")        initialAuthenticateState) createCheckpointAndClose $ \auth ->
   --  bracket (openLocalStateFrom (basePath </> "profile")     initialProfileState)     createCheckpointAndClose $ \profile ->
     bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState)  createCheckpointAndClose $ \profileData ->
-        f (Profiles auth profileData)
+        f (Profiles authenticateState profileData)

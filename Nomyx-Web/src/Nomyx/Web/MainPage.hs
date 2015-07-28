@@ -44,10 +44,13 @@ import Happstack.Authenticate.Core
 import Happstack.Authenticate.Route (initAuthentication)
 import Happstack.Authenticate.OpenId.Route (initOpenId)
 import Happstack.Authenticate.Password.Route (initPassword)
+import Happstack.Authenticate.Password.Controllers(usernamePasswordCtrl)
+import Happstack.Authenticate.OpenId.Controllers(openIdCtrl)
 import Paths_Nomyx_Language
 import Control.Monad.Error
 import Control.Applicative
 import Safe
+import Data.Acid (AcidState, query)
 
 default (Integer, Double, Data.Text.Text)
 
@@ -78,7 +81,7 @@ viewGamesTab gis isAdmin saveDir mpn = do
    settingsLink <- defLink W.PlayerSettings (isJust mpn)
    advLink      <- defLink Advanced (isJust mpn)
    logoutURL    <- defLink (Auth $ Controllers) (isJust mpn)
-   loginURL     <- showURL (Auth $ Controllers)
+   loginURL     <- showURL Login
    fmods <- liftIO $ getUploadedModules saveDir
    ok $ do
       h3 "Main menu" >> br
@@ -198,18 +201,27 @@ nomyxPage ts = do
    m <- viewMulti mpn saveDir s
    mainPage' "Welcome to Nomyx!"
             (fromString $ "Welcome to Nomyx, " ++ name ++ "! ")
-            (H.div ! A.id "multi" $ m)
             False
+            (H.div ! A.id "multi" $ m)
 
-nomyxSite :: TVar Session -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response) -> Site PlayerCommand (ServerPartT IO Response)
-nomyxSite tm routeAuthenticate = do
 
-   setDefault MainPage $ mkSitePI $ runRouteT $ (\r -> catchRouteError $ routedNomyxCommands r routeAuthenticate tm)
+nomyxSite :: TVar Session
+          -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response)
+          -> Site PlayerCommand (ServerPartT IO Response)
+nomyxSite tm routeAuthenticate = setDefault MainPage $ mkSitePI $ runRouteT $ (\r -> catchRouteError $ routedNomyxCommands r routeAuthenticate tm)
 
-routedNomyxCommands ::  PlayerCommand -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response) -> (TVar Session) -> RoutedNomyxServer Response
-routedNomyxCommands NotLogged            _ = notLogged
-routedNomyxCommands (Auth auth)          routeAuthenticate = authenticate      auth routeAuthenticate
-routedNomyxCommands PostAuth             _ = postAuthenticate
+routedNomyxCommands ::  PlayerCommand
+                     -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response)
+                     -> (TVar Session)
+                     -> RoutedNomyxServer Response
+--routedNomyxCommands NotLogged            _ = notLogged
+
+routedNomyxCommands (Auth auth)        routeAuthenticate = authenticate auth routeAuthenticate
+routedNomyxCommands Login                _ = Nomyx.Web.Login.login
+routedNomyxCommands ResetPassword        _ = resetPasswordPage
+routedNomyxCommands ChangePassword       _ = changePasswordPanel
+routedNomyxCommands OpenIdRealm          _ = openIdRealmPanel
+--routedNomyxCommands PostAuth             _ = postAuthenticate
 routedNomyxCommands MainPage             _ = nomyxPage
 routedNomyxCommands (W.JoinGame game)    _ = joinGame          game
 routedNomyxCommands (W.LeaveGame game)   _ = leaveGame         game
@@ -226,23 +238,24 @@ routedNomyxCommands (SubmitPlayAs game)  _ = newPlayAs         game
 routedNomyxCommands SubmitAdminPass      _ = newAdminPass
 routedNomyxCommands SubmitSettings       _ = newSettings
 routedNomyxCommands SaveFilePage         _ = saveFilePage
+routedNomyxCommands NomyxJS              _ = ok . toResponse . nomyxJS
 
-launchWebServer :: TVar Session -> Network -> IO ()
-launchWebServer tm net = do
+launchWebServer :: TVar Session -> Network -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response) -> IO ()
+launchWebServer tm net routeAuthenticate = do
    putStrLn $ "Starting web server...\nTo connect, drive your browser to \"" ++ nomyxURL net ++ "/Nomyx\""
-   simpleHTTP nullConf {HS.port = T._port net} $ server tm net
+   simpleHTTP nullConf {HS.port = T._port net} $ server tm net routeAuthenticate
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: TVar Session -> Network -> ServerPartT IO Response
-server ts net = do
+server :: TVar Session -> Network -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response) -> ServerPartT IO Response
+server ts net routeAuthenticate = do
   s <- liftIO $ atomically $ readTVar ts
   let set = _mSettings $ _multi s
   docdir <- liftIO getDocDir
 
-  (cleanup, routeAuthenticate, authenticateState) <-
-         liftIO $ initAuthentication Nothing (const $ return True)
-           [ initPassword "http://localhost:8000/#resetPassword" "example.org"
-           , initOpenId]
+
+  -- liftIO $ atomically $ writeTVar ts (s {_profiles = (Profiles authenticateState (acidProfileData $ _profiles s) )})
+  as <- liftIO $ query (acidAuth $ _profiles s) GetAuthenticateState
+  liftIO $ print as
   mconcat [
     serveDirectory EnableBrowsing [] (_saveDir set),
     serveDirectory EnableBrowsing [] docdir,
@@ -257,7 +270,7 @@ catchRouteError page = page `catchError` const backToLogin where
 
 backToLogin :: RoutedNomyxServer Response
 backToLogin = toResponse <$> do
-   link <- showURL NotLogged
+   link <- showURL Login
    seeOther link ("Redirecting..." :: String)
 
 getDocDir :: IO FilePath

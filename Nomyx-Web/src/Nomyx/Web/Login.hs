@@ -1,12 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Nomyx.Web.Login where
-
 
 import Prelude hiding (div)
 import Text.Blaze.Html5 hiding (map, label, br)
 import Text.Blaze.Html5.Attributes hiding (dir, label)
+import Text.Blaze.Internal
 import qualified Text.Blaze.Html5 as H
 import Control.Monad.State
 import Control.Concurrent.STM
@@ -16,32 +17,49 @@ import Web.Routes.Happstack()
 import Web.Routes.RouteT
 import Data.Text hiding (map, zip, concatMap)
 import Data.Maybe
-import Happstack.Authenticate.Core (AuthenticateURL(..), getUserId, )
+import Happstack.Authenticate.Core (AuthenticateURL(..), getUserId, AuthenticateState)
 import Facebook (Credentials(..))
 import Nomyx.Core.Profile
 import Nomyx.Core.Types as T hiding (PlayerSettings)
 import Nomyx.Core.Session as S
 import Nomyx.Web.Common
+import Data.Acid
+import Language.Javascript.JMacro
 
 default (Integer, Double, Data.Text.Text)
 
--- | function which generates the homepage
-notLogged :: TVar Session -> RoutedNomyxServer Response
-notLogged ts = do
-   (T.Session _ _ (Profiles acidAuth acidProfile)) <- liftIO $ readTVarIO ts
-   do mUserId <- getUserId acidAuth
-      case mUserId of
-         Nothing ->
-            do loginURL <- showURL (Auth $ Controllers)
-               mainPage' "Nomyx"
-                         "Not logged in"
-                         (H.div $ p $ do
-                            "Welcome to Nomyx! You can login "
-                            H.a ! href (toValue loginURL) $ "here.")
+-- | function which generates the login page
+login :: TVar Session -> RoutedNomyxServer Response
+login ts = do
+  (T.Session _ _ (Profiles authenticateState _)) <- liftIO $ atomically $ readTVar ts
+  mUserId <- getUserId authenticateState
+  case mUserId of
+         Nothing -> mainPage' "Nomyx"
+                         "Login page"
                          True
+                         loginPage
          (Just _) -> do
             link <- showURL MainPage
-            seeOther link $ toResponse $ ("to game page"::String)
+            seeOther link $ toResponse $ ("to game page" :: String)
+
+loginPage :: Html
+loginPage = do
+  H.div $ p $ "Welcome to Nomyx!"
+  H.div ! customAttribute "ng-controller" "UsernamePasswordCtrl" $ do
+    H.div ! customAttribute "up-authenticated" "false" $ do
+      h2 "Login"
+      customLeaf (stringTag "up-login-inline") True
+    H.div ! customAttribute "up-authenticated" "true" $ do
+      p "You have successfully logged in!"
+      h2 "Logout"
+      p "Click the link below to logout."
+      customLeaf (stringTag "up-logout") True
+
+      h2 "Forgotten Password"
+      p "Forgot your password? Request a reset link via email!"
+      customLeaf (stringTag "up-request-reset-password") True
+    h2 "Create A New Account"
+    customLeaf (stringTag "up-signup-password") True
 
 -- | add a new player if not existing
 postAuthenticate :: TVar Session -> RoutedNomyxServer Response
@@ -58,7 +76,10 @@ postAuthenticate ts = do
          seeOther link $ toResponse ("to settings page" :: String)
 
 
-authenticate :: AuthenticateURL -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response) -> TVar Session -> RoutedNomyxServer Response
+authenticate :: AuthenticateURL
+            -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response)
+            -> TVar Session
+            -> RoutedNomyxServer Response
 authenticate authURL routeAuthenticate ts = do
    nestURL Auth $ routeAuthenticate authURL
    --(T.Session _ _ Profiles{..}) <- liftIO $ atomically $ readTVar ts
@@ -69,3 +90,19 @@ facebookAuth =
     Credentials {appName = "Nomyx",
                  appId = "161007670738608",
                  appSecret = "c0509c1c753f89d1d1fc181984042824"}
+
+
+changePasswordPanel :: TVar Session -> RoutedNomyxServer Response
+changePasswordPanel _ = mainPage' "Nomyx" "Login page" True $ do
+   customLeaf (stringTag "up-change-password") True
+
+openIdRealmPanel :: TVar Session -> RoutedNomyxServer Response
+openIdRealmPanel _ = mainPage' "Nomyx" "Login page" True $ do
+   H.div ! customAttribute "ng-controller" "OpenIdCtrl" $ do
+     customLeaf (stringTag "openid-realm") True
+
+
+resetPasswordPage :: TVar Session -> RoutedNomyxServer Response
+resetPasswordPage _ = mainPage' "Nomyx" "Login page" True $ do
+   h2 "Reset Password"
+   customLeaf (stringTag "up-reset-password") True

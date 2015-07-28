@@ -9,6 +9,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Nomyx.Web.Common where
 
@@ -44,6 +45,7 @@ import           Nomyx.Core.Session
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Types as T
 import           Data.Monoid
+import           Language.Javascript.JMacro
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
@@ -67,8 +69,12 @@ data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
 -- | A structure to hold the active games and players
 data Server = Server [PlayerClient] deriving (Eq, Show)
 
-data PlayerCommand = NotLogged
-                   | Auth AuthenticateURL
+data PlayerCommand = --NotLogged
+                     Auth AuthenticateURL
+                   | Login
+                   | ResetPassword
+                   | ChangePassword
+                   | OpenIdRealm
                    | PostAuth
                    | MainPage
                    | JoinGame  GameName
@@ -86,6 +92,7 @@ data PlayerCommand = NotLogged
                    | SubmitAdminPass
                    | SubmitSettings
                    | SaveFilePage
+                   | NomyxJS
                    deriving (Show)
 
 ruleFormAnchor, inputAnchor :: Text
@@ -136,16 +143,17 @@ inputRadio' choices isDefault =
          [ (if checked then (! A.checked "checked") else id) $ input ! A.type_ "radio" ! A.id (toValue i) ! A.name (toValue nm) ! A.value (toValue val)
          , " ", H.label ! A.for (toValue i) $ toHtml lbl]
 
-mainPage' :: String -> Html -> Html -> Bool -> RoutedNomyxServer Response
-mainPage' title header body footer = do
+mainPage' :: String -> Html -> Bool -> Html -> RoutedNomyxServer Response
+mainPage' title header footer body = do
    html <- mainPage title header body footer False
    return $ toResponse html
 
 mainPage :: String -> Html -> Html -> Bool -> Bool -> RoutedNomyxServer Html
 mainPage title header body footer backLink = do
    link <- showURL MainPage
-   ok $ if backLink then appTemplate' title header body footer (Just $ unpack link)
-                    else appTemplate' title header body footer Nothing
+   routeFn <- askRouteFn
+   ok $ if backLink then appTemplate' title header body footer (Just $ unpack link) routeFn
+                    else appTemplate' title header body footer Nothing routeFn
 
 appTemplate' ::
        String -- ^ title
@@ -153,23 +161,32 @@ appTemplate' ::
     -> Html   -- ^ contents to put inside \<body\>
     -> Bool   -- ^ include footer
     -> Maybe String -- ^ link to main page
+    -> (URL (RouteT PlayerCommand (ServerPartT IO))
+                          -> [(Text, Maybe Text)] -> Text)
     -> Html
-appTemplate' title headers body footer link = do
+appTemplate' title headers body footer link routeFn = do
    H.head $ do
       H.title (fromString title)
       H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"
+      H.link ! rel "stylesheet" ! type_ "text/css" ! href "http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css"
       H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
       H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
       H.script ! A.type_ "text/JavaScript" ! A.src "/static/nomyx.js" $ ""
-   H.body ! onload "loadDivVisibility()" $ H.div ! A.id "container" $ do
+      H.script ! A.type_ "text/JavaScript" ! A.src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" $ ""
+      H.script ! A.type_ "text/JavaScript" ! A.src "http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js" $ ""
+      H.script ! A.type_ "text/JavaScript" ! A.src "http://ajax.googleapis.com/ajax/libs/angularjs/1.2.24/angular.min.js" $ ""
+      H.script ! A.type_ "text/JavaScript" ! A.src "http://ajax.googleapis.com/ajax/libs/angularjs/1.2.24/angular-route.min.js" $ ""
+      H.script ! A.type_ "text/JavaScript" ! A.src (textValue $ routeFn NomyxJS []) $ ""
+      H.script ! A.type_ "text/JavaScript" ! A.src (textValue $ routeFn (Auth Controllers) []) $ ""
+   H.body ! onload "loadDivVisibility()"  ! customAttribute "ng-controller" "AuthenticationCtrl" ! customAttribute "ng-app" "NomyxApp" $ H.div ! A.id "container" $ do
       H.div ! A.id "header" $ table ! width "100%" $ tr $ do
          td (p headers ! A.id "headerTitle")
          when (isJust link) $ td ! A.style "text-align:right;" $ H.a "Back to main page" ! (href $ toValue $ fromJust link)
       body
       when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012-2013"
 
-appTemplate :: ( Monad m) => String -> Html -> Html -> m Response
-appTemplate title headers body = return $ toResponse $ appTemplate' title headers body True Nothing
+-- appTemplate :: ( Monad m) => String -> Html -> Html -> m Response
+-- appTemplate title headers body = return $ toResponse $ appTemplate' title headers body True Nothing
 
 -- | return the player number (user ID) based on the session cookie.
 getPlayerNumber :: TVar Session -> RoutedNomyxServer (Maybe PlayerNumber)
@@ -250,6 +267,44 @@ defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
 defLink a logged = if logged then showURL a else showURL (Auth $ Controllers)
 
 trim = unwords . words
+
+-- | app module for angulasjs
+--
+-- We just depend on the usernamePassword module
+nomyxJS :: TVar Session -> JStat
+nomyxJS _ = [jmacro|
+ {
+   var demoApp = angular.module('NomyxApp', [
+     'happstackAuthentication',
+     'usernamePassword',
+     'openId',
+     'ngRoute'
+   ]);
+
+   demoApp.config(['$routeProvider',
+     function($routeProvider) {
+       $routeProvider.when('/resetPassword',
+                            { templateUrl: '/authenticate/authentication-methods/password/partial/reset-password-form',
+                              controller: 'UsernamePasswordCtrl'
+                            });
+     }]);
+
+   demoApp.controller('NomyxCtrl', ['$scope', '$http',function($scope, $http) {
+     $scope.message = '';
+
+     $scope.callRestricted = function (url) {
+       $http({url: url, method: 'GET'}).
+       success(function (datum, status, headers, config) {
+         $scope.message = datum.name;
+       }).
+       error(function (datum, status, headers, config) {
+         alert(datum);
+       });
+     };
+   }]);
+ }
+|]
+
 
 instance FormError NomyxError where
     type ErrorInputType NomyxError = [HS.Input]

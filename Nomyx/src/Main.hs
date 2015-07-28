@@ -2,12 +2,13 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DoAndIfThenElse #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-    
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main (main) where
 
 import Prelude hiding ((.))
-import System.Console.GetOpt 
-import System.Environment 
+import System.Console.GetOpt
+import System.Environment
 import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Maybe
@@ -35,12 +36,14 @@ import Nomyx.Core.Interpret
 import Nomyx.Core.Test
 import Nomyx.Core.Engine
 import Nomyx.Core.Engine.Test as LT
-
+import Happstack.Authenticate.Route (initAuthentication)
+import Happstack.Authenticate.OpenId.Route (initOpenId)
+import Happstack.Authenticate.Password.Route (initPassword)
 
 -- | Entry point of the program.
 main :: IO Bool
 main = do
-   args <- getArgs 
+   args <- getArgs
    (flags, _) <- nomyxOpts args
    if Version `elem` flags then do
       putStrLn $ "Nomyx " ++ showVersion PN.version
@@ -50,7 +53,7 @@ main = do
       return True
    else do
       putStrLn "Welcome to Nomyx!"
-      putStrLn "Type \"Nomyx --help\" for usage options"  
+      putStrLn "Type \"Nomyx --help\" for usage options"
       start flags
       return True
 
@@ -89,13 +92,19 @@ mainLoop settings saveDir host port = do
    sh <- protectHandlers $ startInterpreter saveDir
    --creating game structures
    multi <- Main.loadMulti settings sh
+
+   (cleanup, routeAuthenticate, authenticateState) <-
+      liftIO $ initAuthentication Nothing (const $ return True)
+        [ initPassword "http://localhost:8000/#resetPassword" "example.org"
+        , initOpenId
+        ]
    --main loop
-   withAcid (Just $ saveDir </> profilesDir) $ \acid -> do
-      tvSession <- atomically $ newTVar (Session sh multi acid)
-      --start the web server
-      forkIO $ launchWebServer tvSession (Network host port)
-      forkIO $ launchTimeEvents tvSession
-      serverLoop tvSession
+   withAcid (Just $ saveDir </> profilesDir) authenticateState $ \acid -> do
+     tvSession <- atomically $ newTVar (Session sh multi acid)
+     --start the web server
+     forkIO $ launchWebServer tvSession (Network host port) routeAuthenticate
+     forkIO $ launchTimeEvents tvSession
+     serverLoop tvSession
 
 loadMulti :: Settings -> ServerHandle -> IO Multi
 loadMulti set sh = do
@@ -145,7 +154,7 @@ serverCommandUsage = do
    putStrLn "d      -> debug"
    putStrLn "Ctrl-C -> quit"
 
--- | Launch mode 
+-- | Launch mode
 data Flag = Verbose
           | Version
           | Test
@@ -180,9 +189,9 @@ options =
      , Option ['s'] ["sourceDir"] (ReqArg SourceDir "SourceDir") "specify source directory (for Nomyx-Language files)"
      , Option ['T'] ["tar"]       (ReqArg TarFile "TarFile")     "specify tar file (containing Nomyx.save and uploads)"
      ]
-    
+
 nomyxOpts :: [String] -> IO ([Flag], [String])
-nomyxOpts argv = 
+nomyxOpts argv =
        case getOpt Permute options argv of
           (o,n,[]  ) -> return (o,n)
           (_,_,errs) -> ioError (userError (concat errs ++ usageInfo header options))
@@ -249,4 +258,3 @@ launchTimeEvents tm = do
     --sleep 30 second roughly
     threadDelay 30000000
     launchTimeEvents tm
-
