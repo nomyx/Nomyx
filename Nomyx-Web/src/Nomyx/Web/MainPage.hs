@@ -78,10 +78,9 @@ viewGamesTab gis isAdmin saveDir mpn = do
    public <- mapM vgi (fst publicPrivate)
    private <- mapM vgi (snd publicPrivate)
    newGameLink  <- defLink NewGame (isJust mpn)
-   settingsLink <- defLink W.PlayerSettings (isJust mpn)
    advLink      <- defLink Advanced (isJust mpn)
    logoutURL    <- showURL Login
-   loginURL     <- showURL Logout
+   loginURL     <- showURL Login
    fmods <- liftIO $ getUploadedModules saveDir
    ok $ do
       h3 "Main menu" >> br
@@ -107,7 +106,6 @@ viewGamesTab gis isAdmin saveDir mpn = do
          br >> b "Uploaded files:" >> br
          mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : uploadDir </> f)) >> br) (sort fmods)
       br >> b "Settings:" >> br
-      H.a "Player settings" ! (href $ toValue settingsLink) >> br
       H.a "Advanced"        ! (href $ toValue advLink) >> br
       H.a "Logout"          ! (href $ toValue logoutURL) >> br
       H.a "Login"           ! (href $ toValue loginURL) >> br
@@ -230,8 +228,6 @@ routedNomyxCommands NewGame              _ = newGamePage
 routedNomyxCommands SubmitNewGame        _ = newGamePost
 routedNomyxCommands (DoInput en fa ft g) _ = newInput en fa ft g
 routedNomyxCommands Upload               _ = newUpload
-routedNomyxCommands W.PlayerSettings     _ = playerSettings
-routedNomyxCommands SubmitPlayerSettings _ = newPlayerSettings
 routedNomyxCommands Advanced             _ = advanced
 routedNomyxCommands (SubmitPlayAs game)  _ = newPlayAs         game
 routedNomyxCommands SubmitAdminPass      _ = newAdminPass

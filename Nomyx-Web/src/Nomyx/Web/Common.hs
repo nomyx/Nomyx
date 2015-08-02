@@ -85,8 +85,6 @@ data PlayerCommand = Auth AuthenticateURL
                    | NewGame
                    | SubmitNewGame
                    | Upload
-                   | PlayerSettings
-                   | SubmitPlayerSettings
                    | Advanced
                    | SubmitPlayAs GameName
                    | SubmitAdminPass

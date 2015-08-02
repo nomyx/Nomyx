@@ -1,30 +1,37 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE QuasiQuotes         #-}
+{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Nomyx.Web.Login where
 
-import Prelude hiding (div)
-import Text.Blaze.Html5 hiding (map, label, br)
-import Text.Blaze.Html5.Attributes hiding (dir, label)
-import Text.Blaze.Internal
-import qualified Text.Blaze.Html5 as H
-import Control.Monad.State
-import Control.Concurrent.STM
-import Control.Applicative
-import Happstack.Server
-import Web.Routes.Happstack()
-import Web.Routes.RouteT
-import Data.Text hiding (map, zip, concatMap)
-import Data.Maybe
-import Happstack.Authenticate.Core (AuthenticateURL(..), getUserId, AuthenticateState)
-import Facebook (Credentials(..))
-import Nomyx.Core.Profile
-import Nomyx.Core.Types as T hiding (PlayerSettings)
-import Nomyx.Core.Session as S
-import Nomyx.Web.Common
-import Data.Acid
-import Language.Javascript.JMacro
+import           Control.Applicative
+import           Control.Concurrent.STM
+import           Control.Monad.State
+import           Data.Acid
+import           Data.Acid.Advanced          (query')
+import           Data.Maybe
+import           Data.Text                   hiding (concatMap, map, zip)
+import           Facebook                    (Credentials (..))
+import           Happstack.Authenticate.Core (AuthenticateState,
+                                              AuthenticateURL (..),
+                                              GetUserByUserId (..), User,
+                                              UserId, getUserByUserId,
+                                              getUserId, _unEmail, _email,
+                                              _unUsername, _username)
+import           Happstack.Server
+import           Language.Javascript.JMacro
+import           Nomyx.Core.Profile
+import           Nomyx.Core.Session          as S
+import           Nomyx.Core.Types            as T
+import           Nomyx.Web.Common
+import           Prelude                     hiding (div)
+import           Text.Blaze.Html5            hiding (br, label, map)
+import qualified Text.Blaze.Html5            as H
+import           Text.Blaze.Html5.Attributes hiding (dir, label)
+import           Text.Blaze.Internal
+import           Web.Routes.Happstack        ()
+import           Web.Routes.RouteT
 
 default (Integer, Double, Data.Text.Text)
 
@@ -39,7 +46,7 @@ loginPage ts = do
           customLeaf (stringTag "up-login-inline") True
         H.div ! customAttribute "up-authenticated" "true" $ do
           p "You have successfully logged in!"
-          H.a "Click here to create a new player" ! (href $ toValue postAuth)
+          H.a "Click here to access the game" ! (href $ toValue postAuth)
           h2 "Logout"
           p "Click the link below to logout."
           customLeaf (stringTag "up-logout") True
@@ -63,12 +70,15 @@ postAuthenticate ts = do
    pn <- fromJust <$> getPlayerNumber ts
    pf <- getProfile' ts pn
    case pf of
-      Just _ -> do
+      Just _ -> do -- Player already exists in the database
          link <- showURL MainPage
          seeOther link $ toResponse ("to main page" :: String)
-      Nothing -> do
-         webCommand ts $ S.newPlayer pn defaultPlayerSettings
-         link <- showURL PlayerSettings
+      Nothing -> do -- Player doesn't exist, creating it
+         (T.Session _ _ (Profiles auth _)) <- liftIO $ atomically $ readTVar ts
+         userId <- getUserId auth
+         user <- fromJust <$> query' auth (GetUserByUserId $ fromJust userId)
+         webCommand ts $ S.newPlayer pn (PlayerSettings (unpack $ _unUsername $ _username user) ((unpack . _unEmail) <$> _email user) False False False False)
+         link <- showURL MainPage
          seeOther link $ toResponse ("to settings page" :: String)
 
 
@@ -76,11 +86,7 @@ authenticate :: AuthenticateURL
             -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response)
             -> TVar Session
             -> RoutedNomyxServer Response
-authenticate authURL routeAuthenticate ts = do
-   nestURL Auth $ routeAuthenticate authURL
-   --(T.Session _ _ Profiles{..}) <- liftIO $ atomically $ readTVar ts
-   --postPickedURL <- showURL PostAuth
-   --nestURL Auth $ handleAuthProfile acidAuth acidProfile appTemplate Nothing Nothing postPickedURL authProfileURL
+authenticate authURL routeAuthenticate ts = nestURL Auth $ routeAuthenticate authURL
 
 facebookAuth =
     Credentials {appName = "Nomyx",
