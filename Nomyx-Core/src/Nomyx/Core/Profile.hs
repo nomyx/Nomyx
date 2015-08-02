@@ -1,8 +1,8 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE QuasiQuotes        #-}
+{-# LANGUAGE RecordWildCards    #-}
+{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE TypeFamilies       #-}
 
 module Nomyx.Core.Profile where
 
@@ -99,7 +99,7 @@ initialProfileDataState :: ProfileDataState
 initialProfileDataState = ProfileDataState { profilesData = IxSet.empty }
 
 defaultPlayerSettings :: PlayerSettings
-defaultPlayerSettings = PlayerSettings "" "" False False False False
+defaultPlayerSettings = PlayerSettings "" Nothing False False False False
 
 
 modifyProfile :: PlayerNumber -> (ProfileData -> ProfileData) -> StateT Session IO ()
@@ -138,7 +138,5 @@ withAcid :: Maybe FilePath -- ^ state directory
          -> IO a
 withAcid mBasePath authenticateState f = do
     let basePath = fromMaybe "_state" mBasePath
-  --  bracket (openLocalStateFrom (basePath </> "auth")        initialAuthenticateState) createCheckpointAndClose $ \auth ->
-  --  bracket (openLocalStateFrom (basePath </> "profile")     initialProfileState)     createCheckpointAndClose $ \profile ->
     bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState)  createCheckpointAndClose $ \profileData ->
         f (Profiles authenticateState profileData)

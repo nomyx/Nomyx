@@ -52,8 +52,7 @@ mapStateIO :: Show s => State s a -> StateT s IO a
 mapStateIO = mapStateT $ return . runIdentity
 
 getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
-getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]
-
+getFreeNumber l = head [ a | a <- [1..], not $ a `elem` l]
 
 sel :: [a]   -- ^ List of indices to select
     -> [Int] -- ^ List of elements

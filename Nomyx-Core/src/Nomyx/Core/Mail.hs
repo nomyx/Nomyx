@@ -12,7 +12,6 @@ import Text.Blaze.Html5 hiding (map, label, br)
 import qualified Text.Blaze.Html5 as H
 import Text.Blaze.Html.Renderer.String
 import Network.Mail.Mime hiding (mailTo)
-import Safe
 import Data.Text(Text, pack)
 import Data.Maybe
 import qualified Data.Text.Lazy as B
@@ -79,13 +78,11 @@ sendMailsNewRule s sr pn gi = when (_sendMails $ _mSettings $ _multi s) $ do
 
 
 send :: PlayerName -> Network -> SubmitRule -> PlayerSettings -> IO()
-send prop net sr set = when (_mailNewRule set)
-   $ sendMail (_mail set)
+send prop net sr set = when (_mailNewRule set && (isJust $ _mail set))
+   $ sendMail (fromJust $ _mail set)
               (newRuleObject prop)
               (newRuleTextBody (_pPlayerName set) sr prop net)
               (renderHtml $ newRuleHtmlBody (_pPlayerName set) sr prop net)
-              
+
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
 mapMaybeM f = liftM catMaybes . mapM f
-
-

@@ -35,7 +35,7 @@ defaultNetwork = Network "" 0
 
 data PlayerSettings =
    PlayerSettings { _pPlayerName   :: PlayerName,
-                    _mail          :: String,
+                    _mail          :: Maybe String,
                     _mailNewInput  :: Bool,
                     _mailNewRule   :: Bool,
                     _mailNewOutput :: Bool,
@@ -105,7 +105,6 @@ $(deriveSafeCopy 1 'base ''ProfileDataState)
 -- | 'Acid' holds all the 'AcidState' handles for this site.
 data Profiles = Profiles
     { acidAuth        :: AcidState AuthenticateState,
-    --  acidProfile     :: AcidState ProfileState,
       acidProfileData :: AcidState ProfileDataState}
 
 data Session = Session { _sh :: ServerHandle,
