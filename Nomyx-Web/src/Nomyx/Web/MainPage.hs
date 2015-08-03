@@ -233,7 +233,6 @@ launchWebServer ts net = do
    s <- liftIO $ atomically $ readTVar ts
    let set = _mSettings $ _multi s
    let conf = nullConf {HS.port = T._port net}
-   liftIO $ putStrLn $ show set
    docdir <- liftIO getDocDir
    --init authenticate
    (_, routeAuthenticate, authenticateState) <-
