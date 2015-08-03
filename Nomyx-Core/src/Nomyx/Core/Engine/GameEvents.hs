@@ -18,31 +18,6 @@ import Control.Exception as E
 import Data.Time
 import Data.Maybe
 
--- | a list of possible events affecting a game
-data GameEvent = JoinGame          PlayerNumber PlayerName
-               | LeaveGame         PlayerNumber
-               | ProposeRuleEv     PlayerNumber SubmitRule
-               | InputResult       PlayerNumber EventNumber SignalAddress FormField InputData
-               | GLog              (Maybe PlayerNumber) String
-               | TimeEvent         UTCTime
-               | SystemAddRule     SubmitRule
-                 deriving (Show, Read, Eq, Ord)
-
-data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
-
--- | A game being non serializable, we have to store events in parralel in order to rebuild the state latter.
-data LoggedGame = LoggedGame { _game :: Game,
-                               _gameLog :: [TimedEvent]}
-                               deriving (Show)
-
-instance Eq LoggedGame where
-   (LoggedGame {_game=g1}) == (LoggedGame {_game=g2}) = g1 == g2
-
-instance Ord LoggedGame where
-   compare (LoggedGame {_game=g1}) (LoggedGame {_game=g2}) = compare g1 g2
-
-makeLenses ''LoggedGame
-
 -- | perform a game event
 enactEvent :: GameEvent -> Maybe (RuleCode -> IO Rule) -> StateT Game IO ()
 enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
@@ -126,16 +101,15 @@ logGame s mpn = do
 
 -- | the user has provided an input result
 inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> FormField -> InputData -> State Game ()
-inputResult pn en sa ff id = do
-   tracePN pn $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show sa ++ ", Form " ++ show ff ++ ", choice " ++ show id
-   runSystemEval pn $ triggerInput ff id sa en
+inputResult pn en sa ff ide = do
+   tracePN pn $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show sa ++ ", Form " ++ show ff ++ ", choice " ++ show ide
+   runSystemEval pn $ triggerInput ff ide sa en
 
 getGameTimes :: Game -> [UTCTime]
 getGameTimes g = concatMap (\ei -> getTimes ei g) (_events g)
 
 getTimes :: EventInfo -> Game -> [UTCTime]
 getTimes ei g = mapMaybe getTime (map snd $ getRemainingSignals ei g)
-
 
 getTime :: SomeSignal -> Maybe UTCTime
 getTime (SomeSignal (Time t)) = Just t
@@ -149,7 +123,6 @@ execWithGame t gs g = execState gs $ set (game . currentTime) t g
 execWithGame' :: UTCTime -> StateT LoggedGame IO () -> LoggedGame -> IO LoggedGame
 execWithGame' t gs g = execStateT gs $ set (game . currentTime) t g
 
-
 activeRules :: Game -> [RuleInfo]
 activeRules = sort . filter ((==Active) . getL rStatus) . _rules
 
@@ -159,16 +132,15 @@ pendingRules = sort . filter ((==Pending) . getL rStatus) . _rules
 rejectedRules :: Game -> [RuleInfo]
 rejectedRules = sort . filter ((==Reject) . getL rStatus) . _rules
 
-
 createRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO Rule) -> StateT Game IO RuleInfo
-createRule (SubmitRule name desc code) pn inter = do
+createRule (SubmitRule name des code) pn inter = do
    rs <- use rules
    let rn = getFreeNumber $ map _rNumber rs
    rf <- lift $ inter code
    tracePN pn $ "Creating rule n=" ++ show rn ++ " code=" ++ code
    return RuleInfo {_rNumber = rn,
                     _rName = name,
-                    _rDescription = desc,
+                    _rDescription = des,
                     _rProposedBy = pn,
                     _rRuleCode = code,
                     _rRule = rf,

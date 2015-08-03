@@ -5,51 +5,46 @@
 
 module Nomyx.Web.MainPage (launchWebServer) where
 
-import Control.Concurrent
 import           Control.Applicative
 import           Control.Concurrent.STM
 import           Control.Monad
 import           Control.Monad.Error
 import           Control.Monad.State
-import           Data.Acid                                   (AcidState, query)
 import           Data.List
 import           Data.Maybe
 import           Data.Monoid
 import           Data.String
-import           Data.Text                                   (Text, pack)
-import           Happstack.Authenticate.Core
-import           Happstack.Authenticate.OpenId.Controllers   (openIdCtrl)
-import           Happstack.Authenticate.OpenId.Route         (initOpenId)
-import           Happstack.Authenticate.Password.Controllers (usernamePasswordCtrl)
-import           Happstack.Authenticate.Password.Route       (initPassword)
-import           Happstack.Authenticate.Route                (initAuthentication)
-import           Happstack.Server                            as HS
+import           Data.Text                             (Text, pack)
+import           Happstack.Authenticate.OpenId.Route   (initOpenId)
+import           Happstack.Authenticate.Password.Route (initPassword)
+import           Happstack.Authenticate.Route          (initAuthentication)
+import           Happstack.Server                      as HS
 import           Language.Nomyx
-import           Nomyx.Core.Engine                           hiding (JoinGame,
-                                                              LeaveGame)
-import           Nomyx.Core.Profile                          as Profile
-import qualified Nomyx.Core.Session                          as S
-import           Nomyx.Core.Types                            as T
+import           Nomyx.Core.Engine                     hiding (JoinGame,
+                                                        LeaveGame)
+import           Nomyx.Core.Profile                    as Profile
+import qualified Nomyx.Core.Session                    as S
+import           Nomyx.Core.Types                      as T
 import           Nomyx.Core.Utils
-import           Nomyx.Web.Common                            as W
+import           Nomyx.Web.Common                      as W
 import           Nomyx.Web.Game.Details
 import           Nomyx.Web.Game.Infos
 import           Nomyx.Web.Game.IOs
 import           Nomyx.Web.Game.NewRule
 import           Nomyx.Web.Game.Rules
-import qualified Nomyx.Web.Help                              as Help
+import qualified Nomyx.Web.Help                        as Help
 import           Nomyx.Web.Login
 import           Nomyx.Web.NewGame
 import           Nomyx.Web.Settings
 import           Nomyx.Web.Types
 import           Paths_Nomyx_Language
-import           Prelude                                     hiding (div)
+import           Prelude                               hiding (div)
 import           Safe
 import           System.FilePath
-import           Text.Blaze.Html5                            hiding (map)
-import qualified Text.Blaze.Html5                            as H
-import           Text.Blaze.Html5.Attributes                 hiding (dir)
-import qualified Text.Blaze.Html5.Attributes                 as A
+import           Text.Blaze.Html5                      hiding (map)
+import qualified Text.Blaze.Html5                      as H
+import           Text.Blaze.Html5.Attributes           hiding (dir)
+import qualified Text.Blaze.Html5.Attributes           as A
 import           Web.Routes.Happstack
 import           Web.Routes.PathInfo
 import           Web.Routes.RouteT

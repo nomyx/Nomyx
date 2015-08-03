@@ -1,41 +1,44 @@
 
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE DoAndIfThenElse     #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Main (main) where
 
-import Prelude hiding ((.))
-import System.Console.GetOpt
-import System.Environment
-import Control.Concurrent
-import Control.Concurrent.STM
-import Data.Maybe
-import Safe
-import Network.BSD
-import Paths_Nomyx as PN
-import Paths_Nomyx_Web as PNW
-import Paths_Nomyx_Language as PNL
-import System.Directory (removeDirectoryRecursive, canonicalizePath, removeFile, doesFileExist)
-import Data.Time.Clock
-import Control.Exception as E hiding (bracket)
-import Data.Version (showVersion)
-import Language.Haskell.Interpreter.Server hiding (start)
-import System.FilePath ((</>))
-import Control.Monad.State
-import System.Exit
-import Nomyx.Web.MainPage
-import Nomyx.Core.Profile
-import Nomyx.Core.Session
-import Nomyx.Core.Multi as Multi
-import Nomyx.Core.Utils
-import Nomyx.Core.Types
-import Nomyx.Core.Serialize as Serialize
-import Nomyx.Core.Interpret
-import Nomyx.Core.Test
-import Nomyx.Core.Engine
-import Nomyx.Core.Engine.Test as LT
+import           Control.Concurrent
+import           Control.Concurrent.STM
+import           Control.Exception                   as E hiding (bracket)
+import           Control.Monad.State
+import           Data.Maybe
+import           Data.Time.Clock
+import           Data.Version                        (showVersion)
+import           Language.Haskell.Interpreter.Server hiding (start)
+import           Network.BSD
+import           Nomyx.Core.Engine
+import           Nomyx.Core.Engine.Test              as LT
+import           Nomyx.Core.Interpret
+import           Nomyx.Core.Multi                    as Multi
+import           Nomyx.Core.Profile
+import           Nomyx.Core.Serialize                as Serialize
+import           Nomyx.Core.Session
+import           Nomyx.Core.Test
+import           Nomyx.Core.Types
+import           Nomyx.Core.Utils
+import           Nomyx.Web.MainPage
+import           Paths_Nomyx                         as PN
+import           Paths_Nomyx_Language                as PNL
+import           Paths_Nomyx_Web                     as PNW
+import           Prelude                             hiding ((.))
+import           Safe
+import           System.Console.GetOpt
+import           System.Directory                    (canonicalizePath,
+                                                      doesFileExist,
+                                                      removeDirectoryRecursive,
+                                                      removeFile)
+import           System.Environment
+import           System.Exit
+import           System.FilePath                     ((</>))
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -102,18 +105,23 @@ loadMulti set sh = do
    fileExists <- doesFileExist $ getSaveFile set
    if fileExists then do
       putStrLn $ "Loading game: " ++ getSaveFile set
-      Serialize.loadMulti set sh `E.catch` (\e -> (putStrLn $ "Error while loading logged events, log file discarded\n" ++ (show (e::ErrorCall))) >> (return $ defaultMulti set))
+      Serialize.loadMulti set sh `E.catch` (errMsg set)
    else do
       let defMulti = defaultMulti set
-      execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 True sh) defMulti
+      execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 True sh) defMulti where
+
+errMsg :: Settings -> ErrorCall -> IO Multi
+errMsg set e = do
+  putStrLn $ "Error while loading logged events, log file discarded\n" ++ show (e::ErrorCall)
+  return $ defaultMulti set
 
 
 runTests :: FilePath -> Maybe String -> IO ()
 runTests saveDir mTestName = do
    sh <- protectHandlers $ startInterpreter saveDir
-   putStrLn $ "\nNomyx Language Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") LT.tests
+   putStrLn $ "\nNomyx Language Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") LT.tests
    ts <- playTests saveDir sh mTestName
-   putStrLn $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ (show b) ++ "\n") ts
+   putStrLn $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") ts
    let pass = allTests && all snd ts
    putStrLn $ "All Tests Pass: " ++ show pass
    if pass then exitSuccess else exitFailure
@@ -165,20 +173,20 @@ data Flag = Verbose
 -- | launch options description
 options :: [OptDescr Flag]
 options =
-     [ Option ['v'] ["verbose"]   (NoArg Verbose)                "chatty output on stderr"
-     , Option ['V'] ["version"]   (NoArg Version)                "show version number"
-     , Option ['h'] ["host"]      (ReqArg HostName "Hostname")   "specify host name"
-     , Option ['p'] ["port"]      (ReqArg Port "Port")           "specify port"
-     , Option ['n'] ["delete"]    (NoArg DeleteSaveFile)         "delete all save files"
-     , Option ['t'] ["tests"]     (NoArg Test)                   "perform routine check"
-     , Option ['l'] ["loadtest"]  (ReqArg LoadTest "TestName")   "specify name of test to load (in combination with -t i.e. -t -l \"testName\")"
-     , Option ['a'] ["adminPass"] (ReqArg AdminPass "AdminPass") "specify the admin password (default is NXPSD)"
-     , Option ['m'] ["mails"]     (NoArg Mails)                  "send mails (default is no)"
-     , Option ['?'] ["help"]      (NoArg Help)                   "display usage options (this screen)"
-     , Option ['r'] ["saveDir"]   (ReqArg SaveDir "SaveDir")     "specify save directory (for Nomyx.save and uploads)"
-     , Option ['f'] ["dataDir"]   (ReqArg WebDir "WebDir")       "specify data directory (for profiles and website files)"
-     , Option ['s'] ["sourceDir"] (ReqArg SourceDir "SourceDir") "specify source directory (for Nomyx-Language files)"
-     , Option ['T'] ["tar"]       (ReqArg TarFile "TarFile")     "specify tar file (containing Nomyx.save and uploads)"
+     [ Option "v" ["verbose"]   (NoArg Verbose)                "chatty output on stderr"
+     , Option "V" ["version"]   (NoArg Version)                "show version number"
+     , Option "h" ["host"]      (ReqArg HostName "Hostname")   "specify host name"
+     , Option "p" ["port"]      (ReqArg Port "Port")           "specify port"
+     , Option "n" ["delete"]    (NoArg DeleteSaveFile)         "delete all save files"
+     , Option "t" ["tests"]     (NoArg Test)                   "perform routine check"
+     , Option "l" ["loadtest"]  (ReqArg LoadTest "TestName")   "specify name of test to load (in combination with -t i.e. -t -l \"testName\")"
+     , Option "a" ["adminPass"] (ReqArg AdminPass "AdminPass") "specify the admin password (default is NXPSD)"
+     , Option "m" ["mails"]     (NoArg Mails)                  "send mails (default is no)"
+     , Option "?" ["help"]      (NoArg Help)                   "display usage options (this screen)"
+     , Option "r" ["saveDir"]   (ReqArg SaveDir "SaveDir")     "specify save directory (for Nomyx.save and uploads)"
+     , Option "f" ["dataDir"]   (ReqArg WebDir "WebDir")       "specify data directory (for profiles and website files)"
+     , Option "s" ["sourceDir"] (ReqArg SourceDir "SourceDir") "specify source directory (for Nomyx-Language files)"
+     , Option "T" ["tar"]       (ReqArg TarFile "TarFile")     "specify tar file (containing Nomyx.save and uploads)"
      ]
 
 nomyxOpts :: [String] -> IO ([Flag], [String])
@@ -244,7 +252,7 @@ launchTimeEvents tm = do
     --putStrLn $ "tick " ++ (show now)
     (Session _ m _) <- atomically $ readTVar tm
     timeEvents <- getTimeEvents now m
-    when (not $ null timeEvents) $ putStrLn "found time event(s)"
+    unless (null timeEvents) $ putStrLn "found time event(s)"
     mapM_ (Main.triggerTimeEvent tm) timeEvents
     --sleep 30 second roughly
     threadDelay 30000000

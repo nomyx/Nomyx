@@ -12,7 +12,6 @@ import Data.Time as T
 import Data.List
 import Data.Maybe
 import qualified Data.Acid.Advanced as A (update', query')
-import Control.Category hiding ((.))
 import Control.Monad.State
 import Control.Concurrent.STM
 import System.IO.PlafCompat
@@ -54,11 +53,11 @@ forkGame :: GameName -> GameName -> GameDesc -> Bool -> PlayerNumber -> StateT S
 forkGame fromgn newgn desc isPublic pn = zoom multi $ do
    gms <- use gameInfos
    case filter ((== fromgn) . getL gameNameLens) gms of
-      gi:[] -> do
+      [gi] -> do
          tracePN pn $ "Forking game: " ++ fromgn
          time <- liftIO T.getCurrentTime
-         let lg = ((game . gameName) .~ (newgn)) .
-                  ((game . gameDesc) .~ (desc)) $ _loggedGame gi
+         let lg = ((game . gameName) .~ newgn) .
+                  ((game . gameDesc) .~ desc) $ _loggedGame gi
          let gi' = GameInfo {
             _loggedGame     = lg,
             _ownedBy        = Just pn,
@@ -135,8 +134,8 @@ inputResult pn en fa ft ir gn = inGameDo gn $ execGameEvent $ InputResult pn en 
 -- | upload a rule file, given a player number, the full path of the file, the file name and the server handle
 inputUpload :: PlayerNumber -> FilePath -> FilePath -> ServerHandle -> StateT Session IO Bool
 inputUpload pn temp mod sh = do
-   saveDir <- use (multi . mSettings . saveDir)
-   m <- liftIO $ loadModule temp mod sh saveDir
+   sd <- use (multi . mSettings . saveDir)
+   m <- liftIO $ loadModule temp mod sh sd
    tracePN pn $ " uploaded " ++ show mod
    case m of
       Nothing -> do
@@ -189,7 +188,7 @@ inAllGamesDo action = do
    t <- lift T.getCurrentTime
    gis <- use (multi . gameInfos)
    forM_ gis $ \gi -> do
-         (a, mylg) <- lift $ runStateT action (set (game . currentTime) t (_loggedGame gi))
+         (_, mylg) <- lift $ runStateT action (set (game . currentTime) t (_loggedGame gi))
          zoom multi $ modifyGame (gi {_loggedGame = mylg})
 
 inGameDo :: GameName -> StateT LoggedGame IO  () -> StateT Session IO ()
@@ -198,7 +197,7 @@ inGameDo gn action = zoom multi $ do
    case find ((==gn) . getL gameNameLens) gs of
       Nothing -> traceM "No game by that name"
       Just (gi::GameInfo) -> do
-         t <- lift $ T.getCurrentTime
+         t <- lift T.getCurrentTime
          mylg <- lift $ execWithGame' t action (_loggedGame gi)
          modifyGame (gi {_loggedGame = mylg})
 
@@ -209,8 +208,8 @@ updateSession ts sm = do
    s <- atomically $ readTVar ts
    ms <- evalWithWatchdog s (evalSession sm)
    case ms of
-      Just s -> do
-         atomically $ writeTVar ts s
+      Just s' -> do
+         atomically $ writeTVar ts s'
          save $ _multi s
       Nothing -> putStrLn "thread timed out, session discarded"
 

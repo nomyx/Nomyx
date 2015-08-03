@@ -1,24 +1,22 @@
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE QuasiQuotes         #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- | This module manages multi-player games.
 module Nomyx.Core.Multi where
 
-import Language.Haskell.Interpreter.Server (ServerHandle)
-import Data.List
-import Data.Time as T
-import Control.Exception
-import Control.Lens
-import Control.Monad.State
-import Control.Applicative
-import Control.Category hiding ((.))
-import Language.Nomyx
-import Nomyx.Core.Engine as G
-import Nomyx.Core.Utils
-import Nomyx.Core.Types
-import Nomyx.Core.Interpret
-import Nomyx.Core.Quotes (cr)
-import System.Random
+import           Control.Exception
+import           Control.Lens
+import           Control.Monad.State
+import           Data.List
+import           Data.Time                           as T
+import           Language.Haskell.Interpreter.Server (ServerHandle)
+import           Language.Nomyx
+import           Nomyx.Core.Engine                   as G
+import           Nomyx.Core.Interpret
+import           Nomyx.Core.Quotes                   (cr)
+import           Nomyx.Core.Types
+import           Nomyx.Core.Utils
+import           System.Random
 
 triggerTimeEvent :: UTCTime -> StateT Multi IO ()
 triggerTimeEvent t = do
@@ -44,16 +42,19 @@ getTimeEvents now m = do
    return $ filter (\t -> t <= now && t > (-32) `addUTCTime` now) times
 
 -- | the initial rule set for a game.
+rVoteUnanimity :: SubmitRule
 rVoteUnanimity = SubmitRule "Unanimity Vote"
                             "A proposed rule will be activated if all players vote for it"
                             [cr|do
    onRuleProposed $ callVoteRule unanimity oneDay
    displayVotes|]
 
+rVictory5Rules :: SubmitRule
 rVictory5Rules = SubmitRule "Victory 5 accepted rules"
                             "Victory is achieved if you have 5 active rules"
                             [cr|victoryXRules 5|]
 
+rVoteMajority :: SubmitRule
 rVoteMajority = SubmitRule "Majority Vote"
                             "A proposed rule will be activated if a majority of players is reached, with a minimum of 2 players, and within oone day"
                             [cr|onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDay|]
@@ -64,12 +65,12 @@ initialGame sh = zoom loggedGame $ mapM_ addR [rVoteUnanimity, rVictory5Rules]
    where addR r = execGameEvent' (Just $ getRuleFunc sh) (SystemAddRule r)
 
 initialGameInfo :: GameName -> GameDesc -> Bool -> Maybe PlayerNumber -> UTCTime -> ServerHandle -> IO GameInfo
-initialGameInfo name desc isPublic mpn date sh = do
+initialGameInfo name desc isPub mpn date sh = do
    let gen = mkStdGen 0
    let lg = GameInfo { _loggedGame = LoggedGame (emptyGame name desc date gen) [],
                        _ownedBy    = mpn,
                        _forkedFromGame = Nothing,
-                       _isPublic = isPublic,
+                       _isPublic = isPub,
                        _startedAt  = date}
 
    execStateT (initialGame sh) lg

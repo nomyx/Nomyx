@@ -1,22 +1,25 @@
-{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE DoAndIfThenElse     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- | This module starts a Interpreter server that will read our strings representing rules to convert them to plain Rules.
 module Nomyx.Core.Interpret where
 
-import System.Directory (createDirectoryIfMissing, copyFile, removeFile, doesFileExist)
-import System.FilePath ((</>), joinPath, dropExtension, takeFileName)
-import System.IO.Error
-import Data.Either.Unwrap
-import Data.List
-import Control.Exception as CE
-import Control.Monad
-import Language.Haskell.Interpreter
-import Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
-import Language.Haskell.Interpreter.Server
-import Language.Nomyx
-import Nomyx.Core.Context
-import Nomyx.Core.Utils
+import           Control.Exception                   as CE
+import           Control.Monad
+import           Data.Either.Unwrap
+import           Data.List
+import           Language.Haskell.Interpreter
+import           Language.Haskell.Interpreter.Server
+import           Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
+import           Language.Nomyx
+import           Nomyx.Core.Context
+import           Nomyx.Core.Utils
+import           System.Directory                    (copyFile,
+                                                      createDirectoryIfMissing,
+                                                      doesFileExist, removeFile)
+import           System.FilePath                     (dropExtension, joinPath,
+                                                      takeFileName, (</>))
+import           System.IO.Error
 
 exts :: [String]
 exts = ["Safe", "GADTs"] ++ map show namedExts
@@ -26,7 +29,7 @@ namedExts = [GADTs,
              ScopedTypeVariables,
              TypeFamilies,
              DeriveDataTypeable]
-                                
+
 -- | the server handle
 startInterpreter :: FilePath -> IO ServerHandle
 startInterpreter saveDir = do
@@ -45,7 +48,7 @@ getUploadModules :: FilePath -> IO [FilePath]
 getUploadModules saveDir = do
     files <- getUploadedModules saveDir `catch` (\(_::SomeException) -> return [])
     return $ map (\f -> joinPath [saveDir, uploadDir, f]) files
-   
+
 -- | initializes the interpreter by loading some modules.
 initializeInterpreter :: FilePath -> Interpreter ()
 initializeInterpreter saveDir = do

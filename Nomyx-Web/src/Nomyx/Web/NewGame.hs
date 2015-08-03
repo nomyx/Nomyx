@@ -4,7 +4,6 @@
 module Nomyx.Web.NewGame where
 
 import           Control.Applicative
-import           Control.Concurrent.STM
 import           Control.Monad.State
 import           Data.Maybe
 import           Data.Text                   (Text)

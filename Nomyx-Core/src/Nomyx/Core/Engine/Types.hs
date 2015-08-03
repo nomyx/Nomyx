@@ -6,13 +6,15 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | Types for the engine
 module Nomyx.Core.Engine.Types where
 
 import Prelude hiding (log)
 import Language.Nomyx.Expression
-import Control.Lens
+import Control.Lens hiding ((.=))
+import Control.Applicative
 import Data.Time
 import Data.Typeable
 import Data.Data
@@ -21,7 +23,9 @@ import Control.Monad.State
 import Control.Monad.Reader
 import GHC.Generics
 import System.Random
-
+import Data.Aeson.TH (deriveJSON, defaultOptions)
+import Data.Aeson
+import Data.Time.Clock.POSIX
 
 -- * Evaluation
 
@@ -65,6 +69,7 @@ instance Eq Game where
 instance Ord Game where
    compare (Game {_gameName=gn1}) (Game {_gameName=gn2}) = compare gn1 gn2
 
+emptyGame :: GameName -> GameDesc -> UTCTime -> StdGen -> Game
 emptyGame name desc date gen = Game {
    _gameName      = name,
    _gameDesc      = desc,
@@ -77,6 +82,29 @@ emptyGame name desc date gen = Game {
    _logs          = [],
    _randomGen     = gen,
    _currentTime   = date}
+
+
+-- | a list of possible events affecting a game
+data GameEvent = JoinGame          PlayerNumber PlayerName
+              | LeaveGame         PlayerNumber
+              | ProposeRuleEv     PlayerNumber SubmitRule
+              | InputResult       PlayerNumber EventNumber SignalAddress FormField InputData
+              | GLog              (Maybe PlayerNumber) String
+              | TimeEvent         UTCTime
+              | SystemAddRule     SubmitRule
+                deriving (Show, Read, Eq, Ord)
+
+data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
+
+-- | A game being non serializable, we have to store events in parralel in order to rebuild the state latter.
+data LoggedGame = LoggedGame { _game :: Game,
+                               _gameLog :: [TimedEvent]}
+
+instance Eq LoggedGame where
+  (LoggedGame {_game=g1}) == (LoggedGame {_game=g2}) = g1 == g2
+
+instance Ord LoggedGame where
+  compare (LoggedGame {_game=g1}) (LoggedGame {_game=g2}) = compare g1 g2
 
 
 -- * Variables
@@ -143,9 +171,41 @@ data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
 
 data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
 
-
 makeLenses ''Game
 makeLenses ''GameDesc
 makeLenses ''Var
 makeLenses ''Output
 makeLenses ''EvalEnv
+makeLenses ''LoggedGame
+
+time0 = posixSecondsToUTCTime 0
+
+instance ToJSON Game where
+   toJSON (Game name desc _ _ _ _ _ _ _ _ _) =
+      object ["gameName" .= name,
+              "gameDesc" .= desc]
+
+instance FromJSON Game where
+   parseJSON (Object v) = Game <$>
+      v .: "gameName" <*>
+      v .: "gameDesc" <*>
+      pure [] <*>
+      pure [] <*>
+      pure [] <*>
+      pure [] <*>
+      pure [] <*>
+      pure Nothing <*>
+      pure [] <*>
+      pure time0  <*>
+      pure (mkStdGen 0)
+   parseJSON _ = mzero
+
+$(deriveJSON defaultOptions ''TimedEvent)
+$(deriveJSON defaultOptions ''GameEvent)
+$(deriveJSON defaultOptions ''SubmitRule)
+$(deriveJSON defaultOptions ''FormField)
+$(deriveJSON defaultOptions ''InputData)
+$(deriveJSON defaultOptions ''GameDesc)
+$(deriveJSON defaultOptions ''StdGen)
+$(deriveJSON defaultOptions ''SignalAddressElem)
+$(deriveJSON defaultOptions ''LoggedGame)

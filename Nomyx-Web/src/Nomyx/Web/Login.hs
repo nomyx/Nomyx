@@ -1,28 +1,16 @@
 {-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE QuasiQuotes         #-}
-{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Nomyx.Web.Login where
 
 import           Control.Applicative
-import           Control.Concurrent.STM
 import           Control.Lens
 import           Control.Monad.State
-import           Data.Acid
-import           Data.Acid.Advanced          (query')
 import           Data.Maybe
 import           Data.Text                   hiding (concatMap, map, zip)
-import           Facebook                    (Credentials (..))
-import           Happstack.Authenticate.Core (AuthenticateState,
-                                              AuthenticateURL (..),
-                                              GetUserByUserId (..), User,
-                                              UserId, getUserByUserId,
-                                              getUserId, _unEmail, _email,
-                                              _unUsername, _username)
+import           Happstack.Authenticate.Core (AuthenticateURL (..), _email,
+                                              _unEmail, _unUsername, _username)
 import           Happstack.Server
-import           Language.Javascript.JMacro
-import           Nomyx.Core.Profile
 import           Nomyx.Core.Session          as S
 import           Nomyx.Core.Types            as T
 import           Nomyx.Web.Common
@@ -64,7 +52,7 @@ logout = do
   ok $ do
     H.div ! customAttribute "ng-controller" "UsernamePasswordCtrl" $ do
       customLeaf (stringTag "up-logout") True
-  seeOther main $ toResponse $ ("to game page" :: String)
+  seeOther main $ toResponse ("to game page" :: String)
 
 -- | add a new player if not existing
 postAuthenticate :: RoutedNomyxServer Response
@@ -87,12 +75,12 @@ authenticate authURL = do
   mapRouteT lift $ nestURL Auth $ rt authURL
 
 changePasswordPanel :: RoutedNomyxServer Response
-changePasswordPanel = mainPage' "Nomyx" "Login page" True $ do
+changePasswordPanel = mainPage' "Nomyx" "Login page" True $
    customLeaf (stringTag "up-change-password") True
 
 openIdRealmPanel :: RoutedNomyxServer Response
-openIdRealmPanel = mainPage' "Nomyx" "Login page" True $ do
-   H.div ! customAttribute "ng-controller" "OpenIdCtrl" $ do
+openIdRealmPanel = mainPage' "Nomyx" "Login page" True $
+   H.div ! customAttribute "ng-controller" "OpenIdCtrl" $
      customLeaf (stringTag "openid-realm") True
 
 resetPasswordPage :: RoutedNomyxServer Response

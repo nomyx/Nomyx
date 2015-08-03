@@ -1,20 +1,23 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE TypeFamilies       #-}
 
 module Nomyx.Core.Types where
 
-import Network.BSD
-import Language.Haskell.Interpreter.Server (ServerHandle)
-import Data.Typeable
-import Control.Lens
-import Data.Acid (AcidState)
-import Data.Data (Data)
-import Data.IxSet (inferIxSet, noCalcs)
-import Data.SafeCopy (base, extension, deriveSafeCopy, Migrate(..))
-import Data.Time
-import Language.Nomyx
-import Nomyx.Core.Engine
+import           Control.Lens
+import           Data.Acid                           (AcidState)
+import           Data.Aeson.TH                       (defaultOptions,
+                                                      deriveJSON)
+import           Data.Data                           (Data)
+import           Data.IxSet                          (inferIxSet, noCalcs)
+import           Data.SafeCopy                       (Migrate (..), base,
+                                                      deriveSafeCopy, extension)
+import           Data.Time
+import           Data.Typeable
+import           Language.Haskell.Interpreter.Server (ServerHandle)
+import           Language.Nomyx
+import           Network.BSD
+import           Nomyx.Core.Engine
 
 type PlayerPassword = String
 type Port = Int
@@ -30,6 +33,8 @@ $(deriveSafeCopy 1 'base ''LastUpload)
 
 data Network = Network {_host :: HostName, _port :: Port}
                deriving (Eq, Show, Read, Typeable)
+
+defaultNetwork :: Network
 defaultNetwork = Network "" 0
 
 data PlayerSettings =
@@ -53,7 +58,7 @@ data Settings = Settings { _net           :: Network,  -- URL where the server i
 
 --- | A structure to hold the active games and players
 data Multi = Multi { _gameInfos :: [GameInfo],
-                     _mSettings  :: Settings}
+                     _mSettings :: Settings}
                      deriving (Eq, Show, Typeable)
 
 data GameInfo = GameInfo { _loggedGame     :: LoggedGame,
@@ -88,7 +93,7 @@ $(deriveSafeCopy 1 'base ''ProfileDataOld)
 
 instance Migrate ProfileData where
   type MigrateFrom ProfileData = ProfileDataOld
-  migrate (ProfileDataOld a b c d e f) = (ProfileData a b d e f)
+  migrate (ProfileDataOld a b _ d e f) = (ProfileData a b d e f)
 
 
 $(deriveSafeCopy 1 'base ''SubmitRule)
@@ -99,9 +104,9 @@ data ProfileDataState = ProfileDataState { profilesData :: ProfilesData }
     deriving (Eq, Ord, Read, Show, Typeable, Data)
 $(deriveSafeCopy 1 'base ''ProfileDataState)
 
-data Session = Session { _sh :: ServerHandle,
-                         _multi :: Multi,
-                         _acidProfiles  :: AcidState ProfileDataState}
+data Session = Session { _sh           :: ServerHandle,
+                         _multi        :: Multi,
+                         _acidProfiles :: AcidState ProfileDataState}
 
 instance Show Session where
    show (Session _ m _) = show m
@@ -113,3 +118,8 @@ makeLenses ''Network
 makeLenses ''PlayerSettings
 makeLenses ''Session
 makeLenses ''ProfileData
+
+$(deriveJSON defaultOptions ''Multi)
+$(deriveJSON defaultOptions ''GameInfo)
+$(deriveJSON defaultOptions ''Settings)
+$(deriveJSON defaultOptions ''Network)

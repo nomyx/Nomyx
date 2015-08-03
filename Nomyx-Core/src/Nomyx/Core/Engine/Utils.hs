@@ -12,15 +12,15 @@ module Nomyx.Core.Engine.Utils(
    getL,
    module Debug.Trace) where
 
-import Data.Time
-import Data.Typeable (cast, Typeable)
-import Debug.Trace.Helpers (traceM)
-import Data.Maybe (fromJust)
-import System.Locale (rfc822DateFormat, defaultTimeLocale)
-import Control.Monad.State
-import Control.Monad.Identity
-import Debug.Trace (trace)
-import Control.Lens hiding (runIdentity)
+import           Control.Lens           hiding (runIdentity)
+import           Control.Monad.Identity
+import           Control.Monad.State
+import           Data.Maybe             (fromJust)
+import           Data.Time
+import           Data.Typeable          (Typeable, cast)
+import           Debug.Trace            (trace)
+import           Debug.Trace.Helpers    (traceM)
+import           System.Locale          (defaultTimeLocale, rfc822DateFormat)
 
 -- | an equality that tests also the types.
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
@@ -52,7 +52,7 @@ mapStateIO :: Show s => State s a -> StateT s IO a
 mapStateIO = mapStateT $ return . runIdentity
 
 getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
-getFreeNumber l = head [ a | a <- [1..], not $ a `elem` l]
+getFreeNumber l = head [ a | a <- [1..], notElem a l]
 
 sel :: [a]   -- ^ List of indices to select
     -> [Int] -- ^ List of elements

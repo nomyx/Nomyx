@@ -5,7 +5,6 @@
 module Nomyx.Web.Game.NewRule where
 
 import           Control.Applicative
-import           Control.Concurrent.STM
 import           Control.Monad
 import           Control.Monad.State
 import           Data.Maybe
@@ -73,7 +72,7 @@ newRule gn = toResponse <$> do
    case r of
       Right (sr, Nothing, Nothing) -> webCommand $ submitRule sr pn gn (_sh s)
       Right (sr, Just _, Nothing)  -> webCommand $ checkRule sr pn (_sh s)
-      Right (sr, Nothing, Just _)  -> webCommand $ adminSubmitRule sr pn gn (_sh s) 
+      Right (sr, Nothing, Just _)  -> webCommand $ adminSubmitRule sr pn gn (_sh s)
       Right (_,  Just _, Just _)   -> error "Impossible new rule form result"
       (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
    seeOther (link `appendAnchor` ruleFormAnchor) $ "Redirecting..."

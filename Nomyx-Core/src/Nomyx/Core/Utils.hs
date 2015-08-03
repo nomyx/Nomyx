@@ -5,27 +5,26 @@ module Nomyx.Core.Utils where
 
 
 
-import Codec.Archive.Tar as Tar
-import System.IO.Temp
-import System.Directory
-import System.FilePath
+import           Codec.Archive.Tar    as Tar
+import           System.Directory
+import           System.FilePath
+import           System.IO.Temp
 #ifndef WINDOWS
 import qualified System.Posix.Signals as S
 #endif
-import System.IO
-import System.IO.PlafCompat
-import Control.Lens
-import Data.Maybe
-import Control.Monad.State
-import Control.Exception
-import Control.Concurrent
-import Control.Category ((>>>))
-import Control.Monad.Catch as MC
-import Control.DeepSeq
-import Nomyx.Core.Types
-import Nomyx.Core.Engine
+import           Control.Concurrent
+import           Control.DeepSeq
+import           Control.Exception
+import           Control.Lens
+import           Control.Monad.Catch  as MC
+import           Control.Monad.State
+import           Data.Maybe
+import           Nomyx.Core.Engine
+import           Nomyx.Core.Types
+import           System.IO
+import           System.IO.PlafCompat
 
-saveFile, profilesDir, uploadDir, tarFile :: FilePath
+saveFile, profilesDir, uploadDir, testDir, tarFile :: FilePath
 saveFile    = "Nomyx.save"
 profilesDir = "profiles"
 uploadDir   = "uploads"
@@ -48,10 +47,10 @@ say :: String -> StateT a IO ()
 say = lift . putStrLn
 
 nomyxURL :: Network -> String
-nomyxURL (Network host port) = "http://" ++ host ++ ":" ++ show port
+nomyxURL (Network h p) = "http://" ++ h ++ ":" ++ show p
 
 getSaveFile :: Settings -> FilePath
-getSaveFile set = _saveDir set </> saveFile
+getSaveFile s = _saveDir s </> saveFile
 
 makeTar :: FilePath -> IO ()
 makeTar saveDir = do

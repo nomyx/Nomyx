@@ -1,27 +1,28 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 -- | Evaluation of a Nomyx expression
 module Nomyx.Core.Engine.Evaluation where
 
-import Prelude hiding ((.), log)
-import Control.Monad
-import Control.Monad.State
-import Control.Monad.Reader
-import Data.List
-import Data.Typeable
-import Data.Time
-import Data.Maybe
-import Data.Todo
-import Control.Category hiding (id)
-import Control.Applicative
-import Control.Monad.Error
-import Control.Lens
-import Language.Nomyx.Expression
-import Nomyx.Core.Engine.Types hiding (_vRuleNumber)
-import Nomyx.Core.Engine.EventEval
-import Nomyx.Core.Engine.EvalUtils
-import Nomyx.Core.Engine.Utils
-import System.Random
+import           Control.Applicative
+import           Control.Category            hiding (id)
+import           Control.Lens
+import           Control.Monad
+import           Control.Monad.Error
+import           Control.Monad.Reader
+import           Control.Monad.State
+import           Data.List
+import           Data.Maybe
+import           Data.Time
+import           Data.Todo
+import           Data.Typeable
+import           Language.Nomyx.Expression
+import           Nomyx.Core.Engine.EvalUtils
+import           Nomyx.Core.Engine.EventEval
+import           Nomyx.Core.Engine.Types     hiding (_vRuleNumber)
+import           Nomyx.Core.Engine.Utils
+import           Prelude                     hiding (log, (.))
+import           System.Random
 
 
 
@@ -42,15 +43,15 @@ evalNomex (ProposeRule rule)      = evProposeRule rule
 evalNomex (ActivateRule rule)     = evActivateRule rule
 evalNomex (RejectRule rule)       = evRejectRule rule
 evalNomex (AddRule rule)          = evAddRule rule
-evalNomex (ModifyRule mod rule)   = evModifyRule mod rule
+evalNomex (ModifyRule m rule)     = evModifyRule m rule
 evalNomex (SetPlayerName pn n)    = evChangeName pn n
 evalNomex (DelPlayer pn)          = evDelPlayer pn
 evalNomex (SetVictory ps)         = evSetVictory ps
 evalNomex (LiftEffect e)          = liftEval $ evalNomexNE e
 evalNomex (ThrowError s)          = throwError s
-evalNomex (CatchError n h)        = catchError (evalNomex n) (\a -> evalNomex (h a))
+evalNomex (CatchError n h)        = catchError (evalNomex n) (evalNomex . h)
 evalNomex (Return a)              = return a
-evalNomex (Bind exp f)            = evalNomex exp >>= \e -> evalNomex (f e)
+evalNomex (Bind ex f)             = evalNomex ex >>= \e -> evalNomex (f e)
 evalNomex (GetRandomNumber r)     = evGetRandomNumber r
 
 -- | evaluate an effectless expression.
@@ -63,7 +64,7 @@ evalNomexNE  GetEvents      = _events <$> asks _eGame
 evalNomexNE  SelfRuleNumber = asks _eRuleNumber
 evalNomexNE (CurrentTime)   = _currentTime <$> asks _eGame
 evalNomexNE (Return a)      = return a
-evalNomexNE (Bind exp f)    = evalNomexNE exp >>= \e -> evalNomexNE (f e)
+evalNomexNE (Bind ex f)     = evalNomexNE ex >>= \e -> evalNomexNE (f e)
 evalNomexNE (Simu sim ev)   = evSimu sim ev
 
 
@@ -76,7 +77,7 @@ evNewVar name def = do
          return $ Just (V name)
       Just _ -> return Nothing
 
-evDelVar :: (V a) -> Evaluate Bool
+evDelVar :: V a -> Evaluate Bool
 evDelVar (V name) = do
    (vars, _) <- accessGame variables
    case find ((== name) . getL vName) vars of
@@ -95,14 +96,14 @@ evWriteVar (V name) val = do
          return True
 
 evOnEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Evaluate EventNumber
-evOnEvent event handler = do
+evOnEvent ev h = do
    (evs, rn) <- accessGame events
    let en = getFreeNumber (map _eventNumber evs)
-   modifyGame events (EventInfo en rn event handler SActive [] : )
+   modifyGame events (EventInfo en rn ev h SActive [] : )
    return en
 
 evSendMessage :: (Typeable a, Show a) => Msg a -> a -> Evaluate ()
-evSendMessage (Msg id) d = triggerEvent (Message (Msg id)) d
+evSendMessage (Msg i) = triggerEvent (Message (Msg i))
 
 evProposeRule :: RuleInfo -> Evaluate Bool
 evProposeRule rule = do
@@ -170,9 +171,9 @@ evDelPlayer pn = do
       Nothing -> do
          tracePN pn "not in game!"
          return False
-      Just pi -> do
+      Just pid -> do
          modifyGame players $ filter (\a -> a ^. playerNumber /= pn)
-         triggerEvent (Player Leave) pi
+         triggerEvent (Player Leave) pid
          tracePN pn $ "leaving the game: " ++ _gameName g
          return True
 
@@ -181,8 +182,8 @@ evChangeName pn name = do
    pls <- use (eGame . players)
    case find ((== pn) . getL playerNumber) pls of
       Nothing -> return False
-      Just pi -> do
-         putGame players $ replaceWith ((== pn) . getL playerNumber) (pi {_playerName = name}) pls
+      Just pid -> do
+         putGame players $ replaceWith ((== pn) . getL playerNumber) (pid {_playerName = name}) pls
          return True
 
 evDelEvent :: EventNumber -> Evaluate Bool
@@ -218,7 +219,7 @@ evGetOutput on = do
 evUpdateOutput :: OutputNumber -> NomexNE String -> Evaluate Bool
 evUpdateOutput on s = do
    (ops, _) <- accessGame outputs
-   case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of
+   case find (\(Output myOn _ _ _ st) -> myOn == on && st == SActive) ops of
       Nothing -> return False
       Just (Output _ rn pn _ _) -> do
          modifyGame outputs $ replaceWith ((== on) . getL outputNumber) (Output on rn pn s SActive)
@@ -309,10 +310,10 @@ delVictoryRule rn = do
 --knowing the rule number performing the evaluation (0 if by the system)
 --and the player number to whom display errors (set to Nothing for all players)
 --TODO: clean
-runEvalError :: RuleNumber -> (Maybe PlayerNumber) -> Evaluate a -> State Game ()
+runEvalError :: RuleNumber -> Maybe PlayerNumber -> Evaluate a -> State Game ()
 runEvalError rn mpn egs = modify (\g -> _eGame $ execState (runEvalError' mpn egs) (EvalEnv rn g evalNomex evalNomexNE))
 
-runEvalError' :: (Maybe PlayerNumber) -> Evaluate a -> State EvalEnv ()
+runEvalError' :: Maybe PlayerNumber -> Evaluate a -> State EvalEnv ()
 runEvalError' mpn egs = do
    e <- runErrorT egs
    case e of
@@ -322,14 +323,14 @@ runEvalError' mpn egs = do
          void $ runErrorT $ log mpn "Error: "
 
 runSystemEval :: PlayerNumber -> Evaluate a -> State Game ()
-runSystemEval pn e = runEvalError 0 (Just pn) e
+runSystemEval pn = runEvalError 0 (Just pn)
 
 runSystemEval' :: Evaluate a -> State Game ()
-runSystemEval' e = runEvalError 0 Nothing e
+runSystemEval' = runEvalError 0 Nothing
 
 --get the signals left to be completed in an event
 getRemainingSignals :: EventInfo -> Game -> [(SignalAddress, SomeSignal)]
-getRemainingSignals (EventInfo _ rn e _ _ env) g = case runEvaluateNE g rn (getEventResult e env) of
+getRemainingSignals (EventInfo _ rn e _ _ en) g = case runEvaluateNE g rn (getEventResult e en) of
    Done _ -> []
    Todo a -> a
 
@@ -353,13 +354,14 @@ instance Show Game where
       "\n\n currentTime = " ++ show t ++ "\n" ++
       "\n\n logs = " ++ show l ++ "\n"
 
+deriving instance Show LoggedGame
 
 displayEvent :: Game -> EventInfo -> String
-displayEvent g ei@(EventInfo en rn _ _ s env) =
+displayEvent g ei@(EventInfo en rn _ _ s envi) =
    "event num: " ++ (show en) ++
    ", rule num: " ++ (show rn) ++
    ", remaining signals: " ++ (show $ getRemainingSignals ei g) ++ --TODO: display also event result?
-   ", envs: " ++ (show env) ++
+   ", envs: " ++ (show envi) ++
    ", status: " ++ (show s)
 
 displayOutput :: Game -> Output -> String

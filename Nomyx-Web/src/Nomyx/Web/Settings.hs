@@ -1,36 +1,33 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings    #-}
 
 module Nomyx.Web.Settings where
 
-import Text.Blaze.Html5 hiding (map, label, br)
-
-import Prelude hiding (div)
-import Text.Reform
-import Text.Reform.Happstack
-import Text.Reform.Blaze.String as RB hiding (form)
-import Text.Blaze.Html5.Attributes as A hiding (dir, label)
-import qualified Text.Blaze.Html5 as H
-import Happstack.Server
-import Web.Routes.RouteT
-import Control.Applicative
-import Control.Monad.State
-import Control.Concurrent.STM
-import Safe
-import Data.Text(Text)
-import Data.Version (showVersion)
-import Data.Maybe
-import Data.String
-import System.FilePath
-import Paths_Nomyx_Web as PNW
-import Language.Nomyx
-import Nomyx.Web.Common
-import Nomyx.Web.Help as Help
-import Nomyx.Web.Types
-import Nomyx.Core.Profile
-import Nomyx.Core.Utils
-import Nomyx.Core.Types as Types
-import Nomyx.Core.Session as S
+import           Control.Applicative
+import           Control.Monad.State
+import           Data.Maybe
+import           Data.String
+import           Data.Text                   (Text)
+import           Data.Version                (showVersion)
+import           Happstack.Server
+import           Nomyx.Core.Profile
+import           Nomyx.Core.Session          as S
+import           Nomyx.Core.Types            as Types
+import           Nomyx.Core.Utils
+import           Nomyx.Web.Common
+import           Nomyx.Web.Help              as Help
+import           Nomyx.Web.Types
+import           Paths_Nomyx_Web             as PNW
+import           Prelude                     hiding (div)
+import           Safe
+import           System.FilePath
+import           Text.Blaze.Html5            hiding (br, label, map)
+import qualified Text.Blaze.Html5            as H
+import           Text.Blaze.Html5.Attributes as A hiding (dir, label)
+import           Text.Reform
+import           Text.Reform.Blaze.String    as RB hiding (form)
+import           Text.Reform.Happstack
+import           Web.Routes.RouteT
 
 default (Integer, Double, Data.Text.Text)
 

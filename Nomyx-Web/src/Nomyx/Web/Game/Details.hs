@@ -1,20 +1,21 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
+{-# LANGUAGE OverloadedStrings    #-}
 
 module Nomyx.Web.Game.Details where
 
-import Data.Maybe
-import Data.String
-import Data.List
-import Data.Text (Text)
-import Data.Time
-import System.Locale
-import Language.Nomyx
-import Text.Blaze.Html5                    (Html, (!), p, table, thead, td, tr, h4)
-import Text.Blaze.Html5.Attributes as A    (style, class_)
-import qualified Nomyx.Web.Help as Help
-import Nomyx.Web.Common as NWC
-import Nomyx.Core.Engine
+import           Data.List
+import           Data.Maybe
+import           Data.String
+import           Data.Text                   (Text)
+import           Data.Time
+import           Language.Nomyx
+import           Nomyx.Core.Engine
+import           Nomyx.Web.Common            as NWC
+import qualified Nomyx.Web.Help              as Help
+import           System.Locale
+import           Text.Blaze.Html5            (Html, h4, p, table, td, thead, tr,
+                                              (!))
+import           Text.Blaze.Html5.Attributes as A (class_, style)
 default (Integer, Double, Data.Text.Text)
 
 

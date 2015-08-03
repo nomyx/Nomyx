@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE DoAndIfThenElse      #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE FlexibleInstances    #-}
@@ -6,7 +5,6 @@
 {-# LANGUAGE NamedFieldPuns       #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE QuasiQuotes          #-}
-{-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
@@ -15,22 +13,22 @@ module Nomyx.Web.Common where
 import           Control.Concurrent.STM
 import           Control.Lens
 import           Control.Monad.State
-import           Data.Acid                           (Query)
 import           Data.Acid.Advanced                  (query')
 import qualified Data.ByteString.Char8               as C
 import           Data.Maybe
 import           Data.Monoid
 import           Data.String
-import           Data.Text                           (Text, append, pack,
-                                                      unpack)
-import           Happstack.Authenticate.Core         (AuthenticateState,
-                                                      AuthenticateURL (..),
+import           Data.Text                           (Text, append, unpack)
+import           Happstack.Authenticate.Core         (AuthenticateURL (..),
+                                                      GetUserByUserId (..),
                                                       User, UserId (..),
-                                                      getUserId, GetUserByUserId(..))
+                                                      getUserId)
 import           Happstack.Server                    as HS
 import           Language.Haskell.HsColour.Colourise (defaultColourPrefs)
 import           Language.Haskell.HsColour.HTML      (hscolour)
-import           Language.Javascript.JMacro
+import           Language.Javascript.JMacro          (JStat(..), jLam,
+                                                      jVarTy, jhFromList,
+                                                      jmacro, toJExpr)
 import           Language.Nomyx
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Profile
@@ -41,21 +39,17 @@ import           Prelude                             hiding (div)
 import           Safe
 import           Text.Blaze.Html.Renderer.Utf8       (renderHtml)
 import           Text.Blaze.Html5                    hiding (base, map, output)
-import           Text.Blaze.Html5                    hiding (base, map, output)
 import qualified Text.Blaze.Html5                    as H
 import           Text.Blaze.Html5.Attributes         hiding (dir, id)
 import qualified Text.Blaze.Html5.Attributes         as A
 import           Text.Printf
-import           Text.Reform                         (CommonFormError,
-                                                      ErrorInputType, Form,
+import           Text.Reform                         (ErrorInputType, Form,
                                                       FormError (..), FormInput)
 import           Text.Reform.Blaze.String            ()
 import qualified Text.Reform.Generalized             as G
 import           Text.Reform.Happstack               ()
 import           Web.Routes.Happstack                ()
-import           Web.Routes.PathInfo
 import           Web.Routes.RouteT
-import           Web.Routes.TH                       (derivePathInfo)
 
 ruleFormAnchor, inputAnchor :: Text
 ruleFormAnchor = "RuleForm"
@@ -148,7 +142,7 @@ getProfile' pn = do
   s <- liftIO $ atomically $ readTVar ts
   getProfile s pn
 
-getSession :: RoutedNomyxServer (Session)
+getSession :: RoutedNomyxServer Session
 getSession = do
   ts <- use session
   liftIO $ atomically $ readTVar ts
@@ -201,16 +195,16 @@ numberOfGamesOwned :: [GameInfo] -> PlayerNumber -> Int
 numberOfGamesOwned gis pn = length $ filter (maybe False (==pn) . _ownedBy) gis
 
 getFirstGame :: Session -> Maybe GameInfo
-getFirstGame = headMay . (filter _isPublic) ._gameInfos . _multi
+getFirstGame = headMay . filter _isPublic ._gameInfos . _multi
 
 showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
 showHideTitle id visible empty title rest = do
    let id' = filter (/=' ') id
    div $ table ! width "100%" $ tr $ do
-      td $ div $ title
+      td $ div title
       td $ div $ a (if visible then "Click to hide" else "Click to show") ! A.id (fromString $ id' ++ "Show") ! A.class_ "button showHide" ! onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id' id')
    div ! A.id (fromString $ id' ++ "Body") ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
-      if empty then (toHtml "No Rules") else rest
+      if empty then toHtml "No Rules" else rest
 
 titleWithHelpIcon :: Html -> String -> Html
 titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do

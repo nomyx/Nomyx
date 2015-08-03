@@ -6,7 +6,6 @@ module Nomyx.Web.Game.Infos where
 import Prelude hiding (div)
 import Control.Monad
 import Control.Monad.State
-import Control.Concurrent.STM
 import Control.Applicative
 import Data.Monoid
 import Data.Maybe
@@ -25,12 +24,9 @@ import Web.Routes.RouteT                   (showURL, liftRouteT)
 import Nomyx.Web.Common as NWC
 import Nomyx.Web.Help as Help
 import Nomyx.Web.Types
-import Nomyx.Core.Types as T
 import Nomyx.Core.Engine (Game, GameName, getVictorious, _gameName, _gameDesc, _players, _desc, _forumURL)
 import Nomyx.Core.Session as S
 import Nomyx.Core.Profile as Profile
-import Control.Monad.Trans.Control
-import Control.Monad.Base
 
 default (Integer, Double, Data.Text.Text)
 

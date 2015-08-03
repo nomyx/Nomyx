@@ -6,8 +6,6 @@
 
 module Nomyx.Core.Profile where
 
-import           Control.Concurrent.STM
-import           Control.Lens
 import           Control.Monad
 import           Control.Monad.Catch         (bracket)
 import           Control.Monad.Reader.Class  (MonadReader (..))
@@ -28,7 +26,6 @@ import           Nomyx.Core.Engine
 import           Nomyx.Core.Quotes
 import           Nomyx.Core.Types
 import           System.FilePath             ((</>))
-import Data.Acid.Memory
 
 -- | set 'ProfileData' for UserId
 setProfileData :: ProfileData -> Update ProfileDataState ProfileData

@@ -1,38 +1,36 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE NamedFieldPuns      #-}
+{-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE Rank2Types #-}
 
 -- | additional tools for evaluation
 module Nomyx.Core.Engine.EvalUtils where
 
-import Prelude hiding ((.), log)
-import Control.Monad
-import Control.Monad.State
-import Control.Monad.Reader
-import Control.Category
-import Data.Typeable
-import Control.Lens
-import Data.Maybe
-import Data.List
-import Control.Applicative
-import Language.Nomyx.Expression
-import Nomyx.Core.Engine.Types
-import Nomyx.Core.Engine.Utils
-import Safe
+import           Control.Applicative
+import           Control.Category
+import           Control.Lens
+import           Control.Monad
+import           Control.Monad.Reader
+import           Control.Monad.State
+import           Data.List
+import           Data.Maybe
+import           Data.Typeable
+import           Language.Nomyx.Expression
+import           Nomyx.Core.Engine.Types
+import           Nomyx.Core.Engine.Utils
+import           Prelude                   hiding (log, (.))
+import           Safe
 
 -- find a signal occurence in an environment
 lookupSignal :: Typeable a => Signal a -> SignalAddress -> [SignalOccurence] -> Maybe a
-lookupSignal s sa env = headMay $ mapMaybe (getSignalData s sa) env
+lookupSignal s sa envi = headMay $ mapMaybe (getSignalData s sa) envi
 
 --get the signal data from the signal occurence
 getSignalData :: Typeable a => Signal a -> SignalAddress -> SignalOccurence -> Maybe a
 getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
    ((s'', res') :: (Signal a, a)) <- cast (s', res)
-   if (s'' == s) && (sa' == sa) then (Just res') else Nothing
+   if (s'' == s) && (sa' == sa) then Just res' else Nothing
 
 
 errorHandler :: EventNumber -> String -> Evaluate ()
@@ -57,7 +55,7 @@ liftEval r = runReader r <$> get
 
 
 focusGame :: State Game a -> Evaluate a
-focusGame = lift . (zoom eGame)
+focusGame = lift . zoom eGame
 
 accessGame :: Lens' Game a -> Evaluate (a, RuleNumber)
 accessGame l = do
@@ -79,9 +77,8 @@ evalRuleActive :: Evaluate Bool
 evalRuleActive = do
    rn <- use eRuleNumber
    rs <- use (eGame . rules)
-   return $ if rn == 0
-      then True
-      else case find (\r -> _rNumber r == rn) rs of
+   return $ (rn == 0) ||
+      case find (\r -> _rNumber r == rn) rs of
          Just r -> _rStatus r == Active
          Nothing -> True --TODO why should there be an evaluating rule not in the list?
 
@@ -99,8 +96,8 @@ instance Eq SomeSignal where
   (SomeSignal e1) == (SomeSignal e2) = e1 === e2
 
 instance Show EventInfo where
-   show (EventInfo en rn _ _ s env) =
+   show (EventInfo en rn _ _ s envi) =
       "event num: " ++ (show en) ++
       ", rule num: " ++ (show rn) ++
-      ", envs: " ++ (show env) ++
+      ", envs: " ++ (show envi) ++
       ", status: " ++ (show s)

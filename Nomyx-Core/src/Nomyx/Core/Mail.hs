@@ -1,40 +1,39 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NamedFieldPuns       #-}
+{-# LANGUAGE OverloadedStrings    #-}
 
 
 module Nomyx.Core.Mail where
 
-import Prelude hiding (div, (.))
-import Language.Haskell.HsColour.Colourise hiding (string)
-import qualified Language.Haskell.HsColour.HTML as HSC
-import Text.Blaze.Html5 hiding (map, label, br)
-import qualified Text.Blaze.Html5 as H
-import Text.Blaze.Html.Renderer.String
-import Network.Mail.Mime hiding (mailTo)
-import Data.Text(Text, pack)
-import Data.Maybe
-import qualified Data.Text.Lazy as B
-import Control.Concurrent
-import Control.Category
-import Control.Applicative ((<$>))
-import Control.Monad
-import Language.Nomyx
-import Nomyx.Core.Profile
-import Nomyx.Core.Types
-import Nomyx.Core.Utils
-import Nomyx.Core.Engine
-
+import           Control.Applicative                 ((<$>))
+import           Control.Category
+import           Control.Concurrent
+import           Control.Monad
+import           Data.Maybe
+import           Data.Text                           (Text, pack)
+import qualified Data.Text.Lazy                      as B
+import           Language.Haskell.HsColour.Colourise hiding (string)
+import qualified Language.Haskell.HsColour.HTML      as HSC
+import           Language.Nomyx
+import           Network.Mail.Mime                   hiding (mailTo)
+import           Nomyx.Core.Engine
+import           Nomyx.Core.Profile
+import           Nomyx.Core.Types
+import           Nomyx.Core.Utils
+import           Prelude                             hiding (div, (.))
+import           Text.Blaze.Html.Renderer.String
+import           Text.Blaze.Html5                    hiding (br, label, map)
+import qualified Text.Blaze.Html5                    as H
 
 default (Integer, Double, Data.Text.Text)
 
 
 sendMail :: String -> String -> String -> String-> IO()
-sendMail to object htmlBody textBody = do
+sendMail to obj htmlBody textBody = do
    putStrLn $ "sending a mail to " ++ to
    forkIO $ simpleMail (Address Nothing (pack to))
                        (Address (Just "Nomyx Game") "kau@nomyx.net")
-                       (pack object)
+                       (pack obj)
                        (B.pack htmlBody)
                        (B.pack textBody)
                        [] >>= renderSendMail
@@ -43,14 +42,14 @@ sendMail to object htmlBody textBody = do
 
 newRuleHtmlBody :: PlayerName -> SubmitRule -> PlayerName -> Network -> Html
 newRuleHtmlBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ do
-   (toHtml $ "Dear " ++ playerName ++ ",") >> H.br
-   (toHtml $ "a new rule has been proposed by player " ++ prop ++ ".") >> H.br
-   (toHtml $ "Name: " ++ name) >> H.br
-   (toHtml $ "Description: " ++ desc) >> H.br
-   (toHtml $ "Code: ") >> H.br >> (preEscapedToHtml $ HSC.hscolour defaultColourPrefs False 0 code) >> H.br >> H.br
-   (toHtml $ "Please login into Nomyx for actions on this rule:") >> H.br
-   (toHtml $ nomyxURL net ++ "/Nomyx") >> H.br >> H.br
-   (toHtml $ "You received this mail because you subscribed to Nomyx. To stop receiving mails, login to Nomyx with the above address, go to Settings and uncheck the corresponding box.") >> H.br
+   toHtml ("Dear " ++ playerName ++ ",") >> H.br
+   toHtml ("a new rule has been proposed by player " ++ prop ++ ".") >> H.br
+   toHtml ("Name: " ++ name) >> H.br
+   toHtml ("Description: " ++ desc) >> H.br
+   toHtml "Code: " >> H.br >> (preEscapedToHtml $ HSC.hscolour defaultColourPrefs False 0 code) >> H.br >> H.br
+   toHtml "Please login into Nomyx for actions on this rule:" >> H.br
+   toHtml (nomyxURL net ++ "/Nomyx") >> H.br >> H.br
+   toHtml "You received this mail because you subscribed to Nomyx. To stop receiving mails, login to Nomyx with the above address, go to Settings and uncheck the corresponding box." >> H.br
 
 newRuleTextBody :: PlayerName -> SubmitRule -> PlayerName -> Network -> String
 newRuleTextBody playerName (SubmitRule name desc code) prop net =

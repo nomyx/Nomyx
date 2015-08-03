@@ -6,7 +6,6 @@
 module Nomyx.Web.Game.IOs where
 
 import           Control.Applicative
-import           Control.Concurrent.STM
 import           Control.Monad
 import           Control.Monad.State
 import           Data.List
@@ -20,7 +19,6 @@ import           Language.Nomyx
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Mail
 import           Nomyx.Core.Session          as S
-import           Nomyx.Core.Types            as T
 import           Nomyx.Web.Common            as NWC
 import qualified Nomyx.Web.Help              as Help
 import           Nomyx.Web.Types
