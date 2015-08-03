@@ -5,6 +5,6 @@ ghc:
 notifications:
   email:
     recipients: corentin.dupont@gmail.com
-install: cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Core/ Nomyx-Web/ Nomyx/
+install: cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Core/ Nomyx-Web/ Nomyx/  --constraint mtl==2.1.*
 script: Nomyx/tests.sh
 sudo: false
