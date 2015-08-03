@@ -8,8 +8,7 @@ notifications:
     recipients: corentin.dupont@gmail.com
 
 install:
-  - travis_retry sudo apt-get install happy-1.19.3
-  - export PATH=/opt/happy/1.19.3/bin:$PATH
+  - cabal install happy-1.19.3
   - cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Core/ Nomyx-Web/ Nomyx/  --constraint mtl==2.1.*
 
 script: Nomyx/tests.sh
