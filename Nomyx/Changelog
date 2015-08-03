@@ -1,4 +1,8 @@
 
+V0.8:
+- use Lens library
+- use happstack-authenticate 2
+
 V0.7:
 - full FRP engine for managing events
 - dynamic events: event tree is recomputed at each request
