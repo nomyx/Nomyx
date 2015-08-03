@@ -12,7 +12,6 @@ import Data.Time as T
 import Data.List
 import Data.Maybe
 import qualified Data.Acid.Advanced as A (update', query')
-import Happstack.Authenticate.Core
 import Control.Category hiding ((.))
 import Control.Monad.State
 import Control.Concurrent.STM
@@ -32,7 +31,7 @@ newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
 newPlayer uid ms = do
    s <- get
    --void $ A.update' (acidAuth $ _profiles s) (SetDefaultSessionTimeout $ 3600 * 24 * 7 *25)
-   void $ A.update' (acidProfileData $ _profiles s) (NewProfileData uid ms)
+   void $ A.update' (_acidProfiles s) (NewProfileData uid ms)
 
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> Bool -> StateT Session IO ()
@@ -181,7 +180,7 @@ globalSettings mails = (multi . mSettings . sendMails) .= mails
 getNewPlayerNumber :: StateT Session IO PlayerNumber
 getNewPlayerNumber = do
    s <- get
-   pfd <- A.query' (acidProfileData $ _profiles s) AskProfileDataNumber
+   pfd <- A.query' (_acidProfiles s) AskProfileDataNumber
    return $ pfd + 1
 
 -- | this function apply the given game actions to the game the player is in.

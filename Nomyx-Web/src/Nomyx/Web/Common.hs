@@ -7,20 +7,26 @@
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE QuasiQuotes          #-}
 {-# LANGUAGE StandaloneDeriving   #-}
-{-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Nomyx.Web.Common where
 
 import           Control.Concurrent.STM
+import           Control.Lens
 import           Control.Monad.State
+import           Data.Acid                           (Query)
+import           Data.Acid.Advanced                  (query')
 import qualified Data.ByteString.Char8               as C
 import           Data.Maybe
 import           Data.Monoid
 import           Data.String
-import           Data.Text                           (Text, append, pack, unpack)
-import           Happstack.Authenticate.Core         (AuthenticateURL (..), UserId (..), getUserId)
+import           Data.Text                           (Text, append, pack,
+                                                      unpack)
+import           Happstack.Authenticate.Core         (AuthenticateState,
+                                                      AuthenticateURL (..),
+                                                      User, UserId (..),
+                                                      getUserId, GetUserByUserId(..))
 import           Happstack.Server                    as HS
 import           Language.Haskell.HsColour.Colourise (defaultColourPrefs)
 import           Language.Haskell.HsColour.HTML      (hscolour)
@@ -30,15 +36,19 @@ import           Nomyx.Core.Engine
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Session
 import           Nomyx.Core.Types                    as T
+import           Nomyx.Web.Types
 import           Prelude                             hiding (div)
 import           Safe
 import           Text.Blaze.Html.Renderer.Utf8       (renderHtml)
+import           Text.Blaze.Html5                    hiding (base, map, output)
 import           Text.Blaze.Html5                    hiding (base, map, output)
 import qualified Text.Blaze.Html5                    as H
 import           Text.Blaze.Html5.Attributes         hiding (dir, id)
 import qualified Text.Blaze.Html5.Attributes         as A
 import           Text.Printf
-import           Text.Reform                         (CommonFormError, ErrorInputType, Form, FormError (..), FormInput)
+import           Text.Reform                         (CommonFormError,
+                                                      ErrorInputType, Form,
+                                                      FormError (..), FormInput)
 import           Text.Reform.Blaze.String            ()
 import qualified Text.Reform.Generalized             as G
 import           Text.Reform.Happstack               ()
@@ -47,75 +57,9 @@ import           Web.Routes.PathInfo
 import           Web.Routes.RouteT
 import           Web.Routes.TH                       (derivePathInfo)
 
-data NomyxError = PlayerNameRequired
-                | GameNameRequired
-                | UniqueName
-                | UniqueEmail
-                | FieldTooLong Int
-                | NomyxCFE (CommonFormError [HS.Input])
-                deriving Show
-
-type NomyxForm a = Form (ServerPartT IO) [HS.Input] NomyxError Html () a
-
-default (Integer, Double, Data.Text.Text)
-
-data LoginName = LoginName { login :: PlayerName}
-                             deriving (Show, Eq)
-
-
--- | associate a player number with a handle
-data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
-
--- | A structure to hold the active games and players
-data Server = Server [PlayerClient] deriving (Eq, Show)
-
-data PlayerCommand = Auth AuthenticateURL
-                   | Login
-                   | Logout
-                   | ResetPassword
-                   | ChangePassword
-                   | OpenIdRealm
-                   | PostAuth
-                   | MainPage
-                   | JoinGame  GameName
-                   | LeaveGame GameName
-                   | DelGame   GameName
-                   | DoInput   EventNumber SignalAddress FormField GameName
-                   | NewRule   GameName
-                   | NewGame
-                   | SubmitNewGame
-                   | Upload
-                   | Advanced
-                   | SubmitPlayAs GameName
-                   | SubmitAdminPass
-                   | SubmitSettings
-                   | SaveFilePage
-                   | NomyxJS
-                   deriving (Show)
-
 ruleFormAnchor, inputAnchor :: Text
 ruleFormAnchor = "RuleForm"
 inputAnchor = "Input"
-
-type RoutedNomyxServer a = RouteT PlayerCommand (ServerPartT IO) a
-
-
-instance PathInfo SignalAddressElem
-instance PathInfo SignalAddress
-instance PathInfo FormField
-instance PathInfo (Int, String)
-instance PathInfo [(Int, String)]
-
-$(derivePathInfo ''PlayerCommand)
-$(derivePathInfo ''LoginName)
-
-instance PathInfo Bool where
-  toPathSegments i = [pack $ show i]
-  fromPathSegments = pToken (const "bool") (checkBool . show)
-   where checkBool str =
-           case reads str of
-             [(n,[])] -> Just n
-             _ ->        Nothing
 
 blazeResponse :: Html -> Response
 blazeResponse html = toResponseBS (C.pack "text/html;charset=UTF-8") $ renderHtml html
@@ -184,41 +128,60 @@ appTemplate' title headers body footer link routeFn = do
       when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012-2013"
 
 -- | return the player number (user ID) based on the session cookie.
-getPlayerNumber :: TVar Session -> RoutedNomyxServer (Maybe PlayerNumber)
-getPlayerNumber ts = do
-   (T.Session _ _ (Profiles acidAuth _)) <- liftIO $ readTVarIO ts
+getPlayerNumber :: RoutedNomyxServer (Maybe PlayerNumber)
+getPlayerNumber = do
+   acidAuth <- use authenticateState
    uid <- getUserId acidAuth
    case uid of
       Nothing -> return Nothing
       (Just (UserId userID)) -> return $ Just $ fromInteger userID
 
---update the session using the command and saves it
-webCommand :: TVar Session -> StateT Session IO () -> RoutedNomyxServer ()
-webCommand ts ss = liftIO $ updateSession ts ss
+getUser :: RoutedNomyxServer (Maybe User)
+getUser = do
+  auth <- use authenticateState
+  userId <- getUserId auth
+  liftIO $ query' auth (GetUserByUserId $ fromJust userId)
 
-isAdmin :: TVar Session -> RoutedNomyxServer Bool
-isAdmin ts = do
-   mpn <- getPlayerNumber ts
+getProfile' :: PlayerNumber -> RoutedNomyxServer (Maybe ProfileData)
+getProfile' pn = do
+  ts <- use session
+  s <- liftIO $ atomically $ readTVar ts
+  getProfile s pn
+
+getSession :: RoutedNomyxServer (Session)
+getSession = do
+  ts <- use session
+  liftIO $ atomically $ readTVar ts
+
+--update the session using the command and saves it
+webCommand :: StateT Session IO () -> RoutedNomyxServer ()
+webCommand ss = do
+  ts <- use session
+  liftIO $ updateSession ts ss
+
+isAdmin :: RoutedNomyxServer Bool
+isAdmin = do
+   mpn <- getPlayerNumber
    case mpn of
       Just pn -> do
-         mpf <- getProfile' ts pn
+         mpf <- getProfile' pn
          case mpf of
             Just pf -> return $ _pIsAdmin pf
             Nothing -> return False
       Nothing -> return False
 
-isGameAdmin :: GameInfo -> TVar Session -> RoutedNomyxServer Bool
-isGameAdmin gi ts = do
-   mpn <- getPlayerNumber ts
-   admin <- isAdmin ts
+isGameAdmin :: GameInfo -> RoutedNomyxServer Bool
+isGameAdmin gi = do
+   mpn <- getPlayerNumber
+   admin <- isAdmin
    return $ case mpn of
       Just pn -> admin || (_ownedBy gi == Just pn)
       Nothing -> False
 
-getPublicGames :: TVar Session -> RoutedNomyxServer [GameInfo]
-getPublicGames ts = do
-   (T.Session _ m _) <- liftIO $ readTVarIO ts
-   return $ filter ((== True) . _isPublic) (_gameInfos $ m)
+getPublicGames :: RoutedNomyxServer [GameInfo]
+getPublicGames = do
+   s <- getSession
+   return $ filter ((== True) . _isPublic) (_gameInfos $ _multi s)
 
 
 fieldRequired :: NomyxError -> String -> Either NomyxError String
@@ -266,8 +229,8 @@ trim = unwords . words
 -- | app module for angulasjs
 --
 -- We just depend on the usernamePassword module
-nomyxJS :: TVar Session -> JStat
-nomyxJS _ = [jmacro|
+nomyxJS :: JStat
+nomyxJS = [jmacro|
  {
    var demoApp = angular.module('NomyxApp', [
      'happstackAuthentication',
@@ -299,16 +262,3 @@ nomyxJS _ = [jmacro|
    }]);
  }
 |]
-
-
-instance FormError NomyxError where
-    type ErrorInputType NomyxError = [HS.Input]
-    commonFormError = NomyxCFE
-
-instance ToMarkup NomyxError where
-    toMarkup PlayerNameRequired = "Player Name is required"
-    toMarkup GameNameRequired   = "Game Name is required"
-    toMarkup UniqueName         = "Name already taken"
-    toMarkup UniqueEmail        = "Email already taken"
-    toMarkup (FieldTooLong l)   = fromString $ "Field max length: " ++ show l
-    toMarkup (NomyxCFE e)       = fromString $ show e

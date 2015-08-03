@@ -6,29 +6,29 @@
 
 module Nomyx.Core.Profile where
 
-import Language.Nomyx
-import Control.Monad.Reader.Class (MonadReader(..))
-import Control.Monad.Catch (bracket)
-import Control.Concurrent.STM
-import Control.Monad
-import Control.Monad.State
-import Control.Lens
-import Safe
-import Data.List
-import Data.Maybe
-import Data.IxSet (toList, (@=))
-import qualified Data.IxSet  as IxSet
-import qualified Data.Acid (AcidState(..))
-import qualified Data.Acid.Advanced as A (update', query')
-import Data.Acid.Local (createCheckpointAndClose)
-import Data.Acid (openLocalStateFrom, makeAcidic, Update, Query)
-import Happstack.Authenticate.Core (initialAuthenticateState, AuthenticateState)
+import           Control.Concurrent.STM
+import           Control.Lens
+import           Control.Monad
+import           Control.Monad.Catch         (bracket)
+import           Control.Monad.Reader.Class  (MonadReader (..))
+import           Control.Monad.State
+import           Data.Acid                   (Query, Update, makeAcidic,
+                                              openLocalStateFrom)
+import           Data.Acid                   (AcidState (..))
+import           Data.Acid.Advanced          (query', update')
+import           Data.Acid.Local             (createCheckpointAndClose)
+import           Data.IxSet                  (toList, (@=))
+import qualified Data.IxSet                  as IxSet
+import           Data.List
+import           Data.Maybe
+import           Language.Nomyx
+import           Safe
 --import Happstack.Auth.Core.Profile (initialProfileState)
-import System.FilePath ((</>))
-import Nomyx.Core.Quotes
-import Nomyx.Core.Types
-import Nomyx.Core.Engine
-
+import           Nomyx.Core.Engine
+import           Nomyx.Core.Quotes
+import           Nomyx.Core.Types
+import           System.FilePath             ((</>))
+import Data.Acid.Memory
 
 -- | set 'ProfileData' for UserId
 setProfileData :: ProfileData -> Update ProfileDataState ProfileData
@@ -105,20 +105,15 @@ defaultPlayerSettings = PlayerSettings "" Nothing False False False False
 modifyProfile :: PlayerNumber -> (ProfileData -> ProfileData) -> StateT Session IO ()
 modifyProfile pn mod = do
    s <- get
-   pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
-   when (isJust pfd) $ void $ A.update' (acidProfileData $ _profiles s) (SetProfileData (mod $ fromJust pfd))
+   pfd <- query' (_acidProfiles s) (AskProfileData pn)
+   when (isJust pfd) $ void $ update' (_acidProfiles s) (SetProfileData (mod $ fromJust pfd))
 
 getProfile :: MonadIO m => Session -> PlayerNumber -> m (Maybe ProfileData)
-getProfile s pn = A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
-
-getProfile' :: MonadIO m => TVar Session -> PlayerNumber -> m (Maybe ProfileData)
-getProfile' ts pn = do
-   s <- liftIO $ atomically $ readTVar ts
-   getProfile s pn
+getProfile s pn = query' (_acidProfiles s) (AskProfileData pn)
 
 getPlayerName :: PlayerNumber -> Session -> IO PlayerName
 getPlayerName pn s = do
-   pfd <- A.query' (acidProfileData $ _profiles s) (AskProfileData pn)
+   pfd <- query' (_acidProfiles s) (AskProfileData pn)
    return $ _pPlayerName $ _pPlayerSettings $ fromJustNote ("getPlayersName: no profile for pn=" ++ show pn) pfd
 
 getPlayerInGameName :: Game -> PlayerNumber -> PlayerName
@@ -127,16 +122,15 @@ getPlayerInGameName g pn = case find ((==pn) . getL playerNumber) (_players g) o
    Just pm -> _playerName pm
 
 getAllProfiles :: Session -> IO [ProfileData]
-getAllProfiles s = A.query' (acidProfileData $ _profiles s) AskProfilesData
+getAllProfiles s = query' (_acidProfiles s) AskProfilesData
 
 getPlayerInfo :: Game -> PlayerNumber -> Maybe PlayerInfo
 getPlayerInfo g pn = find ((==pn) . getL playerNumber) (_players g)
 
 withAcid :: Maybe FilePath -- ^ state directory
-         -> Data.Acid.AcidState AuthenticateState
-         -> (Profiles -> IO a) -- ^ action
+         -> (AcidState ProfileDataState -> IO a) -- ^ action
          -> IO a
-withAcid mBasePath authenticateState f = do
+withAcid mBasePath action = do
     let basePath = fromMaybe "_state" mBasePath
-    bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState)  createCheckpointAndClose $ \profileData ->
-        f (Profiles authenticateState profileData)
+    bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState) createCheckpointAndClose updateProfile where
+       updateProfile profileData = action (profileData)

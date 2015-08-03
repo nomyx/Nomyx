@@ -1,56 +1,59 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DoAndIfThenElse      #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE DoAndIfThenElse #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 
 module Nomyx.Web.MainPage (launchWebServer) where
 
-import Prelude hiding (div)
-import Text.Blaze.Html5 hiding (map)
-import Text.Blaze.Html5.Attributes hiding (dir)
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
-import Web.Routes.Site
-import Web.Routes.PathInfo
-import Web.Routes.Happstack
-import Web.Routes.RouteT
-import Control.Monad
-import Control.Monad.State
-import Data.Monoid
-import Data.Maybe
-import Data.String
-import Control.Concurrent.STM
-import Language.Nomyx
-import Happstack.Server as HS
-import System.FilePath
-import qualified Nomyx.Web.Help as Help
-import Nomyx.Web.Common as W
-import Nomyx.Web.Settings
-import Nomyx.Web.NewGame
-import Nomyx.Web.Login
-import Nomyx.Web.Game.Infos
-import Nomyx.Web.Game.Rules
-import Nomyx.Web.Game.IOs
-import Nomyx.Web.Game.NewRule
-import Nomyx.Web.Game.Details
-import Nomyx.Core.Profile as Profile
-import Nomyx.Core.Utils
-import Nomyx.Core.Types as T
-import Nomyx.Core.Engine
-import qualified Nomyx.Core.Session as S
-import Data.List
-import Data.Text(Text, pack)
-import Happstack.Authenticate.Core
-import Happstack.Authenticate.Route (initAuthentication)
-import Happstack.Authenticate.OpenId.Route (initOpenId)
-import Happstack.Authenticate.Password.Route (initPassword)
-import Happstack.Authenticate.Password.Controllers(usernamePasswordCtrl)
-import Happstack.Authenticate.OpenId.Controllers(openIdCtrl)
-import Paths_Nomyx_Language
-import Control.Monad.Error
-import Control.Applicative
-import Safe
-import Data.Acid (AcidState, query)
+import Control.Concurrent
+import           Control.Applicative
+import           Control.Concurrent.STM
+import           Control.Monad
+import           Control.Monad.Error
+import           Control.Monad.State
+import           Data.Acid                                   (AcidState, query)
+import           Data.List
+import           Data.Maybe
+import           Data.Monoid
+import           Data.String
+import           Data.Text                                   (Text, pack)
+import           Happstack.Authenticate.Core
+import           Happstack.Authenticate.OpenId.Controllers   (openIdCtrl)
+import           Happstack.Authenticate.OpenId.Route         (initOpenId)
+import           Happstack.Authenticate.Password.Controllers (usernamePasswordCtrl)
+import           Happstack.Authenticate.Password.Route       (initPassword)
+import           Happstack.Authenticate.Route                (initAuthentication)
+import           Happstack.Server                            as HS
+import           Language.Nomyx
+import           Nomyx.Core.Engine                           hiding (JoinGame,
+                                                              LeaveGame)
+import           Nomyx.Core.Profile                          as Profile
+import qualified Nomyx.Core.Session                          as S
+import           Nomyx.Core.Types                            as T
+import           Nomyx.Core.Utils
+import           Nomyx.Web.Common                            as W
+import           Nomyx.Web.Game.Details
+import           Nomyx.Web.Game.Infos
+import           Nomyx.Web.Game.IOs
+import           Nomyx.Web.Game.NewRule
+import           Nomyx.Web.Game.Rules
+import qualified Nomyx.Web.Help                              as Help
+import           Nomyx.Web.Login
+import           Nomyx.Web.NewGame
+import           Nomyx.Web.Settings
+import           Nomyx.Web.Types
+import           Paths_Nomyx_Language
+import           Prelude                                     hiding (div)
+import           Safe
+import           System.FilePath
+import           Text.Blaze.Html5                            hiding (map)
+import qualified Text.Blaze.Html5                            as H
+import           Text.Blaze.Html5.Attributes                 hiding (dir)
+import qualified Text.Blaze.Html5.Attributes                 as A
+import           Web.Routes.Happstack
+import           Web.Routes.PathInfo
+import           Web.Routes.RouteT
+import           Web.Routes.Site
 
 default (Integer, Double, Data.Text.Text)
 
@@ -168,30 +171,30 @@ viewGameName isAdmin mpn gi = do
       tr $ td $ H.a (fromString (gn ++ "   ")) ! (A.title $ toValue Help.view) ! attr
 
 
-joinGame :: GameName -> TVar Session -> RoutedNomyxServer Response
-joinGame gn ts = do
-   pn <- fromJust <$> getPlayerNumber ts
-   webCommand ts (S.joinGame gn pn)
+joinGame :: GameName -> RoutedNomyxServer Response
+joinGame gn = do
+   pn <- fromJust <$> getPlayerNumber
+   webCommand (S.joinGame gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
-leaveGame :: GameName -> TVar Session -> RoutedNomyxServer Response
-leaveGame gn ts = do
-   pn <- fromJust <$> getPlayerNumber ts
-   webCommand ts (S.leaveGame gn pn)
+leaveGame :: GameName -> RoutedNomyxServer Response
+leaveGame gn = do
+   pn <- fromJust <$> getPlayerNumber
+   webCommand (S.leaveGame gn pn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
-delGame :: GameName -> TVar Session -> RoutedNomyxServer Response
-delGame gn ts = do
-   webCommand ts (S.delGame gn)
+delGame :: GameName -> RoutedNomyxServer Response
+delGame gn = do
+   webCommand (S.delGame gn)
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
-nomyxPage :: TVar Session -> RoutedNomyxServer Response
-nomyxPage ts = do
-   mpn <- getPlayerNumber ts
-   s <- liftIO $ atomically $ readTVar ts
+nomyxPage :: RoutedNomyxServer Response
+nomyxPage = do
+   mpn <- getPlayerNumber
+   s <- getSession
    let saveDir = _saveDir $ _mSettings $ _multi s
    name <- case mpn of
       Just pn -> liftIO $ Profile.getPlayerName pn s
@@ -202,62 +205,58 @@ nomyxPage ts = do
             False
             (H.div ! A.id "multi" $ m)
 
+nomyxSite :: WebState -> Site PlayerCommand (ServerPartT IO Response)
+nomyxSite ws = setDefault MainPage $ mkSitePI $ (\a b -> evalStateT (runRouteT (catchRouteError . routedNomyxCommands) a b) ws)
 
-nomyxSite :: TVar Session
-          -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response)
-          -> Site PlayerCommand (ServerPartT IO Response)
-nomyxSite tm routeAuthenticate = setDefault MainPage $ mkSitePI $ runRouteT $ (\r -> catchRouteError $ routedNomyxCommands r routeAuthenticate tm)
+routedNomyxCommands :: PlayerCommand -> RoutedNomyxServer Response
+routedNomyxCommands (Auth auth)          = authenticate auth
+routedNomyxCommands Login                = loginPage
+routedNomyxCommands Logout               = logout
+routedNomyxCommands ResetPassword        = resetPasswordPage
+routedNomyxCommands ChangePassword       = changePasswordPanel
+routedNomyxCommands OpenIdRealm          = openIdRealmPanel
+routedNomyxCommands PostAuth             = postAuthenticate
+routedNomyxCommands MainPage             = nomyxPage
+routedNomyxCommands (JoinGame game)    = joinGame          game
+routedNomyxCommands (LeaveGame game)   = leaveGame         game
+routedNomyxCommands (DelGame game)       = delGame           game
+routedNomyxCommands (NewRule game)       = newRule           game
+routedNomyxCommands NewGame              = newGamePage
+routedNomyxCommands SubmitNewGame        = newGamePost
+routedNomyxCommands (DoInput en fa ft g) = newInput en fa ft g
+routedNomyxCommands Upload               = newUpload
+routedNomyxCommands Advanced             = advanced
+routedNomyxCommands (SubmitPlayAs game)  = newPlayAs         game
+routedNomyxCommands SubmitAdminPass      = newAdminPass
+routedNomyxCommands SubmitSettings       = newSettings
+routedNomyxCommands SaveFilePage         = saveFilePage
+routedNomyxCommands NomyxJS              = ok $ toResponse nomyxJS
 
-routedNomyxCommands ::  PlayerCommand
-                     -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response)
-                     -> (TVar Session)
-                     -> RoutedNomyxServer Response
-routedNomyxCommands (Auth auth)         ra = authenticate auth ra
-routedNomyxCommands Login                _ = loginPage
-routedNomyxCommands Logout               _ = logout
-routedNomyxCommands ResetPassword        _ = resetPasswordPage
-routedNomyxCommands ChangePassword       _ = changePasswordPanel
-routedNomyxCommands OpenIdRealm          _ = openIdRealmPanel
-routedNomyxCommands PostAuth             _ = postAuthenticate
-routedNomyxCommands MainPage             _ = nomyxPage
-routedNomyxCommands (W.JoinGame game)    _ = joinGame          game
-routedNomyxCommands (W.LeaveGame game)   _ = leaveGame         game
-routedNomyxCommands (DelGame game)       _ = delGame           game
-routedNomyxCommands (NewRule game)       _ = newRule           game
-routedNomyxCommands NewGame              _ = newGamePage
-routedNomyxCommands SubmitNewGame        _ = newGamePost
-routedNomyxCommands (DoInput en fa ft g) _ = newInput en fa ft g
-routedNomyxCommands Upload               _ = newUpload
-routedNomyxCommands Advanced             _ = advanced
-routedNomyxCommands (SubmitPlayAs game)  _ = newPlayAs         game
-routedNomyxCommands SubmitAdminPass      _ = newAdminPass
-routedNomyxCommands SubmitSettings       _ = newSettings
-routedNomyxCommands SaveFilePage         _ = saveFilePage
-routedNomyxCommands NomyxJS              _ = ok . toResponse . nomyxJS
-
-launchWebServer :: TVar Session -> Network -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response) -> IO ()
-launchWebServer tm net routeAuthenticate = do
+launchWebServer :: TVar Session -> Network -> IO ()
+launchWebServer ts net = do
    putStrLn $ "Starting web server...\nTo connect, drive your browser to \"" ++ nomyxURL net ++ "/Nomyx\""
-   simpleHTTP nullConf {HS.port = T._port net} $ server tm net routeAuthenticate
+   s <- liftIO $ atomically $ readTVar ts
+   let set = _mSettings $ _multi s
+   let conf = nullConf {HS.port = T._port net}
+   liftIO $ putStrLn $ show set
+   docdir <- liftIO getDocDir
+   --init authenticate
+   (_, routeAuthenticate, authenticateState) <-
+      liftIO $ initAuthentication Nothing (const $ return True)
+        [ initPassword "http://localhost:8000/#resetPassword" "example.org"
+        , initOpenId]
+   let ws = WebState ts authenticateState routeAuthenticate
+   simpleHTTP conf $ server ws set net docdir
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: TVar Session -> Network -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response) -> ServerPartT IO Response
-server ts net routeAuthenticate = do
-  s <- liftIO $ atomically $ readTVar ts
-  let set = _mSettings $ _multi s
-  docdir <- liftIO getDocDir
-
-
-  -- liftIO $ atomically $ writeTVar ts (s {_profiles = (Profiles authenticateState (acidProfileData $ _profiles s) )})
-  as <- liftIO $ query (acidAuth $ _profiles s) GetAuthenticateState
-  liftIO $ print as
-  mconcat [
+server :: WebState -> Settings -> Network -> String -> ServerPartT IO Response
+server ws set net docdir = mconcat [
     serveDirectory EnableBrowsing [] (_saveDir set),
     serveDirectory EnableBrowsing [] docdir,
     serveDirectory EnableBrowsing [] (_webDir set),
     serveDirectory EnableBrowsing [] (_sourceDir set),
     do decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
-       html <- implSite (pack (nomyxURL net)) "/Nomyx" (nomyxSite ts routeAuthenticate)
+       html <- implSite (pack $ nomyxURL net) "/Nomyx" (nomyxSite ws)
        return $ toResponse html]
 
 catchRouteError :: RoutedNomyxServer Response -> RoutedNomyxServer Response

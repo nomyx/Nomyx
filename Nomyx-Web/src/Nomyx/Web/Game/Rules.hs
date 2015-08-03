@@ -1,21 +1,23 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
+{-# LANGUAGE OverloadedStrings    #-}
 
 module Nomyx.Web.Game.Rules where
 
-import Prelude hiding (div)
-import Control.Monad
-import Control.Applicative
-import Data.Maybe
-import Data.String
-import Data.Text (Text)
-import Language.Nomyx
-import Text.Blaze.Html5                    (Html, div, (!), p, table, thead, td, tr, h3, h4, toValue, br, toHtml, a)
-import Text.Blaze.Html5.Attributes as A    (title, id, class_, href)
-import qualified Nomyx.Web.Help as Help
-import Nomyx.Web.Common as NWC
-import Nomyx.Core.Engine
-import Nomyx.Core.Profile as Profile
+import           Control.Applicative
+import           Control.Monad
+import           Data.Maybe
+import           Data.String
+import           Data.Text                   (Text)
+import           Language.Nomyx
+import           Nomyx.Core.Engine
+import           Nomyx.Core.Profile          as Profile
+import           Nomyx.Web.Common            as NWC
+import qualified Nomyx.Web.Help              as Help
+import           Prelude                     hiding (div)
+import           Text.Blaze.Html5            (Html, a, br, div, h3, h4, p,
+                                              table, td, thead, toHtml, toValue,
+                                              tr, (!))
+import           Text.Blaze.Html5.Attributes as A (class_, href, id, title)
 default (Integer, Double, Data.Text.Text)
 
 viewAllRules :: Game -> Html

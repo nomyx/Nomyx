@@ -14,7 +14,7 @@ category: game
 Homepage: http://www.nomyx.net
 author: Corentin Dupont
 extra-source-files: AUTHORS README.md TODO Changelog
- 
+
 executable Nomyx
     build-depends: Nomyx-Core             == 0.7.6,
                    Nomyx-Language         == 0.7.6,
@@ -28,15 +28,14 @@ executable Nomyx
                    network                >= 2.4 && < 2.7,
                    safe                   == 0.3.*,
                    stm                    == 2.4.*,
-                   time                   >= 1.4 && < 1.6,
-                   happstack-authenticate -any
+                   time                   >= 1.4 && < 1.6
     main-is: Main.hs
     buildable: True
     extensions: CPP
     hs-source-dirs: src
-    other-modules: Main 
+    other-modules: Main
     ghc-options: -W -threaded
- 
+
 source-repository head
   type:              git
   location:          https://github.com/cdupont/Nomyx.git

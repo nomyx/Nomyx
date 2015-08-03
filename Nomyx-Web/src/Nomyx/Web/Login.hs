@@ -7,6 +7,7 @@ module Nomyx.Web.Login where
 
 import           Control.Applicative
 import           Control.Concurrent.STM
+import           Control.Lens
 import           Control.Monad.State
 import           Data.Acid
 import           Data.Acid.Advanced          (query')
@@ -25,6 +26,7 @@ import           Nomyx.Core.Profile
 import           Nomyx.Core.Session          as S
 import           Nomyx.Core.Types            as T
 import           Nomyx.Web.Common
+import           Nomyx.Web.Types
 import           Prelude                     hiding (div)
 import           Text.Blaze.Html5            hiding (br, label, map)
 import qualified Text.Blaze.Html5            as H
@@ -36,8 +38,8 @@ import           Web.Routes.RouteT
 default (Integer, Double, Data.Text.Text)
 
 -- | function which generates the login page
-loginPage :: TVar Session -> RoutedNomyxServer Response
-loginPage ts = do
+loginPage :: RoutedNomyxServer Response
+loginPage = do
   postAuth <- showURL PostAuth
   mainPage' "Nomyx" "Login page" True $ do
       H.div ! customAttribute "ng-controller" "UsernamePasswordCtrl" $ do
@@ -56,8 +58,8 @@ loginPage ts = do
         h2 "Create A New Account"
         customLeaf (stringTag "up-signup-password") True
 
-logout :: TVar Session -> RoutedNomyxServer Response
-logout ts = do
+logout :: RoutedNomyxServer Response
+logout = do
   main <- showURL MainPage
   ok $ do
     H.div ! customAttribute "ng-controller" "UsernamePasswordCtrl" $ do
@@ -65,46 +67,35 @@ logout ts = do
   seeOther main $ toResponse $ ("to game page" :: String)
 
 -- | add a new player if not existing
-postAuthenticate :: TVar Session -> RoutedNomyxServer Response
-postAuthenticate ts = do
-   pn <- fromJust <$> getPlayerNumber ts
-   pf <- getProfile' ts pn
+postAuthenticate :: RoutedNomyxServer Response
+postAuthenticate = do
+   pn <- fromJust <$> getPlayerNumber
+   pf <- getProfile' pn
    case pf of
       Just _ -> do -- Player already exists in the database
          link <- showURL MainPage
          seeOther link $ toResponse ("to main page" :: String)
       Nothing -> do -- Player doesn't exist, creating it
-         (T.Session _ _ (Profiles auth _)) <- liftIO $ atomically $ readTVar ts
-         userId <- getUserId auth
-         user <- fromJust <$> query' auth (GetUserByUserId $ fromJust userId)
-         webCommand ts $ S.newPlayer pn (PlayerSettings (unpack $ _unUsername $ _username user) ((unpack . _unEmail) <$> _email user) False False False False)
+         user <- fromJust <$> getUser
+         webCommand $ S.newPlayer pn (PlayerSettings (unpack $ _unUsername $ _username user) ((unpack . _unEmail) <$> _email user) False False False False)
          link <- showURL MainPage
          seeOther link $ toResponse ("to settings page" :: String)
 
+authenticate :: AuthenticateURL -> RoutedNomyxServer Response
+authenticate authURL = do
+  rt <- use routeAuthenticate
+  mapRouteT lift $ nestURL Auth $ rt authURL
 
-authenticate :: AuthenticateURL
-            -> (AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response)
-            -> TVar Session
-            -> RoutedNomyxServer Response
-authenticate authURL routeAuthenticate ts = nestURL Auth $ routeAuthenticate authURL
-
-facebookAuth =
-    Credentials {appName = "Nomyx",
-                 appId = "161007670738608",
-                 appSecret = "c0509c1c753f89d1d1fc181984042824"}
-
-
-changePasswordPanel :: TVar Session -> RoutedNomyxServer Response
-changePasswordPanel _ = mainPage' "Nomyx" "Login page" True $ do
+changePasswordPanel :: RoutedNomyxServer Response
+changePasswordPanel = mainPage' "Nomyx" "Login page" True $ do
    customLeaf (stringTag "up-change-password") True
 
-openIdRealmPanel :: TVar Session -> RoutedNomyxServer Response
-openIdRealmPanel _ = mainPage' "Nomyx" "Login page" True $ do
+openIdRealmPanel :: RoutedNomyxServer Response
+openIdRealmPanel = mainPage' "Nomyx" "Login page" True $ do
    H.div ! customAttribute "ng-controller" "OpenIdCtrl" $ do
      customLeaf (stringTag "openid-realm") True
 
-
-resetPasswordPage :: TVar Session -> RoutedNomyxServer Response
-resetPasswordPage _ = mainPage' "Nomyx" "Login page" True $ do
+resetPasswordPage :: RoutedNomyxServer Response
+resetPasswordPage = mainPage' "Nomyx" "Login page" True $ do
    h2 "Reset Password"
    customLeaf (stringTag "up-reset-password") True

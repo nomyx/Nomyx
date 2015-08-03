@@ -29,7 +29,7 @@ library
                    happstack-authenticate == 2.1.*,
                    happstack-server       >= 7.3 && < 7.5,
                    hscolour               >= 1.22 && < 1.24,
-                   jmacro                 -any,
+                   jmacro                 >= 0.6 && < 0.7,
                    mtl                    >= 2.1 && < 2.3,
                    old-locale             == 1.0.*,
                    reform                 == 0.2.*,
@@ -59,6 +59,7 @@ library
                    Nomyx.Web.Login
                    Nomyx.Web.Settings
                    Nomyx.Web.NewGame
+                   Nomyx.Web.Types
     ghc-options: -W -threaded
 
 source-repository head

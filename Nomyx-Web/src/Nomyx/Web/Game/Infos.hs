@@ -24,10 +24,14 @@ import Happstack.Server                    (Response, Method(..), seeOther, toRe
 import Web.Routes.RouteT                   (showURL, liftRouteT)
 import Nomyx.Web.Common as NWC
 import Nomyx.Web.Help as Help
+import Nomyx.Web.Types
 import Nomyx.Core.Types as T
-import Nomyx.Core.Engine
+import Nomyx.Core.Engine (Game, GameName, getVictorious, _gameName, _gameDesc, _players, _desc, _forumURL)
 import Nomyx.Core.Session as S
 import Nomyx.Core.Profile as Profile
+import Control.Monad.Trans.Control
+import Control.Monad.Base
+
 default (Integer, Double, Data.Text.Text)
 
 viewGameDesc :: Game -> Maybe PlayerNumber -> Maybe PlayerNumber -> Bool -> RoutedNomyxServer Html
@@ -56,7 +60,7 @@ viewGameDesc g mpn playAs gameAdmin = do
 
 modalWindow :: Text -> String -> String -> String -> RoutedNomyxServer Html
 modalWindow link buttonTitle question modelRef = do
-   main  <- showURL NWC.MainPage
+   main  <- showURL MainPage
    ok $ do
       div ! A.id (toValue $ modelRef) ! A.class_ "modalWindow" $ do
          div $ do
@@ -66,7 +70,7 @@ modalWindow link buttonTitle question modelRef = do
 
 modalLeave :: GameName -> Bool -> RoutedNomyxServer Html
 modalLeave gn logged = do
-   leave <- defLink (NWC.LeaveGame gn) logged
+   leave <- defLink (LeaveGame gn) logged
    modalWindow leave
                "Leave"
                "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
@@ -74,7 +78,7 @@ modalLeave gn logged = do
 
 modalJoin :: GameName -> Bool -> RoutedNomyxServer Html
 modalJoin gn logged = do
-   join  <- defLink (NWC.JoinGame gn) logged
+   join  <- defLink (JoinGame gn) logged
    modalWindow join
                "Join"
                "Joining the game. Please register in the forum (see the link) and introduce yourself to the other players! If you do not whish to play, you can just view the game."
@@ -82,7 +86,7 @@ modalJoin gn logged = do
 
 modalDel :: GameName -> Bool -> RoutedNomyxServer Html
 modalDel gn logged = do
-   del   <- defLink (NWC.DelGame gn) logged
+   del   <- defLink (DelGame gn) logged
    modalWindow del
                "Delete"
                ("Delete the game " ++ gn ++ " ?")
@@ -113,7 +117,7 @@ playAsDiv :: PlayerNumber -> GameName -> RoutedNomyxServer Html
 playAsDiv pn gn = do
    submitPlayAs <- showURL $ SubmitPlayAs gn
    main  <- showURL MainPage
-   paf <- lift $ viewForm "user" $ playAsForm $ Just pn
+   paf <- liftRouteT $ lift $ viewForm "user" $ playAsForm $ Just pn
    ok $ do
       let cancel = a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
       div ! A.id (toValue $ "openModalPlayAs" ++ show pn) ! A.class_ "modalWindow" $ do
@@ -135,17 +139,16 @@ viewVictory g = do
         a:[] -> h3 $ fromString $ "Player " ++ show a ++ " won the game!"
         a:bs -> h3 $ fromString $ "Players " ++ intercalate ", " bs ++ " and " ++ a ++ " won the game!"
 
-newPlayAs :: GameName -> TVar Session -> RoutedNomyxServer Response
-newPlayAs gn ts = toResponse <$> do
+newPlayAs :: GameName -> RoutedNomyxServer Response
+newPlayAs gn = toResponse <$> do
    methodM POST
-   p <- liftRouteT $ eitherForm environment "user" $ playAsForm Nothing
-   pn <- fromJust <$> getPlayerNumber ts
+   p <- liftRouteT $ lift $ eitherForm environment "user" $ playAsForm Nothing
+   pn <- fromJust <$> getPlayerNumber
    case p of
       Right playAs -> do
-         webCommand ts $ S.playAs (read playAs) pn gn
+         webCommand $ S.playAs (read playAs) pn gn
          link <- showURL MainPage
          seeOther link "Redirecting..."
       (Left errorForm) -> do
          settingsLink <- showURL $ SubmitPlayAs gn
          mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
-

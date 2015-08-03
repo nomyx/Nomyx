@@ -1,31 +1,35 @@
-{-# LANGUAGE DoAndIfThenElse #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DoAndIfThenElse      #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
+{-# LANGUAGE OverloadedStrings    #-}
 
 module Nomyx.Web.Game.NewRule where
 
-import Prelude hiding (div)
-import Control.Monad
-import Control.Monad.State
-import Control.Concurrent.STM
-import Control.Applicative
-import Data.Maybe
-import Data.String
-import Data.Text (Text)
-import Text.Blaze.Html5                    (Html, (!), h3, pre, toValue, a)
-import Text.Blaze.Html5.Attributes as A    (id, disabled, placeholder, class_)
-import Text.Reform.Blaze.String            (label, textarea, inputSubmit)
-import qualified Text.Reform.Blaze.String as RB
-import Text.Reform.Happstack               (environment)
-import Text.Reform                         ((<++), (++>), viewForm, eitherForm)
-import Text.Reform.Blaze.Common            (setAttr)
-import Happstack.Server                    (Response, Method(..), seeOther, toResponse, methodM, ok)
-import Web.Routes.RouteT                   (showURL, liftRouteT)
-import qualified Nomyx.Web.Help as Help
-import Nomyx.Web.Common as NWC
-import Nomyx.Core.Types as T
-import Nomyx.Core.Engine
-import Nomyx.Core.Session as S
+import           Control.Applicative
+import           Control.Concurrent.STM
+import           Control.Monad
+import           Control.Monad.State
+import           Data.Maybe
+import           Data.String
+import           Data.Text                   (Text)
+import           Happstack.Server            (Method (..), Response, methodM,
+                                              ok, seeOther, toResponse)
+import           Nomyx.Core.Engine
+import           Nomyx.Core.Session          as S
+import           Nomyx.Core.Types            as T
+import           Nomyx.Web.Common            as NWC
+import qualified Nomyx.Web.Help              as Help
+import           Nomyx.Web.Types
+import           Prelude                     hiding (div)
+import           Text.Blaze.Html5            (Html, a, h3, pre, toValue, (!))
+import           Text.Blaze.Html5.Attributes as A (class_, disabled, id,
+                                                   placeholder)
+import           Text.Reform                 (eitherForm, viewForm, (++>),
+                                              (<++))
+import           Text.Reform.Blaze.Common    (setAttr)
+import           Text.Reform.Blaze.String    (inputSubmit, label, textarea)
+import qualified Text.Reform.Blaze.String    as RB
+import           Text.Reform.Happstack       (environment)
+import           Web.Routes.RouteT           (liftRouteT, showURL)
 default (Integer, Double, Data.Text.Text)
 
 newRuleForm :: Maybe SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
@@ -47,7 +51,7 @@ submitRuleForm name desc code =
 viewRuleForm :: Maybe LastRule -> Bool -> Bool -> GameName -> RoutedNomyxServer Html
 viewRuleForm mlr inGame isGameAdmin gn = do
    link <- showURL (NewRule gn)
-   lf  <- lift $ viewForm "user" (newRuleForm (fst <$> mlr) isGameAdmin)
+   lf  <- liftRouteT $ lift $ viewForm "user" (newRuleForm (fst <$> mlr) isGameAdmin)
    ok $ do
       a "" ! A.id (toValue ruleFormAnchor)
       titleWithHelpIcon (h3 "Propose a new rule:") Help.code
@@ -57,20 +61,19 @@ viewRuleForm mlr inGame isGameAdmin gn = do
          when (isJust msg) $ pre $ fromString $ fromJust msg
       else lf ! disabled ""
 
-newRule :: GameName -> TVar Session -> RoutedNomyxServer Response
-newRule gn ts = toResponse <$> do
+newRule :: GameName -> RoutedNomyxServer Response
+newRule gn = toResponse <$> do
    methodM POST
-   s@(T.Session sh _ _) <- liftIO $ readTVarIO ts
+   s <- getSession
    let gi = getGameByName gn s
-   admin <- isGameAdmin (fromJust gi) ts
-   r <- liftRouteT $ eitherForm environment "user" (newRuleForm Nothing admin)
+   admin <- isGameAdmin (fromJust gi)
+   r <- liftRouteT $ lift $ eitherForm environment "user" (newRuleForm Nothing admin)
    link <- showURL MainPage
-   pn <- fromJust <$> getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber
    case r of
-      Right (sr, Nothing, Nothing) -> webCommand ts $ submitRule sr pn gn sh
-      Right (sr, Just _, Nothing)  -> webCommand ts $ checkRule sr pn sh
-      Right (sr, Nothing, Just _)  -> webCommand ts $ adminSubmitRule sr pn gn sh
+      Right (sr, Nothing, Nothing) -> webCommand $ submitRule sr pn gn (_sh s)
+      Right (sr, Just _, Nothing)  -> webCommand $ checkRule sr pn (_sh s)
+      Right (sr, Nothing, Just _)  -> webCommand $ adminSubmitRule sr pn gn (_sh s) 
       Right (_,  Just _, Just _)   -> error "Impossible new rule form result"
       (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
    seeOther (link `appendAnchor` ruleFormAnchor) $ "Redirecting..."
-

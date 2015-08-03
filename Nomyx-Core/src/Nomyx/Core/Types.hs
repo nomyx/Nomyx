@@ -6,7 +6,6 @@ module Nomyx.Core.Types where
 
 import Network.BSD
 import Language.Haskell.Interpreter.Server (ServerHandle)
-import Happstack.Authenticate.Core (AuthenticateState)
 import Data.Typeable
 import Control.Lens
 import Data.Acid (AcidState)
@@ -96,20 +95,13 @@ $(deriveSafeCopy 1 'base ''SubmitRule)
 
 $(inferIxSet "ProfilesData" ''ProfileData 'noCalcs [''PlayerNumber]) -- , ''Text
 
-data ProfileDataState =
-    ProfileDataState { profilesData :: ProfilesData }
+data ProfileDataState = ProfileDataState { profilesData :: ProfilesData }
     deriving (Eq, Ord, Read, Show, Typeable, Data)
 $(deriveSafeCopy 1 'base ''ProfileDataState)
 
-
--- | 'Acid' holds all the 'AcidState' handles for this site.
-data Profiles = Profiles
-    { acidAuth        :: AcidState AuthenticateState,
-      acidProfileData :: AcidState ProfileDataState}
-
 data Session = Session { _sh :: ServerHandle,
                          _multi :: Multi,
-                         _profiles  :: Profiles}
+                         _acidProfiles  :: AcidState ProfileDataState}
 
 instance Show Session where
    show (Session _ m _) = show m

@@ -18,10 +18,9 @@ import Language.Haskell.TH.Syntax as THS hiding (lift)
 import System.IO.Unsafe
 import Data.List
 import Data.Maybe
+import Data.Acid
 import Data.Acid.Memory
 import Data.Time hiding (getCurrentTime)
-import Happstack.Authenticate.Core (initialAuthenticateState)
---import Happstack.Auth.Core.Profile (initialProfileState)
 import Paths_Nomyx_Core as PNC
 import System.IO.Temp
 import System.FilePath ((</>))
@@ -96,12 +95,8 @@ testException m e = do
    putStrLn $ "Test Exception: " ++ show e
    return m
 
-testProfiles :: IO Profiles
-testProfiles = do
-   ias  <- openMemoryState initialAuthenticateState
-   --ips  <- openMemoryState initialProfileState
-   ipds <- openMemoryState initialProfileDataState
-   return $ Profiles ias ipds
+testProfiles :: IO (AcidState ProfileDataState)
+testProfiles = openMemoryState initialProfileDataState
 
 printRule :: Q THS.Exp -> String
 printRule r = unsafePerformIO $ do

@@ -1,35 +1,38 @@
-{-# LANGUAGE DoAndIfThenElse #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DoAndIfThenElse      #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs                #-}
+{-# LANGUAGE OverloadedStrings    #-}
 
 module Nomyx.Web.Game.IOs where
 
-import Prelude hiding (div)
-import Control.Monad
-import Control.Monad.State
-import Control.Concurrent.STM
-import Control.Applicative
-import Data.Monoid
-import Data.Maybe
-import Data.String
-import Data.List
-import Data.Text (Text)
-import Language.Nomyx
-import Text.Blaze.Html5                    (Html, div, (!), table, td, tr, h3, h4, pre, toValue, br, a)
-import Text.Blaze.Html5.Attributes as A    (id)
-import Text.Reform.Blaze.String            (label, textarea, inputCheckboxes)
-import qualified Text.Reform.Blaze.String as RB
-import Text.Reform.Happstack               (environment)
-import Text.Reform                         ((<++), viewForm, eitherForm)
-import Happstack.Server                    (Response, Method(..), seeOther, toResponse, methodM, ok)
-import Web.Routes.RouteT                   (showURL, liftRouteT)
-import qualified Nomyx.Web.Help as Help
-import Nomyx.Web.Common as NWC
-import Nomyx.Core.Types as T
-import Nomyx.Core.Mail
-import Nomyx.Core.Engine
-import Nomyx.Core.Session as S
+import           Control.Applicative
+import           Control.Concurrent.STM
+import           Control.Monad
+import           Control.Monad.State
+import           Data.List
+import           Data.Maybe
+import           Data.Monoid
+import           Data.String
+import           Data.Text                   (Text)
+import           Happstack.Server            (Method (..), Response, methodM,
+                                              ok, seeOther, toResponse)
+import           Language.Nomyx
+import           Nomyx.Core.Engine
+import           Nomyx.Core.Mail
+import           Nomyx.Core.Session          as S
+import           Nomyx.Core.Types            as T
+import           Nomyx.Web.Common            as NWC
+import qualified Nomyx.Web.Help              as Help
+import           Nomyx.Web.Types
+import           Prelude                     hiding (div)
+import           Text.Blaze.Html5            (Html, a, br, div, h3, h4, pre,
+                                              table, td, toValue, tr, (!))
+import           Text.Blaze.Html5.Attributes as A (id)
+import           Text.Reform                 (eitherForm, viewForm, (<++))
+import           Text.Reform.Blaze.String    (inputCheckboxes, label, textarea)
+import qualified Text.Reform.Blaze.String    as RB
+import           Text.Reform.Happstack       (environment)
+import           Web.Routes.RouteT           (liftRouteT, showURL)
 default (Integer, Double, Data.Text.Text)
 
 
@@ -88,7 +91,7 @@ viewInput _ _ _ = return Nothing
 
 viewInput' :: PlayerNumber -> GameName -> EventNumber -> (SignalAddress, SomeSignal) -> RoutedNomyxServer (Maybe Html)
 viewInput' me gn en (fa, ev@(SomeSignal (Input pn title _))) | me == pn = do
-  lf  <- lift $ viewForm "user" $ inputForm ev
+  lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm ev
   link <- showURL (DoInput en fa (fromJust $ getFormField ev) gn)
   return $ Just $ tr $ td $ do
      fromString title
@@ -118,13 +121,13 @@ inputForm' (ButtonField _ _)           = pure ButtonData
 inputForm' (CheckboxField _ _ choices) = CheckboxData <$> inputCheckboxes choices (const False) <++ label (" " :: String)
 
 -- | a form result has been sent
-newInput :: EventNumber -> SignalAddress -> FormField -> GameName -> TVar Session -> RoutedNomyxServer Response
-newInput en fa ft gn ts = toResponse <$> do
-   pn <- fromJust <$> getPlayerNumber ts
+newInput :: EventNumber -> SignalAddress -> FormField -> GameName -> RoutedNomyxServer Response
+newInput en fa ft gn = toResponse <$> do
+   pn <- fromJust <$> getPlayerNumber
    link <- showURL MainPage
    methodM POST
-   r <- liftRouteT $ eitherForm environment "user" (inputForm' ft)
+   r <- liftRouteT $ lift $ eitherForm environment "user" (inputForm' ft)
    case r of
-      (Right c) -> webCommand ts $ S.inputResult pn en fa ft c gn
+      (Right c) -> webCommand $ S.inputResult pn en fa ft c gn
       (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
    seeOther (link `appendAnchor` inputAnchor) "Redirecting..."

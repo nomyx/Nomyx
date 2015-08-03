@@ -36,9 +36,6 @@ import Nomyx.Core.Interpret
 import Nomyx.Core.Test
 import Nomyx.Core.Engine
 import Nomyx.Core.Engine.Test as LT
-import Happstack.Authenticate.Route (initAuthentication)
-import Happstack.Authenticate.OpenId.Route (initOpenId)
-import Happstack.Authenticate.Password.Route (initPassword)
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -92,19 +89,13 @@ mainLoop settings saveDir host port = do
    sh <- protectHandlers $ startInterpreter saveDir
    --creating game structures
    multi <- Main.loadMulti settings sh
-
-   (cleanup, routeAuthenticate, authenticateState) <-
-      liftIO $ initAuthentication Nothing (const $ return True)
-        [ initPassword "http://localhost:8000/#resetPassword" "example.org"
-        , initOpenId
-        ]
    --main loop
-   withAcid (Just $ saveDir </> profilesDir) authenticateState $ \acid -> do
-     tvSession <- atomically $ newTVar (Session sh multi acid)
+   withAcid (Just $ saveDir </> profilesDir) $ \acid -> do
+     ts <- atomically $ newTVar (Session sh multi acid)
      --start the web server
-     forkIO $ launchWebServer tvSession (Network host port) routeAuthenticate
-     forkIO $ launchTimeEvents tvSession
-     serverLoop tvSession
+     forkIO $ launchWebServer ts (Network host port)
+     forkIO $ launchTimeEvents ts
+     serverLoop ts
 
 loadMulti :: Settings -> ServerHandle -> IO Multi
 loadMulti set sh = do

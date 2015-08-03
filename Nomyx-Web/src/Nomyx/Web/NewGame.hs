@@ -1,25 +1,27 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings    #-}
 
 module Nomyx.Web.NewGame where
 
-import Prelude hiding (div)
-import Text.Reform
-import Text.Blaze.Html5.Attributes hiding (label)
-import Text.Reform.Blaze.String as RB hiding (form)
-import Text.Reform.Happstack
-import qualified Text.Reform.Blaze.Common as RBC
-import Control.Applicative
-import Control.Monad.State
-import Control.Concurrent.STM
-import Happstack.Server
-import Web.Routes.RouteT
-import Data.Text(Text)
-import Data.Maybe
-import Nomyx.Core.Engine
-import Nomyx.Web.Common
-import qualified Nomyx.Core.Session as S
-import Nomyx.Core.Types
+import           Control.Applicative
+import           Control.Concurrent.STM
+import           Control.Monad.State
+import           Data.Maybe
+import           Data.Text                   (Text)
+import           Happstack.Server
+import           Nomyx.Core.Engine
+import qualified Nomyx.Core.Session          as S
+import           Nomyx.Core.Types
+import           Nomyx.Web.Common
+import           Nomyx.Web.Types
+import           Prelude                     hiding (div)
+import           Text.Blaze.Html5.Attributes hiding (label)
+import           Text.Reform
+import qualified Text.Reform.Blaze.Common    as RBC
+import           Text.Reform.Blaze.String    as RB hiding (form)
+import           Text.Reform.Happstack
+import           Web.Routes.RouteT
+
 default (Integer, Double, Data.Text.Text)
 
 data NewGameForm = NewGameForm GameName GameDesc Bool (Maybe GameName)
@@ -38,33 +40,33 @@ newGameDesc = pure GameDesc <*> label "Enter game description:" ++> br ++> texta
 gameNameRequired :: String -> Either NomyxError String
 gameNameRequired = fieldRequired GameNameRequired
 
-newGamePage :: TVar Session -> RoutedNomyxServer Response
-newGamePage ts = toResponse <$> do
-   admin <- isAdmin ts
-   gis <- getPublicGames ts
+newGamePage :: RoutedNomyxServer Response
+newGamePage = toResponse <$> do
+   admin <- isAdmin
+   gis <- getPublicGames
    let gameNames = map (_gameName . _game . _loggedGame) gis
    newGameLink <- showURL SubmitNewGame
-   mf <- lift $ viewForm "user" $ newGameForm admin gameNames
+   mf <- liftRouteT $ lift $ viewForm "user" $ newGameForm admin gameNames
    mainPage "New game"
             "New game"
             (blazeForm mf newGameLink)
             False
             True
 
-newGamePost :: TVar Session -> RoutedNomyxServer Response
-newGamePost ts = toResponse <$> do
+newGamePost :: RoutedNomyxServer Response
+newGamePost = toResponse <$> do
    methodM POST
-   admin <- isAdmin ts
-   gis <- getPublicGames ts
+   admin <- isAdmin
+   gis <- getPublicGames
    let gameNames = map (_gameName . _game . _loggedGame) gis
-   r <- liftRouteT $ eitherForm environment "user" (newGameForm admin gameNames)
+   r <- liftRouteT $ lift $ eitherForm environment "user" (newGameForm admin gameNames)
    link <- showURL MainPage
    newGameLink <- showURL SubmitNewGame
-   pn <- fromJust <$> getPlayerNumber ts
+   pn <- fromJust <$> getPlayerNumber
    case r of
       Left errorForm -> mainPage  "New game" "New game" (blazeForm errorForm newGameLink) False True
       Right (NewGameForm name desc isPublic mforkFrom) -> do
          case mforkFrom of
-            Nothing       -> webCommand ts $ S.newGame name desc pn isPublic
-            Just forkFrom -> webCommand ts $ S.forkGame forkFrom name desc False pn
+            Nothing       -> webCommand $ S.newGame name desc pn isPublic
+            Just forkFrom -> webCommand $ S.forkGame forkFrom name desc False pn
          seeOther link "Redirecting..."
