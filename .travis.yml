@@ -2,9 +2,16 @@ language: haskell
 ghc: 
   - 7.6
   - 7.8
+
 notifications:
   email:
     recipients: corentin.dupont@gmail.com
-install: cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Core/ Nomyx-Web/ Nomyx/  --constraint mtl==2.1.*
+
+install:
+  - travis_retry sudo apt-get install happy-1.19.3
+  - export PATH=/opt/happy/1.19.3/bin:$PATH
+  - cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Core/ Nomyx-Web/ Nomyx/  --constraint mtl==2.1.*
+
 script: Nomyx/tests.sh
+
 sudo: false
