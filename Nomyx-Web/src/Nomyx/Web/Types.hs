@@ -27,27 +27,7 @@ import           Web.Routes.PathInfo
 import           Web.Routes.RouteT
 import           Web.Routes.TH                 (derivePathInfo)
 
-data NomyxError = PlayerNameRequired
-                | GameNameRequired
-                | UniqueName
-                | UniqueEmail
-                | FieldTooLong Int
-                | NomyxCFE (CommonFormError [HS.Input])
-                deriving Show
-
-type NomyxForm a = Form (ServerPartT IO) [HS.Input] NomyxError Html () a
-
 default (Integer, Double, Data.Text.Text)
-
-data LoginName = LoginName { login :: PlayerName}
-                             deriving (Show, Eq)
-
-
--- | associate a player number with a handle
-data PlayerClient = PlayerClient PlayerNumber deriving (Eq, Show)
-
--- | A structure to hold the active games and players
-data Server = Server [PlayerClient] deriving (Eq, Show)
 
 data PlayerCommand = Auth AuthenticateURL
                    | Login
@@ -74,16 +54,22 @@ data PlayerCommand = Auth AuthenticateURL
                    deriving (Show)
 
 
---newtype ClckT url m a = ClckT { unClckT :: RouteT url (StateT ClckState m) a }
-
 data WebState = WebState {_session           :: TVar Session,
                           _authenticateState :: AcidState AuthenticateState,
                           _routeAuthenticate :: AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response}
 
-makeLenses ''WebState
 
 type RoutedNomyxServer a = RouteT PlayerCommand (StateT WebState (ServerPartT IO)) a
 
+data NomyxError = PlayerNameRequired
+                | GameNameRequired
+                | UniqueName
+                | UniqueEmail
+                | FieldTooLong Int
+                | NomyxCFE (CommonFormError [HS.Input])
+                deriving Show
+
+type NomyxForm a = Form (ServerPartT IO) [HS.Input] NomyxError Html () a
 
 instance PathInfo SignalAddressElem
 instance PathInfo SignalAddress
@@ -92,7 +78,6 @@ instance PathInfo (Int, String)
 instance PathInfo [(Int, String)]
 
 $(derivePathInfo ''PlayerCommand)
-$(derivePathInfo ''LoginName)
 
 instance PathInfo Bool where
   toPathSegments i = [pack $ show i]
@@ -112,3 +97,5 @@ instance ToMarkup NomyxError where
     toMarkup UniqueEmail        = "Email already taken"
     toMarkup (FieldTooLong l)   = fromString $ "Field max length: " ++ show l
     toMarkup (NomyxCFE e)       = fromString $ show e
+
+makeLenses ''WebState
