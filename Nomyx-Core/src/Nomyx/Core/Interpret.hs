@@ -68,6 +68,7 @@ initializeInterpreter saveDir = do
 interpretRule :: String -> ServerHandle -> IO (Either InterpreterError Rule)
 interpretRule s sh = (liftIO $ runIn sh $ interpret s (as :: Rule))
    `catchIOError` (\(e::IOException) -> return $ Left $ NotAllowed $ "Caught exception: " ++ (show e))
+   `CE.catch` (\(msg::CE.SomeException) -> return $ Left $ NotAllowed $ "Caught exception: " ++ (show msg))
 
 getRuleFunc :: ServerHandle -> RuleCode -> IO Rule
 getRuleFunc sh rc = do
