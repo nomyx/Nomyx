@@ -55,6 +55,7 @@ initializeInterpreter saveDir = do
    reset -- Make sure nothing is available
    set [installedModulesInScope := False,
         languageExtensions := map readExt exts]
+   unsafeSetGhcOption "-w"
    unsafeSetGhcOption "-fpackage-trust"
    forM_ (defaultPackages >>= words) $ \pkg -> unsafeSetGhcOption ("-trust " ++ pkg)
    uploadedMods <- liftIO $ getUploadModules saveDir
