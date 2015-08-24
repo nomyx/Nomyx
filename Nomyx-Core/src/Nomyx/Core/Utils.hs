@@ -24,11 +24,12 @@ import           Nomyx.Core.Types
 import           System.IO
 import           System.IO.PlafCompat
 
-saveFile, profilesDir, uploadDir, testDir, tarFile :: FilePath
+saveFile, profilesDir, uploadDir, testDir, authDir, tarFile :: FilePath
 saveFile    = "Nomyx.save"
 profilesDir = "profiles"
 uploadDir   = "uploads"
 testDir     = "test"
+authDir     = "authenticate"
 tarFile     = "Nomyx.tar"
 
 -- | this function will return just a if it can cast it to an a.

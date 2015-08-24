@@ -235,10 +235,10 @@ launchWebServer ts net = do
    let conf = nullConf {HS.port = T._port net}
    docdir <- liftIO getDocDir
    --init authenticate
-   (_, routeAuthenticate, authenticateState) <-
-      liftIO $ initAuthentication Nothing (const $ return True)
-        [ initPassword "http://localhost:8000/#resetPassword" "example.org"
-        , initOpenId]
+   (_, routeAuthenticate, authenticateState) <- liftIO $ initAuthentication
+      (Just $ _saveDir set)
+      (const $ return True)
+      [initPassword "http://localhost:8000/#resetPassword" "example.org", initOpenId]
    let ws = WebState ts authenticateState routeAuthenticate
    simpleHTTP conf $ server ws set net docdir
 

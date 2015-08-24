@@ -132,6 +132,7 @@ cleanFile saveDir = do
    let catchExp io = io `catch` (\(e::SomeException)-> print e)
    catchExp $ removeDirectoryRecursive $ saveDir </> profilesDir
    catchExp $ removeDirectoryRecursive $ saveDir </> uploadDir
+   catchExp $ removeDirectoryRecursive $ saveDir </> authDir
    catchExp $ removeFile               $ saveDir </> saveFile
 
 -- | a loop that will handle server commands
