@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Language.Nomyx.Messages (
    sendMessage, sendMessage_,
@@ -37,15 +38,22 @@ type APIName = String
 
 -- | subscribe an API call with a function name and a value to return
 -- the value in toSend will be sent back to the caller.
-onAPICall :: (Typeable a, Show a) => APIName -> Nomex a -> Nomex EventNumber
-onAPICall name toSend = onMessage (Msg name) ((toSend >>=) . sendMessage)
+onAPICall :: (Typeable a, Show a, Typeable b, Show b) => APIName -> (a -> Nomex b) -> Nomex EventNumber
+onAPICall name action = onMessage (Msg name) (\(msg, a) -> action a >>= sendMessage msg)
+
+-- version with no parameters
+onAPICall' :: (Typeable a, Show a) => APIName -> Nomex a -> Nomex EventNumber
+onAPICall' name action = onAPICall name (\(_::()) -> action)
 
 -- | call an API function. The result of the call will be passed to the callback when available.
-callAPI :: (Typeable a, Show a) => APIName -> (a -> Nomex ()) -> Nomex ()
-callAPI name callback = do
+callAPI :: (Typeable a, Show a, Typeable b, Show b) => APIName -> a -> (b -> Nomex ()) -> Nomex ()
+callAPI name param callback = do
    msgTemp <- createTempMsg callback
-   sendMessage (Msg name) msgTemp
+   sendMessage (Msg name) (msgTemp, param)
 
+-- | version with no parameters
+callAPI' :: (Typeable a, Show a) => APIName -> (a -> Nomex ()) -> Nomex ()
+callAPI' name callback = callAPI name () callback
 
 -- * Internals
 
