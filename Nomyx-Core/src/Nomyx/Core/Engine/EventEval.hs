@@ -28,7 +28,7 @@ import           Safe
 
 -- * Event triggers
 
--- trigger an event
+-- trigger an event with an event result
 triggerEvent :: (Typeable e, Show e) => Signal e -> e -> Evaluate ()
 triggerEvent s dat = do
    evs <- use (eGame . events)
