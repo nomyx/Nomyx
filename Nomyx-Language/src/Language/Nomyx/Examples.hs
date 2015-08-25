@@ -291,10 +291,8 @@ castles = msgVar "Castles"
 -- | call an API function and wait for the result.
 callAPIBlocking :: forall a. (Typeable a, Show a) => APIName -> Nomex a
 callAPIBlocking name = do
-   v <- getTempVar ""
+   v <- getTempVar Nothing
+   callAPI name (\a -> void $ writeVar v (Just a :: Maybe a))
+   a <- untilJust $ readVar_ (v :: V (Maybe a))
    delVar v
-   let vn = varName v
-   callAPI name (\a -> void $ newVar vn (a :: a))
-   a <- liftEffect $ untilJust $ readVar (V vn :: V a)
-   delVar (V vn)
    return a
