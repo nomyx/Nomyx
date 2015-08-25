@@ -6,8 +6,6 @@ module Language.Nomyx.Events (
    delEvent,
    getEvents, getEvent,
    getIntermediateResults,
-   sendMessage, sendMessage_,
-   onMessage, onMessageOnce,
    schedule, schedule_, schedule', schedule'_,
    getCurrentTime,
    oneWeek, oneDay, oneHour, oneMinute,
@@ -37,7 +35,6 @@ onEvent = OnEvent
 onEvent_ :: (Typeable e, Show e) => Event e -> (e -> Nomex ()) -> Nomex EventNumber
 onEvent_ e h = onEvent e (\(_, d) -> h d)
 
-
 -- | set an handler for an event that will be triggered only once
 onEventOnce :: (Typeable e, Show e) => Event e -> (e -> Nomex ()) -> Nomex EventNumber
 onEventOnce e h = do
@@ -63,20 +60,6 @@ getIntermediateResults en = do
 getInputResult :: SignalOccurence -> Maybe (PlayerNumber, SomeData)
 getInputResult (SignalOccurence (SignalData (Input pn _ _) r) _) = Just (pn, SomeData r)
 getInputResult _ = Nothing
-
--- | broadcast a message that can be catched by another rule
-sendMessage :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
-sendMessage = SendMessage
-
-sendMessage_ :: String -> Nomex ()
-sendMessage_ m = SendMessage (Msg m) ()
-
--- | subscribe on a message 
-onMessage :: (Typeable m, Show m) => Msg m -> (m -> Nomex ()) -> Nomex EventNumber
-onMessage name = onEvent_ (messageEvent name)
-
-onMessageOnce :: (Typeable m, Show m) => Msg m -> (m -> Nomex ()) -> Nomex EventNumber
-onMessageOnce name = onEventOnce (messageEvent name)
 
 -- | on the provided schedule, the supplied function will be called
 schedule :: Schedule Freq -> (UTCTime -> Nomex ()) -> Nomex ()
@@ -112,7 +95,7 @@ executeAndScheduleNext' f sched now = do
    f now
    let rest = drop 1 sched
    when (rest /= []) $ void $ onEventOnce (timeEvent $ head rest) $ executeAndScheduleNext' f sched
-   
+
 
 schedule'_ :: [UTCTime] -> Nomex () -> Nomex ()
 schedule'_ ts f = schedule' ts (const f)

@@ -71,6 +71,7 @@ data Exp :: Eff -> * -> *   where
    AddRule         :: RuleInfo -> Nomex Bool
    ModifyRule      :: RuleNumber -> RuleInfo -> Nomex Bool
    GetRules        :: NomexNE [RuleInfo]
+   SelfRuleNumber  :: NomexNE RuleNumber
    --Players management
    GetPlayers      :: NomexNE [PlayerInfo]
    SetPlayerName   :: PlayerNumber -> PlayerName -> Nomex Bool
@@ -80,10 +81,10 @@ data Exp :: Eff -> * -> *   where
    GetOutput       :: OutputNumber -> NomexNE (Maybe String)
    UpdateOutput    :: OutputNumber -> NomexNE String -> Nomex Bool
    DelOutput       :: OutputNumber -> Nomex Bool
-   --Mileacenous
+   --Victory
    SetVictory      :: NomexNE [PlayerNumber] -> Nomex ()
+   --Mileacenous
    CurrentTime     :: NomexNE UTCTime
-   SelfRuleNumber  :: NomexNE RuleNumber
    GetRandomNumber :: Random a => (a, a) -> Nomex a
    --Monadic bindings
    Return          :: a -> Exp e a
@@ -161,15 +162,15 @@ data Event a where
 
 -- | Signals
 data Signal a where
-   Input   :: PlayerNumber -> String -> (InputForm a) -> Signal a
-   Player  :: Player    -> Signal PlayerInfo
-   RuleEv  :: RuleEvent -> Signal RuleInfo
-   Time    :: UTCTime   -> Signal UTCTime
-   Message :: Msg a     -> Signal a
-   Victory ::              Signal VictoryInfo
+   Input   :: PlayerNumber -> String -> (InputForm a) -> Signal a  -- Fires when the user has complete the input form. Input forms are created automatically when the event is posted.
+   Player  :: Player    -> Signal PlayerInfo                       -- Fires on events related to players.
+   RuleEv  :: RuleEvent -> Signal RuleInfo                         -- Fires on events related to rules.
+   Time    :: UTCTime   -> Signal UTCTime                          -- Fires at the specified date.
+   Message :: Msg a     -> Signal a                                -- Fires if a rule sends a message.
+   Victory ::              Signal VictoryInfo                      -- Fires if the victory condition is changed.
    deriving Typeable
 
--- | Type agnostic base event
+-- | Type agnostic base signal
 data SomeSignal = forall a. (Typeable a) => SomeSignal (Signal a)
 
 -- | Type agnostic result data
@@ -301,6 +302,11 @@ data VictoryInfo = VictoryInfo { _vRuleNumber :: RuleNumber,
 
 -- * Miscellaneous
 
+-- | get a random number uniformly distributed in the closed interval [lo,hi]
+-- resets the number generator
+getRandomNumber :: Random a => (a, a) -> Nomex a
+getRandomNumber = GetRandomNumber
+
 partial :: String -> Nomex (Maybe a) -> Nomex a
 partial s nm = do
    m <- nm
@@ -331,4 +337,3 @@ evStatusNumber f (EventInfo e rn ev h evs env) = fmap (\evs' -> (EventInfo e rn 
 
 env :: Lens' EventInfo [SignalOccurence]
 env f (EventInfo e rn ev h evs env) = fmap (\env' -> (EventInfo e rn ev h evs env')) (f env)
-

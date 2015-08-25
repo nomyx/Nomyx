@@ -21,12 +21,12 @@ data-files: src/Language/Nomyx.hs
             src/Language/Nomyx/Outputs.hs
             src/Language/Nomyx/Variables.hs
             src/Language/Nomyx/Events.hs
+            src/Language/Nomyx/Messages.hs
             src/Language/Nomyx/Players.hs
             src/Language/Nomyx/Vote.hs
-            
 data-dir: ""
 extra-source-files: AUTHORS README
- 
+
 library
     build-depends: DebugTraceHelpers  == 0.12.*,
                    Boolean            == 0.2.*,
@@ -39,12 +39,14 @@ library
                    random             == 1.1.*,
                    safe               == 0.3.*,
                    time               >= 1.4 && < 1.6,
-                   time-recurrence    == 0.9.*
+                   time-recurrence    == 0.9.*,
+                   monad-loops -any
     exposed-modules: Language.Nomyx
                      Language.Nomyx.Expression
                      Language.Nomyx.Examples
                      Language.Nomyx.Variables
                      Language.Nomyx.Events
+                     Language.Nomyx.Messages
                      Language.Nomyx.Inputs
                      Language.Nomyx.Outputs
                      Language.Nomyx.Players
@@ -56,8 +58,7 @@ library
     buildable: True
     hs-source-dirs: src
     ghc-options: -W
- 
+
 source-repository head
   type:              git
   location:          https://github.com/cdupont/Nomyx.git
-

@@ -1,6 +1,8 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
 
 -- | This file gives a list of example rules that the players can submit.
 --You can copy-paste them in the field "Code" of the web GUI.
@@ -36,6 +38,7 @@ module Language.Nomyx.Examples(
    bravoButton,
    enterHaiku,
    helloButton,
+   callAPIBlocking,
    module X) where
 
 import Data.Function
@@ -48,6 +51,7 @@ import Control.Arrow
 import Control.Monad as X
 import Safe (readDef)
 import Language.Nomyx
+import Control.Monad.Loops
 
 -- | A rule that does nothing
 nothing :: Rule
@@ -266,4 +270,31 @@ castles = msgVar "Castles"
 --       let vict = map fst $ filter ((== (Castle 4 True)) . snd) cs
 --       when (length vict > 0) $ setVictory vict
 --  onMsgVarEvent castles $ (\(VUpdated cs) -> checkVict cs)
+-- buySpaceShipPart :: Rule
+-- buySpaceShipPart = do
+--    let askPart :: PlayerNumber -> Event (String)
+--        askPart pn = do
+--           inv <- fromMaybe [] <$> readMsgVar (msgVar "ShopInventory")
+--           inputRadio' pn "Part to buy: " inv
+--    void $ forEachPlayer_ (\pn -> void $ onEvent_ (askPart pn) (transfer pn))
 
+
+-- bank :: Msg String
+-- bank = Msg "bank"
+--
+-- test :: Rule
+-- test = do
+--    newVar "test" 0
+--    onMessage (Msg "credit") ()
+
+
+-- | call an API function and wait for the result.
+callAPIBlocking :: forall a. (Typeable a, Show a) => APIName -> Nomex a
+callAPIBlocking name = do
+   v <- getTempVar ""
+   delVar v
+   let vn = varName v
+   callAPI name (\a -> void $ newVar vn (a :: a))
+   a <- liftEffect $ untilJust $ readVar (V vn :: V a)
+   delVar (V vn)
+   return a

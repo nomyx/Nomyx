@@ -13,7 +13,7 @@ module Language.Nomyx.Variables (
    MsgVar(..),
    newVar,    newVar_,    newVar',    readVar,    readVar_,    writeVar,    modifyVar,    delVar,
    newMsgVar, newMsgVar_, newMsgVar', readMsgVar, readMsgVar_, writeMsgVar, modifyMsgVar, delMsgVar,
-   msgVar,
+   msgVar, getTempVar,
    newMsgVarOnEvent,
    onMsgVarEvent, onMsgVarChange, onMsgVarDelete,
    getMsgVarMessage,
@@ -22,13 +22,14 @@ module Language.Nomyx.Variables (
    ArrayVar,
    newArrayVar, newArrayVar_, newArrayVar', newArrayVarOnce,
    cleanOnFull,
-   isFullArrayVar_,   
+   isFullArrayVar_,
    putArrayVar, putArrayVar_
    ) where
-   
+
 
 import Language.Nomyx.Expression
 import Language.Nomyx.Events
+import Language.Nomyx.Messages
 import Data.Typeable
 import Control.Monad.State
 import Control.Applicative
@@ -36,6 +37,7 @@ import Data.Maybe
 import qualified Data.Map as M
 import Data.Map hiding (map, filter, insert, mapMaybe, null)
 import Data.Foldable as F (mapM_)
+import Control.Monad.Loops
 
 -- * Variables
 -- | variable creation
@@ -50,7 +52,7 @@ newVar' v a = maybe False (const True) <$> (newVar (varName v) a)
 
 -- | variable reading
 readVar :: (Typeable a, Show a) => V a -> NomexNE (Maybe a)
-readVar = ReadVar 
+readVar = ReadVar
 
 readVar_ :: (Typeable a, Show a) => V a -> Nomex a
 readVar_ v@(V a) = partial ("readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing") (liftEffect $ readVar v)
@@ -66,6 +68,12 @@ modifyVar v f = writeVar v . f =<< readVar_ v
 -- | delete variable
 delVar :: V a -> Nomex Bool
 delVar = DelVar
+
+-- | get temporary variable with random name
+getTempVar :: (Typeable a, Show a) => a -> Nomex (V a)
+getTempVar a = untilJust $ do
+    r <- getRandomNumber (0, 1000000 :: Int)
+    newVar ("tempVar" ++ (show r)) a
 
 -- * Message Variable
 -- | a MsgVar is a variable with a message attached, allowing to trigger registered functions anytime the var if modified
@@ -109,7 +117,7 @@ readMsgVar_ :: (Typeable a, Show a) => MsgVar a -> Nomex a
 readMsgVar_ mv = partial "readMsgVar_: variable not existing" (liftEffect $ readMsgVar mv)
 
 modifyMsgVar :: (Typeable a, Show a) => MsgVar a -> (a -> a) -> Nomex Bool
-modifyMsgVar mv f = readMsgVar_ mv >>= writeMsgVar mv . f 
+modifyMsgVar mv f = readMsgVar_ mv >>= writeMsgVar mv . f
 
 delMsgVar :: (Typeable a, Show a) => MsgVar a -> Nomex Bool
 delMsgVar (MsgVar m v) = do
@@ -155,7 +163,7 @@ getMsgVarData_ (MsgVar _ v) = readVar_ v
 getMsgVarName :: (Typeable a, Show a) => MsgVar a -> String
 getMsgVarName (MsgVar _ (V varName)) = varName
 
-    
+
 -- * Variable arrays
 -- | ArrayVar is an indexed array with a signal attached triggered at every change.
 -- | each indexed elements starts empty (value=Nothing).
@@ -186,7 +194,7 @@ newArrayVarOnce name l f = do
 
 cleanOnFull :: (Typeable a, Show a, Eq a, Typeable i, Show i, Ord i) => ArrayVar i a -> Nomex ()
 cleanOnFull ar = do
-   m <- liftEffect $ getMsgVarMessage ar 
+   m <- liftEffect $ getMsgVarMessage ar
    onMessage m $ \_ -> do
       full <- liftEffect $ isFullArrayVar_ ar
       when full $ void $ delMsgVar ar
@@ -196,8 +204,8 @@ cleanOnFull ar = do
 isFullArrayVar_ :: (Typeable a, Show a, Typeable i, Show i, Ord i) => ArrayVar i a -> NomexNE Bool
 isFullArrayVar_ av = do
    md <- getMsgVarData av
-   return $ all isJust (map snd $ fromJust md)       
-   
+   return $ all isJust (map snd $ fromJust md)
+
 -- | store one value and the given index. If this is the last filled element, the registered callbacks are triggered.
 putArrayVar :: (Typeable a, Show a, Eq a, Typeable i, Show i, Eq i, Ord i) => ArrayVar i a -> i -> a -> Nomex Bool
 putArrayVar mv i a = do
@@ -209,5 +217,4 @@ putArrayVar mv i a = do
        Nothing -> return False
 
 putArrayVar_ :: (Typeable a, Show a, Eq a, Typeable i, Show i, Ord i) => ArrayVar i a  -> i -> a -> Nomex ()
-putArrayVar_ mv i a = void $ putArrayVar mv i a       
-
+putArrayVar_ mv i a = void $ putArrayVar mv i a

@@ -11,6 +11,7 @@ import Language.Nomyx.Events
 import Language.Nomyx.Outputs
 import Language.Nomyx.Inputs
 import Language.Nomyx.Vote
+import Language.Nomyx.Messages
 import Language.Nomyx.Examples
 import Nomyx.Core.Engine.Evaluation
 import Nomyx.Core.Engine.EventEval

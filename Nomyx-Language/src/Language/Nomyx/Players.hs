@@ -25,9 +25,8 @@ module Language.Nomyx.Players (
    modifyValueOfPlayer, modifyAllValues,
    showPlayer,
    getProposerNumber, getProposerNumber_,
-   setVictory, 
-   giveVictory,
-   getRandomNumber
+   setVictory,
+   giveVictory
    ) where
 
 import Language.Nomyx.Expression
@@ -155,13 +154,7 @@ giveVictory pn = SetVictory $ return [pn]
 
 -- | get the player number of the proposer of the rule
 getProposerNumber :: NomexNE PlayerNumber
-getProposerNumber = _rProposedBy <$> getSelfRule 
+getProposerNumber = _rProposedBy <$> getSelfRule
 
 getProposerNumber_ :: Nomex PlayerNumber
 getProposerNumber_ = liftEffect getProposerNumber
-
--- | get a random number uniformly distributed in the closed interval [lo,hi]
--- resets the number generator
-getRandomNumber :: Random a => (a, a) -> Nomex a
-getRandomNumber = GetRandomNumber
-
