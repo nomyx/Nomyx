@@ -93,6 +93,8 @@ tests = [("test var 1", testVarEx1),
          ("test input string", testInputStringEx),
          ("test send messsage", testSendMessageEx),
          ("test send message 2", testSendMessageEx2),
+         ("test API call", testAPICallEx),
+         ("test API call 2", testAPICallEx2),
          ("test user input write", testUserInputWriteEx),
          ("test activate rule", testActivateRuleEx),
          ("test auto activate", testAutoActivateEx),
@@ -231,6 +233,23 @@ testSendMessage2 = do
 
 testSendMessageEx2 :: Bool
 testSendMessageEx2 = isOutput "Received" (execRule testSendMessage2)
+
+testAPICall :: Rule
+testAPICall = do
+    onAPICall "test" (return "toto")
+    callAPI "test" outputAll_
+
+testAPICallEx :: Bool
+testAPICallEx = isOutput "toto" (execRule testAPICall)
+
+testAPICall2 :: Rule
+testAPICall2 = do
+    onAPICall "test" (return "toto")
+    a <- callAPIBlocking "test"
+    outputAll_ a
+
+testAPICallEx2 :: Bool
+testAPICallEx2 = isOutput "toto" (execRule testAPICall2)
 
 data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 
