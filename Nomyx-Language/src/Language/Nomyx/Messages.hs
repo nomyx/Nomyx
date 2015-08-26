@@ -3,12 +3,15 @@
 module Language.Nomyx.Messages (
   sendMessage, sendMessage_,
   onMessage, onMessageOnce,
-  onAPICall, callAPI, APICall(..)
+  APICall(..), onAPICall, callAPI, callAPIBlocking,  
   ) where
 
 import Language.Nomyx.Expression
 import Language.Nomyx.Events
+import Language.Nomyx.Variables
 import Data.Typeable
+import Control.Monad.Loops (untilJust)
+import Control.Monad
 
 -- * Messages
 -- a rule can send a simple message to another rule, and subscribe to a message.
@@ -46,6 +49,15 @@ callAPI :: (Typeable a, Show a, Typeable r, Show r) => APICall a r -> a -> (r ->
 callAPI (APICall name) a callback = do
    msgTemp <- createTempMsg callback
    sendMessage (Msg name) (msgTemp, a)
+
+-- | call an API function and wait for the result.
+callAPIBlocking :: (Typeable a, Show a, Typeable r, Show r) => APICall a r -> a -> Nomex r
+callAPIBlocking apiName param = do
+  v <- getTempVar Nothing
+  callAPI apiName param (\r -> void $ writeVar v (Just r))
+  r <- untilJust $ readVar_ v
+  delVar v
+  return r
 
 -- * Internals
 

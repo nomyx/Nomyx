@@ -37,7 +37,6 @@ module Language.Nomyx.Examples(
    bravoButton,
    enterHaiku,
    helloButton,
-   callAPIBlocking,
    module X) where
 
 import Data.Function
@@ -50,7 +49,7 @@ import Control.Arrow
 import Control.Monad as X
 import Safe (readDef)
 import Language.Nomyx
-import Control.Monad.Loops
+
 
 -- | A rule that does nothing
 nothing :: Rule
@@ -301,36 +300,3 @@ data Castle = Castle { towers :: Int, dungeon :: Bool }
 
 castles :: V [(PlayerNumber, Castle)]
 castles = V "Castles"
-
---castleVictory :: RuleFunc
---castleVictory = ruleFunc $ do
---  let checkVict cs = do
---       let vict = map fst $ filter ((== (Castle 4 True)) . snd) cs
---       when (length vict > 0) $ setVictory vict
---  onMsgVarEvent castles $ (\(VUpdated cs) -> checkVict cs)
--- buySpaceShipPart :: Rule
--- buySpaceShipPart = do
---    let askPart :: PlayerNumber -> Event (String)
---        askPart pn = do
---           inv <- fromMaybe [] <$> readMsgVar (msgVar "ShopInventory")
---           inputRadio' pn "Part to buy: " inv
---    void $ forEachPlayer_ (\pn -> void $ onEvent_ (askPart pn) (transfer pn))
-
-
--- bank :: Msg String
--- bank = Msg "bank"
---
--- test :: Rule
--- test = do
---    newVar "test" 0
---    onMessage (Msg "credit") ()
-
-
--- | call an API function and wait for the result.
-callAPIBlocking :: (Typeable a, Show a, Typeable r, Show r) => APICall a r -> a -> Nomex r
-callAPIBlocking apiName param = do
-   v <- getTempVar Nothing
-   callAPI apiName param (\r -> void $ writeVar v (Just r))
-   r <- untilJust $ readVar_ v
-   delVar v
-   return r

@@ -20,7 +20,6 @@ module Language.Nomyx.Variables (
 
 import Language.Nomyx.Expression
 import Language.Nomyx.Events
-import Language.Nomyx.Messages
 import Data.Typeable
 import Control.Monad.State
 import Control.Applicative
