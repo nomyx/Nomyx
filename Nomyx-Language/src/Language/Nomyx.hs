@@ -9,7 +9,6 @@ module Language.Nomyx (
    module Language.Nomyx.Players,
    module Language.Nomyx.Variables,
    module Language.Nomyx.Rules,
-   module Language.Nomyx.Vote,
    module Language.Nomyx.Expression)  where
 
 import Language.Nomyx.Outputs    -- create outputs
@@ -19,5 +18,4 @@ import Language.Nomyx.Messages   -- inter-rule communication
 import Language.Nomyx.Players    -- manage players
 import Language.Nomyx.Variables  -- create variables
 import Language.Nomyx.Rules      -- manage rules
-import Language.Nomyx.Vote       -- create votations
 import Language.Nomyx.Expression -- Nomyx Expression DSL

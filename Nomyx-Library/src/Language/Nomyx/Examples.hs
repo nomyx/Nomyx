@@ -49,6 +49,7 @@ import Control.Arrow
 import Control.Monad as X
 import Safe (readDef)
 import Language.Nomyx
+import Language.Nomyx.Vote
 
 
 -- | A rule that does nothing

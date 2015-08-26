@@ -14,7 +14,6 @@ Homepage: http://www.nomyx.net
 author: Corentin Dupont
 
 data-files: src/Language/Nomyx.hs
-            src/Language/Nomyx/Examples.hs
             src/Language/Nomyx/Expression.hs
             src/Language/Nomyx/Rules.hs
             src/Language/Nomyx/Inputs.hs
@@ -23,7 +22,6 @@ data-files: src/Language/Nomyx.hs
             src/Language/Nomyx/Events.hs
             src/Language/Nomyx/Messages.hs
             src/Language/Nomyx/Players.hs
-            src/Language/Nomyx/Vote.hs
 data-dir: ""
 extra-source-files: AUTHORS README
 
@@ -40,10 +38,9 @@ library
                    safe               == 0.3.*,
                    time               >= 1.4 && < 1.6,
                    time-recurrence    == 0.9.*,
-                   monad-loops -any
+                   monad-loops        == 0.4.*
     exposed-modules: Language.Nomyx
                      Language.Nomyx.Expression
-                     Language.Nomyx.Examples
                      Language.Nomyx.Variables
                      Language.Nomyx.Events
                      Language.Nomyx.Messages
@@ -51,7 +48,6 @@ library
                      Language.Nomyx.Outputs
                      Language.Nomyx.Players
                      Language.Nomyx.Rules
-                     Language.Nomyx.Vote
                      Paths_Nomyx_Language
                      Control.Shortcut
     exposed: True

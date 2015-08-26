@@ -16,6 +16,7 @@ data-dir: data
 
 library
     build-depends: Nomyx-Language         == 0.7.6,
+                   Nomyx-Library          == 0.7.6,
                    DebugTraceHelpers      == 0.12.*,
                    MissingH               == 1.3.*,
                    acid-state             == 0.12.*,
