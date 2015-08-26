@@ -11,8 +11,7 @@ module Language.Nomyx.Outputs (
    updateOutput,
    delOutput,
    displayVar, displayVar',
-   displaySimpleVar,
-   displayArrayVar
+   displaySimpleVar
    ) where
 
 import Language.Nomyx.Expression
@@ -69,9 +68,3 @@ displayVar' mpn mv dis = displayVar mpn mv dis' where
 displaySimpleVar :: (Typeable a, Show a) => Maybe PlayerNumber -> V a -> String -> Nomex OutputNumber
 displaySimpleVar mpn mv title = displayVar' mpn mv showVar where
    showVar a = return $ title ++ ": " ++ (show a) ++ "\n"
-
-displayArrayVar :: (Typeable a, Show a, Typeable i, Show i) => Maybe PlayerNumber -> ArrayVar i a -> String -> Nomex OutputNumber
-displayArrayVar mpn mv title = undefined --displayVar' mpn mv (showArrayVar title) where
-
-showArrayVar :: (Typeable a, Show a, Typeable i, Show i) => String -> [(i, a)] -> NomexNE String
-showArrayVar title l = undefined --return $ title ++ "\n" ++ concatMap (\(i,a) -> show i ++ "\t" ++ show a ++ "\n") l

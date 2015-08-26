@@ -12,12 +12,12 @@ import Data.Typeable
 
 -- * Messages
 -- a rule can send a simple message to another rule, and subscribe to a message.
--- under the hood, a Message is just a regular type of event.
 
 -- | broadcast a message that can be catched by another rule
 sendMessage :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
 sendMessage = SendMessage
 
+-- | send an empty message
 sendMessage_ :: String -> Nomex ()
 sendMessage_ m = SendMessage (Msg m) ()
 
@@ -25,6 +25,7 @@ sendMessage_ m = SendMessage (Msg m) ()
 onMessage :: (Typeable m, Show m) => Msg m -> (m -> Nomex ()) -> Nomex EventNumber
 onMessage name = onEvent_ (messageEvent name)
 
+-- | subscribe on a message, delete it on the first call
 onMessageOnce :: (Typeable m, Show m) => Msg m -> (m -> Nomex ()) -> Nomex EventNumber
 onMessageOnce name = onEventOnce (messageEvent name)
 
