@@ -2,6 +2,9 @@
 V0.8:
 - use Lens library
 - use happstack-authenticate 2
+- suppress MsgVar and ArrayVar
+- add an API based on message passing to allow rules to communicate between them
+- new package Library
 
 V0.7:
 - full FRP engine for managing events
