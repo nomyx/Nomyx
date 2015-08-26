@@ -236,16 +236,18 @@ testSendMessageEx2 = isOutput "Received" (execRule testSendMessage2)
 
 testAPICall :: Rule
 testAPICall = do
-    onAPICall "test" (return "toto")
-    callAPI "test" outputAll_
+    let call = APICall "test" :: APICall String String
+    onAPICall call return
+    callAPI call "toto" outputAll_
 
 testAPICallEx :: Bool
 testAPICallEx = isOutput "toto" (execRule testAPICall)
 
 testAPICall2 :: Rule
 testAPICall2 = do
-    onAPICall "test" (return "toto")
-    a <- callAPIBlocking "test"
+    let call = APICall "test" :: APICall String String
+    onAPICall call return
+    a <- callAPIBlocking call "toto"
     outputAll_ a
 
 testAPICallEx2 :: Bool

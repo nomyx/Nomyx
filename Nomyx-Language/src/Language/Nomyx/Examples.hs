@@ -1,8 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DoAndIfThenElse #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RankNTypes #-}
 
 -- | This file gives a list of example rules that the players can submit.
 --You can copy-paste them in the field "Code" of the web GUI.
@@ -13,6 +11,7 @@ module Language.Nomyx.Examples(
    helloWorld,
    accounts,
    createBankAccounts,
+   bankServices,
    displayBankAccounts,
    winXEcuPerDay,
    winXEcuOnRuleAccepted,
@@ -62,12 +61,46 @@ helloWorld :: Rule
 helloWorld = outputAll_ "hello, world!"
 
 -- | account variable name and type
-accounts :: MsgVar [(PlayerNumber, Int)]
-accounts = msgVar "Accounts"
+accounts :: V [(PlayerNumber, Int)]
+accounts = V "Accounts"
 
 -- | Create a bank account for each players
 createBankAccounts :: Rule
 createBankAccounts = void $ createValueForEachPlayer_ accounts
+
+-- | Declare an API to deposit money for a player
+-- The return value shows if the transaction was successful.
+depositAPI :: APICall (PlayerNumber, Int) Bool
+depositAPI = APICall "deposit"
+
+-- | Declare an API to withdraw money for a player.
+-- The return value shows if the transaction was successful.
+withdrawAPI :: APICall (PlayerNumber, Int) Bool
+withdrawAPI = APICall "withdraw"
+
+-- | Declare an API to get the balance of a player.
+balanceAPI :: APICall PlayerNumber (Maybe Int)
+balanceAPI = APICall "getBalance"
+
+bankServices :: Nomex ()
+bankServices = do
+  void $ onAPICall depositAPI deposit
+  void $ onAPICall withdrawAPI withdraw
+  void $ onAPICall balanceAPI getBalance
+
+deposit :: (PlayerNumber, Int) -> Nomex Bool
+deposit (pn, amount) = do
+  if amount > 0 then modifyValueOfPlayer pn accounts (+ amount)
+  else return False
+
+withdraw :: (PlayerNumber, Int) -> Nomex Bool
+withdraw (pn, amount) = do
+  balance <- liftEffect $ getValueOfPlayer pn accounts
+  if (amount > 0 && fromJust balance >= amount) then modifyValueOfPlayer pn accounts (\a -> a - amount)
+  else return False
+
+getBalance :: PlayerNumber -> Nomex (Maybe Int)
+getBalance pn = liftEffect $ getValueOfPlayer pn accounts
 
 -- | Permanently display the bank accounts
 displayBankAccounts :: Rule
@@ -104,13 +137,18 @@ moneyTransfer = do
 -- | helper function to transfer money from first player to second player
 transfer :: PlayerNumber -> (PlayerNumber, Int) -> Nomex ()
 transfer src (dst, amount) = do
-   balance <- liftEffect $ getValueOfPlayer src accounts
-   if (amount > 0 && fromJust balance >= amount) then do
-      modifyValueOfPlayer dst accounts (\a -> a + amount)
-      modifyValueOfPlayer src accounts (\a -> a - amount)
-      void $ newOutput_ (Just src) ("You gave " ++ (show amount) ++ " ecu(s) to player " ++ show dst)
-      void $ newOutput_ (Just dst) ("Player " ++ show src ++ " gave you " ++ (show amount) ++ " ecu(s)")
-   else void $ newOutput_ (Just src) ("Insufficient balance or wrong amount")
+   withdrawOK <- callAPIBlocking withdrawAPI (src, amount)
+   if withdrawOK then do
+      depositOK <- callAPIBlocking depositAPI (dst, amount)
+      if depositOK then do
+        void $ newOutput_ (Just src) ("You transfered " ++ (show amount) ++ " ecu(s) to player " ++ (show dst))
+        void $ newOutput_ (Just dst) ("You received " ++ (show amount) ++ " ecu(s) from player " ++ (show src))
+      else do
+        --If transaction failed, deposit back the money
+        callAPIBlocking depositAPI (src, amount)
+        void $ newOutput_ (Just src) ("Transaction failed")
+    else do
+      void $ newOutput_ (Just src) ("Insufficient balance or wrong amount")
 
 -- | delete a rule
 delRule :: RuleNumber -> Rule
@@ -120,18 +158,18 @@ delRule rn = suppressRule_ rn >> autoDelete
 -- and we prefix his name with "King"
 makeKing :: PlayerNumber -> Rule
 makeKing pn = do
-   newMsgVar_ "King" pn
+   newVar_ "King" pn
    void $ modifyPlayerName pn ("King " ++)
 
-king :: MsgVar PlayerNumber
-king = msgVar "King"
+king :: V PlayerNumber
+king = V "King"
 
 -- | Monarchy: only the king decides which rules to accept or reject
 monarchy :: PlayerNumber -> Rule
 monarchy pn = do
    makeKing pn
    void $ onEvent_ (ruleEvent Proposed) $ \rule -> do
-      k <- readMsgVar_ king
+      k <- readVar_ king
       void $ onInputRadioOnce ("Your Royal Highness, do you accept rule " ++ (show $ _rNumber rule) ++ "?") [True, False] (activateOrRejectRule rule) k
 
 -- | Revolution! Hail to the king!
@@ -154,7 +192,7 @@ victoryXRules x = setVictory $ do
 
 victoryXEcu :: Int -> Rule
 victoryXEcu x = setVictory $ do
-    as <- readMsgVar accounts
+    as <- readVar accounts
     let victorious as = map fst $ filter ((>= x) . snd) as
     return $ maybe [] victorious as
 
@@ -242,18 +280,18 @@ enterHaiku = void $ onInputTextarea_ "Enter a haiku:" outputAll_ 1
 
 makeGM :: PlayerNumber -> Nomex ()
 makeGM pn = do
-   newMsgVar "GameMaster" pn
+   newVar "GameMaster" pn
    void $ modifyPlayerName pn ("GameMaster " ++)
 
-gameMaster :: MsgVar PlayerNumber
-gameMaster = msgVar "GameMaster"
+gameMaster :: V PlayerNumber
+gameMaster = V "GameMaster"
 
 tournamentMasterCandidates :: Rule
 tournamentMasterCandidates = do
-   let tournamentMasterCandidates = msgVar "tournamentMasterCandidates" :: MsgVar [PlayerNumber]
-   let candidate pn = void $ modifyMsgVar tournamentMasterCandidates (pn : )
+   let tournamentMasterCandidates = V "tournamentMasterCandidates" :: V [PlayerNumber]
+   let candidate pn = void $ modifyVar tournamentMasterCandidates (pn : )
    let displayCandidates pns = return $ "Candidates for the election of Tournament Master: Players #" ++ intercalate ", " (map show pns)
-   newMsgVar_ (getMsgVarName tournamentMasterCandidates) ([] :: [PlayerNumber])
+   newVar_ (varName tournamentMasterCandidates) ([] :: [PlayerNumber])
    forEachPlayer_ (\pn -> void $ onInputButtonOnce "I am candidate for the next Tournament Master elections " (const $ candidate pn) pn)
    void $ displayVar' Nothing tournamentMasterCandidates displayCandidates
 
@@ -261,8 +299,8 @@ tournamentMasterCandidates = do
 data Castle = Castle { towers :: Int, dungeon :: Bool }
               deriving (Typeable, Show, Eq)
 
-castles :: MsgVar [(PlayerNumber, Castle)]
-castles = msgVar "Castles"
+castles :: V [(PlayerNumber, Castle)]
+castles = V "Castles"
 
 --castleVictory :: RuleFunc
 --castleVictory = ruleFunc $ do
@@ -289,10 +327,10 @@ castles = msgVar "Castles"
 
 
 -- | call an API function and wait for the result.
-callAPIBlocking :: forall a b. (Typeable a, Show a, Typeable b, Show b) => APIName -> a -> Nomex b
-callAPIBlocking name param = do
+callAPIBlocking :: (Typeable a, Show a, Typeable r, Show r) => APICall a r -> a -> Nomex r
+callAPIBlocking apiName param = do
    v <- getTempVar Nothing
-   callAPI name param (\b -> void $ writeVar v (Just b :: Maybe b))
-   b <- untilJust $ readVar_ (v :: V (Maybe b))
+   callAPI apiName param (\r -> void $ writeVar v (Just r))
+   r <- untilJust $ readVar_ v
    delVar v
-   return b
+   return r

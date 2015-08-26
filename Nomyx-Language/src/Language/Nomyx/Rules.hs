@@ -153,21 +153,21 @@ autoActivate = void $ onEvent_ (ruleEvent Proposed) (activateRule_ . _rNumber)
 type MetaRule = RuleInfo -> NomexNE Bool
 
 -- | The meta rules are stored in a list variable
-metaruleVar :: MsgVar [(String, MetaRule)]
-metaruleVar = msgVar "metarules"
+metaruleVar :: V [(String, MetaRule)]
+metaruleVar = V "metarules"
 
 -- | create the meta rule variable
 createMetaruleVar :: Nomex ()
-createMetaruleVar = void $ newMsgVar' metaruleVar []
+createMetaruleVar = void $ newVar' metaruleVar []
 
 -- | add a new metarule to the list
 addMetarule :: MetaRule -> String -> Nomex ()
-addMetarule mr code = void $ modifyMsgVar metaruleVar ((code, mr):)
+addMetarule mr code = void $ modifyVar metaruleVar ((code, mr):)
 
 -- | use the list of meta rules to juge a new rule
 testWithMetaRules :: RuleInfo -> NomexNE Bool
 testWithMetaRules r = do
-   mmrs <- readMsgVar metaruleVar
+   mmrs <- readVar metaruleVar
    case mmrs of
       Just mrs -> and <$> mapM (($r) . snd) mrs
       Nothing ->  return False

@@ -1,10 +1,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Language.Nomyx.Messages (
-   sendMessage, sendMessage_,
-   onMessage, onMessageOnce,
-   onAPICall, callAPI, APIName
-   ) where
+  sendMessage, sendMessage_,
+  onMessage, onMessageOnce,
+  onAPICall, callAPI, APICall(..)
+  ) where
 
 import Language.Nomyx.Expression
 import Language.Nomyx.Events
@@ -33,27 +33,18 @@ onMessageOnce name = onEventOnce (messageEvent name)
 -- other Rules are then able to call 'callAPI' or 'callAPIBlocking' to access the services.
 -- API calls between Rules are build using message passing.
 
--- | alias for a API function name
-type APIName = String
+-- | types of API calls
+data APICall a r = APICall String
 
--- | subscribe an API call with a function name and a value to return
--- the value in toSend will be sent back to the caller.
-onAPICall :: (Typeable a, Show a, Typeable b, Show b) => APIName -> (a -> Nomex b) -> Nomex EventNumber
-onAPICall name action = onMessage (Msg name) (\(msg, a) -> action a >>= sendMessage msg)
+-- version with one parameters
+onAPICall :: (Typeable a, Show a, Typeable r, Show r) => APICall a r -> (a -> Nomex r) -> Nomex EventNumber
+onAPICall (APICall name) action = onMessage (Msg name) (\(msg, a) -> action a >>= sendMessage msg)
 
--- version with no parameters
-onAPICall' :: (Typeable a, Show a) => APIName -> Nomex a -> Nomex EventNumber
-onAPICall' name action = onAPICall name (\(_::()) -> action)
-
--- | call an API function. The result of the call will be passed to the callback when available.
-callAPI :: (Typeable a, Show a, Typeable b, Show b) => APIName -> a -> (b -> Nomex ()) -> Nomex ()
-callAPI name param callback = do
+-- | version with one parameters
+callAPI :: (Typeable a, Show a, Typeable r, Show r) => APICall a r -> a -> (r -> Nomex ()) -> Nomex ()
+callAPI (APICall name) a callback = do
    msgTemp <- createTempMsg callback
-   sendMessage (Msg name) (msgTemp, param)
-
--- | version with no parameters
-callAPI' :: (Typeable a, Show a) => APIName -> (a -> Nomex ()) -> Nomex ()
-callAPI' name callback = callAPI name () callback
+   sendMessage (Msg name) (msgTemp, a)
 
 -- * Internals
 

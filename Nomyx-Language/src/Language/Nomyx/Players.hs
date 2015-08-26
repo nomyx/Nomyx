@@ -109,31 +109,31 @@ forEachPlayer_ action = forEachPlayer action action (\_ -> return ())
 
 -- | create a value initialized for each players
 --manages players joining and leaving
-createValueForEachPlayer :: forall a. (Typeable a, Show a, Eq a) => a -> MsgVar [(PlayerNumber, a)] -> Nomex (EventNumber, EventNumber)
-createValueForEachPlayer initialValue mv = do
+createValueForEachPlayer :: forall a. (Typeable a, Show a, Eq a) => a -> V [(PlayerNumber, a)] -> Nomex (EventNumber, EventNumber)
+createValueForEachPlayer initialValue (V mv) = do
     pns <- liftEffect getAllPlayerNumbers
-    v <- newMsgVar_ (getMsgVarName mv) $ map (,initialValue::a) pns
+    v <- newVar_  mv $ map (,initialValue::a) pns
     forEachPlayer (const $ return ())
-                  (\p -> void $ modifyMsgVar v ((p, initialValue) : ))
-                  (\p -> void $ modifyMsgVar v $ filter $ (/= p) . fst)
+                  (\p -> void $ modifyVar v ((p, initialValue) : ))
+                  (\p -> void $ modifyVar v $ filter $ (/= p) . fst)
 
 -- | create a value initialized for each players initialized to zero
 --manages players joining and leaving
-createValueForEachPlayer_ :: MsgVar [(PlayerNumber, Int)] -> Nomex (EventNumber, EventNumber)
+createValueForEachPlayer_ :: V [(PlayerNumber, Int)] -> Nomex (EventNumber, EventNumber)
 createValueForEachPlayer_ = createValueForEachPlayer 0
 
-getValueOfPlayer :: forall a. (Typeable a, Show a, Eq a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> NomexNE (Maybe a)
+getValueOfPlayer :: forall a. (Typeable a, Show a, Eq a) => PlayerNumber -> V [(PlayerNumber, a)] -> NomexNE (Maybe a)
 getValueOfPlayer pn var = do
-   mvalue <- readMsgVar var
+   mvalue <- readVar var
    return $ do
       value <- mvalue
       lookup pn value
 
-modifyValueOfPlayer :: (Eq a, Show a, Typeable a) => PlayerNumber -> MsgVar [(PlayerNumber, a)] -> (a -> a) -> Nomex Bool
-modifyValueOfPlayer pn var f = modifyMsgVar var $ map (\(a,b) -> if a == pn then (a, f b) else (a,b))
+modifyValueOfPlayer :: (Eq a, Show a, Typeable a) => PlayerNumber -> V [(PlayerNumber, a)] -> (a -> a) -> Nomex Bool
+modifyValueOfPlayer pn var f = modifyVar var $ map (\(a,b) -> if a == pn then (a, f b) else (a,b))
 
-modifyAllValues :: (Eq a, Show a, Typeable a) => MsgVar [(PlayerNumber, a)] -> (a -> a) -> Nomex ()
-modifyAllValues var f = void $ modifyMsgVar var $ map $ second f
+modifyAllValues :: (Eq a, Show a, Typeable a) => V [(PlayerNumber, a)] -> (a -> a) -> Nomex ()
+modifyAllValues var f = void $ modifyVar var $ map $ second f
 
 -- | show a player name based on his number
 showPlayer :: PlayerNumber -> NomexNE String

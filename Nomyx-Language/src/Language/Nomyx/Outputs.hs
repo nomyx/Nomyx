@@ -1,5 +1,4 @@
-    
--- | All the building blocks to allow rules to produce outputs.
+-- All the building blocks to allow rules to produce outputs.
 -- for example, you can display a message like this:
 -- do
 --    outputAll_ "hello, world!"
@@ -35,11 +34,11 @@ newOutput_ ns mpn = NewOutput ns (return mpn)
 
 -- | output a message to all players
 outputAll :: NomexNE String -> Nomex OutputNumber
-outputAll = newOutput Nothing 
+outputAll = newOutput Nothing
 
 -- | output a constant message to all players
 outputAll_ :: String -> Nomex ()
-outputAll_ s = void $ newOutput Nothing (return s) 
+outputAll_ s = void $ newOutput Nothing (return s)
 
 -- | get an output by number
 getOutput :: OutputNumber -> NomexNE (Maybe String)
@@ -56,27 +55,23 @@ updateOutput = UpdateOutput
 -- | delete an output
 delOutput :: OutputNumber -> Nomex Bool
 delOutput = DelOutput
-              
--- permanently display a variable
-displayVar :: (Typeable a, Show a) => Maybe PlayerNumber  -> MsgVar a -> (Maybe a -> NomexNE String) -> Nomex OutputNumber
-displayVar mpn mv dis = do
-   on <- newOutput mpn $ readMsgVar mv >>= dis
-   onMsgVarDelete mv (void $ delOutput on)
-   return on
 
+-- | display a variable
+displayVar :: (Typeable a, Show a) => Maybe PlayerNumber -> V a -> (Maybe a -> NomexNE String) -> Nomex OutputNumber
+displayVar mpn mv dis = newOutput mpn $ readVar mv >>= dis
 
 -- permanently display a variable
-displayVar' :: (Typeable a, Show a) => Maybe PlayerNumber -> MsgVar a -> (a -> NomexNE String) -> Nomex OutputNumber
+displayVar' :: (Typeable a, Show a) => Maybe PlayerNumber -> V a -> (a -> NomexNE String) -> Nomex OutputNumber
 displayVar' mpn mv dis = displayVar mpn mv dis' where
-   dis' Nothing  = return $ "Variable " ++ getMsgVarName mv ++ " deleted"
+   dis' Nothing  = return $ "Variable " ++ (varName mv) ++ " deleted"
    dis' (Just a) = (++ "\n") <$> dis a
-   
-displaySimpleVar :: (Typeable a, Show a) => Maybe PlayerNumber -> MsgVar a -> String -> Nomex OutputNumber
+
+displaySimpleVar :: (Typeable a, Show a) => Maybe PlayerNumber -> V a -> String -> Nomex OutputNumber
 displaySimpleVar mpn mv title = displayVar' mpn mv showVar where
    showVar a = return $ title ++ ": " ++ (show a) ++ "\n"
 
 displayArrayVar :: (Typeable a, Show a, Typeable i, Show i) => Maybe PlayerNumber -> ArrayVar i a -> String -> Nomex OutputNumber
-displayArrayVar mpn mv title = displayVar' mpn mv (showArrayVar title) where
+displayArrayVar mpn mv title = undefined --displayVar' mpn mv (showArrayVar title) where
 
 showArrayVar :: (Typeable a, Show a, Typeable i, Show i) => String -> [(i, a)] -> NomexNE String
-showArrayVar title l = return $ title ++ "\n" ++ concatMap (\(i,a) -> show i ++ "\t" ++ show a ++ "\n") l
+showArrayVar title l = undefined --return $ title ++ "\n" ++ concatMap (\(i,a) -> show i ++ "\t" ++ show a ++ "\n") l
