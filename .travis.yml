@@ -9,7 +9,7 @@ notifications:
 
 install:
   - cabal install happy-1.19.3
-  - cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Core/ Nomyx-Web/ Nomyx/  --constraint mtl==2.1.*
+  - cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Library Nomyx-Core/ Nomyx-Web/ Nomyx/  --constraint mtl==2.1.*
 
 script: Nomyx/tests.sh
 
