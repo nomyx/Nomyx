@@ -10,3 +10,4 @@ cabal-dev
 *.swp
 .cabal*
 cabal*
+.stack*
