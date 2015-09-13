@@ -1,9 +1,14 @@
 flags: {}
 packages:
 - '.'
-- ../Nomyx-Core
-- ../Nomyx-Language
-- ../Nomyx-Web
+- location: ../Nomyx-Core
+  extra-dep: true
+- location: ../Nomyx-Language
+  extra-dep: true
+- location: ../Nomyx-Library
+  extra-dep: true
+- location: ../Nomyx-Web
+  extra-dep: true
 extra-deps:
 - Nomyx-Core-0.7.6
 - Nomyx-Language-0.7.6
