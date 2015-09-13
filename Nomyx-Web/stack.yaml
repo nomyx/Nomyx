@@ -1,8 +1,10 @@
 flags: {}
 packages:
 - '.'
-- ../Nomyx-Core
-- ../Nomyx-Language
+- location: ../Nomyx-Core
+  extra-dep: true
+- location: ../Nomyx-Language
+  extra-dep: true
 - ../../Haskell/hint-server
 extra-deps:
 - Nomyx-Core-0.7.6
