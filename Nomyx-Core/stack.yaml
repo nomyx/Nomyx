@@ -5,7 +5,10 @@ packages:
 - ../../Haskell/data-lens-template-2.1.8
 - ../../Haskell/eprocess
 - ../../Haskell/hint-server
-- ../Nomyx-Language
+- location: ../Nomyx-Language
+  extra-dep: true
+- location: ../Nomyx-Library
+  extra-dep: true
 extra-deps:
 - harp-0.4
 - DebugTraceHelpers-0.12
