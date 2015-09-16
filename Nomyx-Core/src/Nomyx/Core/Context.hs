@@ -8,6 +8,7 @@ module Nomyx.Core.Context (
 unQualImports :: [String]
 unQualImports =  ["Language.Nomyx",
                   "Language.Nomyx.Examples",
+                  "Language.Nomyx.Vote",
                   "Safe",
                   "Prelude",
                   "Control.Applicative",
@@ -52,6 +53,7 @@ unQualImports =  ["Language.Nomyx",
 
 defaultPackages :: [String]
 defaultPackages = ["Nomyx-Language",
+                   "Nomyx-Library",
                    "array",
                    "base",
                    "bytestring",
