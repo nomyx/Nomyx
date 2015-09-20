@@ -50,7 +50,7 @@ testRule = RuleInfo  { _rNumber       = 0,
                        _rRule         = return (),
                        _rStatus       = Pending,
                        _rAssessedBy   = Nothing,
-                       _rRuleLib      = RuleLib {_rName = "test",
+                       _rRuleDetails      = RuleDetails {_rName = "test",
                                                  _rDescription = "test",
                                                  _rRuleCode = "",
                                                  _rAuthor = "",
@@ -80,7 +80,7 @@ execRule r = execRuleGame r testGame
 
 addActivateRule :: Rule -> RuleNumber -> Evaluate ()
 addActivateRule rf rn = do
-   let rule = testRule & (rRuleLib . rName) .~ "testRule"
+   let rule = testRule & (rRuleDetails . rName) .~ "testRule"
                        & rRule   .~ rf
                        & rNumber .~ rn
                        & rStatus .~ Pending

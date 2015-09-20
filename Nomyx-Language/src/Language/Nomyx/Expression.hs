@@ -266,11 +266,11 @@ data RuleInfo = RuleInfo { _rNumber     :: RuleNumber,       -- number of the ru
                            _rRule       :: Rule,             -- function representing the rule (interpreted from rRuleCode)
                            _rStatus     :: RuleStatus,       -- status of the rule
                            _rAssessedBy :: Maybe RuleNumber, -- which rule accepted or rejected this rule
-                           _rRuleLib    :: RuleLib}
+                           _rRuleDetails    :: RuleDetails}
                            deriving (Typeable, Show)
 
 
-data RuleLib = RuleLib { _rName        :: RuleName,         -- short name of the rule
+data RuleDetails = RuleDetails { _rName        :: RuleName,         -- short name of the rule
                          _rDescription :: String,           -- description of the rule
                          _rRuleCode    :: Code,             -- code of the rule as a string
                          _rAuthor      :: String,           -- the name of the original author
@@ -329,7 +329,7 @@ instance (Typeable a, Typeable b) => Show (a -> b) where
 
 
 makeLenses ''RuleInfo
-makeLenses ''RuleLib
+makeLenses ''RuleDetails
 makeLenses ''PlayerInfo
 makeLenses ''EventInfo
 makeLenses ''SignalOccurence

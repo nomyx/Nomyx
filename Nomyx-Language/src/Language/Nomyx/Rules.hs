@@ -88,7 +88,7 @@ addRule_ = void . AddRule
 addRule' :: RuleName -> Rule -> RuleCode -> String -> Nomex RuleNumber
 addRule' name rule code desc = do
    number <- liftEffect getFreeRuleNumber
-   res <- addRule $ defaultRuleInfo { _rRule = rule, _rNumber = number, _rRuleLib = defaultRuleLib {_rName = name,  _rRuleCode = code,  _rDescription = desc}}
+   res <- addRule $ defaultRuleInfo { _rRule = rule, _rNumber = number, _rRuleDetails = defaultRuleDetails {_rName = name,  _rRuleCode = code,  _rDescription = desc}}
    return $ if res then number else error "addRule': cannot add rule"
 
 
@@ -213,10 +213,10 @@ defaultRuleInfo = RuleInfo  {
     _rRule         = return (),
     _rStatus       = Pending,
     _rAssessedBy   = Nothing,
-    _rRuleLib      = defaultRuleLib}
+    _rRuleDetails      = defaultRuleDetails}
 
-defaultRuleLib :: RuleLib
-defaultRuleLib = RuleLib {
+defaultRuleDetails :: RuleDetails
+defaultRuleDetails = RuleDetails {
     _rName         = "",
     _rDescription  = "",
     _rRuleCode     = "",
