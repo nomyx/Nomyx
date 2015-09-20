@@ -1,32 +1,33 @@
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE DeriveDataTypeable  #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE GADTs               #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE TypeFamilies        #-}
 
 -- | Voting system
 module Language.Nomyx.Vote where
 
-import Prelude hiding (foldr)
-import Language.Nomyx.Expression
-import Language.Nomyx.Events
-import Language.Nomyx.Inputs
-import Language.Nomyx.Outputs
-import Language.Nomyx.Players
-import Language.Nomyx.Rules
-import Language.Nomyx.Messages
-import Control.Monad.State hiding (forM_)
-import Data.Maybe
-import Data.Typeable
-import Data.Time hiding (getCurrentTime)
-import Control.Arrow
-import Control.Applicative
-import Control.Shortcut
-import Data.List
-import System.Locale
-import qualified Data.Map as M
+import           Control.Applicative
+import           Control.Arrow
+import           Control.Lens
+import           Control.Monad.State       hiding (forM_)
+import           Control.Shortcut
+import           Data.List
+import qualified Data.Map                  as M
+import           Data.Maybe
+import           Data.Time                 hiding (getCurrentTime)
+import           Data.Typeable
+import           Language.Nomyx.Events
+import           Language.Nomyx.Expression
+import           Language.Nomyx.Inputs
+import           Language.Nomyx.Messages
+import           Language.Nomyx.Outputs
+import           Language.Nomyx.Players
+import           Language.Nomyx.Rules
+import           Prelude                   hiding (foldr)
+import           System.Locale
 
 -- | a vote assessing function (such as unanimity, majority...)
 type AssessFunction = VoteStats -> Maybe Bool
@@ -45,9 +46,9 @@ data VoteBegin = VoteBegin { vbRule        :: RuleInfo,
                              deriving (Show, Eq, Ord, Typeable)
 
 -- | information broadcasted when a vote ends
-data VoteEnd = VoteEnd { veRule   :: RuleInfo,
-                         veVotes  :: [(PlayerNumber, Maybe Bool)],
-                         vePassed :: Bool,
+data VoteEnd = VoteEnd { veRule       :: RuleInfo,
+                         veVotes      :: [(PlayerNumber, Maybe Bool)],
+                         vePassed     :: Bool,
                          veFinishedAt :: UTCTime}
                          deriving (Show, Eq, Ord, Typeable)
 
@@ -71,7 +72,7 @@ callVoteRule assess delay ri = do
 
 callVoteRule' :: AssessFunction -> UTCTime -> RuleInfo -> Nomex ()
 callVoteRule' assess endTime ri = do
-   en <- callVote assess endTime (_rName ri) (_rNumber ri) (finishVote assess ri)
+   en <- callVote assess endTime (_rName $ _rRuleLib ri)) (_rNumber ri) (finishVote assess ri)
    sendMessage voteBegin (VoteBegin ri endTime en)
 
 -- | actions to do when the vote is finished
@@ -176,8 +177,8 @@ displayOnGoingVote (VoteBegin ri endTime en) = void $ outputAll $ do
 getVotes :: [PlayerNumber] -> [(PlayerNumber, Bool)] -> [(PlayerNumber, Maybe Bool)]
 getVotes pns rs = map (findVote rs) pns where
    findVote :: [(PlayerNumber, Bool)] -> PlayerNumber -> (PlayerNumber, Maybe Bool)
-   findVote rs pn = case (find (\(pn1, _) -> pn == pn1) rs) of
-      Just (pn, b) -> (pn, Just b)
+   findVote rs' pn = case (find (\(pn1, _) -> pn == pn1) rs') of
+      Just (pn', b) -> (pn', Just b)
       Nothing -> (pn, Nothing)
 
 getBooleanResult :: (PlayerNumber, SomeData) -> (PlayerNumber, Bool)

@@ -138,14 +138,18 @@ createRule (SubmitRule name des code) pn inter = do
    let rn = getFreeNumber $ map _rNumber rs
    rf <- lift $ inter code
    tracePN pn $ "Creating rule n=" ++ show rn ++ " code=" ++ code
+   let ruleLib = RuleLib {_rName = name,
+                         _rDescription = des,
+                         _rRuleCode = code,
+                         _rAuthor = "Player " ++ (show pn),
+                         _rPicture = Nothing,
+                         _rCategory = []}
    return RuleInfo {_rNumber = rn,
-                    _rName = name,
-                    _rDescription = des,
                     _rProposedBy = pn,
-                    _rRuleCode = code,
                     _rRule = rf,
                     _rStatus = Pending,
-                    _rAssessedBy = Nothing}
+                    _rAssessedBy = Nothing,
+                    _rRuleLib = ruleLib}
 
 stateCatch :: Exception e => StateT Game IO a -> (e -> StateT Game IO a) -> StateT Game IO a
 stateCatch m h = StateT $ \s -> runStateT m s `E.catch` \e -> runStateT (h e) s

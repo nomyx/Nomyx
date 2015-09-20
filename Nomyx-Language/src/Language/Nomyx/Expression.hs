@@ -1,28 +1,28 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE EmptyDataDecls #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE CPP                       #-}
+{-# LANGUAGE DataKinds                 #-}
+{-# LANGUAGE DeriveDataTypeable        #-}
+{-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE EmptyDataDecls            #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE KindSignatures            #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE StandaloneDeriving        #-}
+{-# LANGUAGE TemplateHaskell           #-}
 
 -- | This module contains the type definitions necessary to build a Nomic rule.
 module Language.Nomyx.Expression where
 
-import Data.Typeable
-import Data.Time
-import GHC.Generics
-import Control.Applicative hiding (Const)
-import Control.Lens
-import Control.Monad.Error
-import Control.Shortcut
-import System.Random
+import           Control.Applicative hiding (Const)
+import           Control.Lens
+import           Control.Monad.Error
+import           Control.Shortcut
+import           Data.Time
+import           Data.Typeable
+import           GHC.Generics
+import           System.Random
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -261,15 +261,22 @@ instance Ord EventInfo where
 type Rule = Nomex ()
 
 -- | An informationnal structure about a rule
-data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the rule (must be unique)
-                           _rName        :: RuleName,         -- short name of the rule
-                           _rDescription :: String,           -- description of the rule
-                           _rProposedBy  :: PlayerNumber,     -- player proposing the rule
-                           _rRuleCode    :: Code,             -- code of the rule as a string
-                           _rRule        :: Rule,             -- function representing the rule (interpreted from rRuleCode)
-                           _rStatus      :: RuleStatus,       -- status of the rule
-                           _rAssessedBy  :: Maybe RuleNumber} -- which rule accepted or rejected this rule
+data RuleInfo = RuleInfo { _rNumber     :: RuleNumber,       -- number of the rule (must be unique)
+                           _rProposedBy :: PlayerNumber,     -- player proposing the rule
+                           _rRule       :: Rule,             -- function representing the rule (interpreted from rRuleCode)
+                           _rStatus     :: RuleStatus,       -- status of the rule
+                           _rAssessedBy :: Maybe RuleNumber, -- which rule accepted or rejected this rule
+                           _rRuleLib    :: RuleLib}
                            deriving (Typeable, Show)
+
+
+data RuleLib = RuleLib { _rName        :: RuleName,         -- short name of the rule
+                         _rDescription :: String,           -- description of the rule
+                         _rRuleCode    :: Code,             -- code of the rule as a string
+                         _rAuthor      :: String,           -- the name of the original author
+                         _rPicture     :: Maybe FilePath,   -- a file name for the illustration image
+                         _rCategory    :: [String]}         -- categories
+                         deriving (Typeable, Show)
 
 instance Eq RuleInfo where
     (RuleInfo {_rNumber=r1}) == (RuleInfo {_rNumber=r2}) = r1 == r2
@@ -297,7 +304,7 @@ instance Ord PlayerInfo where
 -- * Victory
 
 data VictoryInfo = VictoryInfo { _vRuleNumber :: RuleNumber,
-                                 _vCond :: NomexNE [PlayerNumber]}
+                                 _vCond       :: NomexNE [PlayerNumber]}
                                  deriving (Show, Typeable)
 
 -- * Miscellaneous
@@ -322,6 +329,7 @@ instance (Typeable a, Typeable b) => Show (a -> b) where
 
 
 makeLenses ''RuleInfo
+makeLenses ''RuleLib
 makeLenses ''PlayerInfo
 makeLenses ''EventInfo
 makeLenses ''SignalOccurence

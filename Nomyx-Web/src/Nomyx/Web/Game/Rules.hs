@@ -41,15 +41,15 @@ viewRule g ri = tr $ do
    let pl = fromMaybe ("Player " ++ (show $ _rProposedBy ri)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy ri))
    td ! class_ "td" $ p (fromString . show $ _rNumber ri) ! A.id "ruleNumber"
    td ! class_ "td" $ do
-      div ! A.id "ruleName" $ (fromString $ _rName ri)
+      div ! A.id "ruleName" $ (fromString $ _rName $ _rRuleLib ri)
       br
       div ! A.id "proposedBy" $ (fromString $ "by "  ++ (if _rProposedBy ri == 0 then "System" else pl))
-   td ! class_ "td" $ fromString $ _rDescription ri
+   td ! class_ "td" $ fromString $ _rDescription $ _rRuleLib ri
    td ! class_ "td" $ viewRuleFunc ri (_gameName g)
 
 viewRuleFunc :: RuleInfo -> GameName -> Html
 viewRuleFunc ri gn = do
-   let code = lines $ _rRuleCode ri
+   let code = lines $ _rRuleCode $ _rRuleLib ri
    let codeCutLines = 7
    let ref = "openModalCode" ++ (show $ _rNumber ri) ++ "game" ++ gn
    let assessedBy = case _rAssessedBy ri of

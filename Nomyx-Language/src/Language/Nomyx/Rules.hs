@@ -72,23 +72,23 @@ getRule rn = do
    return $ find (\a -> a ^. rNumber == rn) rs
 
 getRulesByNumbers :: [RuleNumber] -> NomexNE [RuleInfo]
-getRulesByNumbers rns = mapMaybeM getRule rns
+getRulesByNumbers = mapMaybeM getRule
 
 getRuleFuncs :: NomexNE [Nomex ()]
 getRuleFuncs = map _rRule <$> getRules
 
 -- | add a rule to the game, it will have to be activated
 addRule :: RuleInfo -> Nomex Bool
-addRule r = AddRule r
+addRule = AddRule
 
 addRule_ :: RuleInfo -> Nomex ()
-addRule_ r = void $ AddRule r
+addRule_ = void . AddRule
 
 -- | add a rule to the game as described by the parameters
 addRule' :: RuleName -> Rule -> RuleCode -> String -> Nomex RuleNumber
 addRule' name rule code desc = do
    number <- liftEffect getFreeRuleNumber
-   res <- addRule $ defaultRule {_rName = name, _rRule = rule, _rRuleCode = code, _rNumber = number, _rDescription = desc}
+   res <- addRule $ defaultRuleInfo { _rRule = rule, _rNumber = number, _rRuleLib = defaultRuleLib {_rName = name,  _rRuleCode = code,  _rDescription = desc}}
    return $ if res then number else error "addRule': cannot add rule"
 
 
@@ -96,13 +96,13 @@ getFreeRuleNumber :: NomexNE RuleNumber
 getFreeRuleNumber = getFreeNumber . map _rNumber <$> getRules
 
 getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
-getFreeNumber l = head [a| a <- [1..], not $ a `elem` l]
+getFreeNumber l = head [ a | a <- [1..], notElem a l]
 
 suppressRule :: RuleNumber -> Nomex Bool
-suppressRule rn = RejectRule rn
+suppressRule = RejectRule
 
 suppressRule_ :: RuleNumber -> Nomex ()
-suppressRule_ rn = void $ RejectRule rn
+suppressRule_ = void . RejectRule
 
 suppressAllRules :: Nomex Bool
 suppressAllRules = do
@@ -111,7 +111,7 @@ suppressAllRules = do
     return $ and res
 
 modifyRule :: RuleNumber -> RuleInfo -> Nomex Bool
-modifyRule rn r = ModifyRule rn r
+modifyRule = ModifyRule
 
 -- | propose a rule that will need to be voted on.
 proposeRule :: RuleInfo -> Nomex Bool
@@ -124,7 +124,7 @@ getSelfRuleNumber = SelfRuleNumber
 getSelfRule :: NomexNE RuleInfo
 getSelfRule  = do
    srn <- getSelfRuleNumber
-   rs:[] <- getRulesByNumbers [srn]
+   [rs] <- getRulesByNumbers [srn]
    return rs
 
 -- | activate or reject a rule
@@ -138,7 +138,7 @@ autoDelete = liftEffect getSelfRuleNumber >>= suppressRule_
 -- | All rules from player p are erased:
 eraseAllRules :: PlayerNumber -> Nomex Bool
 eraseAllRules p = do
-    rs <- liftEffect $ getRules
+    rs <- liftEffect getRules
     let myrs = filter (\a -> a ^. rProposedBy == p) rs
     res <- mapM (suppressRule . _rNumber) myrs
     return $ and res
@@ -188,35 +188,44 @@ illegal = const $ return False
 
 -- | Player p cannot propose any more rules
 noPlayPlayer :: PlayerNumber -> MetaRule
-noPlayPlayer pn rule = return $ (_rProposedBy rule) /= pn
+noPlayPlayer pn rule = return $ _rProposedBy rule /= pn
 
 -- | rule number rn cannot be deleted by any incoming rule
 -- we simulate the execution of an incoming rule to make sure it doesn't delete the immutable rule
 immutableRule :: RuleNumber -> MetaRule
-immutableRule rn = \rule -> do
+immutableRule rn rule = do
    immu <- getRule rn
    maybe (return True) (const $ simulate (_rRule rule) (isJust <$> getRule rn)) immu
 
 -- | simulate the execution of rule "sim" and then run rule "test" over the result
 simulate :: Nomex a -> NomexNE Bool -> NomexNE Bool
-simulate sim test = Simu sim test
+simulate = Simu
 
 -- | sets a callback called for each rule proposed
 onRuleProposed :: (RuleInfo -> Nomex ()) -> Nomex ()
 onRuleProposed f = void $ onEvent_ (ruleEvent Proposed) f
 
 -- | a default rule
-defaultRule = RuleInfo  {
+defaultRuleInfo :: RuleInfo
+defaultRuleInfo = RuleInfo  {
     _rNumber       = 1,
-    _rName         = "",
-    _rDescription  = "",
     _rProposedBy   = 0,
-    _rRuleCode     = "",
     _rRule         = return (),
     _rStatus       = Pending,
-    _rAssessedBy   = Nothing}
+    _rAssessedBy   = Nothing,
+    _rRuleLib      = defaultRuleLib}
+
+defaultRuleLib :: RuleLib
+defaultRuleLib = RuleLib {
+    _rName         = "",
+    _rDescription  = "",
+    _rRuleCode     = "",
+    _rAuthor       = "",
+    _rPicture      = Nothing,
+    _rCategory     = []}
 
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
 mapMaybeM f = liftM catMaybes . mapM f
 
+showRule :: Show a => a -> Nomex ()
 showRule x = void $ NewOutput Nothing (return $ show x)

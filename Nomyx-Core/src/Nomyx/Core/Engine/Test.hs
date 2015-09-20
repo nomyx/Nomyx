@@ -46,13 +46,16 @@ testGame = Game { _gameName      = "test",
 
 testRule :: RuleInfo
 testRule = RuleInfo  { _rNumber       = 0,
-                       _rName         = "test",
-                       _rDescription  = "test",
                        _rProposedBy   = 0,
-                       _rRuleCode     = "",
                        _rRule         = return (),
                        _rStatus       = Pending,
-                       _rAssessedBy   = Nothing}
+                       _rAssessedBy   = Nothing,
+                       _rRuleLib      = RuleLib {_rName = "test",
+                                                 _rDescription = "test",
+                                                 _rRuleCode = "",
+                                                 _rAuthor = "",
+                                                 _rPicture = Nothing,
+                                                 _rCategory = []}}
 
 execRuleEvent :: (Show e, Typeable e) => Nomex a -> Signal e -> e -> Game
 execRuleEvent r f d = execState (runSystemEval' $ evalNomex r >> triggerEvent f d) testGame
@@ -77,7 +80,10 @@ execRule r = execRuleGame r testGame
 
 addActivateRule :: Rule -> RuleNumber -> Evaluate ()
 addActivateRule rf rn = do
-   let rule = testRule {_rName = "testRule", _rRule = rf, _rNumber = rn, _rStatus = Pending}
+   let rule = testRule & (rRuleLib . rName) .~ "testRule"
+                       & rRule   .~ rf
+                       & rNumber .~ rn
+                       & rStatus .~ Pending
    evAddRule rule
    evActivateRule (_rNumber rule)
    return ()
