@@ -3,7 +3,7 @@ packages:
 - location: Nomyx-Core
 - location: Nomyx-Language
 - location: Nomyx-Library
-- location: Nomyx-Web
+#- location: Nomyx-Web
 extra-deps:
 - hint-server-1.4.2
 - DebugTraceHelpers-0.12
