@@ -1,6 +1,6 @@
 packages:
 #- location: Nomyx
-#- location: Nomyx-Core
+- location: Nomyx-Core
 - location: Nomyx-Language
 - location: Nomyx-Library
 # - location: Nomyx-Web
