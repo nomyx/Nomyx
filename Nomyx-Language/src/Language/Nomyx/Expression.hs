@@ -271,18 +271,24 @@ data RuleInfo = RuleInfo { _rNumber     :: RuleNumber,       -- number of the ru
 
 
 data RuleDetails = RuleDetails { _rName        :: RuleName,         -- short name of the rule
-                         _rDescription :: String,           -- description of the rule
-                         _rRuleCode    :: Code,             -- code of the rule as a string
-                         _rAuthor      :: String,           -- the name of the original author
-                         _rPicture     :: Maybe FilePath,   -- a file name for the illustration image
-                         _rCategory    :: [String]}         -- categories
-                         deriving (Typeable, Show)
+                                 _rDescription :: String,           -- description of the rule
+                                 _rRuleCode    :: Code,             -- code of the rule as a string
+                                 _rAuthor      :: String,           -- the name of the original author
+                                 _rPicture     :: Maybe FilePath,   -- a file name for the illustration image
+                                 _rCategory    :: [String]}         -- categories
+                                 deriving (Typeable, Show)
 
 instance Eq RuleInfo where
     (RuleInfo {_rNumber=r1}) == (RuleInfo {_rNumber=r2}) = r1 == r2
 
 instance Ord RuleInfo where
-     (RuleInfo {_rNumber=r1}) <= (RuleInfo {_rNumber=r2}) = r1 <= r2
+    (RuleInfo {_rNumber=r1}) <= (RuleInfo {_rNumber=r2}) = r1 <= r2
+
+instance Eq RuleDetails where
+    (RuleDetails {_rName=r1}) == (RuleDetails {_rName=r2}) = r1 == r2
+
+instance Ord RuleDetails where
+    (RuleDetails {_rName=r1}) <= (RuleDetails {_rName=r2}) = r1 <= r2
 
 -- | the status of a rule.
 data RuleStatus = Active      -- Active rules forms the current Constitution

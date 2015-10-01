@@ -58,7 +58,8 @@ data Settings = Settings { _net           :: Network,  -- URL where the server i
 
 --- | A structure to hold the active games and players
 data Multi = Multi { _gameInfos :: [GameInfo],
-                     _mSettings :: Settings}
+                     _mSettings :: Settings,
+                     _mLibrary  :: [RuleDetails]}
                      deriving (Eq, Show, Typeable)
 
 data GameInfo = GameInfo { _loggedGame     :: LoggedGame,
