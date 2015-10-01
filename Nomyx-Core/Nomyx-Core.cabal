@@ -47,7 +47,8 @@ library
                    temporary              == 1.2.*,
                    template-haskell       >= 2.8 && < 2.11,
                    text                   == 1.2.*,
-                   time                   >= 1.4 && < 1.6
+                   time                   >= 1.4 && < 1.6,
+                   yaml -any
     if os(windows)
         Cpp-options: -DWINDOWS
     else
@@ -67,6 +68,7 @@ library
                      Nomyx.Core.Quotes
                      Nomyx.Core.Mail
                      Nomyx.Core.Utils
+                     Nomyx.Core.Library
                      Nomyx.Core.Test
                      Nomyx.Core.Engine
                      Nomyx.Core.Engine.Evaluation

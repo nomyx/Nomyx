@@ -6,7 +6,7 @@ module Nomyx.Core.Serialize where
 import           Control.Category
 import           Control.Lens                        hiding ((.=))
 import           Control.Monad.State
-import           Data.Aeson
+import           Data.Aeson                          (eitherDecode, encode)
 import qualified Data.ByteString.Lazy.Char8          as BL
 import           Language.Haskell.Interpreter.Server
 import           Language.Nomyx                      hiding (getCurrentTime)
