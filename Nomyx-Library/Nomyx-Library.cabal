@@ -13,9 +13,9 @@ category: Language
 Homepage: http://www.nomyx.net
 author: Corentin Dupont
 
-data-files: src/Language/Nomyx/Vote.hs
+-- data-files: src/Language/Nomyx/Vote.hs
 
-data-dir: ""
+data-dir: data
 extra-source-files: AUTHORS README
 
 library
