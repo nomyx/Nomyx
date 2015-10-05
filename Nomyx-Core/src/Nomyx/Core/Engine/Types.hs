@@ -87,11 +87,11 @@ emptyGame name desc date gen = Game {
 -- | a list of possible events affecting a game
 data GameEvent = JoinGame          PlayerNumber PlayerName
               | LeaveGame         PlayerNumber
-              | ProposeRuleEv     PlayerNumber SubmitRule
+              | ProposeRuleEv     PlayerNumber RuleDetails
               | InputResult       PlayerNumber EventNumber SignalAddress FormField InputData
               | GLog              (Maybe PlayerNumber) String
               | TimeEvent         UTCTime
-              | SystemAddRule     SubmitRule
+              | SystemAddRule     RuleDetails
                 deriving (Show, Read, Eq, Ord)
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
@@ -167,9 +167,6 @@ data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
                  _lMsg          :: String}
                  deriving (Show)
 
--- * Rules
-
-data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
 
 makeLenses ''Game
 makeLenses ''GameDesc
@@ -202,7 +199,6 @@ instance FromJSON Game where
 
 $(deriveJSON defaultOptions ''TimedEvent)
 $(deriveJSON defaultOptions ''GameEvent)
-$(deriveJSON defaultOptions ''SubmitRule)
 $(deriveJSON defaultOptions ''FormField)
 $(deriveJSON defaultOptions ''InputData)
 $(deriveJSON defaultOptions ''GameDesc)

@@ -119,7 +119,7 @@ submitR :: String -> StateT Session IO ()
 submitR r = do
    onePlayerOneGame
    sh <- use sh
-   submitRule (SubmitRule "" "" r) 1 "test" sh
+   submitRule (RuleDetails "" "" r "" Nothing []) 1 "test" sh
    inputAllRadios 0
 
 testFile' :: FilePath -> FilePath -> String -> StateT Session IO Bool
@@ -127,7 +127,7 @@ testFile' path name func = do
    sh <- use sh
    dataDir <- lift PNC.getDataDir
    res <- inputUpload 1 (dataDir </> testDir </> path) name sh
-   submitRule (SubmitRule "" "" func) 1 "test" sh
+   submitRule (RuleDetails "" "" func "" Nothing []) 1 "test" sh
    inputAllRadios 0
    return res
 
@@ -148,7 +148,7 @@ gameHelloWorld2Players :: StateT Session IO ()
 gameHelloWorld2Players = do
    twoPlayersOneGame
    sh <- use sh
-   submitRule (SubmitRule "" "" [cr|helloWorld|]) 1 "test" sh
+   submitRule (RuleDetails "" "" [cr|helloWorld|] "" Nothing []) 1 "test" sh
    inputAllRadios 0
 
 condHelloWorld2Players :: Multi -> Bool
@@ -160,9 +160,9 @@ gameMoneyTransfer :: StateT Session IO ()
 gameMoneyTransfer = do
    sh <- use sh
    twoPlayersOneGame
-   submitRule (SubmitRule "" "" [cr|createBankAccounts|]) 1 "test" sh
-   submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 "test" sh
-   submitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2 "test" sh
+   submitRule (RuleDetails "" "" [cr|createBankAccounts|] "" Nothing []) 1 "test" sh
+   submitRule (RuleDetails "" "" [cr|winXEcuOnRuleAccepted 100|] "" Nothing []) 1 "test" sh
+   submitRule (RuleDetails "" "" [cr|moneyTransfer|] "" Nothing []) 2 "test" sh
    inputAllRadios 0
    inputAllTexts "50" 1
 

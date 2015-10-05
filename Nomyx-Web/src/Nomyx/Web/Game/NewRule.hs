@@ -12,6 +12,7 @@ import           Data.String
 import           Data.Text                   (Text)
 import           Happstack.Server            (Method (..), Response, methodM,
                                               ok, seeOther, toResponse)
+import           Language.Nomyx
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Session          as S
 import           Nomyx.Core.Types            as T
@@ -31,21 +32,22 @@ import           Text.Reform.Happstack       (environment)
 import           Web.Routes.RouteT           (liftRouteT, showURL)
 default (Integer, Double, Data.Text.Text)
 
-newRuleForm :: Maybe SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
+newRuleForm :: Maybe RuleDetails -> Bool -> NomyxForm (RuleDetails, Maybe String, Maybe String)
 newRuleForm (Just sr) isGameAdmin = newRuleForm' sr isGameAdmin
-newRuleForm Nothing isGameAdmin = newRuleForm' (SubmitRule "" "" "") isGameAdmin
+newRuleForm Nothing isGameAdmin = newRuleForm' (RuleDetails "" "" "" "" Nothing []) isGameAdmin
 
-newRuleForm' :: SubmitRule -> Bool -> NomyxForm (SubmitRule, Maybe String, Maybe String)
-newRuleForm' (SubmitRule name desc code) isGameAdmin =
+newRuleForm' :: RuleDetails -> Bool -> NomyxForm (RuleDetails, Maybe String, Maybe String)
+newRuleForm' (RuleDetails name desc code "" Nothing []) isGameAdmin =
    (,,) <$> submitRuleForm name desc code
         <*> inputSubmit "Check"
         <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 
-submitRuleForm :: String -> String -> String -> NomyxForm SubmitRule
+submitRuleForm :: String -> String -> String -> NomyxForm RuleDetails
 submitRuleForm name desc code =
-   SubmitRule <$> label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
-              <*> (label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
-              <*> label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
+   RuleDetails <$> label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
+               <*> (label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
+               <*> label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
+               <*> pure "" <*> pure Nothing <*> pure []
 
 viewRuleForm :: Maybe LastRule -> Bool -> Bool -> GameName -> RoutedNomyxServer Html
 viewRuleForm mlr inGame isGameAdmin gn = do

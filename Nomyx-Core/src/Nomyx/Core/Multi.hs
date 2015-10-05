@@ -42,22 +42,31 @@ getTimeEvents now m = do
    return $ filter (\t -> t <= now && t > (-32) `addUTCTime` now) times
 
 -- | the initial rule set for a game.
-rVoteUnanimity :: SubmitRule
-rVoteUnanimity = SubmitRule "Unanimity Vote"
+rVoteUnanimity :: RuleDetails
+rVoteUnanimity = RuleDetails "Unanimity Vote"
                             "A proposed rule will be activated if all players vote for it"
                             [cr|do
    onRuleProposed $ callVoteRule unanimity oneDay
    displayVotes|]
+                            ""
+                            Nothing
+                            []
 
-rVictory5Rules :: SubmitRule
-rVictory5Rules = SubmitRule "Victory 5 accepted rules"
+rVictory5Rules :: RuleDetails
+rVictory5Rules = RuleDetails "Victory 5 accepted rules"
                             "Victory is achieved if you have 5 active rules"
                             [cr|victoryXRules 5|]
+                            ""
+                            Nothing
+                            []
 
-rVoteMajority :: SubmitRule
-rVoteMajority = SubmitRule "Majority Vote"
+rVoteMajority :: RuleDetails
+rVoteMajority = RuleDetails "Majority Vote"
                             "A proposed rule will be activated if a majority of players is reached, with a minimum of 2 players, and within oone day"
                             [cr|onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDay|]
+                            ""
+                            Nothing
+                            []
 
 
 initialGame :: ServerHandle -> StateT GameInfo IO ()

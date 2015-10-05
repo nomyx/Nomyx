@@ -22,7 +22,7 @@ import           Nomyx.Core.Engine
 type PlayerPassword = String
 type Port = Int
 type CompileError = String
-type LastRule = (SubmitRule, String)
+type LastRule = (RuleDetails, String)
 
 
 data LastUpload = NoUpload
@@ -97,7 +97,7 @@ instance Migrate ProfileData where
   migrate (ProfileDataOld a b _ d e f) = (ProfileData a b d e f)
 
 
-$(deriveSafeCopy 1 'base ''SubmitRule)
+$(deriveSafeCopy 1 'base ''RuleDetails)
 
 $(inferIxSet "ProfilesData" ''ProfileData 'noCalcs [''PlayerNumber]) -- , ''Text
 

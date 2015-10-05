@@ -22,7 +22,6 @@ module Nomyx.Core.Engine(
    Var(..),
 
    -- * Rules management
-   SubmitRule(..),
    activeRules, pendingRules, rejectedRules,
 
    -- * Events management

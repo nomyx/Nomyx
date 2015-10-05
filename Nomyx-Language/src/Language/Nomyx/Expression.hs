@@ -19,6 +19,7 @@ import           Control.Applicative hiding (Const)
 import           Control.Lens
 import           Control.Monad.Error
 import           Control.Shortcut
+import           Data.Data           (Data)
 import           Data.Time
 import           Data.Typeable
 import           GHC.Generics
@@ -261,12 +262,12 @@ instance Ord EventInfo where
 type Rule = Nomex ()
 
 -- | An informationnal structure about a rule
-data RuleInfo = RuleInfo { _rNumber     :: RuleNumber,       -- number of the rule (must be unique)
-                           _rProposedBy :: PlayerNumber,     -- player proposing the rule
-                           _rRule       :: Rule,             -- function representing the rule (interpreted from rRuleCode)
-                           _rStatus     :: RuleStatus,       -- status of the rule
-                           _rAssessedBy :: Maybe RuleNumber, -- which rule accepted or rejected this rule
-                           _rRuleDetails    :: RuleDetails}
+data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the rule (must be unique)
+                           _rProposedBy  :: PlayerNumber,     -- player proposing the rule
+                           _rRule        :: Rule,             -- function representing the rule (interpreted from rRuleCode)
+                           _rStatus      :: RuleStatus,       -- status of the rule
+                           _rAssessedBy  :: Maybe RuleNumber, -- which rule accepted or rejected this rule
+                           _rRuleDetails :: RuleDetails}
                            deriving (Typeable, Show)
 
 
@@ -276,7 +277,7 @@ data RuleDetails = RuleDetails { _rName        :: RuleName,         -- short nam
                                  _rAuthor      :: String,           -- the name of the original author
                                  _rPicture     :: Maybe FilePath,   -- a file name for the illustration image
                                  _rCategory    :: [String]}         -- categories
-                                 deriving (Typeable, Show)
+                                 deriving (Typeable, Show, Read, Data)
 
 instance Eq RuleInfo where
     (RuleInfo {_rNumber=r1}) == (RuleInfo {_rNumber=r2}) = r1 == r2

@@ -77,7 +77,7 @@ leaveGame :: PlayerNumber -> State Game ()
 leaveGame pn = runSystemEval pn $ void $ evDelPlayer pn
 
 -- | insert a rule in pending rules.
-proposeRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO Rule) -> StateT Game IO ()
+proposeRule :: RuleDetails -> PlayerNumber -> (RuleCode -> IO Rule) -> StateT Game IO ()
 proposeRule sr pn inter = do
    rule <- createRule sr pn inter
    mapStateIO $ runEvalError (_rNumber rule) (Just pn) $ do
@@ -86,7 +86,7 @@ proposeRule sr pn inter = do
                         else "Error: Rule could not be proposed"
 
 -- | add a rule forcefully (no votes etc.)
-systemAddRule :: SubmitRule -> (RuleCode -> IO Rule) -> StateT Game IO ()
+systemAddRule :: RuleDetails -> (RuleCode -> IO Rule) -> StateT Game IO ()
 systemAddRule sr inter = do
    rule <- createRule sr 0 inter
    let sysRule = (rStatus .~ Active) >>> (rAssessedBy .~ Just 0)
@@ -132,8 +132,8 @@ pendingRules = sort . filter ((==Pending) . getL rStatus) . _rules
 rejectedRules :: Game -> [RuleInfo]
 rejectedRules = sort . filter ((==Reject) . getL rStatus) . _rules
 
-createRule :: SubmitRule -> PlayerNumber -> (RuleCode -> IO Rule) -> StateT Game IO RuleInfo
-createRule (SubmitRule name des code) pn inter = do
+createRule :: RuleDetails -> PlayerNumber -> (RuleCode -> IO Rule) -> StateT Game IO RuleInfo
+createRule (RuleDetails name des code _ _ _) pn inter = do
    rs <- use rules
    let rn = getFreeNumber $ map _rNumber rs
    rf <- lift $ inter code

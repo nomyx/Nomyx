@@ -83,8 +83,8 @@ leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
 leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
 
 -- | insert a rule in pending rules.
-submitRule :: SubmitRule -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-submitRule sr@(SubmitRule _ _ code) pn gn sh = do
+submitRule :: RuleDetails -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
+submitRule sr@(RuleDetails _ _ code _ _ _) pn gn sh = do
    tracePN pn $ "proposed " ++ show sr
    mrr <- liftIO $ interpretRule code sh
    s <- get
@@ -97,8 +97,8 @@ submitRule sr@(SubmitRule _ _ code) pn gn sh = do
          liftIO $ sendMailsNewRule s sr pn (fromJust gi)
       Left e -> submitRuleError sr pn gn e
 
-adminSubmitRule :: SubmitRule -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-adminSubmitRule sr@(SubmitRule _ _ code) pn gn sh = do
+adminSubmitRule :: RuleDetails -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
+adminSubmitRule sr@(RuleDetails _ _ code _ _ _) pn gn sh = do
    tracePN pn $ "admin proposed " ++ show sr
    mrr <- liftIO $ interpretRule code sh
    case mrr of
@@ -108,15 +108,15 @@ adminSubmitRule sr@(SubmitRule _ _ code) pn gn sh = do
          modifyProfile pn (pLastRule .~ Just (sr, "Admin rule submitted OK!"))
       Left e -> submitRuleError sr pn gn e
 
-submitRuleError :: SubmitRule -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
+submitRuleError :: RuleDetails -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
 submitRuleError sr pn gn e = do
    let errorMsg = showInterpreterError e
    inGameDo gn $ execGameEvent $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
    tracePN pn ("Error in submitted rule: " ++ errorMsg)
    modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
-checkRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Session IO ()
-checkRule sr@(SubmitRule _ _ code) pn sh = do
+checkRule :: RuleDetails -> PlayerNumber -> ServerHandle -> StateT Session IO ()
+checkRule sr@(RuleDetails _ _ code _ _ _) pn sh = do
    tracePN pn $ "check rule " ++ show sr
    mrr <- liftIO $ interpretRule code sh
    case mrr of
