@@ -39,15 +39,6 @@ function toggleBoldGroup(elementId, groupClass)
    elem.style.fontWeight = 'bold';
 }
 
-function setDivVisibility(groupName, elementName) {
-
-   var idDiv       = elementName + "Div";
-   var classDiv    = groupName   + "Div";
-   var idButton    = elementName + "Button";
-   var classButton = groupName   + "Button";
-
-   divBoxvisibility(idDiv, classDiv, idButton, classButton);
-}
 
 function setDivVisibilityAndSave(groupName, elementName) {
 
