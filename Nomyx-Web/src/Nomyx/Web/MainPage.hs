@@ -41,7 +41,7 @@ import           Paths_Nomyx_Language
 import           Prelude                               hiding (div)
 import           Safe
 import           System.FilePath
-import           Text.Blaze.Html5                      hiding (map)
+import           Text.Blaze.Html5                      hiding (head, map)
 import qualified Text.Blaze.Html5                      as H
 import           Text.Blaze.Html5.Attributes           hiding (dir)
 import qualified Text.Blaze.Html5.Attributes           as A
@@ -62,51 +62,42 @@ viewMulti mpn saveDir s = do
          return (isAdmin, lr)
       Nothing -> return (False, Nothing)
    let gis = _gameInfos $ _multi s
-   gns <- viewGamesTab (_gameInfos $ _multi s) isAdmin saveDir mpn
+   gns <- viewGamesTab (head $ _gameInfos $ _multi s) isAdmin saveDir mpn
    vgs <- mapM (\gi -> viewGameInfo gi mpn lr isAdmin) gis
    ok $ do
       div ! A.id "gameList" $ gns
       sequence_ vgs
 
-viewGamesTab :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNomyxServer Html
-viewGamesTab gis isAdmin saveDir mpn = do
-   let canCreateGame = maybe False (\pn -> isAdmin || numberOfGamesOwned gis pn < 1) mpn
-   let publicPrivate = partition ((== True) . _isPublic) gis
+viewGamesTab :: GameInfo -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNomyxServer Html
+viewGamesTab gi isAdmin saveDir mpn = do
+   let g = getGame gi
+   let gn = _gameName g
    let vgi = viewGameName isAdmin mpn
-   public <- mapM vgi (fst publicPrivate)
-   private <- mapM vgi (snd publicPrivate)
-   newGameLink  <- defLink NewGame (isJust mpn)
+   fmods <- liftIO $ getUploadedModules saveDir
    advLink      <- defLink Advanced (isJust mpn)
    logoutURL    <- showURL Login
    loginURL     <- showURL Login
-   fmods <- liftIO $ getUploadedModules saveDir
    ok $ do
-      h3 "Main menu" >> br
-      case public of
-         [] -> b "No public games"
-         p:ps -> do
-            b "Public games:"
-            table $ do
-               p ! A.style "font-weight:bold;"
-               sequence_ ps
-      br
-      case private of
-         [] -> ""
-         p -> do
-            b "Private games:"
-            table $ sequence_ p
-      br
-      when canCreateGame $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
-      br >> b "Help files:" >> br
-      H.a "Rules examples"    ! (href "/html/Language-Nomyx-Examples.html") ! target "_blank" >> br
-      H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br
-      when (fmods /= []) $ do
-         br >> b "Uploaded files:" >> br
-         mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : uploadDir </> f)) >> br) (sort fmods)
-      br >> b "Settings:" >> br
-      H.a "Advanced"        ! (href $ toValue advLink) >> br
-      H.a "Logout"          ! (href $ toValue logoutURL) >> br
-      H.a "Login"           ! (href $ toValue loginURL) >> br
+     let attr :: String -> Attribute
+         attr name = A.id (fromString $ name ++ "TabsButton")
+                  <> A.class_ "TabsButton button"
+                  <> (onclick  $ fromString $ "toggleVisibilityGroup('" ++ name ++ "GameDiv', 'gameBox'); " ++
+                                              "toggleBoldGroup('" ++ name ++ "TabsButton', 'TabsButton'); ")
+     H.a "Description "    ! attr "gameDesc" ! A.style "fontWeight:bold;"
+     H.a "Rules "          ! attr "rules"
+     H.a "Inputs/Outputs " ! attr "ios"
+     H.a "New rule "       ! attr "newRule"
+     H.a "Details "        ! attr "details"
+     br >> b "Help files:" >> br
+     H.a "Rules examples"    ! (href "/html/Language-Nomyx-Examples.html") ! target "_blank" >> br
+     H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br
+     when (fmods /= []) $ do
+       br >> b "Uploaded files:" >> br
+       mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : uploadDir </> f)) >> br) (sort fmods)
+     br >> b "Settings:" >> br
+     H.a "Advanced"        ! (href $ toValue advLink) >> br
+     H.a "Logout"          ! (href $ toValue logoutURL) >> br
+     H.a "Login"           ! (href $ toValue loginURL) >> br
 
 viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> RoutedNomyxServer Html
 viewGameInfo gi mpn mlr isAdmin = do
@@ -122,36 +113,37 @@ viewGameInfo gi mpn mlr isAdmin = do
    rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g  mpn playAs isGameAdmin
-   ok $ div ! A.id     (fromString $ (getElementName VisGame gn) ++ "Div")
-            ! A.class_ (fromString $ ((getGroupName VisGame) ++ "Div") ++ " game") $ do
-      div ! A.id "titleBar" $ do
-         let attr :: String -> Attribute
-             attr name = A.id     (fromString $ (getElementName (VisGameTabs gn) name) ++ "Button")
-                      <> A.class_ (fromString $ (getGroupName (VisGameTabs gn)) ++ "Button" ++ " button")
-                      <> onclick  (fromString $ setDivVisibilityAndSave (getGroupName (VisGameTabs gn)) (getElementName (VisGameTabs gn) name))
-         H.a "Description "    ! attr "gameDesc" ! A.style "fontWeight:bold;"
-         H.a "Rules "          ! attr "rules"
-         H.a "Inputs/Outputs " ! attr "ios"
-         H.a "New rule "       ! attr "newRule"
-         H.a "Details "        ! attr "details"
-      let attr name = A.id     (fromString $ (getElementName (VisGameTabs gn) name) ++ "Div")
-                   <> A.class_ (fromString $ (getGroupName (VisGameTabs gn)) ++ "Div" ++ " gameBox")
-      div ! attr "gameDesc" ! A.style "display:inline;" $ vgd
-      div ! attr "rules"    ! A.style "display:none;"   $ viewAllRules g
-      div ! attr "ios"      ! A.style "display:none;"   $ vios
-      div ! attr "newRule"  ! A.style "display:none;"   $ rf
-      div ! attr "details"  ! A.style "display:none;"   $ viewDetails pn g
+   ok $ div ! A.class_ "game" $ do
+      div ! A.id "gameDescGameDiv" ! A.class_ "gameBox" ! A.style "display:inline;" $ vgd
+      div ! A.id "rulesGameDiv"    ! A.class_ "gameBox" ! A.style "display:none;"   $ viewAllRules g
+      div ! A.id "iosGameDiv"      ! A.class_ "gameBox" ! A.style "display:none;"   $ vios
+      div ! A.id "newRuleGameDiv"  ! A.class_ "gameBox" ! A.style "display:none;"   $ rf
+      div ! A.id "detailsGameDiv"  ! A.class_ "gameBox" ! A.style "display:none;"   $ viewDetails pn g
 
-data VisLevel = VisGame
-              | VisGameTabs GameName
-              deriving (Show)
-
-getElementName :: VisLevel -> String -> String
-getElementName vs name = (getGroupName vs) ++ "-" ++ (filter (/=' ') name)
-
-getGroupName :: VisLevel -> String
-getGroupName VisGame = "Game"
-getGroupName (VisGameTabs gn) = "GameTabs" ++ (filter (/=' ') gn)
+viewGames :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNomyxServer Html
+viewGames gis isAdmin saveDir mpn = do
+   let canCreateGame = maybe False (\pn -> isAdmin || numberOfGamesOwned gis pn < 1) mpn
+   let publicPrivate = partition ((== True) . _isPublic) gis
+   let vgi = viewGameName isAdmin mpn
+   public <- mapM vgi (fst publicPrivate)
+   private <- mapM vgi (snd publicPrivate)
+   newGameLink  <- defLink NewGame (isJust mpn)
+   ok $ do
+      case public of
+         [] -> b "No public games"
+         p:ps -> do
+            b "Public games:"
+            table $ do
+               p ! A.style "font-weight:bold;"
+               sequence_ ps
+      br
+      case private of
+         [] -> ""
+         p -> do
+            b "Private games:"
+            table $ sequence_ p
+      br
+      when canCreateGame $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
 
 viewGameName :: Bool -> (Maybe PlayerNumber) -> GameInfo -> RoutedNomyxServer Html
 viewGameName isAdmin mpn gi = do
@@ -159,11 +151,7 @@ viewGameName isAdmin mpn gi = do
    let isGameAdmin = isAdmin || maybe False (==mpn) (Just $ _ownedBy gi)
    let gn = _gameName g
    let canView = isGameAdmin || _isPublic gi
-   ok $ when canView $ do
-      let attr = A.id     (fromString $ ((getElementName VisGame gn) ++ "Button"))
-              <> A.class_ (fromString $ ((getGroupName VisGame) ++ "Button") ++ " button")
-              <> onclick  (fromString $ setDivVisibilityAndSave (getGroupName VisGame) (getElementName VisGame gn))
-      tr $ td $ H.a (fromString (gn ++ "   ")) ! (A.title $ toValue Help.view) ! attr
+   ok $ when canView $ tr $ td $ H.a (fromString (gn ++ "   ")) ! (A.title $ toValue Help.view) -- ! attr
 
 
 joinGame :: GameName -> RoutedNomyxServer Response

@@ -211,10 +211,6 @@ titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
    td ! A.style "text-align:left;" $ myTitle
    td ! A.style "text-align:right;" $ img ! src "/static/pictures/help.jpg" ! A.title (toValue help)
 
---mapping for the javascript function.
-setDivVisibilityAndSave :: String -> String -> String
-setDivVisibilityAndSave groupName elementName = printf "setDivVisibilityAndSave('%s', '%s')" groupName elementName
-
 defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
 defLink a logged = if logged then showURL a else showURL Login
 
