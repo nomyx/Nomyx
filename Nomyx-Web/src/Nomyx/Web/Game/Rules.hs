@@ -30,8 +30,7 @@ viewAllRules g = do
      ul $ viewRuleNames (pendingRules g)
      li "Suppressed rules"
      ul $ viewRuleNames (rejectedRules g)
-  div ! class_ "rules" $ do
-    viewRules g (_rules g)
+  div ! class_ "rules" $ viewRules g (_rules g)
 
 
 viewRuleNames :: [RuleInfo] -> Html

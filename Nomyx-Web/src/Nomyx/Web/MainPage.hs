@@ -111,13 +111,12 @@ viewGameInfo gi mpn mlr isAdmin gt = do
    rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g mpn playAs isGameAdmin
-   ok $ div ! A.class_ "game" $ do
-      case gt of
-        Home    -> div ! A.id "gameDescGameDiv" ! A.class_ "gameBox" $ vgd
-        Rules   -> div ! A.id "rulesGameDiv"    ! A.class_ "gameBox" $ viewAllRules g
-        Actions -> div ! A.id "iosGameDiv"      ! A.class_ "gameBox" $ vios
-        Library -> div ! A.id "newRuleGameDiv"  ! A.class_ "gameBox" $ rf
-        Details -> div ! A.id "detailsGameDiv"  ! A.class_ "gameBox" $ viewDetails pn g
+   ok $ case gt of
+        Home    -> div ! A.id "gameDescGameDiv" ! A.class_ "game" $ vgd
+        Rules   -> div ! A.id "rulesGameDiv"    ! A.class_ "game" $ viewAllRules g
+        Actions -> div ! A.id "iosGameDiv"      ! A.class_ "game" $ vios
+        Library -> div ! A.id "newRuleGameDiv"  ! A.class_ "game" $ rf
+        Details -> div ! A.id "detailsGameDiv"  ! A.class_ "game" $ viewDetails pn g
 
 viewGames :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNomyxServer Html
 viewGames gis isAdmin saveDir mpn = do

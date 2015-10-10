@@ -22,6 +22,7 @@ h3{
 .game {
    position:absolute;
    background-color:#FFFFFF;
+   border:1px solid black;
    height:90%;
    top:57px;
    left:218px;
@@ -30,17 +31,26 @@ h3{
    overflow: auto;
 }
 
-.gameBox {
-   display: block;
+.ruleList {
    position:absolute;
-   float:left;
-   background-color:#F4F4F4;
+   background-color:#FFFFFF;
    border:1px solid black;
-   padding:10px;
-   width:97%;
-   margin-bottom:5px;
-   margin-left:3px;
+   height: 100%;
+   width: 250px;
+   padding: 6px;
+   overflow: auto;
 }
+
+.rule {
+   position:relative;
+   background-color:#FFFFFF;
+   border:1px solid black;
+   height: 100%;
+   left: 265px;
+   padding: 6px;
+   overflow: auto;
+}
+
 
 #gameElem {
    position:absolute;
