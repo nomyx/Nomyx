@@ -1,3 +1,7 @@
+* {
+   font-family: verdana;
+}
+
 h3{
    color:#4D6A8A;
    font-size: 18;
@@ -15,15 +19,6 @@ h3{
    overflow: auto;
 }
 
-#titleBar {
-   padding-top:7px;
-   padding-bottom:10px;
-}
-
-#titleBar > a:first-child {
-   font-weight:bold;
-}
-
 .game {
    position:absolute;
    background-color:#FFFFFF;
@@ -35,12 +30,32 @@ h3{
    overflow: auto;
 }
 
+.gameBox {
+   display: block;
+   position:absolute;
+   float:left;
+   background-color:#F4F4F4;
+   border:1px solid black;
+   padding:10px;
+   width:97%;
+   margin-bottom:5px;
+   margin-left:3px;
+}
+
 #gameElem {
    position:absolute;
    height:90%;
    top:20px;
    left:250px;
    right:20px;
+}
+
+.rule:target {
+   display: block;
+}
+
+.rule {
+   display: none;
 }
 
 #IORule {
@@ -87,16 +102,6 @@ thead {
    padding:10px;
 }
 
-.gameBox  {
-   position:absolute;
-   float:left;
-   background-color:#F4F4F4;
-   border:1px solid black;
-   padding:10px;
-   width:97%;
-   margin-bottom:5px;
-   margin-left:3px;
-}
 
 #showCodeLink {
    text-align:right;
@@ -233,7 +238,7 @@ input[type="file"]{
    float:right;
    margin-left:20px;
 }
-    
+
 .modalWindow:target {
    opacity:1;
    pointer-events: auto;
@@ -246,7 +251,7 @@ input[type="file"]{
    -moz-border-radius: 5px;
    border-radius: 5px;
    background: #fff;
-   padding-left:20px; 
+   padding-left:20px;
    padding-right:10px;
    padding-top:5px;
    padding-bottom:10px;
@@ -289,7 +294,7 @@ pre {
 .ruleCode {
     width:100%;
 }
- 
+
 .ruleDescr {
     width:50%;
 }

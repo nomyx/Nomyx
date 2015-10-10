@@ -29,29 +29,41 @@ import           Web.Routes.TH                 (derivePathInfo)
 
 default (Integer, Double, Data.Text.Text)
 
-data PlayerCommand = Auth AuthenticateURL
-                   | Login
-                   | Logout
-                   | ResetPassword
-                   | ChangePassword
-                   | OpenIdRealm
-                   | PostAuth
-                   | MainPage
-                   | JoinGame  GameName
-                   | LeaveGame GameName
-                   | DelGame   GameName
-                   | DoInput   EventNumber SignalAddress FormField GameName
-                   | NewRule   GameName
-                   | NewGame
-                   | SubmitNewGame
-                   | Upload
-                   | Advanced
-                   | SubmitPlayAs GameName
-                   | SubmitAdminPass
-                   | SubmitSettings
-                   | SaveFilePage
-                   | NomyxJS
-                   deriving (Show)
+data GameTab = Home | Rules | Actions | Library | Details
+   deriving (Show)
+
+data PlayerCommand =
+  -- Authentication and login
+    Auth AuthenticateURL
+  | Login
+  | Logout
+  | ResetPassword
+  | ChangePassword
+  | OpenIdRealm
+  | PostAuth
+  -- Game menu
+  | Menu GameTab GameName
+  | MainPage
+  -- Game management
+  | JoinGame  GameName
+  | LeaveGame GameName
+  | DelGame   GameName
+  | NewGame
+  | SubmitNewGame
+  -- Game actions
+  | DoInput   EventNumber SignalAddress FormField GameName
+  | NewRule   GameName
+  -- File management
+  | Upload
+  --Settings
+  | Advanced
+  | SubmitPlayAs GameName
+  | SubmitAdminPass
+  | SubmitSettings
+  | SaveFilePage
+  -- Misc
+  | NomyxJS
+  deriving (Show)
 
 
 data WebState = WebState {_session           :: TVar Session,
@@ -77,6 +89,7 @@ instance PathInfo FormField
 instance PathInfo (Int, String)
 instance PathInfo [(Int, String)]
 
+$(derivePathInfo ''GameTab)
 $(derivePathInfo ''PlayerCommand)
 
 instance PathInfo Bool where

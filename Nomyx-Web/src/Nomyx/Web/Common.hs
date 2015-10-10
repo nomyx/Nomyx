@@ -88,8 +88,8 @@ mainPage :: String -> Html -> Html -> Bool -> Bool -> RoutedNomyxServer Html
 mainPage title header body footer backLink = do
    link <- showURL MainPage
    routeFn <- askRouteFn
-   ok $ if backLink then appTemplate' title header body footer (Just $ unpack link) routeFn
-                    else appTemplate' title header body footer Nothing routeFn
+   ok $ --if backLink then appTemplate' title header body footer (Just $ unpack link) routeFn
+                     appTemplate' title header body footer Nothing routeFn
 
 appTemplate' ::
        String -- ^ title

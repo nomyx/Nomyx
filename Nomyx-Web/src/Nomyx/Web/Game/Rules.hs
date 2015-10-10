@@ -14,38 +14,45 @@ import           Nomyx.Core.Profile          as Profile
 import           Nomyx.Web.Common            as NWC
 import qualified Nomyx.Web.Help              as Help
 import           Prelude                     hiding (div)
-import           Text.Blaze.Html5            (Html, a, br, div, h3, h4, p,
+import           Text.Blaze.Html5            as H (Html, a, br, div, h2, h3, h4, p,
                                               table, td, thead, toHtml, toValue,
-                                              tr, (!))
+                                              tr, (!), li, ul)
 import           Text.Blaze.Html5.Attributes as A (class_, href, id, title)
 default (Integer, Double, Data.Text.Text)
 
 viewAllRules :: Game -> Html
 viewAllRules g = do
-   titleWithHelpIcon (h3 "Rules") Help.rules
-   viewRules (activeRules g)   "Active rules"     True g >> br
-   viewRules (pendingRules g)  "Pending rules"    True g >> br
-   viewRules (rejectedRules g) "Suppressed rules" False g >> br
+  div ! class_ "ruleList" $ do
+   ul $ do
+     li "Active rules"
+     ul $ viewRuleNames (activeRules g)
+     li "Pending rules"
+     ul $ viewRuleNames (pendingRules g)
+     li "Suppressed rules"
+     ul $ viewRuleNames (rejectedRules g)
+  div ! class_ "rules" $ do
+    viewRules g (_rules g)
 
-viewRules :: [RuleInfo] -> String -> Bool -> Game -> Html
-viewRules nrs title visible g = showHideTitle ((_gameName g) ++ title) visible (null nrs) (h4 $ toHtml (title ++ ":") ) $ table ! class_ "table" $ do
-   thead $ do
-      td ! class_ "td" $ "#"
-      td ! class_ "td" $ "Name"
-      td ! class_ "td" $ "Description"
-      td ! class_ "td" $ "Code of the rule"
-   forM_ nrs (viewRule g)
+
+viewRuleNames :: [RuleInfo] -> Html
+viewRuleNames nrs = mapM_  viewRuleName nrs
+
+viewRuleName :: RuleInfo -> Html
+viewRuleName ri = do
+  let name = fromString $ (show $ _rNumber ri) ++ " " ++ (_rName $ _rRuleDetails ri)
+  li $ H.a name ! A.class_ "ruleName" ! (href $ toValue $ "#rule" ++ (show $ _rNumber ri))
+
+viewRules :: Game -> [RuleInfo] -> Html
+viewRules g nrs = mapM_  (viewRule g) nrs
 
 viewRule :: Game -> RuleInfo -> Html
-viewRule g ri = tr $ do
+viewRule g ri = div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rNumber ri))) $ do
    let pl = fromMaybe ("Player " ++ (show $ _rProposedBy ri)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy ri))
-   td ! class_ "td" $ p (fromString . show $ _rNumber ri) ! A.id "ruleNumber"
-   td ! class_ "td" $ do
-      div ! A.id "ruleName" $ (fromString $ _rName $ _rRuleDetails ri)
-      br
-      div ! A.id "proposedBy" $ (fromString $ "by "  ++ (if _rProposedBy ri == 0 then "System" else pl))
-   td ! class_ "td" $ fromString $ _rDescription $ _rRuleDetails ri
-   td ! class_ "td" $ viewRuleFunc ri (_gameName g)
+   h2 $ fromString $ _rName $ _rRuleDetails ri
+   h3 $ fromString $ _rDescription $ _rRuleDetails ri
+   h2 $ fromString $ "proposed by" ++ (if _rProposedBy ri == 0 then "System" else pl)
+
+--   td ! class_ "td" $ viewRuleFunc ri (_gameName g)
 
 viewRuleFunc :: RuleInfo -> GameName -> Html
 viewRuleFunc ri gn = do

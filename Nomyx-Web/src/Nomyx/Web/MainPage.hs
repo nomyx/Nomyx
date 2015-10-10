@@ -43,17 +43,17 @@ import           Safe
 import           System.FilePath
 import           Text.Blaze.Html5                      hiding (head, map)
 import qualified Text.Blaze.Html5                      as H
-import           Text.Blaze.Html5.Attributes           hiding (dir)
+import           Text.Blaze.Html5.Attributes           hiding (dir, id)
 import qualified Text.Blaze.Html5.Attributes           as A
 import           Web.Routes.Happstack
 import           Web.Routes.PathInfo
-import           Web.Routes.RouteT
+import           Web.Routes.RouteT                     (showURLParams, showURL, runRouteT)
 import           Web.Routes.Site
 
 default (Integer, Double, Data.Text.Text)
 
-viewMulti :: (Maybe PlayerNumber) -> FilePath -> Session -> RoutedNomyxServer Html
-viewMulti mpn saveDir s = do
+viewMulti :: (Maybe PlayerNumber) -> FilePath -> GameTab -> GameName -> Session -> RoutedNomyxServer Html
+viewMulti mpn saveDir gt gn s = do
    (isAdmin, lr) <- case mpn of
       Just pn -> do
          pfd <- getProfile s pn
@@ -61,12 +61,12 @@ viewMulti mpn saveDir s = do
          let lr = _pLastRule $ fromJustNote "viewMulti" pfd
          return (isAdmin, lr)
       Nothing -> return (False, Nothing)
-   let gis = _gameInfos $ _multi s
-   gns <- viewGamesTab (head $ _gameInfos $ _multi s) isAdmin saveDir mpn
-   vgs <- mapM (\gi -> viewGameInfo gi mpn lr isAdmin) gis
+   let gi = fromJust $ S.getGameByName gn s  --TODO fix
+   gns <- viewGamesTab gi isAdmin saveDir mpn
+   vg <- viewGameInfo gi mpn lr isAdmin gt
    ok $ do
       div ! A.id "gameList" $ gns
-      sequence_ vgs
+      vg
 
 viewGamesTab :: GameInfo -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNomyxServer Html
 viewGamesTab gi isAdmin saveDir mpn = do
@@ -74,20 +74,21 @@ viewGamesTab gi isAdmin saveDir mpn = do
    let gn = _gameName g
    let vgi = viewGameName isAdmin mpn
    fmods <- liftIO $ getUploadedModules saveDir
-   advLink      <- defLink Advanced (isJust mpn)
-   logoutURL    <- showURL Login
-   loginURL     <- showURL Login
+   advLink   <- defLink Advanced (isJust mpn)
+   logoutURL <- showURL Login
+   loginURL  <- showURL Login
+   home      <- showURL (Menu Home gn)
+   rules     <- showURL (Menu Rules gn)
+   actions   <- showURL (Menu Actions gn)
+   library   <- showURL (Menu Library gn)
+   details   <- showURL (Menu Details gn)
    ok $ do
-     let attr :: String -> Attribute
-         attr name = A.id (fromString $ name ++ "TabsButton")
-                  <> A.class_ "TabsButton button"
-                  <> (onclick  $ fromString $ "toggleVisibilityGroup('" ++ name ++ "GameDiv', 'gameBox'); " ++
-                                              "toggleBoldGroup('" ++ name ++ "TabsButton', 'TabsButton'); ")
-     H.a "Description "    ! attr "gameDesc" ! A.style "fontWeight:bold;"
-     H.a "Rules "          ! attr "rules"
-     H.a "Inputs/Outputs " ! attr "ios"
-     H.a "New rule "       ! attr "newRule"
-     H.a "Details "        ! attr "details"
+     table $ do
+       tr $ td $ H.a "Description "    ! A.class_ "button" ! href (toValue home)
+       tr $ td $ H.a "Rules "          ! A.class_ "button" ! href (toValue rules)
+       tr $ td $ H.a "Inputs/Outputs " ! A.class_ "button" ! href (toValue actions)
+       tr $ td $ H.a "New rule "       ! A.class_ "button" ! href (toValue library)
+       tr $ td $ H.a "Details "        ! A.class_ "button" ! href (toValue details)
      br >> b "Help files:" >> br
      H.a "Rules examples"    ! (href "/html/Language-Nomyx-Examples.html") ! target "_blank" >> br
      H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br
@@ -99,26 +100,24 @@ viewGamesTab gi isAdmin saveDir mpn = do
      H.a "Logout"          ! (href $ toValue logoutURL) >> br
      H.a "Login"           ! (href $ toValue loginURL) >> br
 
-viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> RoutedNomyxServer Html
-viewGameInfo gi mpn mlr isAdmin = do
+viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> GameTab -> RoutedNomyxServer Html
+viewGameInfo gi mpn mlr isAdmin gt = do
    let g = getGame gi
    let gn = _gameName g
-   (pi, isGameAdmin, playAs, pn) <- case mpn of
-      Just pn -> do
-         let pi = Profile.getPlayerInfo g pn
-         let isGameAdmin = isAdmin || maybe False (== pn) (_ownedBy gi)
-         let playAs = maybe Nothing _playAs pi
-         return (pi, isGameAdmin, playAs, pn)
-      Nothing -> return (Nothing, False, Nothing, 0)
+   let pi = join $ (Profile.getPlayerInfo g) <$> mpn
+   let isGameAdmin = isAdmin || maybe False (== mpn) (Just $ _ownedBy gi)
+   let playAs = mpn >> maybe Nothing _playAs pi
+   let pn = fromMaybe 0 mpn
    rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
-   vgd <- viewGameDesc g  mpn playAs isGameAdmin
+   vgd <- viewGameDesc g mpn playAs isGameAdmin
    ok $ div ! A.class_ "game" $ do
-      div ! A.id "gameDescGameDiv" ! A.class_ "gameBox" ! A.style "display:inline;" $ vgd
-      div ! A.id "rulesGameDiv"    ! A.class_ "gameBox" ! A.style "display:none;"   $ viewAllRules g
-      div ! A.id "iosGameDiv"      ! A.class_ "gameBox" ! A.style "display:none;"   $ vios
-      div ! A.id "newRuleGameDiv"  ! A.class_ "gameBox" ! A.style "display:none;"   $ rf
-      div ! A.id "detailsGameDiv"  ! A.class_ "gameBox" ! A.style "display:none;"   $ viewDetails pn g
+      case gt of
+        Home    -> div ! A.id "gameDescGameDiv" ! A.class_ "gameBox" $ vgd
+        Rules   -> div ! A.id "rulesGameDiv"    ! A.class_ "gameBox" $ viewAllRules g
+        Actions -> div ! A.id "iosGameDiv"      ! A.class_ "gameBox" $ vios
+        Library -> div ! A.id "newRuleGameDiv"  ! A.class_ "gameBox" $ rf
+        Details -> div ! A.id "detailsGameDiv"  ! A.class_ "gameBox" $ viewDetails pn g
 
 viewGames :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNomyxServer Html
 viewGames gis isAdmin saveDir mpn = do
@@ -174,15 +173,16 @@ delGame gn = do
    link <- showURL MainPage
    seeOther link $ toResponse "Redirecting..."
 
-nomyxPage :: RoutedNomyxServer Response
-nomyxPage = do
+nomyxPage :: Maybe GameName -> GameTab -> RoutedNomyxServer Response
+nomyxPage mgn tab = do
    mpn <- getPlayerNumber
    s <- getSession
    let saveDir = _saveDir $ _mSettings $ _multi s
    name <- case mpn of
       Just pn -> liftIO $ Profile.getPlayerName pn s
       Nothing -> return "Guest"
-   m <- viewMulti mpn saveDir s
+   let gn = maybe (_gameName $ _game $ _loggedGame $ head $ _gameInfos $ _multi s) id mgn
+   m <- viewMulti mpn saveDir tab gn s
    mainPage' "Welcome to Nomyx!"
             (fromString $ "Welcome to Nomyx, " ++ name ++ "! ")
             False
@@ -192,6 +192,7 @@ nomyxSite :: WebState -> Site PlayerCommand (ServerPartT IO Response)
 nomyxSite ws = setDefault MainPage $ mkSitePI $ (\a b -> evalStateT (runRouteT (catchRouteError . routedNomyxCommands) a b) ws)
 
 routedNomyxCommands :: PlayerCommand -> RoutedNomyxServer Response
+-- Authentication and login
 routedNomyxCommands (Auth auth)          = authenticate auth
 routedNomyxCommands Login                = loginPage
 routedNomyxCommands Logout               = logout
@@ -199,20 +200,27 @@ routedNomyxCommands ResetPassword        = resetPasswordPage
 routedNomyxCommands ChangePassword       = changePasswordPanel
 routedNomyxCommands OpenIdRealm          = openIdRealmPanel
 routedNomyxCommands PostAuth             = postAuthenticate
-routedNomyxCommands MainPage             = nomyxPage
-routedNomyxCommands (JoinGame game)    = joinGame          game
-routedNomyxCommands (LeaveGame game)   = leaveGame         game
+-- Game menu
+routedNomyxCommands (Menu tab game)      = nomyxPage (Just game) tab
+routedNomyxCommands MainPage             = nomyxPage Nothing Home
+-- Game management
+routedNomyxCommands (JoinGame game)      = joinGame          game
+routedNomyxCommands (LeaveGame game)     = leaveGame         game
 routedNomyxCommands (DelGame game)       = delGame           game
-routedNomyxCommands (NewRule game)       = newRule           game
 routedNomyxCommands NewGame              = newGamePage
 routedNomyxCommands SubmitNewGame        = newGamePost
+-- Game actions
 routedNomyxCommands (DoInput en fa ft g) = newInput en fa ft g
+routedNomyxCommands (NewRule game)       = newRule           game
+-- File management
 routedNomyxCommands Upload               = newUpload
+--Settings
 routedNomyxCommands Advanced             = advanced
 routedNomyxCommands (SubmitPlayAs game)  = newPlayAs         game
 routedNomyxCommands SubmitAdminPass      = newAdminPass
 routedNomyxCommands SubmitSettings       = newSettings
 routedNomyxCommands SaveFilePage         = saveFilePage
+-- Misc
 routedNomyxCommands NomyxJS              = ok $ toResponse nomyxJS
 
 launchWebServer :: TVar Session -> Network -> IO ()
