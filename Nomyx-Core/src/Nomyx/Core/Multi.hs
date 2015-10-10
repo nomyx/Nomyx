@@ -48,15 +48,15 @@ rVoteUnanimity = RuleDetails "Unanimity Vote"
                             [cr|do
    onRuleProposed $ callVoteRule unanimity oneDay
    displayVotes|]
-                            ""
-                            Nothing
+                            "Kau"
+                            (Just "democracy.png")
                             []
 
 rVictory5Rules :: RuleDetails
 rVictory5Rules = RuleDetails "Victory 5 accepted rules"
                             "Victory is achieved if you have 5 active rules"
                             [cr|victoryXRules 5|]
-                            ""
+                            "Kau"
                             Nothing
                             []
 
@@ -64,7 +64,7 @@ rVoteMajority :: RuleDetails
 rVoteMajority = RuleDetails "Majority Vote"
                             "A proposed rule will be activated if a majority of players is reached, with a minimum of 2 players, and within oone day"
                             [cr|onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDay|]
-                            ""
+                            "Kau"
                             Nothing
                             []
 

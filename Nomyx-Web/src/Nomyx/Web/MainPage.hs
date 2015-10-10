@@ -84,11 +84,11 @@ viewGamesTab gi isAdmin saveDir mpn = do
    details   <- showURL (Menu Details gn)
    ok $ do
      table $ do
-       tr $ td $ H.a "Description "    ! A.class_ "button" ! href (toValue home)
-       tr $ td $ H.a "Rules "          ! A.class_ "button" ! href (toValue rules)
-       tr $ td $ H.a "Inputs/Outputs " ! A.class_ "button" ! href (toValue actions)
-       tr $ td $ H.a "New rule "       ! A.class_ "button" ! href (toValue library)
-       tr $ td $ H.a "Details "        ! A.class_ "button" ! href (toValue details)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Home "       ! A.class_ "button" ! href (toValue home)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Rules "      ! A.class_ "button" ! href (toValue rules)
+       tr $ td ! A.class_ "buttonTD" $ H.a "My actions " ! A.class_ "button" ! href (toValue actions)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Library "    ! A.class_ "button" ! href (toValue library)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Details "    ! A.class_ "button" ! href (toValue details)
      br >> b "Help files:" >> br
      H.a "Rules examples"    ! (href "/html/Language-Nomyx-Examples.html") ! target "_blank" >> br
      H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br

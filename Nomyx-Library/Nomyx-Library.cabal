@@ -12,9 +12,7 @@ description: Many example of rules ready to be played
 category: Language
 Homepage: http://www.nomyx.net
 author: Corentin Dupont
-
--- data-files: src/Language/Nomyx/Vote.hs
-
+data-files: static/pictures/*.png
 data-dir: data
 extra-source-files: AUTHORS README
 

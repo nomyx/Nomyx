@@ -16,8 +16,8 @@ import qualified Nomyx.Web.Help              as Help
 import           Prelude                     hiding (div)
 import           Text.Blaze.Html5            as H (Html, a, br, div, h2, h3, h4, p,
                                               table, td, thead, toHtml, toValue,
-                                              tr, (!), li, ul)
-import           Text.Blaze.Html5.Attributes as A (class_, href, id, title)
+                                              tr, (!), li, ul, img)
+import           Text.Blaze.Html5.Attributes as A (class_, href, id, title, src)
 default (Integer, Double, Data.Text.Text)
 
 viewAllRules :: Game -> Html
@@ -47,7 +47,9 @@ viewRules g nrs = mapM_  (viewRule g) nrs
 viewRule :: Game -> RuleInfo -> Html
 viewRule g ri = div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rNumber ri))) $ do
    let pl = fromMaybe ("Player " ++ (show $ _rProposedBy ri)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy ri))
+   let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture $ _rRuleDetails ri)
    h2 $ fromString $ _rName $ _rRuleDetails ri
+   img ! (A.src $ toValue $ pic)
    h3 $ fromString $ _rDescription $ _rRuleDetails ri
    h2 $ fromString $ "proposed by" ++ (if _rProposedBy ri == 0 then "System" else pl)
 

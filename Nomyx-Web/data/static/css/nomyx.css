@@ -8,6 +8,13 @@ h3{
    margin-top: 5pt;
 }
 
+h2{
+   color:#4D6A8A;
+   font-size: 18;
+   margin-top: 5pt;
+   text-align: center;
+}
+
 #gameList {
    position:absolute;
    background-color:#F4F4F4;
@@ -26,7 +33,7 @@ h3{
    height:90%;
    top:57px;
    left:218px;
-   right:10px;
+   width: 85%;
    padding-right:23px;
    overflow: auto;
 }
@@ -48,7 +55,6 @@ h3{
    height: 100%;
    left: 265px;
    padding: 6px;
-   overflow: auto;
 }
 
 
