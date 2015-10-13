@@ -1,5 +1,6 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 
 module Nomyx.Web.Game.Rules where
 
@@ -12,16 +13,21 @@ import           Language.Nomyx
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Profile          as Profile
 import           Nomyx.Web.Common            as NWC
+import           Nomyx.Web.Game.IOs
 import qualified Nomyx.Web.Help              as Help
 import           Prelude                     hiding (div)
-import           Text.Blaze.Html5            as H (Html, a, br, div, h2, h3, h4, p,
-                                              table, td, thead, toHtml, toValue,
-                                              tr, (!), li, ul, img)
-import           Text.Blaze.Html5.Attributes as A (class_, href, id, title, src)
+import           Text.Blaze.Html5            as H (Html, a, br, div, h2, h3, h4,
+                                                   img, li, p, table, td, thead,
+                                                   toHtml, toValue, tr, ul, (!))
+import           Text.Blaze.Html5.Attributes as A (class_, href, id, src, title)
+import           Happstack.Server            (ok)
+import           Nomyx.Web.Types
 default (Integer, Double, Data.Text.Text)
 
-viewAllRules :: Game -> Html
-viewAllRules g = do
+viewAllRules :: PlayerNumber -> Game -> RoutedNomyxServer Html
+viewAllRules pn g = do
+  vrs <- viewRules pn g (_rules g)
+  ok $ do
   div ! class_ "ruleList" $ do
    ul $ do
      li "Active rules"
@@ -30,8 +36,7 @@ viewAllRules g = do
      ul $ viewRuleNames (pendingRules g)
      li "Suppressed rules"
      ul $ viewRuleNames (rejectedRules g)
-  div ! class_ "rules" $ viewRules g (_rules g)
-
+  div ! class_ "rules" $ vrs
 
 viewRuleNames :: [RuleInfo] -> Html
 viewRuleNames nrs = mapM_  viewRuleName nrs
@@ -41,17 +46,22 @@ viewRuleName ri = do
   let name = fromString $ (show $ _rNumber ri) ++ " " ++ (_rName $ _rRuleDetails ri)
   li $ H.a name ! A.class_ "ruleName" ! (href $ toValue $ "#rule" ++ (show $ _rNumber ri))
 
-viewRules :: Game -> [RuleInfo] -> Html
-viewRules g nrs = mapM_  (viewRule g) nrs
+viewRules :: PlayerNumber -> Game -> [RuleInfo] -> RoutedNomyxServer Html
+viewRules pn g nrs = do
+  (vrs :: [Html]) <- mapM (viewRule pn g) nrs
+  ok $ sequence_ vrs
 
-viewRule :: Game -> RuleInfo -> Html
-viewRule g ri = div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rNumber ri))) $ do
+viewRule :: PlayerNumber -> Game -> RuleInfo -> RoutedNomyxServer Html
+viewRule pn g ri = do
+  ios <- viewIORule pn g ri
+  ok $ div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rNumber ri))) $ do
    let pl = fromMaybe ("Player " ++ (show $ _rProposedBy ri)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy ri))
    let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture $ _rRuleDetails ri)
    h2 $ fromString $ _rName $ _rRuleDetails ri
    img ! (A.src $ toValue $ pic)
    h3 $ fromString $ _rDescription $ _rRuleDetails ri
-   h2 $ fromString $ "proposed by" ++ (if _rProposedBy ri == 0 then "System" else pl)
+   h2 $ fromString $ "proposed by " ++ (if _rProposedBy ri == 0 then "System" else pl)
+   ios
 
 --   td ! class_ "td" $ viewRuleFunc ri (_gameName g)
 

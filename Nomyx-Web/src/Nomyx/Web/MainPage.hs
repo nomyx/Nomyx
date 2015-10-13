@@ -108,14 +108,15 @@ viewGameInfo gi mpn mlr isAdmin gt = do
    let isGameAdmin = isAdmin || maybe False (== mpn) (Just $ _ownedBy gi)
    let playAs = mpn >> maybe Nothing _playAs pi
    let pn = fromMaybe 0 mpn
-   rf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
+   vrf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g mpn playAs isGameAdmin
+   vrs <- viewAllRules pn g
    ok $ case gt of
         Home    -> div ! A.id "gameDescGameDiv" ! A.class_ "game" $ vgd
-        Rules   -> div ! A.id "rulesGameDiv"    ! A.class_ "game" $ viewAllRules g
+        Rules   -> div ! A.id "rulesGameDiv"    ! A.class_ "game" $ vrs
         Actions -> div ! A.id "iosGameDiv"      ! A.class_ "game" $ vios
-        Library -> div ! A.id "newRuleGameDiv"  ! A.class_ "game" $ rf
+        Library -> div ! A.id "newRuleGameDiv"  ! A.class_ "game" $ vrf
         Details -> div ! A.id "detailsGameDiv"  ! A.class_ "game" $ viewDetails pn g
 
 viewGames :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNomyxServer Html
