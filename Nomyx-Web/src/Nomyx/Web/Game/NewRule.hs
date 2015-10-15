@@ -33,27 +33,27 @@ import           Text.Reform.Happstack       (environment)
 import           Web.Routes.RouteT           (liftRouteT, showURL)
 default (Integer, Double, Data.Text.Text)
 
-viewLibrary :: [RuleDetails] -> RoutedNomyxServer Html
+viewLibrary :: [RuleTemplate] -> RoutedNomyxServer Html
 viewLibrary lib = do
   vrs <- viewRules lib
   ok $ do
     div ! class_ "ruleList" $ ul $ viewRuleNames lib
     div ! class_ "rules" $ vrs
 
-viewRuleNames :: [RuleDetails] -> Html
+viewRuleNames :: [RuleTemplate] -> Html
 viewRuleNames nrs = mapM_  viewRuleName nrs
 
-viewRuleName :: RuleDetails -> Html
+viewRuleName :: RuleTemplate -> Html
 viewRuleName rd = do
   let name = fromString $ _rName $ rd
   li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "#rule" ++ (show $ _rName rd))
 
-viewRules :: [RuleDetails] -> RoutedNomyxServer Html
+viewRules :: [RuleTemplate] -> RoutedNomyxServer Html
 viewRules rds = do
   vrs <- mapM viewRule rds
   ok $ sequence_ vrs
 
-viewRule :: RuleDetails -> RoutedNomyxServer Html
+viewRule :: RuleTemplate -> RoutedNomyxServer Html
 viewRule rd = do
   ok $ div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rName rd))) $ do
    let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rd)
@@ -63,19 +63,19 @@ viewRule rd = do
    h2 $ fromString $ "authored by " ++ (_rAuthor rd)
    viewRuleFunc rd
 
-newRuleForm :: Maybe RuleDetails -> Bool -> NomyxForm (RuleDetails, Maybe String, Maybe String)
+newRuleForm :: Maybe RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String, Maybe String)
 newRuleForm (Just sr) isGameAdmin = newRuleForm' sr isGameAdmin
-newRuleForm Nothing isGameAdmin = newRuleForm' (RuleDetails "" "" "" "" Nothing []) isGameAdmin
+newRuleForm Nothing isGameAdmin = newRuleForm' (RuleTemplate "" "" "" "" Nothing []) isGameAdmin
 
-newRuleForm' :: RuleDetails -> Bool -> NomyxForm (RuleDetails, Maybe String, Maybe String)
-newRuleForm' (RuleDetails name desc code "" Nothing []) isGameAdmin =
+newRuleForm' :: RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String, Maybe String)
+newRuleForm' (RuleTemplate name desc code "" Nothing []) isGameAdmin =
    (,,) <$> submitRuleForm name desc code
         <*> inputSubmit "Check"
         <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 
-submitRuleForm :: String -> String -> String -> NomyxForm RuleDetails
+submitRuleForm :: String -> String -> String -> NomyxForm RuleTemplate
 submitRuleForm name desc code =
-   RuleDetails <$> label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
+   RuleTemplate <$> label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
                <*> (label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
                <*> label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
                <*> pure "" <*> pure Nothing <*> pure []
@@ -110,7 +110,7 @@ newRule gn = toResponse <$> do
       (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
    seeOther (link `appendAnchor` ruleFormAnchor) $ "Redirecting..."
 
-viewRuleFunc :: RuleDetails -> Html
+viewRuleFunc :: RuleTemplate -> Html
 viewRuleFunc rd = do
   let code = lines $ _rRuleCode rd
   let codeCutLines = 7

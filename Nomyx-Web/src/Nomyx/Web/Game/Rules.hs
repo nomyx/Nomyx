@@ -43,7 +43,7 @@ viewRuleNames nrs = mapM_  viewRuleName nrs
 
 viewRuleName :: RuleInfo -> Html
 viewRuleName ri = do
-  let name = fromString $ (show $ _rNumber ri) ++ " " ++ (_rName $ _rRuleDetails ri)
+  let name = fromString $ (show $ _rNumber ri) ++ " " ++ (_rName $ _rRuleTemplate ri)
   li $ H.a name ! A.class_ "ruleName" ! (href $ toValue $ "#rule" ++ (show $ _rNumber ri))
 
 viewRules :: PlayerNumber -> Game -> [RuleInfo] -> RoutedNomyxServer Html
@@ -60,10 +60,10 @@ viewRule pn g ri = do
        Just a  -> "rule " ++ show a
   ok $ div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rNumber ri))) $ do
    let pl = fromMaybe ("Player " ++ (show $ _rProposedBy ri)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy ri))
-   let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture $ _rRuleDetails ri)
-   h2 $ fromString $ _rName $ _rRuleDetails ri
+   let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture $ _rRuleTemplate ri)
+   h2 $ fromString $ _rName $ _rRuleTemplate ri
    img ! (A.src $ toValue $ pic)
-   h3 $ fromString $ _rDescription $ _rRuleDetails ri
+   h3 $ fromString $ _rDescription $ _rRuleTemplate ri
    h2 $ fromString $ "proposed by " ++ (if _rProposedBy ri == 0 then "System" else pl)
    case _rStatus ri of
       Active -> (fromString $ "This rule was activated by " ++ assessedBy ++ ".") ! A.id "assessedBy"

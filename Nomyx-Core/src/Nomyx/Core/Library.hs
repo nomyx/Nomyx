@@ -8,7 +8,7 @@ import Data.ByteString as DB
 import Nomyx.Core.Engine
 
 -- read a library file
-readLibrary :: FilePath -> IO [RuleDetails]
+readLibrary :: FilePath -> IO [RuleTemplate]
 readLibrary fp = do
   s <- DB.readFile fp
   case decodeEither s of

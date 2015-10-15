@@ -42,8 +42,8 @@ getTimeEvents now m = do
    return $ filter (\t -> t <= now && t > (-32) `addUTCTime` now) times
 
 -- | the initial rule set for a game.
-rVoteUnanimity :: RuleDetails
-rVoteUnanimity = RuleDetails "Unanimity Vote"
+rVoteUnanimity :: RuleTemplate
+rVoteUnanimity = RuleTemplate "Unanimity Vote"
                             "A proposed rule will be activated if all players vote for it"
                             [cr|do
    onRuleProposed $ callVoteRule unanimity oneDay
@@ -52,16 +52,16 @@ rVoteUnanimity = RuleDetails "Unanimity Vote"
                             (Just "democracy.png")
                             []
 
-rVictory5Rules :: RuleDetails
-rVictory5Rules = RuleDetails "Victory 5 accepted rules"
+rVictory5Rules :: RuleTemplate
+rVictory5Rules = RuleTemplate "Victory 5 accepted rules"
                             "Victory is achieved if you have 5 active rules"
                             [cr|victoryXRules 5|]
                             "Kau"
                             Nothing
                             []
 
-rVoteMajority :: RuleDetails
-rVoteMajority = RuleDetails "Majority Vote"
+rVoteMajority :: RuleTemplate
+rVoteMajority = RuleTemplate "Majority Vote"
                             "A proposed rule will be activated if a majority of players is reached, with a minimum of 2 players, and within oone day"
                             [cr|onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDay|]
                             "Kau"

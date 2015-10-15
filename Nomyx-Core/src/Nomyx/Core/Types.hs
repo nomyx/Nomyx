@@ -22,7 +22,7 @@ import           Nomyx.Core.Engine
 type PlayerPassword = String
 type Port = Int
 type CompileError = String
-type LastRule = (RuleDetails, String)
+type LastRule = (RuleTemplate, String)
 
 
 data LastUpload = NoUpload
@@ -59,7 +59,7 @@ data Settings = Settings { _net           :: Network,  -- URL where the server i
 --- | A structure to hold the active games and players
 data Multi = Multi { _gameInfos :: [GameInfo],
                      _mSettings :: Settings,
-                     _mLibrary  :: [RuleDetails]}
+                     _mLibrary  :: [RuleTemplate]}
                      deriving (Eq, Show, Typeable)
 
 data GameInfo = GameInfo { _loggedGame     :: LoggedGame,
@@ -97,7 +97,7 @@ instance Migrate ProfileData where
   migrate (ProfileDataOld a b _ d e f) = (ProfileData a b d e f)
 
 
-$(deriveSafeCopy 1 'base ''RuleDetails)
+$(deriveSafeCopy 1 'base ''RuleTemplate)
 
 $(inferIxSet "ProfilesData" ''ProfileData 'noCalcs [''PlayerNumber]) -- , ''Text
 

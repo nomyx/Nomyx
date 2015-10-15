@@ -77,7 +77,7 @@ leaveGame :: PlayerNumber -> State Game ()
 leaveGame pn = runSystemEval pn $ void $ evDelPlayer pn
 
 -- | insert a rule in pending rules.
-proposeRule :: RuleDetails -> PlayerNumber -> (RuleCode -> IO Rule) -> StateT Game IO ()
+proposeRule :: RuleTemplate -> PlayerNumber -> (RuleCode -> IO Rule) -> StateT Game IO ()
 proposeRule sr pn inter = do
    rule <- createRule sr pn inter
    mapStateIO $ runEvalError (_rNumber rule) (Just pn) $ do
@@ -86,7 +86,7 @@ proposeRule sr pn inter = do
                         else "Error: Rule could not be proposed"
 
 -- | add a rule forcefully (no votes etc.)
-systemAddRule :: RuleDetails -> (RuleCode -> IO Rule) -> StateT Game IO ()
+systemAddRule :: RuleTemplate -> (RuleCode -> IO Rule) -> StateT Game IO ()
 systemAddRule sr inter = do
    rule <- createRule sr 0 inter
    let sysRule = (rStatus .~ Active) >>> (rAssessedBy .~ Just 0)
@@ -132,24 +132,24 @@ pendingRules = sort . filter ((==Pending) . getL rStatus) . _rules
 rejectedRules :: Game -> [RuleInfo]
 rejectedRules = sort . filter ((==Reject) . getL rStatus) . _rules
 
-createRule :: RuleDetails -> PlayerNumber -> (RuleCode -> IO Rule) -> StateT Game IO RuleInfo
-createRule (RuleDetails name des code _ _ _) pn inter = do
+createRule :: RuleTemplate -> PlayerNumber -> (RuleCode -> IO Rule) -> StateT Game IO RuleInfo
+createRule (RuleTemplate name des code _ _ _) pn inter = do
    rs <- use rules
    let rn = getFreeNumber $ map _rNumber rs
    rf <- lift $ inter code
    tracePN pn $ "Creating rule n=" ++ show rn ++ " code=" ++ code
-   let ruleDetails = RuleDetails {_rName = name,
-                                  _rDescription = des,
-                                  _rRuleCode = code,
-                                  _rAuthor = "Player " ++ (show pn),
-                                  _rPicture = Nothing,
-                                  _rCategory = []}
+   let ruleTemplate = RuleTemplate {_rName = name,
+                                    _rDescription = des,
+                                    _rRuleCode = code,
+                                    _rAuthor = "Player " ++ (show pn),
+                                    _rPicture = Nothing,
+                                    _rCategory = []}
    return RuleInfo {_rNumber = rn,
                     _rProposedBy = pn,
                     _rRule = rf,
                     _rStatus = Pending,
                     _rAssessedBy = Nothing,
-                    _rRuleDetails = ruleDetails}
+                    _rRuleTemplate = ruleTemplate}
 
 stateCatch :: Exception e => StateT Game IO a -> (e -> StateT Game IO a) -> StateT Game IO a
 stateCatch m h = StateT $ \s -> runStateT m s `E.catch` \e -> runStateT (h e) s

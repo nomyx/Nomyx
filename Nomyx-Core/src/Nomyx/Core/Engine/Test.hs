@@ -50,12 +50,12 @@ testRule = RuleInfo  { _rNumber       = 0,
                        _rRule         = return (),
                        _rStatus       = Pending,
                        _rAssessedBy   = Nothing,
-                       _rRuleDetails      = RuleDetails {_rName = "test",
-                                                 _rDescription = "test",
-                                                 _rRuleCode = "",
-                                                 _rAuthor = "",
-                                                 _rPicture = Nothing,
-                                                 _rCategory = []}}
+                       _rRuleTemplate = RuleTemplate {_rName = "test",
+                                                      _rDescription = "test",
+                                                      _rRuleCode = "",
+                                                      _rAuthor = "",
+                                                      _rPicture = Nothing,
+                                                      _rCategory = []}}
 
 execRuleEvent :: (Show e, Typeable e) => Nomex a -> Signal e -> e -> Game
 execRuleEvent r f d = execState (runSystemEval' $ evalNomex r >> triggerEvent f d) testGame
@@ -80,7 +80,7 @@ execRule r = execRuleGame r testGame
 
 addActivateRule :: Rule -> RuleNumber -> Evaluate ()
 addActivateRule rf rn = do
-   let rule = testRule & (rRuleDetails . rName) .~ "testRule"
+   let rule = testRule & (rRuleTemplate . rName) .~ "testRule"
                        & rRule   .~ rf
                        & rNumber .~ rn
                        & rStatus .~ Pending

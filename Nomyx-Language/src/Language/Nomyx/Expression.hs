@@ -267,11 +267,11 @@ data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the r
                            _rRule        :: Rule,             -- function representing the rule (interpreted from rRuleCode)
                            _rStatus      :: RuleStatus,       -- status of the rule
                            _rAssessedBy  :: Maybe RuleNumber, -- which rule accepted or rejected this rule
-                           _rRuleDetails :: RuleDetails}
+                           _rRuleTemplate :: RuleTemplate}
                            deriving (Typeable, Show)
 
 
-data RuleDetails = RuleDetails { _rName        :: RuleName,         -- short name of the rule
+data RuleTemplate = RuleTemplate { _rName        :: RuleName,         -- short name of the rule
                                  _rDescription :: String,           -- description of the rule
                                  _rRuleCode    :: Code,             -- code of the rule as a string
                                  _rAuthor      :: String,           -- the name of the original author
@@ -285,11 +285,11 @@ instance Eq RuleInfo where
 instance Ord RuleInfo where
     (RuleInfo {_rNumber=r1}) <= (RuleInfo {_rNumber=r2}) = r1 <= r2
 
-instance Eq RuleDetails where
-    (RuleDetails {_rName=r1}) == (RuleDetails {_rName=r2}) = r1 == r2
+instance Eq RuleTemplate where
+    (RuleTemplate {_rName=r1}) == (RuleTemplate {_rName=r2}) = r1 == r2
 
-instance Ord RuleDetails where
-    (RuleDetails {_rName=r1}) <= (RuleDetails {_rName=r2}) = r1 <= r2
+instance Ord RuleTemplate where
+    (RuleTemplate {_rName=r1}) <= (RuleTemplate {_rName=r2}) = r1 <= r2
 
 -- | the status of a rule.
 data RuleStatus = Active      -- Active rules forms the current Constitution
@@ -336,7 +336,7 @@ instance (Typeable a, Typeable b) => Show (a -> b) where
 
 
 makeLenses ''RuleInfo
-makeLenses ''RuleDetails
+makeLenses ''RuleTemplate
 makeLenses ''PlayerInfo
 makeLenses ''EventInfo
 makeLenses ''SignalOccurence

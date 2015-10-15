@@ -87,11 +87,11 @@ emptyGame name desc date gen = Game {
 -- | a list of possible events affecting a game
 data GameEvent = JoinGame          PlayerNumber PlayerName
               | LeaveGame         PlayerNumber
-              | ProposeRuleEv     PlayerNumber RuleDetails
+              | ProposeRuleEv     PlayerNumber RuleTemplate
               | InputResult       PlayerNumber EventNumber SignalAddress FormField InputData
               | GLog              (Maybe PlayerNumber) String
               | TimeEvent         UTCTime
-              | SystemAddRule     RuleDetails
+              | SystemAddRule     RuleTemplate
                 deriving (Show, Read, Eq, Ord)
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
@@ -205,4 +205,4 @@ $(deriveJSON defaultOptions ''GameDesc)
 $(deriveJSON defaultOptions ''StdGen)
 $(deriveJSON defaultOptions ''SignalAddressElem)
 $(deriveJSON defaultOptions ''LoggedGame)
-$(deriveJSON defaultOptions ''RuleDetails)
+$(deriveJSON defaultOptions ''RuleTemplate)

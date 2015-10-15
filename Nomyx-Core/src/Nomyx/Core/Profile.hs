@@ -45,8 +45,8 @@ askProfileData uid = do
 initialProfileData :: PlayerNumber -> PlayerSettings -> ProfileData
 initialProfileData uid ps = ProfileData uid ps (Just (exampleRule, "")) NoUpload False
 
-exampleRule :: RuleDetails
-exampleRule = RuleDetails "" "" [cr|
+exampleRule :: RuleTemplate
+exampleRule = RuleTemplate "" "" [cr|
 --This is an example new rule that you can enter.
 --If you submit this rule it will have to be voted on by other players (as described by rule 1).
 --A lot of other examples can be found in the left menu bar.

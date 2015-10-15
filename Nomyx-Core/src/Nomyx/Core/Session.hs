@@ -83,8 +83,8 @@ leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
 leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
 
 -- | insert a rule in pending rules.
-submitRule :: RuleDetails -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-submitRule sr@(RuleDetails _ _ code _ _ _) pn gn sh = do
+submitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
+submitRule sr@(RuleTemplate _ _ code _ _ _) pn gn sh = do
    tracePN pn $ "proposed " ++ show sr
    mrr <- liftIO $ interpretRule code sh
    s <- get
@@ -97,8 +97,8 @@ submitRule sr@(RuleDetails _ _ code _ _ _) pn gn sh = do
          liftIO $ sendMailsNewRule s sr pn (fromJust gi)
       Left e -> submitRuleError sr pn gn e
 
-adminSubmitRule :: RuleDetails -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-adminSubmitRule sr@(RuleDetails _ _ code _ _ _) pn gn sh = do
+adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
+adminSubmitRule sr@(RuleTemplate _ _ code _ _ _) pn gn sh = do
    tracePN pn $ "admin proposed " ++ show sr
    mrr <- liftIO $ interpretRule code sh
    case mrr of
@@ -108,15 +108,15 @@ adminSubmitRule sr@(RuleDetails _ _ code _ _ _) pn gn sh = do
          modifyProfile pn (pLastRule .~ Just (sr, "Admin rule submitted OK!"))
       Left e -> submitRuleError sr pn gn e
 
-submitRuleError :: RuleDetails -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
+submitRuleError :: RuleTemplate -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
 submitRuleError sr pn gn e = do
    let errorMsg = showInterpreterError e
    inGameDo gn $ execGameEvent $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
    tracePN pn ("Error in submitted rule: " ++ errorMsg)
    modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
-checkRule :: RuleDetails -> PlayerNumber -> ServerHandle -> StateT Session IO ()
-checkRule sr@(RuleDetails _ _ code _ _ _) pn sh = do
+checkRule :: RuleTemplate -> PlayerNumber -> ServerHandle -> StateT Session IO ()
+checkRule sr@(RuleTemplate _ _ code _ _ _) pn sh = do
    tracePN pn $ "check rule " ++ show sr
    mrr <- liftIO $ interpretRule code sh
    case mrr of

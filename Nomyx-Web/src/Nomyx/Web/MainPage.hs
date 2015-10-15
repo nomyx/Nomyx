@@ -100,7 +100,7 @@ viewGamesTab gi isAdmin saveDir mpn = do
      H.a "Logout"          ! (href $ toValue logoutURL) >> br
      H.a "Login"           ! (href $ toValue loginURL) >> br
 
-viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> GameTab -> [RuleDetails] -> RoutedNomyxServer Html
+viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> GameTab -> [RuleTemplate] -> RoutedNomyxServer Html
 viewGameInfo gi mpn mlr isAdmin gt lib = do
    let g = getGame gi
    let gn = _gameName g

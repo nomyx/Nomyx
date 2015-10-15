@@ -72,7 +72,7 @@ callVoteRule assess delay ri = do
 
 callVoteRule' :: AssessFunction -> UTCTime -> RuleInfo -> Nomex ()
 callVoteRule' assess endTime ri = do
-   en <- callVote assess endTime (_rName $ _rRuleDetails ri) (_rNumber ri) (finishVote assess ri)
+   en <- callVote assess endTime (_rName $ _rRuleTemplate ri) (_rNumber ri) (finishVote assess ri)
    sendMessage voteBegin (VoteBegin ri endTime en)
 
 -- | actions to do when the vote is finished
