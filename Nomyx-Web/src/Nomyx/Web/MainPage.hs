@@ -63,7 +63,7 @@ viewMulti mpn saveDir gt gn s = do
       Nothing -> return (False, Nothing)
    let gi = fromJust $ S.getGameByName gn s  --TODO fix
    gns <- viewGamesTab gi isAdmin saveDir mpn
-   vg <- viewGameInfo gi mpn lr isAdmin gt
+   vg <- viewGameInfo gi mpn lr isAdmin gt (_mLibrary $ _multi s)
    ok $ do
       div ! A.id "gameList" $ gns
       vg
@@ -100,15 +100,15 @@ viewGamesTab gi isAdmin saveDir mpn = do
      H.a "Logout"          ! (href $ toValue logoutURL) >> br
      H.a "Login"           ! (href $ toValue loginURL) >> br
 
-viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> GameTab -> RoutedNomyxServer Html
-viewGameInfo gi mpn mlr isAdmin gt = do
+viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> GameTab -> [RuleDetails] -> RoutedNomyxServer Html
+viewGameInfo gi mpn mlr isAdmin gt lib = do
    let g = getGame gi
    let gn = _gameName g
    let pi = join $ (Profile.getPlayerInfo g) <$> mpn
    let isGameAdmin = isAdmin || maybe False (== mpn) (Just $ _ownedBy gi)
    let playAs = mpn >> maybe Nothing _playAs pi
    let pn = fromMaybe 0 mpn
-   vrf <- viewRuleForm mlr (isJust pi) isGameAdmin (_gameName g)
+   vrf <- viewLibrary lib
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g mpn playAs isGameAdmin
    vrs <- viewAllRules pn g

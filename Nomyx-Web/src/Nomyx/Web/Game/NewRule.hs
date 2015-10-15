@@ -20,9 +20,10 @@ import           Nomyx.Web.Common            as NWC
 import qualified Nomyx.Web.Help              as Help
 import           Nomyx.Web.Types
 import           Prelude                     hiding (div)
-import           Text.Blaze.Html5            (Html, a, h3, pre, toValue, (!))
+import           Text.Blaze.Html5            as H (Html, a, div, h2, h3, img,
+                                                   pre, toValue, (!), li, ul)
 import           Text.Blaze.Html5.Attributes as A (class_, disabled, id,
-                                                   placeholder)
+                                                   placeholder, src, href)
 import           Text.Reform                 (eitherForm, viewForm, (++>),
                                               (<++))
 import           Text.Reform.Blaze.Common    (setAttr)
@@ -31,6 +32,36 @@ import qualified Text.Reform.Blaze.String    as RB
 import           Text.Reform.Happstack       (environment)
 import           Web.Routes.RouteT           (liftRouteT, showURL)
 default (Integer, Double, Data.Text.Text)
+
+viewLibrary :: [RuleDetails] -> RoutedNomyxServer Html
+viewLibrary lib = do
+  vrs <- viewRules lib
+  ok $ do
+    div ! class_ "ruleList" $ ul $ viewRuleNames lib
+    div ! class_ "rules" $ vrs
+
+viewRuleNames :: [RuleDetails] -> Html
+viewRuleNames nrs = mapM_  viewRuleName nrs
+
+viewRuleName :: RuleDetails -> Html
+viewRuleName rd = do
+  let name = fromString $ _rName $ rd
+  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "#rule" ++ (show $ _rName rd))
+
+viewRules :: [RuleDetails] -> RoutedNomyxServer Html
+viewRules rds = do
+  vrs <- mapM viewRule rds
+  ok $ sequence_ vrs
+
+viewRule :: RuleDetails -> RoutedNomyxServer Html
+viewRule rd = do
+  ok $ div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rName rd))) $ do
+   let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rd)
+   h2 $ fromString $ _rName rd
+   img ! (A.src $ toValue $ pic)
+   h3 $ fromString $ _rDescription rd
+   h2 $ fromString $ "authored by " ++ (_rAuthor rd)
+   viewRuleFunc rd
 
 newRuleForm :: Maybe RuleDetails -> Bool -> NomyxForm (RuleDetails, Maybe String, Maybe String)
 newRuleForm (Just sr) isGameAdmin = newRuleForm' sr isGameAdmin
@@ -78,3 +109,20 @@ newRule gn = toResponse <$> do
       Right (_,  Just _, Just _)   -> error "Impossible new rule form result"
       (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
    seeOther (link `appendAnchor` ruleFormAnchor) $ "Redirecting..."
+
+viewRuleFunc :: RuleDetails -> Html
+viewRuleFunc rd = do
+  let code = lines $ _rRuleCode rd
+  let codeCutLines = 7
+  --let ref = "openModalCode" ++ (show $ _rNumber ri) ++ "game" ++ gn
+
+  --div ! A.id "showCodeLink" $ a ! (href $ toValue $ "#" ++ ref)  $ "show more..." >> br
+  div ! A.id "codeDiv" $ displayCode $ unlines $ take codeCutLines code
+  div $ when (length code >= codeCutLines) $ fromString "(...)"
+  -- div ! A.id (toValue ref) ! class_ "modalDialog" $ do
+  --    div $ do
+  --       p "Code of the rule:"
+  --       a ! href "#close" ! title "Close" ! class_ "close" $ "X"
+  --       div ! A.id "modalCode" $ do
+  --          displayCode $ unlines code
+  --          br

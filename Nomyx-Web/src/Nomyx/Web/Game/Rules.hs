@@ -54,6 +54,10 @@ viewRules pn g nrs = do
 viewRule :: PlayerNumber -> Game -> RuleInfo -> RoutedNomyxServer Html
 viewRule pn g ri = do
   ios <- viewIORule pn g ri
+  let assessedBy = case _rAssessedBy ri of
+       Nothing -> "not assessed"
+       Just 0  -> "the system"
+       Just a  -> "rule " ++ show a
   ok $ div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rNumber ri))) $ do
    let pl = fromMaybe ("Player " ++ (show $ _rProposedBy ri)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy ri))
    let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture $ _rRuleDetails ri)
@@ -61,30 +65,10 @@ viewRule pn g ri = do
    img ! (A.src $ toValue $ pic)
    h3 $ fromString $ _rDescription $ _rRuleDetails ri
    h2 $ fromString $ "proposed by " ++ (if _rProposedBy ri == 0 then "System" else pl)
+   case _rStatus ri of
+      Active -> (fromString $ "This rule was activated by " ++ assessedBy ++ ".") ! A.id "assessedBy"
+      Reject -> (fromString $ "This rule was deleted by " ++ assessedBy ++ ".") ! A.id "assessedBy"
+      Pending -> return ()
    ios
 
 --   td ! class_ "td" $ viewRuleFunc ri (_gameName g)
-
-viewRuleFunc :: RuleInfo -> GameName -> Html
-viewRuleFunc ri gn = do
-   let code = lines $ _rRuleCode $ _rRuleDetails ri
-   let codeCutLines = 7
-   let ref = "openModalCode" ++ (show $ _rNumber ri) ++ "game" ++ gn
-   let assessedBy = case _rAssessedBy ri of
-        Nothing -> "not assessed"
-        Just 0  -> "the system"
-        Just a  -> "rule " ++ show a
-   div ! A.id "showCodeLink" $ a ! (href $ toValue $ "#" ++ ref)  $ "show more..." >> br
-   div ! A.id "codeDiv" $ displayCode $ unlines $ take codeCutLines code
-   div $ when (length code >= codeCutLines) $ fromString "(...)"
-   div ! A.id (toValue ref) ! class_ "modalDialog" $ do
-      div $ do
-         p "Code of the rule:"
-         a ! href "#close" ! title "Close" ! class_ "close" $ "X"
-         div ! A.id "modalCode" $ do
-            displayCode $ unlines code
-            br
-            case _rStatus ri of
-               Active -> (fromString $ "This rule was activated by " ++ assessedBy ++ ".") ! A.id "assessedBy"
-               Reject -> (fromString $ "This rule was deleted by " ++ assessedBy ++ ".") ! A.id "assessedBy"
-               Pending -> return ()
