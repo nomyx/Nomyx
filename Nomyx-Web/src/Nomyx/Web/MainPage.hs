@@ -29,8 +29,8 @@ import           Nomyx.Core.Utils
 import           Nomyx.Web.Common                      as W
 import           Nomyx.Web.Game.Details
 import           Nomyx.Web.Game.Infos
-import           Nomyx.Web.Game.IOs
-import           Nomyx.Web.Game.NewRule
+import           Nomyx.Web.Game.RuleTemplate
+import           Nomyx.Web.Game.Templates
 import           Nomyx.Web.Game.Rules
 import qualified Nomyx.Web.Help                        as Help
 import           Nomyx.Web.Login

@@ -3,7 +3,7 @@
 {-# LANGUAGE GADTs                #-}
 {-# LANGUAGE OverloadedStrings    #-}
 
-module Nomyx.Web.Game.IOs where
+module Nomyx.Web.Game.Actions where
 
 import           Control.Applicative
 import           Control.Monad

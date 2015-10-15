@@ -53,8 +53,8 @@ library
                    Nomyx.Web.Help
                    Nomyx.Web.Game.Infos
                    Nomyx.Web.Game.Rules
-                   Nomyx.Web.Game.IOs
-                   Nomyx.Web.Game.NewRule
+                   Nomyx.Web.Game.Actions
+                   Nomyx.Web.Game.Templates
                    Nomyx.Web.Game.Details
                    Nomyx.Web.Login
                    Nomyx.Web.Settings
