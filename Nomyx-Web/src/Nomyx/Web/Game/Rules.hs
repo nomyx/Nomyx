@@ -13,7 +13,7 @@ import           Language.Nomyx
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Profile          as Profile
 import           Nomyx.Web.Common            as NWC
-import           Nomyx.Web.Game.RuleTemplate
+import           Nomyx.Web.Game.Actions
 import qualified Nomyx.Web.Help              as Help
 import           Prelude                     hiding (div)
 import           Text.Blaze.Html5            as H (Html, a, br, div, h2, h3, h4,

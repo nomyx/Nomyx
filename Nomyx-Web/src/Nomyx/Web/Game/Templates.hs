@@ -2,7 +2,7 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE OverloadedStrings    #-}
 
-module Nomyx.Web.Game.NewRule where
+module Nomyx.Web.Game.Templates where
 
 import           Control.Applicative
 import           Control.Monad
