@@ -8,11 +8,19 @@ h3{
    margin-top: 5pt;
 }
 
-h2{
+h2{ 
    color:#4D6A8A;
    font-size: 18;
    margin-top: 5pt;
    text-align: center;
+}
+
+#multi {
+   margin-left: auto;
+   margin-right: auto;
+   width: 75%;   
+   top: 10px;
+   position: relative;
 }
 
 #gameList {
@@ -20,26 +28,24 @@ h2{
    border-right:1px solid black;
    width:160px;
    padding:10px;
-   top:60px;
    left:10px;
    overflow: auto;
 }
 
 .game {
-   position:absolute;
+   position:relative;
    background-color:#FAF2E8;
    border:1px solid black;
    height:90%;
-   top:60px;
-   left:210px;
-   width: 85%;
+   left:215px;
+   width: 1000px;
    padding-right:23px;
    overflow: auto;
 }
 
 .ruleList {
    position:absolute;
-   border:1px solid black;
+   border-right: 1px solid black;
    height: 100%;
    width: 250px;
    padding: 6px;
@@ -48,10 +54,11 @@ h2{
 
 .rule {
    position:relative;
-   border:1px solid black;
    height: 100%;
    left: 265px;
    padding: 6px;
+   width: 75%;
+   text-align: center;
 }
 
 
