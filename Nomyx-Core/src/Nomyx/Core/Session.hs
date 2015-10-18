@@ -84,18 +84,18 @@ leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
 
 -- | insert a rule in pending rules.
 submitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-submitRule sr@(RuleTemplate _ _ code _ _ _) pn gn sh = do
-   tracePN pn $ "proposed " ++ show sr
+submitRule rt@(RuleTemplate _ _ code _ _ _) pn gn sh = do
+   tracePN pn $ "proposed " ++ show rt
    mrr <- liftIO $ interpretRule code sh
    s <- get
    let gi = getGameByName gn s
    case mrr of
       Right _ -> do
          tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ G.execGameEvent' (Just $ getRuleFunc sh) (ProposeRuleEv pn sr)
-         modifyProfile pn (pLastRule .~ Just (sr, "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."))
-         liftIO $ sendMailsNewRule s sr pn (fromJust gi)
-      Left e -> submitRuleError sr pn gn e
+         inGameDo gn $ G.execGameEvent' (Just $ getRuleFunc sh) (ProposeRuleEv pn rt)
+         modifyProfile pn (pLastRule .~ Just (rt, "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."))
+         liftIO $ sendMailsNewRule s rt pn (fromJust gi)
+      Left e -> submitRuleError rt pn gn e
 
 adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
 adminSubmitRule sr@(RuleTemplate _ _ code _ _ _) pn gn sh = do
