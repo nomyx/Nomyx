@@ -48,14 +48,14 @@ viewRuleName rd = do
   let name = fromString $ _rName $ rd
   li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "#rule" ++ (show $ _rName rd))
 
-viewRules :: GameName -> [RuleTemplate] ->RoutedNomyxServer Html
+viewRules :: GameName -> [RuleTemplate] -> RoutedNomyxServer Html
 viewRules gn rds = do
   vrs <- mapM (viewRule gn) rds
   ok $ sequence_ vrs
 
 viewRule :: GameName -> RuleTemplate -> RoutedNomyxServer Html
 viewRule gn rt = do
-  link <- showURL (NewRule gn)
+  link <- showURL (SubmitRule gn)
   lf  <- liftRouteT $ lift $ viewForm "user" (hiddenRuleForm (Just rt))
   ok $ div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rName rt))) $ do
    let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
@@ -90,7 +90,7 @@ submitRuleForm (RuleTemplate name desc code aut pic cat) =
 
 viewRuleForm :: Maybe LastRule -> Bool -> Bool -> GameName -> RoutedNomyxServer Html
 viewRuleForm mlr inGame isGameAdmin gn = do
-   link <- showURL (NewRule gn)
+   link <- showURL (SubmitRule gn)
    lf  <- liftRouteT $ lift $ viewForm "user" (newRuleForm (fst <$> mlr) isGameAdmin)
    ok $ do
       a "" ! A.id (toValue ruleFormAnchor)
@@ -101,8 +101,8 @@ viewRuleForm mlr inGame isGameAdmin gn = do
          when (isJust msg) $ pre $ fromString $ fromJust msg
       else lf ! disabled ""
 
-newRule :: GameName -> RoutedNomyxServer Response
-newRule gn = toResponse <$> do
+submitRule :: GameName -> RoutedNomyxServer Response
+submitRule gn = toResponse <$> do
    methodM POST
    s <- getSession
    let gi = getGameByName gn s

@@ -211,7 +211,7 @@ routedNomyxCommands NewGame              = newGamePage
 routedNomyxCommands SubmitNewGame        = newGamePost
 -- Game actions
 routedNomyxCommands (DoInput en fa ft g) = newInput en fa ft g
-routedNomyxCommands (NewRule game)       = newRule           game
+routedNomyxCommands (SubmitRule game)    = submitRule        game
 -- File management
 routedNomyxCommands Upload               = newUpload
 --Settings

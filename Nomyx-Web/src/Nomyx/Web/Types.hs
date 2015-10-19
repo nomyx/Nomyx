@@ -52,7 +52,7 @@ data PlayerCommand =
   | SubmitNewGame
   -- Game actions
   | DoInput   EventNumber SignalAddress FormField GameName
-  | NewRule   GameName
+  | SubmitRule   GameName
   -- File management
   | Upload
   --Settings

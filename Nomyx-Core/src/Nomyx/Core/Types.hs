@@ -41,7 +41,7 @@ data PlayerSettings =
    PlayerSettings { _pPlayerName   :: PlayerName,
                     _mail          :: Maybe String,
                     _mailNewInput  :: Bool,
-                    _mailNewRule   :: Bool,
+                    _mailSubmitRule   :: Bool,
                     _mailNewOutput :: Bool,
                     _mailConfirmed :: Bool}
                     deriving (Eq, Show, Read, Data, Ord, Typeable)

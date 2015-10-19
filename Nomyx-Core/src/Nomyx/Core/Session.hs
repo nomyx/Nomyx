@@ -94,7 +94,7 @@ submitRule rt@(RuleTemplate _ _ code _ _ _) pn gn sh = do
          tracePN pn "proposed rule compiled OK "
          inGameDo gn $ G.execGameEvent' (Just $ getRuleFunc sh) (ProposeRuleEv pn rt)
          modifyProfile pn (pLastRule .~ Just (rt, "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."))
-         liftIO $ sendMailsNewRule s rt pn (fromJust gi)
+         liftIO $ sendMailsSubmitRule s rt pn (fromJust gi)
       Left e -> submitRuleError rt pn gn e
 
 adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
