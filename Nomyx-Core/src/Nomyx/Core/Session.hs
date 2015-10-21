@@ -1,29 +1,29 @@
+{-# LANGUAGE DoAndIfThenElse     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE DoAndIfThenElse #-}
 
 -- | This module manages multi-player commands.
 module Nomyx.Core.Session where
 
-import Language.Haskell.Interpreter.Server (ServerHandle)
-import Language.Haskell.Interpreter (InterpreterError)
-import Debug.Trace.Helpers
-import Control.Lens
-import Data.Time as T
-import Data.List
-import Data.Maybe
-import qualified Data.Acid.Advanced as A (update', query')
-import Control.Monad.State
-import Control.Concurrent.STM
-import System.IO.PlafCompat
-import Language.Nomyx
-import Nomyx.Core.Types
-import Nomyx.Core.Utils
-import Nomyx.Core.Multi
-import Nomyx.Core.Profile
-import Nomyx.Core.Interpret
-import Nomyx.Core.Serialize
-import Nomyx.Core.Engine as G
-import Nomyx.Core.Mail
+import           Control.Concurrent.STM
+import           Control.Lens
+import           Control.Monad.State
+import qualified Data.Acid.Advanced                  as A (query', update')
+import           Data.List
+import           Data.Maybe
+import           Data.Time                           as T
+import           Debug.Trace.Helpers
+import           Language.Haskell.Interpreter        (InterpreterError)
+import           Language.Haskell.Interpreter.Server (ServerHandle)
+import           Language.Nomyx
+import           Nomyx.Core.Engine                   as G
+import           Nomyx.Core.Interpret
+import           Nomyx.Core.Mail
+import           Nomyx.Core.Multi
+import           Nomyx.Core.Profile
+import           Nomyx.Core.Serialize
+import           Nomyx.Core.Types
+import           Nomyx.Core.Utils
+import           System.IO.PlafCompat
 
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
@@ -127,6 +127,19 @@ checkRule sr@(RuleTemplate _ _ code _ _ _) pn sh = do
          let errorMsg = showInterpreterError e
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
          modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
+
+newRuleTemplate :: RuleTemplate -> PlayerNumber -> ServerHandle -> StateT Session IO ()
+newRuleTemplate rt@(RuleTemplate _ _ code _ _ _) pn sh = do
+  tracePN pn $ "new template " ++ show rt
+  mrr <- liftIO $ interpretRule code sh
+  case mrr of
+     Right _ -> do
+        tracePN pn "proposed template rule compiled OK"
+        (multi . mLibrary) %= (rt:)
+     Left e -> do
+        let errorMsg = showInterpreterError e
+        tracePN pn ("Error in submitted rule: " ++ errorMsg)
+        modifyProfile pn (pLastRule .~ Just (rt, errorMsg))
 
 inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> FormField -> InputData -> GameName -> StateT Session IO ()
 inputResult pn en fa ft ir gn = inGameDo gn $ execGameEvent $ InputResult pn en fa ft ir

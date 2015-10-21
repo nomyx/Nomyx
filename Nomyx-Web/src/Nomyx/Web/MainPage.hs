@@ -108,7 +108,7 @@ viewGameInfo gi mpn mlr isAdmin gt lib = do
    let isGameAdmin = isAdmin || maybe False (== mpn) (Just $ _ownedBy gi)
    let playAs = mpn >> maybe Nothing _playAs pi
    let pn = fromMaybe 0 mpn
-   vrf <- viewLibrary lib gn
+   vrf <- viewRuleTemplates lib gn
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g mpn playAs isGameAdmin
    vrs <- viewAllRules pn g
@@ -211,7 +211,9 @@ routedNomyxCommands NewGame              = newGamePage
 routedNomyxCommands SubmitNewGame        = newGamePost
 -- Game actions
 routedNomyxCommands (DoInput en fa ft g) = newInput en fa ft g
-routedNomyxCommands (SubmitRule game)    = submitRule        game
+routedNomyxCommands (SubmitRule game)    = submitRuleTemplatePost game
+-- Templates
+routedNomyxCommands NewRuleTemplate      = newRuleTemplate
 -- File management
 routedNomyxCommands Upload               = newUpload
 --Settings

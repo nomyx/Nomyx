@@ -53,6 +53,8 @@ data PlayerCommand =
   -- Game actions
   | DoInput   EventNumber SignalAddress FormField GameName
   | SubmitRule   GameName
+  -- Templates
+  | NewRuleTemplate
   -- File management
   | Upload
   --Settings
