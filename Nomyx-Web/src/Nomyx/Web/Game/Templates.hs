@@ -20,14 +20,17 @@ import           Nomyx.Web.Common            as NWC
 import qualified Nomyx.Web.Help              as Help
 import           Nomyx.Web.Types
 import           Prelude                     hiding (div)
-import           Text.Blaze.Html5            as H (Html, a, div, h2, h3, img,
-                                                   pre, toValue, (!), li, ul, input)
-import           Text.Blaze.Html5.Attributes as A (class_, disabled, id,
-                                                   placeholder, src, href, type_, value)
+import           Text.Blaze.Html5            as H (Html, a, div, h2, h3, h4, img,
+                                                   input, li, pre, toValue, ul,
+                                                   (!), label)
+import           Text.Blaze.Html5.Attributes as A (class_, disabled, for, href,
+                                                   id, placeholder, src, type_,
+                                                   value)
 import           Text.Reform                 (eitherForm, viewForm, (++>),
                                               (<++))
 import           Text.Reform.Blaze.Common    (setAttr)
-import           Text.Reform.Blaze.String    (inputSubmit, inputHidden, label, textarea)
+import           Text.Reform.Blaze.String    (inputHidden, inputSubmit, label,
+                                              textarea)
 import qualified Text.Reform.Blaze.String    as RB
 import           Text.Reform.Happstack       (environment)
 import           Web.Routes.RouteT           (liftRouteT, showURL)
@@ -41,7 +44,9 @@ viewRuleTemplates rts gn = do
   vrs <- mapM (viewRuleTemplate gn) rts
   ok $ do
     div ! class_ "ruleList" $ ul $ viewRuleTemplateNames rts
-    div ! class_ "rules" $ sequence_ vrs
+    div ! class_ "rules" $ do
+
+      sequence_ vrs
 
 viewRuleTemplateNames :: [RuleTemplate] -> Html
 viewRuleTemplateNames nrs = mapM_  viewRuleTemplateName nrs
@@ -58,6 +63,8 @@ viewRuleTemplate gn rt = do
   vrte <- viewRuleTemplateEdit (Just (rt, ""))
   ok $ do
     div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rName rt))) $ do
+      H.label ! A.for "isruleedit" $ "edit"
+      H.input ! A.type_ "checkbox" ! A.id "isruleedit"
       div ! A.id "viewrule" $ do
         let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
         h2 $ fromString $ _rName rt
@@ -142,9 +149,9 @@ newRuleTemplateForm' rt isGameAdmin =
 
 newRuleTemplateForm'' :: RuleTemplate -> NomyxForm RuleTemplate
 newRuleTemplateForm'' (RuleTemplate name desc code aut pic cat) =
-  RuleTemplate <$> label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
-              <*> (label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
-              <*> label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
+  RuleTemplate <$> RB.label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
+              <*> (RB.label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
+              <*> RB.label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
               <*> pure ""
               <*> pure Nothing
               <*> pure []

@@ -8,7 +8,7 @@ h3{
    margin-top: 5pt;
 }
 
-h2{ 
+h2{
    color:#4D6A8A;
    font-size: 18;
    margin-top: 5pt;
@@ -18,7 +18,7 @@ h2{
 #multi {
    margin-left: auto;
    margin-right: auto;
-   width: 75%;   
+   width: 75%;
    top: 10px;
    position: relative;
 }
@@ -76,6 +76,23 @@ h2{
 
 .rule {
    display: none;
+}
+
+
+#isruleedit ~ #viewrule {
+   display:block;
+}
+
+#isruleedit ~ #editrule {
+   display:none;
+}
+
+#isruleedit:checked ~ #viewrule {
+   display:none;
+}
+
+#isruleedit:checked ~ #editrule {
+   display:block;
 }
 
 #IORule {
