@@ -78,20 +78,19 @@ h2{
    display: none;
 }
 
-
-#isruleedit ~ #viewrule {
+.isruleedit ~ .viewrule {
    display:block;
 }
 
-#isruleedit ~ #editrule {
+.isruleedit ~ .editrule {
    display:none;
 }
 
-#isruleedit:checked ~ #viewrule {
+.isruleedit:checked ~ .viewrule {
    display:none;
 }
 
-#isruleedit:checked ~ #editrule {
+.isruleedit:checked ~ .editrule {
    display:block;
 }
 

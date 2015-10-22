@@ -54,7 +54,7 @@ viewRuleTemplateNames nrs = mapM_  viewRuleTemplateName nrs
 viewRuleTemplateName :: RuleTemplate -> Html
 viewRuleTemplateName rd = do
   let name = fromString $ _rName $ rd
-  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "#rule" ++ (show $ _rName rd))
+  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "#rule" ++ (_rName rd))
 
 viewRuleTemplate :: GameName -> RuleTemplate -> RoutedNomyxServer Html
 viewRuleTemplate gn rt = do
@@ -62,10 +62,10 @@ viewRuleTemplate gn rt = do
   lf  <- liftRouteT $ lift $ viewForm "user" (hiddenSubmitRuleTemplatForm (Just rt))
   vrte <- viewRuleTemplateEdit (Just (rt, ""))
   ok $ do
-    div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rName rt))) $ do
-      H.label ! A.for "isruleedit" $ "edit"
-      H.input ! A.type_ "checkbox" ! A.id "isruleedit"
-      div ! A.id "viewrule" $ do
+    div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (_rName rt))) $ do
+      H.label ! A.for (toValue $ "isruleedit"  ++ (_rName rt)) $ "edit"
+      H.input ! A.type_ "checkbox" ! A.class_ "isruleedit" ! A.id (toValue $ "isruleedit"  ++ (_rName rt))
+      div ! A.class_ "viewrule" $ do
         let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
         h2 $ fromString $ _rName rt
         img ! (A.src $ toValue $ pic)
@@ -73,7 +73,7 @@ viewRuleTemplate gn rt = do
         h2 $ fromString $ "authored by " ++ (_rAuthor rt)
         viewRuleFunc rt
         blazeForm lf link
-      div ! A.id "editRule" $ vrte
+      div ! A.class_ "editRule" $ vrte
 
 
 
