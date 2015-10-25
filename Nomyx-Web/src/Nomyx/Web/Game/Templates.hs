@@ -9,7 +9,7 @@ import           Control.Monad
 import           Control.Monad.State
 import           Data.Maybe
 import           Data.String
-import           Data.Text                   (Text)
+import           Data.Text                   (Text, unpack)
 import           Happstack.Server            (Method (..), Response, methodM,
                                               ok, seeOther, toResponse)
 import           Language.Nomyx
@@ -39,14 +39,12 @@ default (Integer, Double, Data.Text.Text)
 
 -- * Templates display
 
-viewRuleTemplates :: [RuleTemplate] -> GameName -> RoutedNomyxServer Html
-viewRuleTemplates rts gn = do
-  vrs <- mapM (viewRuleTemplate gn) rts
+viewRuleTemplates :: [RuleTemplate] -> Maybe LastRule -> GameName -> RoutedNomyxServer Html
+viewRuleTemplates rts mlr gn = do
+  vrs <- mapM (viewRuleTemplate gn mlr) rts
   ok $ do
     div ! class_ "ruleList" $ ul $ viewRuleTemplateNames rts
-    div ! class_ "rules" $ do
-
-      sequence_ vrs
+    div ! class_ "rules" $ sequence_ vrs
 
 viewRuleTemplateNames :: [RuleTemplate] -> Html
 viewRuleTemplateNames nrs = mapM_  viewRuleTemplateName nrs
@@ -54,16 +52,16 @@ viewRuleTemplateNames nrs = mapM_  viewRuleTemplateName nrs
 viewRuleTemplateName :: RuleTemplate -> Html
 viewRuleTemplateName rd = do
   let name = fromString $ _rName $ rd
-  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "#rule" ++ (_rName rd))
+  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "#" ++ (_rName rd))
 
-viewRuleTemplate :: GameName -> RuleTemplate -> RoutedNomyxServer Html
-viewRuleTemplate gn rt = do
+viewRuleTemplate :: GameName -> Maybe LastRule -> RuleTemplate -> RoutedNomyxServer Html
+viewRuleTemplate gn mlr rt = do
   link <- showURL (SubmitRule gn)
   lf  <- liftRouteT $ lift $ viewForm "user" (hiddenSubmitRuleTemplatForm (Just rt))
-  vrte <- viewRuleTemplateEdit (Just (rt, ""))
+  vrte <- viewRuleTemplateEdit (fromMaybe (rt, "") mlr) gn
   ok $ do
-    div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (_rName rt))) $ do
-      H.label ! A.for (toValue $ "isruleedit"  ++ (_rName rt)) $ "edit"
+    div ! A.class_ "rule" ! A.id (toValue $ _rName rt) $ do
+      H.label ! A.class_ "isruleeditlabel" ! A.for (toValue $ "isruleedit"  ++ (_rName rt)) $ "edit"
       H.input ! A.type_ "checkbox" ! A.class_ "isruleedit" ! A.id (toValue $ "isruleedit"  ++ (_rName rt))
       div ! A.class_ "viewrule" $ do
         let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
@@ -74,8 +72,6 @@ viewRuleTemplate gn rt = do
         viewRuleFunc rt
         blazeForm lf link
       div ! A.class_ "editRule" $ vrte
-
-
 
 hiddenSubmitRuleTemplatForm :: (Maybe RuleTemplate) -> NomyxForm String
 hiddenSubmitRuleTemplatForm rt = inputHidden (show rt)
@@ -124,10 +120,10 @@ submitRuleTemplatePost gn = toResponse <$> do
 -- * Template edit
 
 -- Edit a template
-viewRuleTemplateEdit :: Maybe LastRule -> RoutedNomyxServer Html
-viewRuleTemplateEdit mlr = do
-  link <- showURL NewRuleTemplate
-  lf  <- liftRouteT $ lift $ viewForm "user" (newRuleTemplateForm (fst <$> mlr) True)
+viewRuleTemplateEdit :: LastRule -> GameName -> RoutedNomyxServer Html
+viewRuleTemplateEdit lr gn = do
+  link <- showURL (NewRuleTemplate gn)
+  lf  <- liftRouteT $ lift $ viewForm "user" (newRuleTemplateForm (Just $ fst lr) True)
   ok $ div $ do
   --  let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
   --  h2 $ fromString $ _rName rt
@@ -136,16 +132,16 @@ viewRuleTemplateEdit mlr = do
   --  h2 $ fromString $ "authored by " ++ (_rAuthor rt)
   --  viewRuleFunc rt
    blazeForm lf link
+   fromString $ snd lr
 
 newRuleTemplateForm :: Maybe RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
-newRuleTemplateForm (Just sr) isGameAdmin = newRuleTemplateForm' sr isGameAdmin
-newRuleTemplateForm Nothing isGameAdmin = newRuleTemplateForm' (RuleTemplate "" "" "" "" Nothing []) isGameAdmin
+newRuleTemplateForm sr isGameAdmin = newRuleTemplateForm' (fromMaybe (RuleTemplate "" "" "" "" Nothing []) sr) isGameAdmin
 
 newRuleTemplateForm' :: RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
 newRuleTemplateForm' rt isGameAdmin =
   (,) <$> newRuleTemplateForm'' rt
-       <*> inputSubmit "Check"
-       -- <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
+      <*> inputSubmit "Check"
+      -- <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 
 newRuleTemplateForm'' :: RuleTemplate -> NomyxForm RuleTemplate
 newRuleTemplateForm'' (RuleTemplate name desc code aut pic cat) =
@@ -156,17 +152,26 @@ newRuleTemplateForm'' (RuleTemplate name desc code aut pic cat) =
               <*> pure Nothing
               <*> pure []
 
-newRuleTemplate :: RoutedNomyxServer Response
-newRuleTemplate = toResponse <$> do
+newRuleTemplate :: GameName -> RoutedNomyxServer Response
+newRuleTemplate gn = toResponse <$> do
   methodM POST
   s <- getSession
+  liftIO $ putStrLn "before"
   r <- liftRouteT $ lift $ eitherForm environment "user" (newRuleTemplateForm Nothing False)
-  link <- showURL MainPage
+  liftIO $ putStrLn "after"
   pn <- fromJust <$> getPlayerNumber
-  case r of
-     Right (rt, Nothing) -> webCommand $ S.newRuleTemplate rt pn (_sh s)
-     Right (rt, Just _)  -> webCommand $ S.checkRule rt pn (_sh s)
- --    Right (rt, Nothing, Just _)  -> webCommand $ adminSubmitRule (read rt) pn gn (_sh s)
+  ruleName <- case r of
+     Right (rt, Nothing) -> do
+       webCommand $ S.newRuleTemplate rt pn (_sh s)
+       return $ _rName rt
+     Right (rt, Just _)  -> do
+       webCommand $ S.checkRule rt pn (_sh s)
+       return $ _rName rt
+  --   Right (rt, Nothing, Just _)  -> webCommand $ adminSubmitRule (read rt) pn gn (_sh s)
  --    Right (_,  Just _, Just _)   -> error "Impossible new rule form result"
-     (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
-  seeOther (link `appendAnchor` ruleFormAnchor) $ "Redirecting..."
+     (Left _) -> do
+       liftIO $ putStrLn "cannot retrieve form data"
+       return ""
+  link <- showURLAnchor (Menu Library gn) (fromString ruleName)
+  liftIO $ putStrLn $ unpack link
+  seeOther link $ "Redirecting..."
