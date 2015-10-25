@@ -18,7 +18,7 @@ import qualified Data.ByteString.Char8               as C
 import           Data.Maybe
 import           Data.Monoid
 import           Data.String
-import           Data.Text                           (Text, append, unpack)
+import           Data.Text                           (Text, append, unpack, tail)
 import           Happstack.Authenticate.Core         (AuthenticateURL (..),
                                                       GetUserByUserId (..),
                                                       User, UserId (..),
@@ -50,6 +50,9 @@ import qualified Text.Reform.Generalized             as G
 import           Text.Reform.Happstack               ()
 import           Web.Routes.Happstack                ()
 import           Web.Routes.RouteT
+import           Web.Routes.Base
+import           Data.Char
+import           Numeric
 
 ruleFormAnchor, inputAnchor :: Text
 ruleFormAnchor = "RuleForm"
@@ -182,6 +185,12 @@ fieldRequired :: NomyxError -> String -> Either NomyxError String
 fieldRequired a []  = Left a
 fieldRequired _ str = Right str
 
+
+showURLAnchor  :: (MonadRoute m) => URL m -> Text -> m Text
+showURLAnchor url a = do
+  showFn <- askRouteFn
+  return $ (showFn url []) `append` "#" `append` (Data.Text.tail $ encodePathInfo [a] [])
+
 appendAnchor :: Text -> Text -> Text
 appendAnchor url a = url `append` "#" `append` a
 
@@ -196,15 +205,6 @@ numberOfGamesOwned gis pn = length $ filter (maybe False (==pn) . _ownedBy) gis
 
 getFirstGame :: Session -> Maybe GameInfo
 getFirstGame = headMay . filter _isPublic ._gameInfos . _multi
-
-showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
-showHideTitle id visible empty title rest = do
-   let id' = filter (/=' ') id
-   div $ table ! width "100%" $ tr $ do
-      td $ div title
-      td $ div $ a (if visible then "Click to hide" else "Click to show") ! A.id (fromString $ id' ++ "Show") ! A.class_ "button showHide" ! onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id' id')
-   div ! A.id (fromString $ id' ++ "Body") ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
-      if empty then toHtml "No Rules" else rest
 
 titleWithHelpIcon :: Html -> String -> Html
 titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do

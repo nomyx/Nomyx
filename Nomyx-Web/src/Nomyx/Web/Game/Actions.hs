@@ -122,7 +122,7 @@ inputForm' (CheckboxField _ _ choices) = CheckboxData <$> inputCheckboxes choice
 newInput :: EventNumber -> SignalAddress -> FormField -> GameName -> RoutedNomyxServer Response
 newInput en fa ft gn = toResponse <$> do
    pn <- fromJust <$> getPlayerNumber
-   link <- showURL MainPage
+   link <- showURL (Menu Rules gn)
    methodM POST
    r <- liftRouteT $ lift $ eitherForm environment "user" (inputForm' ft)
    case r of
