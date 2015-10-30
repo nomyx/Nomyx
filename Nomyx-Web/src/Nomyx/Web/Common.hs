@@ -110,11 +110,11 @@ appTemplate' title headers body footer link routeFn = do
       --H.link ! rel "stylesheet" ! type_ "text/css" ! href "http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css"
       H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
       H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
-      H.script ! A.type_ "text/JavaScript" ! A.src "/static/nomyx.js" $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src "http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js" $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src "http://ajax.googleapis.com/ajax/libs/angularjs/1.2.24/angular.min.js" $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src "http://ajax.googleapis.com/ajax/libs/angularjs/1.2.24/angular-route.min.js" $ ""
+      H.script ! A.type_ "text/JavaScript" ! A.src "/static/nomyx.js" $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src (textValue $ routeFn NomyxJS []) $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src (textValue $ routeFn (Auth Controllers) []) $ ""
    H.body ! onload "loadDivVisibility()"  ! customAttribute "ng-controller" "AuthenticationCtrl" ! customAttribute "ng-app" "NomyxApp" $ H.div ! A.id "container" $ do

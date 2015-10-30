@@ -83,3 +83,14 @@ function getCookies(cname) {
     }
     return results;
 }
+
+$(document).ready(function () {
+console.log("start");
+var url = window.location.href;
+var pieces = url.split("?ruleName=");
+
+
+console.log(pieces[1]);
+
+$('#pieces[1]').css('display', 'block');
+});
