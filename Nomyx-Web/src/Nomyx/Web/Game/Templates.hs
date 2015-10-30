@@ -43,11 +43,14 @@ viewRuleTemplates :: [RuleTemplate] -> Maybe LastRule -> GameName -> RoutedNomyx
 viewRuleTemplates rts mlr gn = do
   vrs <- mapM (viewRuleTemplate gn mlr) rts
   ok $ do
-    div ! class_ "ruleList" $ ul $ viewRuleTemplateNames rts
+    div ! class_ "ruleList" $ ul $ viewRuleTemplateNames rts mlr
     div ! class_ "rules" $ sequence_ vrs
 
-viewRuleTemplateNames :: [RuleTemplate] -> Html
-viewRuleTemplateNames nrs = mapM_  viewRuleTemplateName nrs
+viewRuleTemplateNames :: [RuleTemplate] -> Maybe LastRule -> Html
+viewRuleTemplateNames rts mlr = do
+  let allRules = rts ++ [(maybe (RuleTemplate "New Rule" "" "" "" Nothing []) fst mlr)]
+  mapM_  viewRuleTemplateName allRules
+
 
 viewRuleTemplateName :: RuleTemplate -> Html
 viewRuleTemplateName rd = do
@@ -113,8 +116,6 @@ submitRuleTemplatePost gn = toResponse <$> do
   --    Right (_,  Just _, Just _)   -> error "Impossible new rule form result"
       (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
    seeOther (link `appendAnchor` ruleFormAnchor) $ "Redirecting..."
-
-
 
 
 -- * Template edit
