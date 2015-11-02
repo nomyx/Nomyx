@@ -9,7 +9,7 @@ import           Control.Monad
 import           Control.Monad.State
 import           Data.Maybe
 import           Data.String
-import           Data.Text                   (Text, unpack)
+import           Data.Text                   (Text, pack, unpack)
 import           Data.Text.Encoding
 import           Happstack.Server            (Method (..), Response, methodM,
                                               ok, seeOther, toResponse)
@@ -34,7 +34,7 @@ import           Text.Reform.Blaze.String    (inputHidden, inputSubmit, label,
                                               textarea)
 import qualified Text.Reform.Blaze.String    as RB
 import           Text.Reform.Happstack       (environment)
-import           Web.Routes.RouteT           (liftRouteT, showURL)
+import           Web.Routes.RouteT           (liftRouteT, showURL, showURLParams)
 default (Integer, Double, Data.Text.Text)
 
 
@@ -62,7 +62,10 @@ viewRuleTemplate :: GameName -> Maybe LastRule -> RuleTemplate -> RoutedNomyxSer
 viewRuleTemplate gn mlr rt = do
   link <- showURL (SubmitRule gn)
   lf  <- liftRouteT $ lift $ viewForm "user" (hiddenSubmitRuleTemplatForm (Just rt))
-  vrte <- viewRuleTemplateEdit (fromMaybe (rt, "") mlr) gn
+  let editRule = case mlr of
+       Nothing -> (rt, "")
+       Just lr -> if ((_rName $ fst lr) == (_rName rt)) then lr else (rt, "")
+  vrte <- viewRuleTemplateEdit editRule gn
   ok $ do
     div ! A.class_ "rule" ! A.id (toValue $ urlEncodeString $ _rName rt) $ do
       div ! A.class_ "commandrule" $ do
@@ -110,7 +113,7 @@ submitRuleTemplatePost gn = toResponse <$> do
    let gi = getGameByName gn s
    admin <- isGameAdmin (fromJust gi)
    r <- liftRouteT $ lift $ eitherForm environment "user" (hiddenSubmitRuleTemplatForm Nothing)
-   link <- showURL MainPage
+   link <- showURL (Menu Actions gn)
    pn <- fromJust <$> getPlayerNumber
    case r of
       Right rt -> webCommand $ submitRule (fromJust $ read rt) pn gn (_sh s)
@@ -176,6 +179,5 @@ newRuleTemplate gn = toResponse <$> do
      (Left _) -> do
        liftIO $ putStrLn "cannot retrieve form data"
        return ""
-  link <- showURLAnchor (Menu Library gn) (fromString ruleName)
-  liftIO $ putStrLn $ unpack link
+  link <- showURLParams (Menu Library gn) [("ruleName", Just $ pack ruleName)]
   seeOther link $ "Redirecting..."
