@@ -97,10 +97,13 @@ function getQueryVariable(variable) {
 }
 
 $(document).ready(function () {
+    templateQuery();
+    ruleQuery();
+});
+
+function templateQuery() {
     var ruleName = getQueryVariable("ruleName")
     var isRuleEdit = getQueryVariable("edit")
-    console.log(ruleName)
-    console.log(isRuleEdit)
 
     $('[id="' + ruleName + '"]').css('display', 'block');
     if (isRuleEdit) {
@@ -108,4 +111,9 @@ $(document).ready(function () {
     } else {
        $('[id="' + ruleName + '"] .viewRule').css('display', 'block');
     }
-});
+}
+
+function ruleQuery() {
+    var ruleNumber = getQueryVariable("ruleNumber");
+    $('[id="rule' + ruleNumber + '"]').css('display', 'block');
+}

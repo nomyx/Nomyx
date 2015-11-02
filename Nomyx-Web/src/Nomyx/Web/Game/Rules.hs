@@ -44,7 +44,7 @@ viewRuleNames nrs = mapM_  viewRuleName nrs
 viewRuleName :: RuleInfo -> Html
 viewRuleName ri = do
   let name = fromString $ (show $ _rNumber ri) ++ " " ++ (_rName $ _rRuleTemplate ri)
-  li $ H.a name ! A.class_ "ruleName" ! (href $ toValue $ "#rule" ++ (show $ _rNumber ri))
+  li $ H.a name ! A.class_ "ruleName" ! (href $ toValue $ "?ruleNumber=" ++ (show $ _rNumber ri))
 
 viewRules :: PlayerNumber -> Game -> [RuleInfo] -> RoutedNomyxServer Html
 viewRules pn g nrs = do
