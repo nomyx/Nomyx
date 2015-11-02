@@ -129,17 +129,28 @@ checkRule sr@(RuleTemplate _ _ code _ _ _) pn sh = do
          modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
 newRuleTemplate :: RuleTemplate -> PlayerNumber -> ServerHandle -> StateT Session IO ()
-newRuleTemplate rt@(RuleTemplate _ _ code _ _ _) pn sh = do
+newRuleTemplate rt@(RuleTemplate name _ code _ _ _) pn sh = do
   tracePN pn $ "new template " ++ show rt
   mrr <- liftIO $ interpretRule code sh
   case mrr of
      Right _ -> do
         tracePN pn "proposed template rule compiled OK"
-        (multi . mLibrary) %= (rt:)
+        (multi . mLibrary) %= (addRT rt)
      Left e -> do
         let errorMsg = showInterpreterError e
         tracePN pn ("Error in submitted rule: " ++ errorMsg)
         modifyProfile pn (pLastRule .~ Just (rt, errorMsg))
+
+addRT :: RuleTemplate -> [RuleTemplate] -> [RuleTemplate]
+addRT rt rts = case (find (\rt' -> (_rName rt) == (_rName rt'))) rts of
+  (Just rt') -> replace rt' rt rts
+  Nothing -> rt:rts
+
+delRuleTemplate :: GameName -> RuleName -> PlayerNumber -> StateT Session IO ()
+delRuleTemplate gn rn pn = do
+  tracePN pn $ "del template " ++ show rn
+  (multi . mLibrary) %= filter (\rt -> _rName rt /= rn)
+
 
 inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> FormField -> InputData -> GameName -> StateT Session IO ()
 inputResult pn en fa ft ir gn = inGameDo gn $ execGameEvent $ InputResult pn en fa ft ir

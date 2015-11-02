@@ -55,6 +55,7 @@ data PlayerCommand =
   | SubmitRule   GameName
   -- Templates
   | NewRuleTemplate GameName
+  | DelRuleTemplate GameName RuleName
   -- File management
   | Upload
   --Settings

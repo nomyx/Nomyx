@@ -214,6 +214,7 @@ routedNomyxCommands (DoInput en fa ft g) = newInput en fa ft g
 routedNomyxCommands (SubmitRule game)    = submitRuleTemplatePost game
 -- Templates
 routedNomyxCommands (NewRuleTemplate game) = newRuleTemplate game
+routedNomyxCommands (DelRuleTemplate game rn) = delRuleTemplate game rn
 -- File management
 routedNomyxCommands Upload               = newUpload
 --Settings

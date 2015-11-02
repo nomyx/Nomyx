@@ -56,31 +56,42 @@ viewRuleTemplateNames rts mlr = do
 viewRuleTemplateName :: RuleTemplate -> Html
 viewRuleTemplateName rt = do
   let name = fromString $ _rName $ rt
-  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (urlEncodeString $ _rName rt))
+  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (idEncode $ _rName rt))
 
 viewRuleTemplate :: GameName -> Maybe LastRule -> RuleTemplate -> RoutedNomyxServer Html
 viewRuleTemplate gn mlr rt = do
-  link <- showURL (SubmitRule gn)
-  lf  <- liftRouteT $ lift $ viewForm "user" (hiddenSubmitRuleTemplatForm (Just rt))
-  let editRule = case mlr of
+  let toEdit = case mlr of
        Nothing -> (rt, "")
        Just lr -> if ((_rName $ fst lr) == (_rName rt)) then lr else (rt, "")
-  vrte <- viewRuleTemplateEdit editRule gn
-  ok $ do
-    div ! A.class_ "rule" ! A.id (toValue $ urlEncodeString $ _rName rt) $ do
-      div ! A.class_ "commandrule" $ do
-        let name = fromString $ _rName $ rt
-        p $ H.a "view" ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (urlEncodeString $ _rName rt))
-        p $ H.a "edit" ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (urlEncodeString $ _rName rt) ++ "&edit")
-      div ! A.class_ "viewrule" $ do
-        let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
-        h2 $ fromString $ _rName rt
-        img ! (A.src $ toValue $ pic)
-        h3 $ fromString $ _rDescription rt
-        h2 $ fromString $ "authored by " ++ (_rAuthor rt)
-        viewRuleFunc rt
-        blazeForm lf link
-      div ! A.class_ "editRule" $ vrte
+  com <- commandRule gn rt
+  view <- viewrule gn rt
+  edit <- viewRuleTemplateEdit toEdit gn
+  ok $ div ! A.class_ "rule" ! A.id (toValue $ idEncode $ _rName rt) $ do
+    com
+    view
+    edit
+
+commandRule :: GameName -> RuleTemplate -> RoutedNomyxServer Html
+commandRule gn rt = do
+  delLink <- showURL (DelRuleTemplate gn (_rName rt))
+  let idrt = idEncode $ _rName rt
+  ok $ div ! A.class_ "commandrule" $ do
+    p $ H.a "view"   ! (A.href $ toValue $ "?ruleName=" ++ idrt)
+    p $ H.a "edit"   ! (A.href $ toValue $ "?ruleName=" ++ idrt ++ "&edit")
+    p $ H.a "delete" ! (A.href $ toValue delLink)
+
+viewrule :: GameName -> RuleTemplate -> RoutedNomyxServer Html
+viewrule gn rt = do
+  lf  <- liftRouteT $ lift $ viewForm "user" (hiddenSubmitRuleTemplatForm (Just rt))
+  submitLink <- showURL (SubmitRule gn)
+  ok $ div ! A.class_ "viewrule" $ do
+    let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
+    h2 $ fromString $ _rName rt
+    img ! (A.src $ toValue $ pic)
+    h3 $ fromString $ _rDescription rt
+    h2 $ fromString $ "authored by " ++ (_rAuthor rt)
+    viewRuleFunc rt
+    blazeForm lf submitLink
 
 hiddenSubmitRuleTemplatForm :: (Maybe RuleTemplate) -> NomyxForm String
 hiddenSubmitRuleTemplatForm rt = inputHidden (show rt)
@@ -89,19 +100,8 @@ viewRuleFunc :: RuleTemplate -> Html
 viewRuleFunc rd = do
  let code = lines $ _rRuleCode rd
  let codeCutLines = 7
- --let ref = "openModalCode" ++ (show $ _rNumber ri) ++ "game" ++ gn
-
- --div ! A.id "showCodeLink" $ a ! (href $ toValue $ "#" ++ ref)  $ "show more..." >> br
  div ! A.id "codeDiv" $ displayCode $ unlines $ take codeCutLines code
  div $ when (length code >= codeCutLines) $ fromString "(...)"
- -- div ! A.id (toValue ref) ! class_ "modalDialog" $ do
- --    div $ do
- --       p "Code of the rule:"
- --       a ! href "#close" ! title "Close" ! class_ "close" $ "X"
- --       div ! A.id "modalCode" $ do
- --          displayCode $ unlines code
- --          br
-
 
 -- * Templates submit
 
@@ -117,11 +117,9 @@ submitRuleTemplatePost gn = toResponse <$> do
    pn <- fromJust <$> getPlayerNumber
    case r of
       Right rt -> webCommand $ submitRule (fromJust $ read rt) pn gn (_sh s)
-    --  Right (rt, Just _, Nothing)  -> webCommand $ checkRule (read rt) pn (_sh s)
-  --    Right (rt, Nothing, Just _)  -> webCommand $ adminSubmitRule (read rt) pn gn (_sh s)
-  --    Right (_,  Just _, Just _)   -> error "Impossible new rule form result"
+      Right rt -> webCommand $ adminSubmitRule (fromJust $ read rt) pn gn (_sh s)
       (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
-   seeOther (link `appendAnchor` ruleFormAnchor) $ "Redirecting..."
+   seeOther link $ "Redirecting..."
 
 
 -- * Template edit
@@ -131,15 +129,9 @@ viewRuleTemplateEdit :: LastRule -> GameName -> RoutedNomyxServer Html
 viewRuleTemplateEdit lr gn = do
   link <- showURL (NewRuleTemplate gn)
   lf  <- liftRouteT $ lift $ viewForm "user" (newRuleTemplateForm (Just $ fst lr) True)
-  ok $ div $ do
-  --  let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
-  --  h2 $ fromString $ _rName rt
-  --  img ! (A.src $ toValue $ pic)
-  --  h3 $ fromString $ _rDescription rt
-  --  h2 $ fromString $ "authored by " ++ (_rAuthor rt)
-  --  viewRuleFunc rt
-   blazeForm lf link
-   fromString $ snd lr
+  ok $ div ! A.class_ "editRule" $ do
+    blazeForm lf link
+    fromString $ snd lr
 
 newRuleTemplateForm :: Maybe RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
 newRuleTemplateForm sr isGameAdmin = newRuleTemplateForm' (fromMaybe (RuleTemplate "" "" "" "" Nothing []) sr) isGameAdmin
@@ -153,11 +145,11 @@ newRuleTemplateForm' rt isGameAdmin =
 newRuleTemplateForm'' :: RuleTemplate -> NomyxForm RuleTemplate
 newRuleTemplateForm'' (RuleTemplate name desc code aut pic cat) =
   RuleTemplate <$> RB.label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
-              <*> (RB.label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
-              <*> RB.label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
-              <*> pure ""
-              <*> pure Nothing
-              <*> pure []
+               <*> (RB.label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
+               <*> RB.label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
+               <*> pure ""
+               <*> pure Nothing
+               <*> pure []
 
 newRuleTemplate :: GameName -> RoutedNomyxServer Response
 newRuleTemplate gn = toResponse <$> do
@@ -174,10 +166,16 @@ newRuleTemplate gn = toResponse <$> do
      Right (rt, Just _)  -> do
        webCommand $ S.checkRule rt pn (_sh s)
        return $ _rName rt
-  --   Right (rt, Nothing, Just _)  -> webCommand $ adminSubmitRule (read rt) pn gn (_sh s)
- --    Right (_,  Just _, Just _)   -> error "Impossible new rule form result"
-     (Left _) -> do
+     _ -> do
        liftIO $ putStrLn "cannot retrieve form data"
        return ""
-  link <- showURLParams (Menu Library gn) [("ruleName", Just $ pack ruleName)]
+  link <- showURLParams (Menu Library gn) [("ruleName", Just $ pack $ idEncode ruleName)]
   seeOther link $ "Redirecting..."
+
+
+delRuleTemplate :: GameName -> RuleName -> RoutedNomyxServer Response
+delRuleTemplate gn rn = do
+  pn <- fromJust <$> getPlayerNumber
+  webCommand $ S.delRuleTemplate gn rn pn
+  link <- showURL (Menu Library gn)
+  seeOther link $ toResponse "Redirecting..."
