@@ -106,11 +106,15 @@ thead {
    display: none;
 }
 
-.viewRule {
+.commandrule {
+   text-align: right;
+}
+
+.viewrule {
    display:none;
 }
 
-.editRule {
+.editrule {
    display:none;
 }
 

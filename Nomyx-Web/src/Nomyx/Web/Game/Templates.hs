@@ -23,7 +23,7 @@ import           Nomyx.Web.Types
 import           Prelude                     hiding (div)
 import           Text.Blaze.Html5            as H (Html, a, div, h2, h3, h4,
                                                    img, input, label, li, pre,
-                                                   toValue, ul, (!))
+                                                   toValue, ul, (!), p)
 import           Text.Blaze.Html5.Attributes as A (class_, disabled, for, href,
                                                    id, placeholder, src, type_,
                                                    value)
@@ -65,8 +65,10 @@ viewRuleTemplate gn mlr rt = do
   vrte <- viewRuleTemplateEdit (fromMaybe (rt, "") mlr) gn
   ok $ do
     div ! A.class_ "rule" ! A.id (toValue $ urlEncodeString $ _rName rt) $ do
-      let name = fromString $ _rName $ rt
-      H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (urlEncodeString $ _rName rt) ++ "&edit")
+      div ! A.class_ "commandrule" $ do
+        let name = fromString $ _rName $ rt
+        p $ H.a "view" ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (urlEncodeString $ _rName rt))
+        p $ H.a "edit" ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (urlEncodeString $ _rName rt) ++ "&edit")
       div ! A.class_ "viewrule" $ do
         let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
         h2 $ fromString $ _rName rt
