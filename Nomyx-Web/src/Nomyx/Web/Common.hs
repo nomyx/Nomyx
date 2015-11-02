@@ -182,22 +182,12 @@ getPublicGames = do
    s <- getSession
    return $ filter ((== True) . _isPublic) (_gameInfos $ _multi s)
 
-
 fieldRequired :: NomyxError -> String -> Either NomyxError String
 fieldRequired a []  = Left a
 fieldRequired _ str = Right str
 
-
-showURLAnchor  :: (MonadRoute m) => URL m -> Text -> m Text
-showURLAnchor url a = do
-  showFn <- askRouteFn
-  return $ (showFn url []) `append` "#" `append` (Data.Text.tail $ encodePathInfo [a] [])
-
-appendAnchor :: Text -> Text -> Text
-appendAnchor url a = url `append` "#" `append` a
-
-urlEncodeString :: String -> String
-urlEncodeString t = map (\c -> if c==' ' then '+'; else c) t --C.unpack $ urlEncode True $ C.pack $ 
+idEncode :: String -> String
+idEncode t = map (\c -> if c==' ' then '+'; else c) t
 
 displayCode :: String -> Html
 displayCode s = preEscapedToHtml $ hscolour defaultColourPrefs False 0 s

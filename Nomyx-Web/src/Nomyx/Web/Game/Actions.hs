@@ -122,10 +122,10 @@ inputForm' (CheckboxField _ _ choices) = CheckboxData <$> inputCheckboxes choice
 newInput :: EventNumber -> SignalAddress -> FormField -> GameName -> RoutedNomyxServer Response
 newInput en fa ft gn = toResponse <$> do
    pn <- fromJust <$> getPlayerNumber
-   link <- showURL (Menu Rules gn)
+   link <- showURL (Menu Actions gn)
    methodM POST
    r <- liftRouteT $ lift $ eitherForm environment "user" (inputForm' ft)
    case r of
       (Right c) -> webCommand $ S.inputResult pn en fa ft c gn
       (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
-   seeOther (link `appendAnchor` inputAnchor) "Redirecting..."
+   seeOther link "Redirecting..."
