@@ -103,19 +103,15 @@ thead {
    padding: 6px;
    width: 75%;
    text-align: center;
-}
-
-.rule {
    display: none;
 }
 
-.isruleedit {
+.viewRule {
    display:none;
 }
 
-.isruleeditlabel {
-  text-align: right;
-  color:blue;
+.editRule {
+   display:none;
 }
 
 #ruleName {

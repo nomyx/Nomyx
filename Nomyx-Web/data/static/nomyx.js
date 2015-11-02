@@ -103,8 +103,9 @@ $(document).ready(function () {
     console.log(isRuleEdit)
 
     $('[id="' + ruleName + '"]').css('display', 'block');
-
-    if (isRuleEdit == true) {
-        $("#" + ruleName + ": .editRule").css('display', 'block');
+    if (isRuleEdit) {
+       $('[id="' + ruleName + '"] .editRule').css('display', 'block');
+    } else {
+       $('[id="' + ruleName + '"] .viewRule').css('display', 'block');
     }
 });

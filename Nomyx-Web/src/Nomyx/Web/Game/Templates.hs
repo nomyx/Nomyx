@@ -54,9 +54,9 @@ viewRuleTemplateNames rts mlr = do
 
 
 viewRuleTemplateName :: RuleTemplate -> Html
-viewRuleTemplateName rd = do
-  let name = fromString $ _rName $ rd
-  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (urlEncodeString $ _rName rd))
+viewRuleTemplateName rt = do
+  let name = fromString $ _rName $ rt
+  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (urlEncodeString $ _rName rt))
 
 viewRuleTemplate :: GameName -> Maybe LastRule -> RuleTemplate -> RoutedNomyxServer Html
 viewRuleTemplate gn mlr rt = do
@@ -65,7 +65,8 @@ viewRuleTemplate gn mlr rt = do
   vrte <- viewRuleTemplateEdit (fromMaybe (rt, "") mlr) gn
   ok $ do
     div ! A.class_ "rule" ! A.id (toValue $ urlEncodeString $ _rName rt) $ do
-      H.label ! A.class_ "isruleeditlabel" ! A.for (toValue $ "isruleedit"  ++ (_rName rt)) $ "edit"
+      let name = fromString $ _rName $ rt
+      H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (urlEncodeString $ _rName rt) ++ "&edit")
       div ! A.class_ "viewrule" $ do
         let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
         h2 $ fromString $ _rName rt
