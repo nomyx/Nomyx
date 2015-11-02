@@ -15,10 +15,12 @@ import           Control.Lens
 import           Control.Monad.State
 import           Data.Acid.Advanced                  (query')
 import qualified Data.ByteString.Char8               as C
+import           Data.Char
 import           Data.Maybe
 import           Data.Monoid
 import           Data.String
-import           Data.Text                           (Text, append, unpack, tail)
+import           Data.Text                           (Text, append, tail,
+                                                      unpack)
 import           Happstack.Authenticate.Core         (AuthenticateURL (..),
                                                       GetUserByUserId (..),
                                                       User, UserId (..),
@@ -26,15 +28,17 @@ import           Happstack.Authenticate.Core         (AuthenticateURL (..),
 import           Happstack.Server                    as HS
 import           Language.Haskell.HsColour.Colourise (defaultColourPrefs)
 import           Language.Haskell.HsColour.HTML      (hscolour)
-import           Language.Javascript.JMacro          (JStat(..), jLam,
-                                                      jVarTy, jhFromList,
-                                                      jmacro, toJExpr)
+import           Language.Javascript.JMacro          (JStat (..), jLam, jVarTy,
+                                                      jhFromList, jmacro,
+                                                      toJExpr)
 import           Language.Nomyx
+import           Network.HTTP.Types                  (urlEncode)
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Session
 import           Nomyx.Core.Types                    as T
 import           Nomyx.Web.Types
+import           Numeric
 import           Prelude                             hiding (div)
 import           Safe
 import           Text.Blaze.Html.Renderer.Utf8       (renderHtml)
@@ -48,11 +52,9 @@ import           Text.Reform                         (ErrorInputType, Form,
 import           Text.Reform.Blaze.String            ()
 import qualified Text.Reform.Generalized             as G
 import           Text.Reform.Happstack               ()
+import           Web.Routes.Base
 import           Web.Routes.Happstack                ()
 import           Web.Routes.RouteT
-import           Web.Routes.Base
-import           Data.Char
-import           Numeric
 
 ruleFormAnchor, inputAnchor :: Text
 ruleFormAnchor = "RuleForm"
@@ -193,6 +195,9 @@ showURLAnchor url a = do
 
 appendAnchor :: Text -> Text -> Text
 appendAnchor url a = url `append` "#" `append` a
+
+urlEncodeString :: String -> String
+urlEncodeString t = map (\c -> if c==' ' then '+'; else c) t --C.unpack $ urlEncode True $ C.pack $ 
 
 displayCode :: String -> Html
 displayCode s = preEscapedToHtml $ hscolour defaultColourPrefs False 0 s

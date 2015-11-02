@@ -10,6 +10,7 @@ import           Control.Monad.State
 import           Data.Maybe
 import           Data.String
 import           Data.Text                   (Text, unpack)
+import           Data.Text.Encoding
 import           Happstack.Server            (Method (..), Response, methodM,
                                               ok, seeOther, toResponse)
 import           Language.Nomyx
@@ -20,9 +21,9 @@ import           Nomyx.Web.Common            as NWC
 import qualified Nomyx.Web.Help              as Help
 import           Nomyx.Web.Types
 import           Prelude                     hiding (div)
-import           Text.Blaze.Html5            as H (Html, a, div, h2, h3, h4, img,
-                                                   input, li, pre, toValue, ul,
-                                                   (!), label)
+import           Text.Blaze.Html5            as H (Html, a, div, h2, h3, h4,
+                                                   img, input, label, li, pre,
+                                                   toValue, ul, (!))
 import           Text.Blaze.Html5.Attributes as A (class_, disabled, for, href,
                                                    id, placeholder, src, type_,
                                                    value)
@@ -55,7 +56,7 @@ viewRuleTemplateNames rts mlr = do
 viewRuleTemplateName :: RuleTemplate -> Html
 viewRuleTemplateName rd = do
   let name = fromString $ _rName $ rd
-  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "#" ++ (_rName rd))
+  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (urlEncodeString $ _rName rd))
 
 viewRuleTemplate :: GameName -> Maybe LastRule -> RuleTemplate -> RoutedNomyxServer Html
 viewRuleTemplate gn mlr rt = do
@@ -63,9 +64,8 @@ viewRuleTemplate gn mlr rt = do
   lf  <- liftRouteT $ lift $ viewForm "user" (hiddenSubmitRuleTemplatForm (Just rt))
   vrte <- viewRuleTemplateEdit (fromMaybe (rt, "") mlr) gn
   ok $ do
-    div ! A.class_ "rule" ! A.id (toValue $ _rName rt) $ do
+    div ! A.class_ "rule" ! A.id (toValue $ urlEncodeString $ _rName rt) $ do
       H.label ! A.class_ "isruleeditlabel" ! A.for (toValue $ "isruleedit"  ++ (_rName rt)) $ "edit"
-      H.input ! A.type_ "checkbox" ! A.class_ "isruleedit" ! A.id (toValue $ "isruleedit"  ++ (_rName rt))
       div ! A.class_ "viewrule" $ do
         let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
         h2 $ fromString $ _rName rt

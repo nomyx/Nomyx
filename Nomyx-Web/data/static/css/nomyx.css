@@ -105,10 +105,6 @@ thead {
    text-align: center;
 }
 
-.rule:target {
-   display: block;
-}
-
 .rule {
    display: none;
 }
@@ -120,22 +116,6 @@ thead {
 .isruleeditlabel {
   text-align: right;
   color:blue;
-}
-
-.isruleedit ~ .viewrule {
-   display:block;
-}
-
-.isruleedit ~ .editrule {
-   display:none;
-}
-
-.isruleedit:checked ~ .viewrule {
-   display:none;
-}
-
-.isruleedit:checked ~ .editrule {
-   display:block;
 }
 
 #ruleName {

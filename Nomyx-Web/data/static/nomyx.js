@@ -84,13 +84,27 @@ function getCookies(cname) {
     return results;
 }
 
+function getQueryVariable(variable) {
+    var query = window.location.search.substring(1);
+    var vars = query.split('&');
+    for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split('=');
+        if (decodeURIComponent(pair[0]) == variable) {
+            return decodeURIComponent(pair[1]);
+        }
+    }
+    console.log('Query variable %s not found', variable);
+}
+
 $(document).ready(function () {
-console.log("start");
-var url = window.location.href;
-var pieces = url.split("?ruleName=");
+    var ruleName = getQueryVariable("ruleName")
+    var isRuleEdit = getQueryVariable("edit")
+    console.log(ruleName)
+    console.log(isRuleEdit)
 
+    $('[id="' + ruleName + '"]').css('display', 'block');
 
-console.log(pieces[1]);
-
-$('#pieces[1]').css('display', 'block');
+    if (isRuleEdit == true) {
+        $("#" + ruleName + ": .editRule").css('display', 'block');
+    }
 });

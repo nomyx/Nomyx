@@ -29,6 +29,7 @@ library
                    happstack-authenticate == 2.1.*,
                    happstack-server       >= 7.3 && < 7.5,
                    hscolour               >= 1.22 && < 1.24,
+                   http-types             >= 0.8 && < 0.11,
                    jmacro                 >= 0.6 && < 0.7,
                    mtl                    >= 2.1 && < 2.3,
                    old-locale             == 1.0.*,
