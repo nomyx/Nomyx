@@ -12,7 +12,7 @@ import           Data.List
 import           Data.Maybe
 import           Data.Monoid
 import           Data.String
-import           Data.Text                   (Text)
+import           Data.Text                   (Text, pack)
 import           Happstack.Server            (Method (..), Response, methodM,
                                               ok, seeOther, toResponse)
 import           Language.Nomyx
@@ -23,14 +23,14 @@ import           Nomyx.Web.Common            as NWC
 import qualified Nomyx.Web.Help              as Help
 import           Nomyx.Web.Types
 import           Prelude                     hiding (div)
-import           Text.Blaze.Html5            (Html, a, br, div, h3, h4, pre,
-                                              table, td, toValue, tr, (!))
-import           Text.Blaze.Html5.Attributes as A (id)
+import           Text.Blaze.Html5            (Html, a, br, div, h3, h4,
+                                              pre, table, td, toValue, tr, (!))
+import           Text.Blaze.Html5.Attributes as A (id, href)
 import           Text.Reform                 (eitherForm, viewForm, (<++))
 import           Text.Reform.Blaze.String    (inputCheckboxes, label, textarea)
 import qualified Text.Reform.Blaze.String    as RB
 import           Text.Reform.Happstack       (environment)
-import           Web.Routes.RouteT           (liftRouteT, showURL)
+import           Web.Routes.RouteT           (liftRouteT, showURL, showURLParams)
 default (Integer, Double, Data.Text.Text)
 
 
@@ -44,9 +44,10 @@ viewIOs pn g = do
 
 viewIORule :: PlayerNumber -> Game -> RuleInfo -> RoutedNomyxServer Html
 viewIORule pn g r = do
+   ruleLink <- showURLParams (Menu Rules $ _gameName g) [("ruleNumber", Just $ pack $ show $ _rNumber r)]
    vior <- viewIORuleM pn (_rNumber r) g
    ok $ when (isJust vior) $ div ! A.id "IORule" $ do
-      div ! A.id "IORuleTitle" $ h4 $ fromString $ "Rule #" ++ (show $ _rNumber r) ++ " \"" ++ (_rName $ _rRuleTemplate r) ++ "\": "
+      div ! A.id "IORuleTitle" $ h4 $ a (fromString $ "Rule " ++ (show $ _rNumber r) ++ " \"" ++ (_rName $ _rRuleTemplate r) ++ "\": ") ! (A.href $ toValue ruleLink)
       fromJust vior
 
 viewIORuleM :: PlayerNumber -> RuleNumber -> Game -> RoutedNomyxServer (Maybe Html)

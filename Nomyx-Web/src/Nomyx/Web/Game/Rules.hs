@@ -54,10 +54,6 @@ viewRules pn g nrs = do
 viewRule :: PlayerNumber -> Game -> RuleInfo -> RoutedNomyxServer Html
 viewRule pn g ri = do
   ios <- viewIORule pn g ri
-  let assessedBy = case _rAssessedBy ri of
-       Nothing -> "not assessed"
-       Just 0  -> "the system"
-       Just a  -> "rule " ++ show a
   ok $ div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rNumber ri))) $ do
    let pl = fromMaybe ("Player " ++ (show $ _rProposedBy ri)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy ri))
    let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture $ _rRuleTemplate ri)
@@ -65,10 +61,12 @@ viewRule pn g ri = do
    img ! (A.src $ toValue $ pic)
    h3 $ fromString $ _rDescription $ _rRuleTemplate ri
    h2 $ fromString $ "proposed by " ++ (if _rProposedBy ri == 0 then "System" else pl)
+   let assessedBy = case _rAssessedBy ri of
+        Nothing -> fromString "not assessed"
+        Just 0  -> fromString "the system"
+        Just a  -> H.a (fromString $ "rule " ++ show a) ! (href $ toValue $ "?ruleNumber=" ++ (show a))
    case _rStatus ri of
-      Active -> (fromString $ "This rule was activated by " ++ assessedBy ++ ".") ! A.id "assessedBy"
-      Reject -> (fromString $ "This rule was deleted by " ++ assessedBy ++ ".") ! A.id "assessedBy"
+      Active -> (fromString "This rule was activated by ") >> assessedBy >> (fromString ".") ! A.id "assessedBy"
+      Reject -> (fromString "This rule was deleted by ") >> assessedBy >> (fromString ".") ! A.id "assessedBy"
       Pending -> return ()
    ios
-
---   td ! class_ "td" $ viewRuleFunc ri (_gameName g)
