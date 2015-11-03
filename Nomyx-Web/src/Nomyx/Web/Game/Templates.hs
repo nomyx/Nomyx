@@ -155,9 +155,7 @@ newRuleTemplate :: GameName -> RoutedNomyxServer Response
 newRuleTemplate gn = toResponse <$> do
   methodM POST
   s <- getSession
-  liftIO $ putStrLn "before"
   r <- liftRouteT $ lift $ eitherForm environment "user" (newRuleTemplateForm Nothing False)
-  liftIO $ putStrLn "after"
   pn <- fromJust <$> getPlayerNumber
   ruleName <- case r of
      Right (rt, Nothing) -> do
