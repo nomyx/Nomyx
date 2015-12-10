@@ -55,6 +55,7 @@ import           Text.Reform.Happstack               ()
 import           Web.Routes.Base
 import           Web.Routes.Happstack                ()
 import           Web.Routes.RouteT
+import           Web.Routes.PathInfo
 
 ruleFormAnchor, inputAnchor :: Text
 ruleFormAnchor = "RuleForm"
@@ -91,9 +92,8 @@ mainPage' title header footer body = do
 
 mainPage :: String -> Html -> Html -> Bool -> Bool -> RoutedNomyxServer Html
 mainPage title header body footer backLink = do
-   link <- showURL MainPage
    routeFn <- askRouteFn
-   ok $ --if backLink then appTemplate' title header body footer (Just $ unpack link) routeFn
+   ok $ --if backLink then appTemplate' title header body footer (Just $ unpack $ showRelURL MainPage) routeFn
                      appTemplate' title header body footer Nothing routeFn
 
 appTemplate' ::
@@ -206,10 +206,16 @@ titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
    td ! A.style "text-align:left;" $ myTitle
    td ! A.style "text-align:right;" $ img ! src "/static/pictures/help.jpg" ! A.title (toValue help)
 
-defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
-defLink a logged = if logged then showURL a else showURL Login
+defLink :: PlayerCommand -> Bool -> Text
+defLink a logged = if logged then showRelURL a else showRelURL Login
 
 trim = unwords . words
+
+showRelURL :: PlayerCommand -> Text
+showRelURL c = "/Nomyx" <> (toPathInfo c)
+
+showRelURLParams :: PlayerCommand -> [(Text, Maybe Text)] -> Text
+showRelURLParams c ps = "/Nomyx" <> (toPathInfoParams c ps)
 
 -- | app module for angulasjs
 --

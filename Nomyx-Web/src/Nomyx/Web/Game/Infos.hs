@@ -55,38 +55,33 @@ viewGameDesc g mpn playAs gameAdmin = do
       modJoin >> modLeave >> modDel
 
 modalWindow :: Text -> String -> String -> String -> RoutedNomyxServer Html
-modalWindow link buttonTitle question modelRef = do
-   main  <- showURL MainPage
-   ok $ do
+modalWindow link buttonTitle question modelRef = ok $ do
       div ! A.id (toValue $ modelRef) ! A.class_ "modalWindow" $ do
          div $ do
             h2 (fromString question)
-            a "Cancel"                 ! (href $ toValue main) ! A.class_ "modalButton"
+            a "Cancel"                 ! (href $ toValue $ showRelURL MainPage) ! A.class_ "modalButton"
             a (fromString buttonTitle) ! (href $ toValue link) ! A.class_ "modalButton"
 
 modalLeave :: GameName -> Bool -> RoutedNomyxServer Html
-modalLeave gn logged = do
-   leave <- defLink (LeaveGame gn) logged
-   modalWindow leave
-               "Leave"
-               "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
-               ("openModalLeave" ++ gn)
+modalLeave gn logged = modalWindow
+   (defLink (LeaveGame gn) logged)
+   "Leave"
+   "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
+   ("openModalLeave" ++ gn)
 
 modalJoin :: GameName -> Bool -> RoutedNomyxServer Html
-modalJoin gn logged = do
-   join  <- defLink (JoinGame gn) logged
-   modalWindow join
-               "Join"
-               "Joining the game. Please register in the forum (see the link) and introduce yourself to the other players! If you do not whish to play, you can just view the game."
-               ("openModalJoin" ++ gn)
+modalJoin gn logged = modalWindow
+   (defLink (JoinGame gn) logged)
+   "Join"
+   "Joining the game. Please register in the forum (see the link) and introduce yourself to the other players! If you do not whish to play, you can just view the game."
+   ("openModalJoin" ++ gn)
 
 modalDel :: GameName -> Bool -> RoutedNomyxServer Html
-modalDel gn logged = do
-   del   <- defLink (DelGame gn) logged
-   modalWindow del
-               "Delete"
-               ("Delete the game " ++ gn ++ " ?")
-               ("openModalDel" ++ gn)
+modalDel gn logged = modalWindow
+   (defLink (DelGame gn) logged)
+   "Delete"
+   ("Delete the game " ++ gn ++ " ?")
+   ("openModalDel" ++ gn)
 
 viewPlayers :: [PlayerInfo] -> GameName -> Bool -> RoutedNomyxServer Html
 viewPlayers pis gn gameAdmin = do
@@ -111,16 +106,14 @@ viewPlayer gn gameAdmin (PlayerInfo pn name _) = do
 
 playAsDiv :: PlayerNumber -> GameName -> RoutedNomyxServer Html
 playAsDiv pn gn = do
-   submitPlayAs <- showURL $ SubmitPlayAs gn
-   main  <- showURL MainPage
    paf <- liftRouteT $ lift $ viewForm "user" $ playAsForm $ Just pn
    ok $ do
-      let cancel = a "Cancel" ! (href $ toValue main) ! A.class_ "modalButton"
+      let cancel = a "Cancel" ! (href $ toValue $ showRelURL MainPage) ! A.class_ "modalButton"
       div ! A.id (toValue $ "openModalPlayAs" ++ show pn) ! A.class_ "modalWindow" $ do
          div $ do
             h2 $ fromString $ "When you are in a private game, you can play instead of any players. This allows you to test " ++
                "the result of their actions."
-            blazeForm (h2 (fromString $ "Play as player " ++ show pn ++ "?  ") >> paf) submitPlayAs
+            blazeForm (h2 (fromString $ "Play as player " ++ show pn ++ "?  ") >> paf) (showRelURL $ SubmitPlayAs gn)
             br
             cancel
 
@@ -143,8 +136,5 @@ newPlayAs gn = toResponse <$> do
    case p of
       Right playAs -> do
          webCommand $ S.playAs (read playAs) pn gn
-         link <- showURL MainPage
-         seeOther link "Redirecting..."
-      (Left errorForm) -> do
-         settingsLink <- showURL $ SubmitPlayAs gn
-         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
+         seeOther (showRelURL MainPage) "Redirecting..."
+      (Left errorForm) -> mainPage  "Admin settings" "Admin settings" (blazeForm errorForm $ showRelURL $ SubmitPlayAs gn) False True

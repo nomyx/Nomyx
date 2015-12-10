@@ -30,7 +30,7 @@ import           Text.Reform                 (eitherForm, viewForm, (<++))
 import           Text.Reform.Blaze.String    (inputCheckboxes, label, textarea)
 import qualified Text.Reform.Blaze.String    as RB
 import           Text.Reform.Happstack       (environment)
-import           Web.Routes.RouteT           (liftRouteT, showURL, showURLParams)
+import           Web.Routes.RouteT           (liftRouteT)
 default (Integer, Double, Data.Text.Text)
 
 
@@ -44,7 +44,7 @@ viewIOs pn g = do
 
 viewIORule :: PlayerNumber -> Game -> RuleInfo -> RoutedNomyxServer Html
 viewIORule pn g r = do
-   ruleLink <- showURLParams (Menu Rules $ _gameName g) [("ruleNumber", Just $ pack $ show $ _rNumber r)]
+   let ruleLink = showRelURLParams (Menu Rules $ _gameName g) [("ruleNumber", Just $ pack $ show $ _rNumber r)]
    vior <- viewIORuleM pn (_rNumber r) g
    ok $ when (isJust vior) $ div ! A.id "IORule" $ do
       div ! A.id "IORuleTitle" $ h4 $ a (fromString $ "Rule " ++ (show $ _rNumber r) ++ " \"" ++ (_rName $ _rRuleTemplate r) ++ "\": ") ! (A.href $ toValue ruleLink)
@@ -91,7 +91,7 @@ viewInput _ _ _ = return Nothing
 viewInput' :: PlayerNumber -> GameName -> EventNumber -> (SignalAddress, SomeSignal) -> RoutedNomyxServer (Maybe Html)
 viewInput' me gn en (fa, ev@(SomeSignal (Input pn title _))) | me == pn = do
   lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm ev
-  link <- showURL (DoInput en fa (fromJust $ getFormField ev) gn)
+  let link = showRelURL (DoInput en fa (fromJust $ getFormField ev) gn)
   return $ Just $ tr $ td $ do
      fromString title
      fromString " "
@@ -123,10 +123,9 @@ inputForm' (CheckboxField _ _ choices) = CheckboxData <$> inputCheckboxes choice
 newInput :: EventNumber -> SignalAddress -> FormField -> GameName -> RoutedNomyxServer Response
 newInput en fa ft gn = toResponse <$> do
    pn <- fromJust <$> getPlayerNumber
-   link <- showURL (Menu Actions gn)
    methodM POST
    r <- liftRouteT $ lift $ eitherForm environment "user" (inputForm' ft)
    case r of
       (Right c) -> webCommand $ S.inputResult pn en fa ft c gn
       (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
-   seeOther link "Redirecting..."
+   seeOther (showRelURL $ Menu Actions gn) "Redirecting..."

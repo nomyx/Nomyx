@@ -34,7 +34,7 @@ import           Text.Reform.Blaze.String    (inputHidden, inputSubmit, label,
                                               textarea)
 import qualified Text.Reform.Blaze.String    as RB
 import           Text.Reform.Happstack       (environment)
-import           Web.Routes.RouteT           (liftRouteT, showURL, showURLParams)
+import           Web.Routes.RouteT           (liftRouteT)
 default (Integer, Double, Data.Text.Text)
 
 
@@ -73,7 +73,7 @@ viewRuleTemplate gn mlr rt = do
 
 commandRule :: GameName -> RuleTemplate -> RoutedNomyxServer Html
 commandRule gn rt = do
-  delLink <- showURL (DelRuleTemplate gn (_rName rt))
+  let delLink = showRelURL (DelRuleTemplate gn (_rName rt))
   let idrt = idEncode $ _rName rt
   ok $ div ! A.class_ "commandrule" $ do
     p $ H.a "view"   ! (A.href $ toValue $ "?ruleName=" ++ idrt)
@@ -83,7 +83,6 @@ commandRule gn rt = do
 viewrule :: GameName -> RuleTemplate -> RoutedNomyxServer Html
 viewrule gn rt = do
   lf  <- liftRouteT $ lift $ viewForm "user" (hiddenSubmitRuleTemplatForm (Just rt))
-  submitLink <- showURL (SubmitRule gn)
   ok $ div ! A.class_ "viewrule" $ do
     let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
     h2 $ fromString $ _rName rt
@@ -91,7 +90,7 @@ viewrule gn rt = do
     h3 $ fromString $ _rDescription rt
     h2 $ fromString $ "authored by " ++ (_rAuthor rt)
     viewRuleFunc rt
-    blazeForm lf submitLink
+    blazeForm lf $ showRelURL (SubmitRule gn)
 
 hiddenSubmitRuleTemplatForm :: (Maybe RuleTemplate) -> NomyxForm String
 hiddenSubmitRuleTemplatForm rt = inputHidden (show rt)
@@ -113,13 +112,12 @@ submitRuleTemplatePost gn = toResponse <$> do
    let gi = getGameByName gn s
    admin <- isGameAdmin (fromJust gi)
    r <- liftRouteT $ lift $ eitherForm environment "user" (hiddenSubmitRuleTemplatForm Nothing)
-   link <- showURL (Menu Actions gn)
    pn <- fromJust <$> getPlayerNumber
    case r of
       Right rt -> webCommand $ submitRule (fromJust $ read rt) pn gn (_sh s)
       Right rt -> webCommand $ adminSubmitRule (fromJust $ read rt) pn gn (_sh s)
       (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
-   seeOther link $ "Redirecting..."
+   seeOther (showRelURL $ Menu Actions gn) $ "Redirecting..."
 
 
 -- * Template edit
@@ -127,10 +125,9 @@ submitRuleTemplatePost gn = toResponse <$> do
 -- Edit a template
 viewRuleTemplateEdit :: LastRule -> GameName -> RoutedNomyxServer Html
 viewRuleTemplateEdit lr gn = do
-  link <- showURL (NewRuleTemplate gn)
   lf  <- liftRouteT $ lift $ viewForm "user" (newRuleTemplateForm (Just $ fst lr) True)
   ok $ div ! A.class_ "editRule" $ do
-    blazeForm lf link
+    blazeForm lf $ showRelURL $ NewRuleTemplate gn
     fromString $ snd lr
 
 newRuleTemplateForm :: Maybe RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
@@ -167,7 +164,7 @@ newRuleTemplate gn = toResponse <$> do
      _ -> do
        liftIO $ putStrLn "cannot retrieve form data"
        return ""
-  link <- showURLParams (Menu Library gn) [("ruleName", Just $ pack $ idEncode ruleName)]
+  let link = showRelURLParams (Menu Library gn) [("ruleName", Just $ pack $ idEncode ruleName)]
   seeOther link $ "Redirecting..."
 
 
@@ -175,5 +172,4 @@ delRuleTemplate :: GameName -> RuleName -> RoutedNomyxServer Response
 delRuleTemplate gn rn = do
   pn <- fromJust <$> getPlayerNumber
   webCommand $ S.delRuleTemplate gn rn pn
-  link <- showURL (Menu Library gn)
-  seeOther link $ toResponse "Redirecting..."
+  seeOther (showRelURL $ Menu Library gn) $ toResponse "Redirecting..."

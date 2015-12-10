@@ -47,7 +47,7 @@ import           Text.Blaze.Html5.Attributes           hiding (dir, id)
 import qualified Text.Blaze.Html5.Attributes           as A
 import           Web.Routes.Happstack
 import           Web.Routes.PathInfo
-import           Web.Routes.RouteT                     (showURLParams, showURL, runRouteT)
+import           Web.Routes.RouteT                     (runRouteT)
 import           Web.Routes.Site
 
 default (Integer, Double, Data.Text.Text)
@@ -74,21 +74,13 @@ viewGamesTab gi isAdmin saveDir mpn = do
    let gn = _gameName g
    let vgi = viewGameName isAdmin mpn
    fmods <- liftIO $ getUploadedModules saveDir
-   advLink   <- defLink Advanced (isJust mpn)
-   logoutURL <- showURL Login
-   loginURL  <- showURL Login
-   home      <- showURL (Menu Home gn)
-   rules     <- showURL (Menu Rules gn)
-   actions   <- showURL (Menu Actions gn)
-   library   <- showURL (Menu Library gn)
-   details   <- showURL (Menu Details gn)
    ok $ do
      table $ do
-       tr $ td ! A.class_ "buttonTD" $ H.a "Home "       ! A.class_ "button" ! href (toValue home)
-       tr $ td ! A.class_ "buttonTD" $ H.a "Rules "      ! A.class_ "button" ! href (toValue rules)
-       tr $ td ! A.class_ "buttonTD" $ H.a "My actions " ! A.class_ "button" ! href (toValue actions)
-       tr $ td ! A.class_ "buttonTD" $ H.a "Library "    ! A.class_ "button" ! href (toValue library)
-       tr $ td ! A.class_ "buttonTD" $ H.a "Details "    ! A.class_ "button" ! href (toValue details)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Home "       ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Home gn)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Rules "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Rules gn)
+       tr $ td ! A.class_ "buttonTD" $ H.a "My actions " ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Actions gn)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Library "    ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Library gn)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Details "    ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Details gn)
      br >> b "Help files:" >> br
      H.a "Rules examples"    ! (href "/html/Language-Nomyx-Examples.html") ! target "_blank" >> br
      H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br
@@ -96,9 +88,9 @@ viewGamesTab gi isAdmin saveDir mpn = do
        br >> b "Uploaded files:" >> br
        mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : uploadDir </> f)) >> br) (sort fmods)
      br >> b "Settings:" >> br
-     H.a "Advanced"        ! (href $ toValue advLink) >> br
-     H.a "Logout"          ! (href $ toValue logoutURL) >> br
-     H.a "Login"           ! (href $ toValue loginURL) >> br
+     H.a "Advanced"        ! (href $ toValue $ defLink Advanced (isJust mpn)) >> br
+     H.a "Logout"          ! (href $ toValue $ showRelURL Login) >> br
+     H.a "Login"           ! (href $ toValue $ showRelURL Login) >> br
 
 viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> GameTab -> [RuleTemplate] -> RoutedNomyxServer Html
 viewGameInfo gi mpn mlr isAdmin gt lib = do
@@ -126,7 +118,6 @@ viewGames gis isAdmin saveDir mpn = do
    let vgi = viewGameName isAdmin mpn
    public <- mapM vgi (fst publicPrivate)
    private <- mapM vgi (snd publicPrivate)
-   newGameLink  <- defLink NewGame (isJust mpn)
    ok $ do
       case public of
          [] -> b "No public games"
@@ -142,7 +133,7 @@ viewGames gis isAdmin saveDir mpn = do
             b "Private games:"
             table $ sequence_ p
       br
-      when canCreateGame $ H.a "Create a new game" ! (href $ toValue newGameLink) >> br
+      when canCreateGame $ H.a "Create a new game" ! (href $ toValue $ defLink NewGame (isJust mpn)) >> br
 
 viewGameName :: Bool -> (Maybe PlayerNumber) -> GameInfo -> RoutedNomyxServer Html
 viewGameName isAdmin mpn gi = do
@@ -157,21 +148,18 @@ joinGame :: GameName -> RoutedNomyxServer Response
 joinGame gn = do
    pn <- fromJust <$> getPlayerNumber
    webCommand (S.joinGame gn pn)
-   link <- showURL MainPage
-   seeOther link $ toResponse "Redirecting..."
+   seeOther (showRelURL MainPage) $ toResponse "Redirecting..."
 
 leaveGame :: GameName -> RoutedNomyxServer Response
 leaveGame gn = do
    pn <- fromJust <$> getPlayerNumber
    webCommand (S.leaveGame gn pn)
-   link <- showURL MainPage
-   seeOther link $ toResponse "Redirecting..."
+   seeOther (showRelURL MainPage) $ toResponse "Redirecting..."
 
 delGame :: GameName -> RoutedNomyxServer Response
 delGame gn = do
    webCommand (S.delGame gn)
-   link <- showURL MainPage
-   seeOther link $ toResponse "Redirecting..."
+   seeOther (showRelURL MainPage) $ toResponse "Redirecting..."
 
 nomyxPage :: Maybe GameName -> GameTab -> RoutedNomyxServer Response
 nomyxPage mgn tab = do
@@ -256,9 +244,7 @@ catchRouteError :: RoutedNomyxServer Response -> RoutedNomyxServer Response
 catchRouteError page = page `catchError` const backToLogin where
 
 backToLogin :: RoutedNomyxServer Response
-backToLogin = toResponse <$> do
-   link <- showURL Login
-   seeOther link ("Redirecting..." :: String)
+backToLogin = toResponse <$> seeOther (showRelURL Login) ("Redirecting..." :: String)
 
 getDocDir :: IO FilePath
 getDocDir = do
