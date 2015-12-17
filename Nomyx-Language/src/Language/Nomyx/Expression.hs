@@ -35,7 +35,7 @@ type RuleCode = String
 type EventNumber = Int
 type EventName = String
 type VarName = String
-type Code = String
+type Module = String
 type OutputNumber = Int
 type InputNumber = Int
 
@@ -262,21 +262,22 @@ instance Ord EventInfo where
 type Rule = Nomex ()
 
 -- | An informationnal structure about a rule
-data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the rule (must be unique)
-                           _rProposedBy  :: PlayerNumber,     -- player proposing the rule
-                           _rRule        :: Rule,             -- function representing the rule (interpreted from rRuleCode)
-                           _rStatus      :: RuleStatus,       -- status of the rule
-                           _rAssessedBy  :: Maybe RuleNumber, -- which rule accepted or rejected this rule
+data RuleInfo = RuleInfo { _rNumber       :: RuleNumber,       -- number of the rule (must be unique)
+                           _rProposedBy   :: PlayerNumber,     -- player proposing the rule
+                           _rRule         :: Rule,             -- function representing the rule (interpreted from rRuleCode)
+                           _rStatus       :: RuleStatus,       -- status of the rule
+                           _rAssessedBy   :: Maybe RuleNumber, -- which rule accepted or rejected this rule
                            _rRuleTemplate :: RuleTemplate}
                            deriving (Typeable, Show)
 
 
-data RuleTemplate = RuleTemplate { _rName        :: RuleName,         -- short name of the rule
-                                 _rDescription :: String,           -- description of the rule
-                                 _rRuleCode    :: Code,             -- code of the rule as a string
-                                 _rAuthor      :: String,           -- the name of the original author
-                                 _rPicture     :: Maybe FilePath,   -- a file name for the illustration image
-                                 _rCategory    :: [String]}         -- categories
+data RuleTemplate = RuleTemplate { _rName       :: RuleName,         -- short name of the rule
+                                 _rDescription  :: String,           -- description of the rule
+                                 _rRuleCode     :: RuleCode,         -- code of the rule as a string
+                                 _rAuthor       :: String,           -- the name of the original author
+                                 _rPicture      :: Maybe FilePath,   -- a file name for the illustration image
+                                 _rCategory     :: [String],         -- categories
+                                 _rDeclarations :: [Module]}         -- addictional declarations (Haskell modules)
                                  deriving (Typeable, Show, Read, Data)
 
 instance Eq RuleInfo where

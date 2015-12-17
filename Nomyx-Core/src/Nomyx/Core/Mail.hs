@@ -41,7 +41,7 @@ sendMail to obj htmlBody textBody = do
 
 
 newRuleHtmlBody :: PlayerName -> RuleTemplate -> PlayerName -> Network -> Html
-newRuleHtmlBody playerName (RuleTemplate name desc code _ _ _) prop net = docTypeHtml $ do
+newRuleHtmlBody playerName (RuleTemplate name desc code _ _ _ _) prop net = docTypeHtml $ do
    toHtml ("Dear " ++ playerName ++ ",") >> H.br
    toHtml ("a new rule has been proposed by player " ++ prop ++ ".") >> H.br
    toHtml ("Name: " ++ name) >> H.br
@@ -52,7 +52,7 @@ newRuleHtmlBody playerName (RuleTemplate name desc code _ _ _) prop net = docTyp
    toHtml "You received this mail because you subscribed to Nomyx. To stop receiving mails, login to Nomyx with the above address, go to Settings and uncheck the corresponding box." >> H.br
 
 newRuleTextBody :: PlayerName -> RuleTemplate -> PlayerName -> Network -> String
-newRuleTextBody playerName (RuleTemplate name desc code _ _ _) prop net =
+newRuleTextBody playerName (RuleTemplate name desc code _ _ _ _) prop net =
    "Dear " ++ playerName ++ ",\n" ++
    "a new rule has been proposed by player " ++ prop ++ ".\n" ++
    "Name: " ++ name ++ "\n" ++

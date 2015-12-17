@@ -49,7 +49,7 @@ viewRuleTemplates rts mlr gn = do
 
 viewRuleTemplateNames :: [RuleTemplate] -> Maybe LastRule -> Html
 viewRuleTemplateNames rts mlr = do
-  let allRules = rts ++ [(maybe (RuleTemplate "New Rule" "" "" "" Nothing []) fst mlr)]
+  let allRules = rts ++ [(maybe (RuleTemplate "New Rule" "" "" "" Nothing [] []) fst mlr)]
   mapM_  viewRuleTemplateName allRules
 
 
@@ -131,7 +131,7 @@ viewRuleTemplateEdit lr gn = do
     fromString $ snd lr
 
 newRuleTemplateForm :: Maybe RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
-newRuleTemplateForm sr isGameAdmin = newRuleTemplateForm' (fromMaybe (RuleTemplate "" "" "" "" Nothing []) sr) isGameAdmin
+newRuleTemplateForm sr isGameAdmin = newRuleTemplateForm' (fromMaybe (RuleTemplate "" "" "" "" Nothing [] []) sr) isGameAdmin
 
 newRuleTemplateForm' :: RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
 newRuleTemplateForm' rt isGameAdmin =
@@ -140,12 +140,13 @@ newRuleTemplateForm' rt isGameAdmin =
       -- <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 
 newRuleTemplateForm'' :: RuleTemplate -> NomyxForm RuleTemplate
-newRuleTemplateForm'' (RuleTemplate name desc code aut pic cat) =
+newRuleTemplateForm'' (RuleTemplate name desc code aut pic cat _) =
   RuleTemplate <$> RB.label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
                <*> (RB.label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
                <*> RB.label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
                <*> pure ""
                <*> pure Nothing
+               <*> pure []
                <*> pure []
 
 newRuleTemplate :: GameName -> RoutedNomyxServer Response

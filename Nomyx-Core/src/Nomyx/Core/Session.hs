@@ -84,7 +84,7 @@ leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
 
 -- | insert a rule in pending rules.
 submitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-submitRule rt@(RuleTemplate _ _ code _ _ _) pn gn sh = do
+submitRule rt@(RuleTemplate _ _ code _ _ _ _) pn gn sh = do
    tracePN pn $ "proposed " ++ show rt
    mrr <- liftIO $ interpretRule code sh
    s <- get
@@ -98,7 +98,7 @@ submitRule rt@(RuleTemplate _ _ code _ _ _) pn gn sh = do
       Left e -> submitRuleError rt pn gn e
 
 adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-adminSubmitRule sr@(RuleTemplate _ _ code _ _ _) pn gn sh = do
+adminSubmitRule sr@(RuleTemplate _ _ code _ _ _ _) pn gn sh = do
    tracePN pn $ "admin proposed " ++ show sr
    mrr <- liftIO $ interpretRule code sh
    case mrr of
@@ -116,7 +116,7 @@ submitRuleError sr pn gn e = do
    modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
 checkRule :: RuleTemplate -> PlayerNumber -> ServerHandle -> StateT Session IO ()
-checkRule sr@(RuleTemplate _ _ code _ _ _) pn sh = do
+checkRule sr@(RuleTemplate _ _ code _ _ _ _) pn sh = do
    tracePN pn $ "check rule " ++ show sr
    mrr <- liftIO $ interpretRule code sh
    case mrr of
@@ -129,7 +129,7 @@ checkRule sr@(RuleTemplate _ _ code _ _ _) pn sh = do
          modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
 newRuleTemplate :: RuleTemplate -> PlayerNumber -> ServerHandle -> StateT Session IO ()
-newRuleTemplate rt@(RuleTemplate name _ code _ _ _) pn sh = do
+newRuleTemplate rt@(RuleTemplate name _ code _ _ _ _) pn sh = do
   tracePN pn $ "new template " ++ show rt
   mrr <- liftIO $ interpretRule code sh
   case mrr of

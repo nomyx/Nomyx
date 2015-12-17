@@ -51,6 +51,7 @@ rVoteUnanimity = RuleTemplate "Unanimity Vote"
                             "Kau"
                             (Just "democracy.png")
                             []
+                            []
 
 rVictory5Rules :: RuleTemplate
 rVictory5Rules = RuleTemplate "Victory 5 accepted rules"
@@ -59,6 +60,7 @@ rVictory5Rules = RuleTemplate "Victory 5 accepted rules"
                             "Kau"
                             Nothing
                             []
+                            []
 
 rVoteMajority :: RuleTemplate
 rVoteMajority = RuleTemplate "Majority Vote"
@@ -66,6 +68,7 @@ rVoteMajority = RuleTemplate "Majority Vote"
                             [cr|onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDay|]
                             "Kau"
                             Nothing
+                            []
                             []
 
 

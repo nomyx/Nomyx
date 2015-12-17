@@ -24,7 +24,6 @@ type Port = Int
 type CompileError = String
 type LastRule = (RuleTemplate, String)
 
-
 data LastUpload = NoUpload
                 | UploadSuccess
                 | UploadFailure (FilePath, CompileError)
