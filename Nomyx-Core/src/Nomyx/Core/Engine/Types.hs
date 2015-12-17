@@ -43,6 +43,8 @@ type Evaluate   a = ErrorT String (State EvalEnv ) a
 -- | Environment necessary for the evaluation of NomexNE
 type EvaluateNE a = Reader EvalEnv a
 
+type InterpretRule = RuleCode -> IO Rule
+
 -- * Game
 
 type GameName = String
@@ -166,7 +168,6 @@ data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
                  _lTime         :: UTCTime,
                  _lMsg          :: String}
                  deriving (Show)
-
 
 makeLenses ''Game
 makeLenses ''GameDesc
