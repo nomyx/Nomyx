@@ -78,8 +78,8 @@ leaveGame pn = runSystemEval pn $ void $ evDelPlayer pn
 
 -- | insert a rule in pending rules.
 proposeRule :: RuleTemplate -> PlayerNumber -> InterpretRule -> StateT Game IO ()
-proposeRule sr pn inter = do
-   rule <- createRule sr pn inter
+proposeRule rt pn inter = do
+   rule <- createRule rt pn inter
    mapStateIO $ runEvalError (_rNumber rule) (Just pn) $ do
       r <- evProposeRule rule
       tracePN pn $ if r then "Your rule has been added to pending rules."
@@ -87,8 +87,8 @@ proposeRule sr pn inter = do
 
 -- | add a rule forcefully (no votes etc.)
 systemAddRule :: RuleTemplate -> InterpretRule -> StateT Game IO ()
-systemAddRule sr inter = do
-   rule <- createRule sr 0 inter
+systemAddRule rt inter = do
+   rule <- createRule rt 0 inter
    let sysRule = (rStatus .~ Active) >>> (rAssessedBy .~ Just 0)
    rules %= (sysRule rule : )
    mapStateIO $ runEvalError (_rNumber rule) Nothing $ evalNomex (_rRule rule)
@@ -143,7 +143,8 @@ createRule (RuleTemplate name des code _ _ _ decls) pn inter = do
                                     _rRuleCode = code,
                                     _rAuthor = "Player " ++ (show pn),
                                     _rPicture = Nothing,
-                                    _rCategory = []}
+                                    _rCategory = [],
+                                    _rDeclarations = []}
    return RuleInfo {_rNumber = rn,
                     _rProposedBy = pn,
                     _rRule = rf,
