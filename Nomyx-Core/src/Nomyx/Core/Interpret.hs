@@ -77,6 +77,21 @@ getRuleFunc sh rc = do
       Right rf -> return rf
       Left e -> error $ show e
 
+getRuleFunc' :: ServerHandle -> [Module] -> FilePath -> RuleCode -> IO Rule
+getRuleFunc' sh decls saveDir rc = do
+   mapM_ (copyModule saveDir) decls
+   runIn sh $ initializeInterpreter saveDir
+   res <- interpretRule rc sh
+   case res of
+      Right rf -> return rf
+      Left e -> error $ show e
+
+--TODO handle error cases
+copyModule :: FilePath -> Module -> IO ()
+copyModule saveDir decls = do
+   let dest = saveDir </> uploadDir </> (_modPath decls)
+   writeFile dest (_modContent decls)
+
 -- | check an uploaded file and reload
 loadModule :: FilePath -> FilePath -> ServerHandle -> FilePath -> IO (Maybe InterpreterError)
 loadModule tempModName name sh saveDir = do

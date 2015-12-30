@@ -84,15 +84,17 @@ leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
 
 -- | insert a rule in pending rules.
 submitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-submitRule rt@(RuleTemplate _ _ code _ _ _ _) pn gn sh = do
+submitRule rt@(RuleTemplate _ _ code _ _ _ decls) pn gn sh = do
    tracePN pn $ "proposed " ++ show rt
    mrr <- liftIO $ interpretRule code sh
    s <- get
+   sd <- use (multi . mSettings . saveDir)
    let gi = getGameByName gn s
+   let allDecls = decls ++ (concatMap (_rDeclarations . _rRuleTemplate) (_rules $ _game $ _loggedGame $ fromJust gi))
    case mrr of
       Right _ -> do
          tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ G.execGameEvent' (Just $ getRuleFunc sh) (ProposeRuleEv pn rt)
+         inGameDo gn $ G.execGameEvent' (Just $ getRuleFunc' sh decls sd) (ProposeRuleEv pn rt)
          modifyProfile pn (pLastRule .~ Just (rt, "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."))
          liftIO $ sendMailsSubmitRule s rt pn (fromJust gi)
       Left e -> submitRuleError rt pn gn e
@@ -101,10 +103,11 @@ adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> S
 adminSubmitRule sr@(RuleTemplate _ _ code _ _ _ _) pn gn sh = do
    tracePN pn $ "admin proposed " ++ show sr
    mrr <- liftIO $ interpretRule code sh
+   sd <- use (multi . mSettings . saveDir)
    case mrr of
       Right _ -> do
          tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ execGameEvent' (Just $ getRuleFunc sh) (SystemAddRule sr)
+         inGameDo gn $ execGameEvent' (Just $ getRuleFunc' sh [] sd) (SystemAddRule sr)
          modifyProfile pn (pLastRule .~ Just (sr, "Admin rule submitted OK!"))
       Left e -> submitRuleError sr pn gn e
 

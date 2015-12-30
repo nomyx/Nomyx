@@ -97,6 +97,7 @@ instance Migrate ProfileData where
 
 
 $(deriveSafeCopy 1 'base ''RuleTemplate)
+$(deriveSafeCopy 1 'base ''Module)
 
 $(inferIxSet "ProfilesData" ''ProfileData 'noCalcs [''PlayerNumber]) -- , ''Text
 

@@ -35,9 +35,11 @@ type RuleCode = String
 type EventNumber = Int
 type EventName = String
 type VarName = String
-type Module = String
 type OutputNumber = Int
 type InputNumber = Int
+
+data Module = Module {_modPath :: FilePath, _modContent :: String}
+   deriving (Read, Show, Typeable, Data)
 
 -- * Nomyx Expression
 
@@ -341,6 +343,7 @@ makeLenses ''RuleTemplate
 makeLenses ''PlayerInfo
 makeLenses ''EventInfo
 makeLenses ''SignalOccurence
+makeLenses ''Module
 
 eventNumber :: Lens' EventInfo EventNumber
 eventNumber f (EventInfo e rn ev h evs env) = fmap (\e' -> (EventInfo e' rn ev h evs env)) (f e)
