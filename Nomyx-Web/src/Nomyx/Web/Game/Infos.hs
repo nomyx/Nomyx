@@ -34,11 +34,11 @@ viewGameDesc :: Game -> Maybe PlayerNumber -> Maybe PlayerNumber -> Bool -> Rout
 viewGameDesc g mpn playAs gameAdmin = do
    let gn = _gameName g
    let logged = isJust mpn
-   vp    <- viewPlayers (_players g) gn gameAdmin
-   modJoin <- modalJoin gn logged
-   modLeave <- modalLeave gn logged
-   modDel <- modalDel gn logged
+   let modJoin = modalJoin gn logged
+   let modLeave = modalLeave gn logged
+   let modDel = modalDel gn logged
    let isInGame = maybe False (\pn -> pn `elem` (_playerNumber <$> _players g)) mpn
+   vp <- viewPlayers (_players g) gn gameAdmin
    ok $ do
       h3 $ fromString $ _gameName g
       when (isJust playAs) $ h4 $ fromString $ "You are playing as player " ++ (show $ fromJust playAs)
@@ -54,29 +54,29 @@ viewGameDesc g mpn playAs gameAdmin = do
       when gameAdmin $ a "Del"   ! (href $ toValue $ "#openModalDel" ++ gn) ! A.class_ "button"
       modJoin >> modLeave >> modDel
 
-modalWindow :: Text -> String -> String -> String -> RoutedNomyxServer Html
-modalWindow link buttonTitle question modelRef = ok $ do
+modalWindow :: Text -> String -> String -> String -> Html
+modalWindow link buttonTitle question modelRef = do
       div ! A.id (toValue $ modelRef) ! A.class_ "modalWindow" $ do
          div $ do
             h2 (fromString question)
             a "Cancel"                 ! (href $ toValue $ showRelURL MainPage) ! A.class_ "modalButton"
             a (fromString buttonTitle) ! (href $ toValue link) ! A.class_ "modalButton"
 
-modalLeave :: GameName -> Bool -> RoutedNomyxServer Html
+modalLeave :: GameName -> Bool -> Html
 modalLeave gn logged = modalWindow
    (defLink (LeaveGame gn) logged)
    "Leave"
    "Do you really want to leave? You will loose your assets in the game (for example, your bank account)."
    ("openModalLeave" ++ gn)
 
-modalJoin :: GameName -> Bool -> RoutedNomyxServer Html
+modalJoin :: GameName -> Bool -> Html
 modalJoin gn logged = modalWindow
    (defLink (JoinGame gn) logged)
    "Join"
    "Joining the game. Please register in the forum (see the link) and introduce yourself to the other players! If you do not whish to play, you can just view the game."
    ("openModalJoin" ++ gn)
 
-modalDel :: GameName -> Bool -> RoutedNomyxServer Html
+modalDel :: GameName -> Bool -> Html
 modalDel gn logged = modalWindow
    (defLink (DelGame gn) logged)
    "Delete"

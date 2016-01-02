@@ -72,7 +72,6 @@ viewGamesTab :: GameInfo -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNo
 viewGamesTab gi isAdmin saveDir mpn = do
    let g = getGame gi
    let gn = _gameName g
-   let vgi = viewGameName isAdmin mpn
    fmods <- liftIO $ getUploadedModules saveDir
    ok $ do
      table $ do
@@ -111,37 +110,36 @@ viewGameInfo gi mpn mlr isAdmin gt lib = do
         Library -> div ! A.id "newRuleGameDiv"  ! A.class_ "game" $ vrf
         Details -> div ! A.id "detailsGameDiv"  ! A.class_ "game" $ viewDetails pn g
 
-viewGames :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNomyxServer Html
+viewGames :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> Html
 viewGames gis isAdmin saveDir mpn = do
    let canCreateGame = maybe False (\pn -> isAdmin || numberOfGamesOwned gis pn < 1) mpn
    let publicPrivate = partition ((== True) . _isPublic) gis
    let vgi = viewGameName isAdmin mpn
-   public <- mapM vgi (fst publicPrivate)
-   private <- mapM vgi (snd publicPrivate)
-   ok $ do
-      case public of
-         [] -> b "No public games"
-         p:ps -> do
-            b "Public games:"
-            table $ do
-               p ! A.style "font-weight:bold;"
-               sequence_ ps
-      br
-      case private of
-         [] -> ""
-         p -> do
-            b "Private games:"
-            table $ sequence_ p
-      br
-      when canCreateGame $ H.a "Create a new game" ! (href $ toValue $ defLink NewGame (isJust mpn)) >> br
+   let public = map vgi (fst publicPrivate)
+   let private = map vgi (snd publicPrivate)
+   case public of
+      [] -> b "No public games"
+      p:ps -> do
+         b "Public games:"
+         table $ do
+            p ! A.style "font-weight:bold;"
+            sequence_ ps
+   br
+   case private of
+      [] -> ""
+      p -> do
+         b "Private games:"
+         table $ sequence_ p
+   br
+   when canCreateGame $ H.a "Create a new game" ! (href $ toValue $ defLink NewGame (isJust mpn)) >> br
 
-viewGameName :: Bool -> (Maybe PlayerNumber) -> GameInfo -> RoutedNomyxServer Html
+viewGameName :: Bool -> (Maybe PlayerNumber) -> GameInfo -> Html
 viewGameName isAdmin mpn gi = do
    let g = getGame gi
    let isGameAdmin = isAdmin || maybe False (==mpn) (Just $ _ownedBy gi)
    let gn = _gameName g
    let canView = isGameAdmin || _isPublic gi
-   ok $ when canView $ tr $ td $ H.a (fromString (gn ++ "   ")) ! (A.title $ toValue Help.view) -- ! attr
+   when canView $ tr $ td $ H.a (fromString (gn ++ "   ")) ! (A.title $ toValue Help.view) -- ! attr
 
 
 joinGame :: GameName -> RoutedNomyxServer Response

@@ -38,9 +38,6 @@ type VarName = String
 type OutputNumber = Int
 type InputNumber = Int
 
-data Module = Module {_modPath :: FilePath, _modContent :: String}
-   deriving (Read, Show, Typeable, Data)
-
 -- * Nomyx Expression
 
 data Eff = Effect | NoEffect deriving (Typeable)
@@ -281,6 +278,10 @@ data RuleTemplate = RuleTemplate { _rName       :: RuleName,         -- short na
                                  _rCategory     :: [String],         -- categories
                                  _rDeclarations :: [Module]}         -- addictional declarations (Haskell modules)
                                  deriving (Typeable, Show, Read, Data)
+
+
+data Module = Module {_modPath :: FilePath, _modContent :: String}
+   deriving (Read, Show, Typeable, Data)
 
 instance Eq RuleInfo where
     (RuleInfo {_rNumber=r1}) == (RuleInfo {_rNumber=r2}) = r1 == r2
