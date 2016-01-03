@@ -6,8 +6,8 @@ module Nomyx.Core.Serialize where
 import           Control.Category
 import           Control.Lens                        hiding ((.=))
 import           Control.Monad.State
-import           Data.Aeson                          (eitherDecode, encode)
-import qualified Data.ByteString.Lazy.Char8          as BL
+import           Data.Yaml                           (decodeEither, encode)
+import qualified Data.ByteString.Char8            as BL
 import           Language.Haskell.Interpreter.Server
 import           Language.Nomyx                      hiding (getCurrentTime)
 import           Nomyx.Core.Engine
@@ -25,7 +25,7 @@ save' = get >>= lift . save
 load :: FilePath -> IO Multi
 load fp = do
    s <- BL.readFile fp
-   case eitherDecode s of
+   case decodeEither s of
       Left e -> error $ "error decoding save file: " ++ e
       Right a -> return a
 
