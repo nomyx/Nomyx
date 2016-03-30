@@ -1,0 +1,7 @@
+resolver: lts-3.17
+packages:
+- '.'
+extra-deps:
+- servant-mock-0.4.4.6
+flags: {}
+extra-package-dbs: []
