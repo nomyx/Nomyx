@@ -14,10 +14,12 @@ import           Data.List
 import           Data.Maybe
 import           Data.Monoid
 import           Data.String
-import           Data.Text                             (Text, pack)
+import           Data.Text                             as T (Text, pack, length)
 import           Happstack.Authenticate.OpenId.Route   (initOpenId)
 import           Happstack.Authenticate.Password.Route (initPassword)
+import           Happstack.Authenticate.Password.Core(PasswordConfig(..), PasswordState)
 import           Happstack.Authenticate.Route          (initAuthentication)
+import           Happstack.Authenticate.Core (AuthenticateURL(..), AuthenticateConfig(..), AuthenticateState, Email(..), User(..), Username(..), UserId(..), GetAuthenticateState(..), decodeAndVerifyToken, tokenUser, usernamePolicy)
 import           Happstack.Server                      as HS
 import           Language.Nomyx
 import           Nomyx.Core.Engine                     hiding (JoinGame,
@@ -50,7 +52,7 @@ import           Web.Routes.PathInfo
 import           Web.Routes.RouteT                     (runRouteT)
 import           Web.Routes.Site
 
-default (Integer, Double, Data.Text.Text)
+default (Integer, Double, T.Text)
 
 viewMulti :: (Maybe PlayerNumber) -> FilePath -> GameTab -> GameName -> Session -> RoutedNomyxServer Html
 viewMulti mpn saveDir gt gn s = do
@@ -219,11 +221,22 @@ launchWebServer ts net = do
    let set = _mSettings $ _multi s
    let conf = nullConf {HS.port = T._port net}
    docdir <- liftIO getDocDir
+   let authenticateConfig = AuthenticateConfig
+               { _isAuthAdmin        = const $ return True
+               , _usernameAcceptable = usernamePolicy
+               , _requireEmail       = True
+               }
+   let passwordConfig = PasswordConfig
+               { _resetLink = "http://localhost:8000/#resetPassword"
+               , _domain    =  "example.org"
+               , _passwordAcceptable = \t ->
+                   if T.length t >= 5
+                   then Nothing
+                   else Just "Must be at least 5 characters."
+               }
    --init authenticate
-   (_, routeAuthenticate, authenticateState) <- liftIO $ initAuthentication
-      (Just $ _saveDir set)
-      (const $ return True)
-      [initPassword "http://localhost:8000/#resetPassword" "example.org", initOpenId]
+   (_, routeAuthenticate, authenticateState) <- liftIO $ 
+      initAuthentication (Just $ _saveDir set) authenticateConfig [initPassword passwordConfig, initOpenId]
    let ws = WebState ts authenticateState routeAuthenticate
    simpleHTTP conf $ server ws set net docdir
 
