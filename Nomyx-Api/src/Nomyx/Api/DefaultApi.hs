@@ -5,39 +5,30 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Api.DefaultApi (
-      playersGet
-    , playersIdDelete
-    , playersIdGet
-    , playersPost
-    , proxyDefaultApi
-    , DefaultApi
-    ) where
+module Nomyx.Api.DefaultApi
+     where
 
 import GHC.Generics
 import Data.Proxy
 import Servant.API
 import Servant.Client
+import Servant
 import Network.URI (URI (..), URIAuth (..), parseURI)
 import Data.Maybe (fromMaybe)
 import Servant.Common.Text
 import Data.List (intercalate)
 import qualified Data.Text as T
-import Utils
+import Nomyx.Api.Utils
 import Test.QuickCheck
-import Model.Player
-import Model.Error
-import Model.NewPlayer
-
-
-
-
+import Nomyx.Api.Model.Player
+import Nomyx.Api.Model.Error
+import Nomyx.Api.Model.NewPlayer
 
 
 type DefaultApi = "players" :> Get '[JSON] [Player] -- playersGet
-    :<|> "players" :> Capture "id" Integer :> Delete '[JSON] () -- playersIdDelete
-    :<|> "players" :> Capture "id" Integer :> Get '[JSON] Player -- playersIdGet
-    :<|> "players" :> ReqBody '[JSON] NewPlayer :> Post '[JSON] Player -- playersPost
+   -- :<|> "players" :> Capture "id" Integer :> Delete '[JSON] () -- playersIdDelete
+   -- :<|> "players" :> Capture "id" Integer :> Get '[JSON] Player -- playersIdGet
+   -- :<|> "players" :> ReqBody '[JSON] NewPlayer :> Post '[JSON] Player -- playersPost
 
 proxyDefaultApi :: Proxy DefaultApi
 proxyDefaultApi = Proxy
@@ -61,8 +52,14 @@ parseHostPort path = (host,port)
 
 (host, port) = parseHostPort serverPath
 
-playersGet
-    :<|> playersIdDelete
-    :<|> playersIdGet
-    :<|> playersPost
-    = client proxyDefaultApi $ BaseUrl Http host port
+server :: Server DefaultApi
+server = return []
+--  :<|> return ()
+--  :<|> Player "" 0
+--  :<|> Player "" 1
+
+--playersGet
+--playersIdDelete
+--    :<|> playersIdGet
+--    :<|> playersPost
+--    = client proxyDefaultApi $ BaseUrl Http host port

@@ -26,6 +26,7 @@ import           Nomyx.Core.Test
 import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
 import           Nomyx.Web.MainPage
+import           Nomyx.Api.Server                    (serveApi)
 import           Paths_Nomyx                         as PN
 import           Paths_Nomyx_Language                as PNL
 import           Paths_Nomyx_Web                     as PNW
@@ -98,6 +99,8 @@ mainLoop settings saveDir host port = do
      --start the web server
      forkIO $ launchWebServer ts (Network host port)
      forkIO $ launchTimeEvents ts
+     --start the REST API
+     serveApi
      serverLoop ts
 
 loadMulti :: Settings -> ServerHandle -> IO Multi

@@ -3,7 +3,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleInstances #-}
-module Utils where
+module Nomyx.Api.Utils where
 
 import GHC.Generics
 import Servant.API

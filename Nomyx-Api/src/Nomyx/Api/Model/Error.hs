@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Model.Error
+module Nomyx.Api.Model.Error
     ( Error (..)
     ) where
 

@@ -2,12 +2,12 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Main where
+module Nomyx.Api.Server where
 
-import Apis
+import Nomyx.Api.Api
+import Nomyx.Api.DefaultApi
 import Servant
-import Servant.Mock
 import qualified Network.Wai.Handler.Warp as Warp
 
-main :: IO ()
-main = Warp.run 8080 $ serve api (mock api)
+serveApi :: IO ()
+serveApi = Warp.run 8080 $ serve api server

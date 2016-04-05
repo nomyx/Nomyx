@@ -9,10 +9,13 @@ packages:
   extra-dep: true
 - location: ../Nomyx-Web
   extra-dep: true
+- location: ../Nomyx-Api
+  extra-dep: true
 extra-deps:
 - Nomyx-Core-0.7.6
 - Nomyx-Language-0.7.6
 - Nomyx-Web-0.7.6
+- Nomyx-Api-0.7.6
 - hint-server-1.4.2
 - DebugTraceHelpers-0.12
 - acid-state-0.12.4

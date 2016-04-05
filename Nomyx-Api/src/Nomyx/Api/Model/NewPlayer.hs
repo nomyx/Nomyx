@@ -4,22 +4,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Model.Player
-    ( Player (..)
+module Nomyx.Api.Model.NewPlayer
+    ( NewPlayer (..)
     ) where
 
 import Data.Aeson
 import GHC.Generics
 import Test.QuickCheck
-import Model.NewPlayer
 
 
-data Player = Player
+data NewPlayer = NewPlayer
     { name :: String
-    , id_ :: Integer
     } deriving (Show, Eq, Generic)
 
-instance FromJSON Player
-instance ToJSON Player
-instance Arbitrary Player where
-    arbitrary = Player <$> arbitrary <*> arbitrary
+instance FromJSON NewPlayer
+instance ToJSON NewPlayer
+instance Arbitrary NewPlayer where
+    arbitrary = NewPlayer <$> arbitrary
