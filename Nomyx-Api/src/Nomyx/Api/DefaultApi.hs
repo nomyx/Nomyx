@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Nomyx.Api.DefaultApi
      where
@@ -23,16 +24,22 @@ import Test.QuickCheck
 import Nomyx.Api.Model.Player
 import Nomyx.Api.Model.Error
 import Nomyx.Api.Model.NewPlayer
+import Nomyx.Core.Session
+import Nomyx.Core.Types
+import Nomyx.Core.Profile
+import           Control.Concurrent.STM
+import           Control.Monad.State
+import Control.Monad.Trans.Either
+import Data.Swagger
+import Language.Nomyx.Expression
 
-
-type DefaultApi = "players" :> Get '[JSON] [Player] -- playersGet
+type DefaultApi = "players" :> Get '[JSON] [ProfileData] -- playersGet
    -- :<|> "players" :> Capture "id" Integer :> Delete '[JSON] () -- playersIdDelete
    -- :<|> "players" :> Capture "id" Integer :> Get '[JSON] Player -- playersIdGet
-   -- :<|> "players" :> ReqBody '[JSON] NewPlayer :> Post '[JSON] Player -- playersPost
+   :<|> "players" :> ReqBody '[JSON] PlayerSettings :> Post '[JSON] ProfileData -- playersPost
 
 proxyDefaultApi :: Proxy DefaultApi
 proxyDefaultApi = Proxy
-
 
 serverPath :: String
 serverPath = "https://api.nomyx.net/v1"
@@ -52,14 +59,25 @@ parseHostPort path = (host,port)
 
 (host, port) = parseHostPort serverPath
 
-server :: Server DefaultApi
-server = return []
---  :<|> return ()
---  :<|> Player "" 0
---  :<|> Player "" 1
+--newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
 
---playersGet
---playersIdDelete
---    :<|> playersIdGet
---    :<|> playersPost
---    = client proxyDefaultApi $ BaseUrl Http host port
+server :: TVar Session -> Server DefaultApi
+server tv = (playersGet tv) :<|> (playersPost tv)
+
+playersGet :: TVar Session -> EitherT ServantErr IO [ProfileData]
+playersGet tv = do
+   s <- liftIO $ atomically $ readTVar tv
+   pds <- liftIO $ getAllProfiles s
+   return pds
+
+playersPost :: TVar Session -> PlayerSettings -> EitherT ServantErr IO ProfileData
+playersPost tv ps = do
+   s <- liftIO $ atomically $ readTVar tv
+   pds <- liftIO $ getAllProfiles s
+   return $ head pds
+
+instance ToSchema ProfileData
+instance ToSchema PlayerSettings
+instance ToSchema RuleTemplate
+instance ToSchema LastUpload
+instance ToSchema Module

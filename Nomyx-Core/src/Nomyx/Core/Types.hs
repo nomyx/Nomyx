@@ -1,19 +1,20 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeFamilies       #-}
+{-# LANGUAGE DeriveGeneric      #-}
 
 module Nomyx.Core.Types where
 
 import           Control.Lens
 import           Data.Acid                           (AcidState)
-import           Data.Aeson.TH                       (defaultOptions,
-                                                      deriveJSON)
+import           Data.Aeson.TH                       (defaultOptions, deriveJSON)
 import           Data.Data                           (Data)
 import           Data.IxSet                          (inferIxSet, noCalcs)
 import           Data.SafeCopy                       (Migrate (..), base,
                                                       deriveSafeCopy, extension)
 import           Data.Time
 import           Data.Typeable
+import           GHC.Generics (Generic)
 import           Language.Haskell.Interpreter.Server (ServerHandle)
 import           Language.Nomyx
 import           Network.BSD
@@ -27,7 +28,7 @@ type LastRule = (RuleTemplate, String)
 data LastUpload = NoUpload
                 | UploadSuccess
                 | UploadFailure (FilePath, CompileError)
-                deriving (Eq, Ord, Read, Show, Typeable, Data)
+                deriving (Eq, Ord, Read, Show, Typeable, Data, Generic)
 $(deriveSafeCopy 1 'base ''LastUpload)
 
 data Network = Network {_host :: HostName, _port :: Port}
@@ -37,13 +38,13 @@ defaultNetwork :: Network
 defaultNetwork = Network "" 0
 
 data PlayerSettings =
-   PlayerSettings { _pPlayerName   :: PlayerName,
-                    _mail          :: Maybe String,
-                    _mailNewInput  :: Bool,
-                    _mailSubmitRule   :: Bool,
-                    _mailNewOutput :: Bool,
-                    _mailConfirmed :: Bool}
-                    deriving (Eq, Show, Read, Data, Ord, Typeable)
+   PlayerSettings { _pPlayerName    :: PlayerName,
+                    _mail           :: Maybe String,
+                    _mailNewInput   :: Bool,
+                    _mailSubmitRule :: Bool,
+                    _mailNewOutput  :: Bool,
+                    _mailConfirmed  :: Bool}
+                    deriving (Eq, Show, Read, Data, Ord, Typeable, Generic)
 $(deriveSafeCopy 1 'base ''PlayerSettings)
 
 
@@ -77,7 +78,7 @@ data ProfileData =
                   _pLastUpload     :: LastUpload,
                   _pIsAdmin        :: Bool
                   }
-    deriving (Eq, Ord, Read, Show, Typeable, Data)
+                  deriving (Eq, Ord, Read, Show, Typeable, Data, Generic)
 
 data ProfileDataOld =
     ProfileDataOld { _pPlayerNumberOld   :: PlayerNumber, -- same as UserId
@@ -124,3 +125,6 @@ $(deriveJSON defaultOptions ''Multi)
 $(deriveJSON defaultOptions ''GameInfo)
 $(deriveJSON defaultOptions ''Settings)
 $(deriveJSON defaultOptions ''Network)
+$(deriveJSON defaultOptions ''LastUpload)
+$(deriveJSON defaultOptions ''PlayerSettings)
+$(deriveJSON defaultOptions ''ProfileData)

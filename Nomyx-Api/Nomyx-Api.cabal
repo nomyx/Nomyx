@@ -32,7 +32,15 @@ library
                      , servant
                      , servant-client
                      , servant-server
-                     , Nomyx-Core 
+                     , servant-swagger
+                     , swagger2
+                     , Nomyx-Language
+                     , Nomyx-Core
                      , warp
+                     , yaml
+                     , bytestring
+                     , stm                    == 2.4.*
+                     , mtl                    >= 2.1 && < 2.3
+                     , either -any
   default-language:    Haskell2010
 

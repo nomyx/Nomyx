@@ -11,6 +11,7 @@
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE StandaloneDeriving        #-}
 {-# LANGUAGE TemplateHaskell           #-}
+{-# LANGUAGE DeriveGeneric             #-}
 
 -- | This module contains the type definitions necessary to build a Nomic rule.
 module Language.Nomyx.Expression where
@@ -270,18 +271,19 @@ data RuleInfo = RuleInfo { _rNumber       :: RuleNumber,       -- number of the 
                            deriving (Typeable, Show)
 
 
-data RuleTemplate = RuleTemplate { _rName       :: RuleName,         -- short name of the rule
-                                 _rDescription  :: String,           -- description of the rule
-                                 _rRuleCode     :: RuleCode,         -- code of the rule as a string
-                                 _rAuthor       :: String,           -- the name of the original author
-                                 _rPicture      :: Maybe FilePath,   -- a file name for the illustration image
-                                 _rCategory     :: [String],         -- categories
-                                 _rDeclarations :: [Module]}         -- addictional declarations (Haskell modules)
-                                 deriving (Typeable, Show, Read, Data)
+data RuleTemplate = RuleTemplate { _rName         :: RuleName,         -- short name of the rule
+                                   _rDescription  :: String,           -- description of the rule
+                                   _rRuleCode     :: RuleCode,         -- code of the rule as a string
+                                   _rAuthor       :: String,           -- the name of the original author
+                                   _rPicture      :: Maybe FilePath,   -- a file name for the illustration image
+                                   _rCategory     :: [String],         -- categories
+                                   _rDeclarations :: [Module]}         -- addictional declarations (Haskell modules)
+                                   deriving (Typeable, Show, Read, Data, Generic)
 
 
-data Module = Module {_modPath :: FilePath, _modContent :: String}
-   deriving (Read, Show, Typeable, Data)
+data Module = Module {_modPath :: FilePath,
+                      _modContent :: String}
+                      deriving (Read, Show, Typeable, Data, Generic)
 
 instance Eq RuleInfo where
     (RuleInfo {_rNumber=r1}) == (RuleInfo {_rNumber=r2}) = r1 == r2
