@@ -100,7 +100,7 @@ mainLoop settings saveDir host port = do
      forkIO $ launchWebServer ts (Network host port)
      forkIO $ launchTimeEvents ts
      --start the REST API
-     serveApi
+     serveApi ts
      serverLoop ts
 
 loadMulti :: Settings -> ServerHandle -> IO Multi
