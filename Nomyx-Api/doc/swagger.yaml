@@ -1,47 +1,136 @@
-# this is an example of the Uber API
-# as a demonstration of an API spec in YAML
 swagger: '2.0'
 info:
-  title: Nomyx API
-  description: The API of Nomyx game 
-  version: "1.0.0"
-# the domain of the service
-host: api.nomyx.net
-# array of all schemes that your API supports
-schemes:
-  - https
-# will be prefixed to all paths
-basePath: /v1
-produces:
-  - application/json
+  version: ''
+  title: ''
+host: 127.0.0.1:8001
+definitions:
+  ProfileData:
+    required:
+    - _pPlayerNumber
+    - _pPlayerSettings
+    - _pLastUpload
+    - _pIsAdmin
+    type: object
+    properties:
+      _pPlayerNumber:
+        maximum: 9223372036854775807
+        minimum: -9223372036854775808
+        type: integer
+      _pIsAdmin:
+        type: boolean
+      _pLastRule:
+        items:
+        - $ref: ! '#/definitions/RuleTemplate'
+        - type: string
+        type: array
+      _pLastUpload:
+        $ref: ! '#/definitions/LastUpload'
+      _pPlayerSettings:
+        $ref: ! '#/definitions/PlayerSettings'
+  PlayerSettings:
+    required:
+    - _pPlayerName
+    - _mailNewInput
+    - _mailSubmitRule
+    - _mailNewOutput
+    - _mailConfirmed
+    type: object
+    properties:
+      _mailNewInput:
+        type: boolean
+      _mailSubmitRule:
+        type: boolean
+      _mailNewOutput:
+        type: boolean
+      _pPlayerName:
+        type: string
+      _mailConfirmed:
+        type: boolean
+      _mail:
+        type: string
+  LastUpload:
+    minProperties: 1
+    maxProperties: 1
+    type: object
+    properties:
+      UploadSuccess:
+        type: string
+        enum:
+        - UploadSuccess
+      NoUpload:
+        type: string
+        enum:
+        - NoUpload
+      UploadFailure:
+        items:
+        - type: string
+        - type: string
+        type: array
+  Module:
+    required:
+    - _modPath
+    - _modContent
+    type: object
+    properties:
+      _modContent:
+        type: string
+      _modPath:
+        type: string
+  RuleTemplate:
+    required:
+    - _rName
+    - _rDescription
+    - _rRuleCode
+    - _rAuthor
+    - _rCategory
+    - _rDeclarations
+    type: object
+    properties:
+      _rName:
+        type: string
+      _rAuthor:
+        type: string
+      _rDescription:
+        type: string
+      _rRuleCode:
+        type: string
+      _rCategory:
+        items:
+          type: string
+        type: array
+      _rDeclarations:
+        items:
+          $ref: ! '#/definitions/Module'
+        type: array
+      _rPicture:
+        type: string
 paths:
   /players:
+    post:
+      consumes:
+      - application/json
+      responses:
+        400:
+          description: Invalid `body`
+        201:
+          schema:
+            $ref: ! '#/definitions/ProfileData'
+          description: ''
+      produces:
+      - application/json
+      parameters:
+      - required: true
+        schema:
+          $ref: ! '#/definitions/PlayerSettings'
+        in: body
+        name: body
     get:
-      summary: infos on players
       responses:
         200:
-          description: An array of players
           schema:
-            type: array
             items:
-              $ref: '#/definitions/Player'
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/Error'
-definitions:
-  Player:
-    type: object
-    properties:
-      name:
-        type: string
-  Error:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      message:
-        type: string
-      fields:
-        type: string
+              $ref: ! '#/definitions/ProfileData'
+            type: array
+          description: ''
+      produces:
+      - application/json
