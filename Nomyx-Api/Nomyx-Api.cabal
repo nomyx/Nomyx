@@ -33,6 +33,8 @@ library
                      , servant-client
                      , servant-server
                      , servant-swagger
+                     , wai
+                     , wai-cors
                      , swagger2
                      , Nomyx-Language
                      , Nomyx-Core
