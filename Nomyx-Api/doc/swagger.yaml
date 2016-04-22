@@ -136,6 +136,39 @@ paths:
           description: ''
       produces:
       - application/json
+  /players/{id}:
+    get:
+      responses:
+        404:
+          description: ! '`id` not found'
+        200:
+          schema:
+            $ref: ! '#/definitions/ProfileData'
+          description: ''
+      produces:
+      - application/json
+      parameters:
+      - maximum: 9223372036854775807
+        minimum: -9223372036854775808
+        required: true
+        in: path
+        name: id
+        type: integer
+    delete:
+      responses:
+        404:
+          description: ! '`id` not found'
+        204:
+          description: ''
+      produces:
+      - application/json
+      parameters:
+      - maximum: 9223372036854775807
+        minimum: -9223372036854775808
+        required: true
+        in: path
+        name: id
+        type: integer
   /players:
     post:
       consumes:
@@ -165,3 +198,4 @@ paths:
           description: ''
       produces:
       - application/json
+

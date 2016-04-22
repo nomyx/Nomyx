@@ -34,13 +34,15 @@ import Data.Swagger
 import Language.Nomyx.Expression
 import Data.Swagger.Internal.Schema
 import Data.Swagger.Internal
+import Control.Monad.Except
 
 type NomyxApi = PlayerApi :<|> RuleTemplateApi
 
 
 type PlayerApi =  "players" :>                                   Get  '[JSON] [ProfileData] -- playersGet
              :<|> "players" :> ReqBody '[JSON] PlayerSettings :> Post '[JSON] ProfileData -- playersPost
-   -- :<|> "players" :> Capture "id" Integer :> Delete '[JSON] () -- playersIdDelete
+             :<|> "players" :> Capture "id" Int           :> Get '[JSON] ProfileData
+             :<|> "players" :> Capture "id" Int           :> Delete '[JSON] ()
 
 
 type RuleTemplateApi =  "templates" :>                                 Get  '[JSON] [RuleTemplate] -- templatesGet
@@ -67,10 +69,9 @@ parseHostPort path = (host,port)
 
 (host, port) = parseHostPort serverPath
 
---newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
-
 server :: TVar Session -> Server NomyxApi
-server tv = ((playersGet tv) :<|> (playersPost tv)) :<|> ((templatesGet tv) :<|> (templatesPost tv))
+server tv = ((playersGet tv) :<|> (playersPost tv) :<|> (playerGet tv) :<|> (playerDelete tv))
+       :<|> ((templatesGet tv) :<|> (templatesPost tv))
 
 playersGet :: TVar Session -> EitherT ServantErr IO [ProfileData]
 playersGet tv = do
@@ -85,6 +86,17 @@ playersPost tv ps = do
    pds <- liftIO $ getAllProfiles s
    return $ head pds
 
+playerGet :: TVar Session -> PlayerNumber -> EitherT ServantErr IO ProfileData
+playerGet tv pn = do
+   s <- liftIO $ atomically $ readTVar tv
+   mpd <- liftIO $ getProfile s pn
+   case mpd of
+     Just pd -> return pd
+     Nothing -> throwError $ err410 { errBody = "Player does not exist." }
+
+playerDelete :: TVar Session -> PlayerNumber -> EitherT ServantErr IO ()
+playerDelete tv pn = error "not supported"
+
 templatesGet :: TVar Session -> EitherT ServantErr IO [RuleTemplate]
 templatesGet tv = do
    s <- liftIO $ atomically $ readTVar tv
@@ -92,7 +104,6 @@ templatesGet tv = do
 
 templatesPost :: TVar Session -> RuleTemplate -> EitherT ServantErr IO RuleNumber
 templatesPost tv rt = do
-   liftIO $ putStrLn "toto"
    (Session sh _ _) <- liftIO $ atomically $ readTVar tv
    liftIO $ updateSession tv (newRuleTemplate rt 2 sh)
    return 2

@@ -27,5 +27,5 @@ customPolicy = simpleCorsResourcePolicy { corsMethods = simpleMethods <> ["DELET
 myCors :: Middleware
 myCors = cors (const $ Just customPolicy)
 
-saveSwaggerYaml :: IO ()
-saveSwaggerYaml = BL.writeFile "doc/swagger.yaml" (encode $ toSwagger nomyxApi)
+putSwaggerYaml :: IO ()
+putSwaggerYaml = BL.putStrLn $ encode $ toSwagger nomyxApi
