@@ -6,7 +6,6 @@
 module Nomyx.Api.Server where
 
 import           Nomyx.Api.Api
-import           Nomyx.Api.DefaultApi
 import           Servant
 import qualified Network.Wai.Handler.Warp as Warp
 import           Network.Wai.Middleware.Cors
@@ -21,7 +20,7 @@ import           Data.Monoid
 serveApi :: TVar Session -> IO ()
 serveApi tv = do
    putStrLn "Starting Api on http://localhost:8001/"
-   Warp.run 8001 $ myCors $ serve api $ server tv
+   Warp.run 8001 $ myCors $ serve nomyxApi $ server tv
 
 customPolicy = simpleCorsResourcePolicy { corsMethods = simpleMethods <> ["DELETE", "PUT"] }
 
@@ -29,4 +28,4 @@ myCors :: Middleware
 myCors = cors (const $ Just customPolicy)
 
 saveSwaggerYaml :: IO ()
-saveSwaggerYaml = BL.writeFile "doc/swagger.yaml" (encode $ toSwagger api)
+saveSwaggerYaml = BL.writeFile "doc/swagger.yaml" (encode $ toSwagger nomyxApi)

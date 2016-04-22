@@ -27,10 +27,10 @@ import           System.IO.PlafCompat
 
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
-newPlayer uid ms = do
+newPlayer uid ps = do
    s <- get
    --void $ A.update' (acidAuth $ _profiles s) (SetDefaultSessionTimeout $ 3600 * 24 * 7 *25)
-   void $ A.update' (_acidProfiles s) (NewProfileData uid ms)
+   void $ A.update' (_acidProfiles s) (NewProfileData uid ps)
 
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> Bool -> StateT Session IO ()

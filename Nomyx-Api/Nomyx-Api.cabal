@@ -18,7 +18,6 @@ library
                      , Nomyx.Api.Model.Error
                      , Nomyx.Api.Model.Player
                      , Nomyx.Api.Model.NewPlayer
-                     , Nomyx.Api.DefaultApi
                      , Nomyx.Api.Api
                      , Nomyx.Api.Server
   ghc-options:         -Wall

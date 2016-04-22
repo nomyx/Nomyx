@@ -105,6 +105,37 @@ definitions:
       _rPicture:
         type: string
 paths:
+  /templates:
+    post:
+      consumes:
+      - application/json
+      responses:
+        400:
+          description: Invalid `body`
+        201:
+          schema:
+            maximum: 9223372036854775807
+            minimum: -9223372036854775808
+            type: integer
+          description: ''
+      produces:
+      - application/json
+      parameters:
+      - required: true
+        schema:
+          $ref: ! '#/definitions/RuleTemplate'
+        in: body
+        name: body
+    get:
+      responses:
+        200:
+          schema:
+            items:
+              $ref: ! '#/definitions/RuleTemplate'
+            type: array
+          description: ''
+      produces:
+      - application/json
   /players:
     post:
       consumes:
