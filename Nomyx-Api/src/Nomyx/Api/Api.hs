@@ -3,8 +3,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 
 module Nomyx.Api.Api
      where
@@ -31,22 +34,30 @@ import           Control.Concurrent.STM
 import           Control.Monad.State
 import Control.Monad.Trans.Either
 import Data.Swagger
+import Data.Swagger.Schema
 import Language.Nomyx.Expression
 import Data.Swagger.Internal.Schema
 import Data.Swagger.Internal
+import Data.Swagger.Lens
+import Data.Swagger.Declare
+import Data.Swagger.SchemaOptions
 import Control.Monad.Except
+import Control.Lens
+
+
+-- * API definition
 
 type NomyxApi = PlayerApi :<|> RuleTemplateApi
 
-
 type PlayerApi =  "players" :>                                   Get  '[JSON] [ProfileData] -- playersGet
              :<|> "players" :> ReqBody '[JSON] PlayerSettings :> Post '[JSON] ProfileData -- playersPost
-             :<|> "players" :> Capture "id" Int           :> Get '[JSON] ProfileData
-             :<|> "players" :> Capture "id" Int           :> Delete '[JSON] ()
+             :<|> "players" :> Capture "id" Int               :> Get '[JSON] ProfileData
+             :<|> "players" :> Capture "id" Int               :> Delete '[JSON] ()
 
 
-type RuleTemplateApi =  "templates" :>                                 Get  '[JSON] [RuleTemplate] -- templatesGet
-                   :<|> "templates" :> ReqBody '[JSON] RuleTemplate :> Post '[JSON] RuleNumber -- templatesPost
+type RuleTemplateApi =  "templates" :>                                   Get  '[JSON] [RuleTemplate]  --get all templates
+                   :<|> "templates" :> ReqBody '[JSON] RuleTemplate   :> Post '[JSON] () -- post new template
+                   :<|> "templates" :> ReqBody '[JSON] [RuleTemplate] :> Put  '[JSON] () -- replace all templates
 
 nomyxApi :: Proxy NomyxApi
 nomyxApi = Proxy
@@ -70,8 +81,10 @@ parseHostPort path = (host,port)
 (host, port) = parseHostPort serverPath
 
 server :: TVar Session -> Server NomyxApi
-server tv = ((playersGet tv) :<|> (playersPost tv) :<|> (playerGet tv) :<|> (playerDelete tv))
-       :<|> ((templatesGet tv) :<|> (templatesPost tv))
+server tv = ((playersGet tv)   :<|> (playersPost tv)   :<|> (playerGet tv) :<|> (playerDelete tv))
+       :<|> ((templatesGet tv) :<|> (templatesPost tv) :<|> (templatesPut tv))
+
+-- * Players API
 
 playersGet :: TVar Session -> EitherT ServantErr IO [ProfileData]
 playersGet tv = do
@@ -97,16 +110,24 @@ playerGet tv pn = do
 playerDelete :: TVar Session -> PlayerNumber -> EitherT ServantErr IO ()
 playerDelete tv pn = error "not supported"
 
+-- * Templates API
+
 templatesGet :: TVar Session -> EitherT ServantErr IO [RuleTemplate]
 templatesGet tv = do
    s <- liftIO $ atomically $ readTVar tv
    return $ _mLibrary $ _multi s
 
-templatesPost :: TVar Session -> RuleTemplate -> EitherT ServantErr IO RuleNumber
+templatesPost :: TVar Session -> RuleTemplate -> EitherT ServantErr IO ()
 templatesPost tv rt = do
    (Session sh _ _) <- liftIO $ atomically $ readTVar tv
    liftIO $ updateSession tv (newRuleTemplate rt 2 sh)
-   return 2
+   return ()
+
+templatesPut :: TVar Session -> [RuleTemplate] -> EitherT ServantErr IO ()
+templatesPut tv rt = do
+   (Session sh _ _) <- liftIO $ atomically $ readTVar tv
+   --liftIO $ updateSession tv (newRuleTemplate rt 2 sh)
+   return ()
 
 instance ToSchema ProfileData
 instance ToSchema PlayerSettings
@@ -114,6 +135,7 @@ instance ToSchema RuleTemplate
 instance ToSchema LastUpload
 instance ToSchema Module
 --instance ToSchema RuleInfo
--- instance ToSchema RuleStatus
---instance ToSchema (Exp Effect ()) where
---    declareNamedSchema _ = undefined --pure (NamedSchema Nothing nullarySchema)
+--instance ToSchema RuleStatus
+--instance ToSchema Rule where
+--  declareNamedSchema _ = pure (Nothing, nullarySchema)
+
