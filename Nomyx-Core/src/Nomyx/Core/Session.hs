@@ -132,17 +132,9 @@ checkRule sr@(RuleTemplate _ _ code _ _ _ _) pn sh = do
          modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
 newRuleTemplate :: RuleTemplate -> PlayerNumber -> ServerHandle -> StateT Session IO ()
-newRuleTemplate rt@(RuleTemplate name _ code _ _ _ _) pn sh = do
+newRuleTemplate rt@(RuleTemplate name _ _ _ _ _ _) pn sh = do
   tracePN pn $ "new template " ++ show rt
-  mrr <- liftIO $ interpretRule code sh
-  case mrr of
-     Right _ -> do
-        tracePN pn "proposed template rule compiled OK"
-        (multi . mLibrary) %= (addRT rt)
-     Left e -> do
-        let errorMsg = showInterpreterError e
-        tracePN pn ("Error in submitted rule: " ++ errorMsg)
-        modifyProfile pn (pLastRule .~ Just (rt, errorMsg))
+  (multi . mLibrary) %= (addRT rt)
 
 addRT :: RuleTemplate -> [RuleTemplate] -> [RuleTemplate]
 addRT rt rts = case (find (\rt' -> (_rName rt) == (_rName rt'))) rts of
