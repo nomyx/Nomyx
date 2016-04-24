@@ -26,7 +26,7 @@ import           Nomyx.Core.Test
 import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
 import           Nomyx.Web.MainPage
-import           Nomyx.Api.Server                    (serveApi)
+import           Nomyx.Api.Server                    (serveApi, putSwaggerYaml)
 import           Paths_Nomyx                         as PN
 import           Paths_Nomyx_Language                as PNL
 import           Paths_Nomyx_Web                     as PNW
@@ -46,17 +46,14 @@ main :: IO Bool
 main = do
    args <- getArgs
    (flags, _) <- nomyxOpts args
-   if Version `elem` flags then do
-      putStrLn $ "Nomyx " ++ showVersion PN.version
-      return True
-   else if Help `elem` flags then do
-      putStrLn $ usageInfo header options
-      return True
+   if Version `elem` flags then putStrLn $ "Nomyx " ++ showVersion PN.version
+   else if Help `elem` flags then putStrLn $ usageInfo header options
+   else if API `elem` flags then putSwaggerYaml
    else do
       putStrLn "Welcome to Nomyx!"
       putStrLn "Type \"Nomyx --help\" for usage options"
       start flags
-      return True
+   return True
 
 start :: [Flag] -> IO ()
 start flags = do
@@ -172,6 +169,7 @@ data Flag = Verbose
           | WebDir FilePath
           | SourceDir FilePath
           | TarFile FilePath
+          | API
        deriving (Show, Eq)
 
 -- | launch options description
@@ -191,6 +189,7 @@ options =
      , Option "f" ["dataDir"]   (ReqArg WebDir "WebDir")       "specify data directory (for profiles and website files)"
      , Option "s" ["sourceDir"] (ReqArg SourceDir "SourceDir") "specify source directory (for Nomyx-Language files)"
      , Option "T" ["tar"]       (ReqArg TarFile "TarFile")     "specify tar file (containing Nomyx.save and uploads)"
+     , Option "" ["api"]       (NoArg API)                    "get swagger API file"
      ]
 
 nomyxOpts :: [String] -> IO ([Flag], [String])
