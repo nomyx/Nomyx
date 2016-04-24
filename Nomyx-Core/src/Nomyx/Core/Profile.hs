@@ -21,7 +21,6 @@ import           Data.List
 import           Data.Maybe
 import           Language.Nomyx
 import           Safe
---import Happstack.Auth.Core.Profile (initialProfileState)
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Quotes
 import           Nomyx.Core.Types
