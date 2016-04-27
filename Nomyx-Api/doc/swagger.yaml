@@ -112,11 +112,7 @@ paths:
       responses:
         400:
           description: Invalid `body`
-        201:
-          schema:
-            maximum: 9223372036854775807
-            minimum: -9223372036854775808
-            type: integer
+        204:
           description: ''
       produces:
       - application/json
@@ -136,6 +132,24 @@ paths:
           description: ''
       produces:
       - application/json
+    put:
+      consumes:
+      - application/json
+      responses:
+        400:
+          description: Invalid `body`
+        204:
+          description: ''
+      produces:
+      - application/json
+      parameters:
+      - required: true
+        schema:
+          items:
+            $ref: ! '#/definitions/RuleTemplate'
+          type: array
+        in: body
+        name: body
   /players/{id}:
     get:
       responses:
