@@ -38,6 +38,7 @@ import           Nomyx.Core.Profile
 import           Nomyx.Core.Session
 import           Nomyx.Core.Types                    as T
 import           Nomyx.Web.Types
+import qualified Nomyx.Auth                          as Auth
 import           Numeric
 import           Prelude                             hiding (div)
 import           Safe
@@ -128,18 +129,10 @@ appTemplate' title headers body footer link routeFn = do
 
 -- | return the player number (user ID) based on the session cookie.
 getPlayerNumber :: RoutedNomyxServer (Maybe PlayerNumber)
-getPlayerNumber = do
-   acidAuth <- use authenticateState
-   uid <- getUserId acidAuth
-   case uid of
-      Nothing -> return Nothing
-      (Just (UserId userID)) -> return $ Just $ fromInteger userID
+getPlayerNumber = liftRouteT $ zoom authState $ Auth.getPlayerNumber
 
 getUser :: RoutedNomyxServer (Maybe User)
-getUser = do
-  auth <- use authenticateState
-  userId <- getUserId auth
-  liftIO $ query' auth (GetUserByUserId $ fromJust userId)
+getUser = liftRouteT $ zoom authState $ Auth.getUser
 
 getProfile' :: PlayerNumber -> RoutedNomyxServer (Maybe ProfileData)
 getProfile' pn = do

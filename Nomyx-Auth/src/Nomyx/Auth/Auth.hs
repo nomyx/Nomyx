@@ -24,14 +24,14 @@ import           Happstack.Authenticate.Core           (AuthenticateURL(..),
                                                         tokenUser,
                                                         usernamePolicy,
                                                         getUserId)
-import Happstack.Server
+import           Happstack.Server
 import           Data.Maybe
 import           Control.Lens
 import           Control.Monad.State
 import           Data.Acid.Advanced                  (query')
 import           Data.Text as T
 
-launchAuth :: FilePath -> IO WebState
+launchAuth :: FilePath -> IO AuthState
 launchAuth sd = do
    let authenticateConfig = AuthenticateConfig
                { _isAuthAdmin        = const $ return True
@@ -49,10 +49,10 @@ launchAuth sd = do
    --init authenticate
    (_, routeAuthenticate, authenticateState) <- liftIO $
       initAuthentication (Just sd) authenticateConfig [initPassword passwordConfig, initOpenId]
-   return $ WebState authenticateState routeAuthenticate
+   return $ AuthState authenticateState routeAuthenticate
 
 -- | return the player number (user ID) based on the session cookie.
-getPlayerNumber :: (StateT WebState (ServerPartT IO)) (Maybe PlayerNumber)
+getPlayerNumber :: (StateT AuthState (ServerPartT IO)) (Maybe PlayerNumber)
 getPlayerNumber = do
    acidAuth <- use authenticateState
    uid <- getUserId acidAuth
@@ -60,7 +60,7 @@ getPlayerNumber = do
       Nothing -> return Nothing
       (Just (UserId userID)) -> return $ Just $ fromInteger userID
 
-getUser ::  (StateT WebState (ServerPartT IO)) (Maybe User)
+getUser ::  (StateT AuthState (ServerPartT IO)) (Maybe User)
 getUser = do
   auth <- use authenticateState
   userId <- getUserId auth

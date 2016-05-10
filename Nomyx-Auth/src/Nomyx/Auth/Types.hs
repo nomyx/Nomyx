@@ -13,10 +13,11 @@ import           Happstack.Authenticate.Core   (AuthenticateState,
 import           Happstack.Server              as HS (Input, Response,
                                                       ServerPartT)
 import           Web.Routes.RouteT
+import           Control.Concurrent.STM
+import           Nomyx.Core.Types              as T
 
 
-data WebState = WebState {_authenticateState :: AcidState AuthenticateState,
-                          _routeAuthenticate :: AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response}
+data AuthState = AuthState { _authenticateState :: AcidState AuthenticateState,
+                             _routeAuthenticate :: AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response}
 
-
-makeLenses ''WebState
+makeLenses ''AuthState

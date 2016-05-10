@@ -19,6 +19,7 @@ import           Happstack.Server              as HS (Input, Response,
 import           Language.Nomyx
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Types              as T
+import           Nomyx.Auth
 import           Text.Blaze.Html5              hiding (base, map, output)
 import           Text.Reform                   (CommonFormError, ErrorInputType,
                                                 Form, FormError (..))
@@ -70,9 +71,7 @@ data PlayerCommand =
 
 
 data WebState = WebState {_session           :: TVar Session,
-                          _authenticateState :: AcidState AuthenticateState,
-                          _routeAuthenticate :: AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response}
-
+                          _authState         :: AuthState}
 
 type RoutedNomyxServer a = RouteT PlayerCommand (StateT WebState (ServerPartT IO)) a
 

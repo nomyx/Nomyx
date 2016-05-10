@@ -15,6 +15,7 @@ import           Nomyx.Core.Session          as S
 import           Nomyx.Core.Types            as T
 import           Nomyx.Web.Common
 import           Nomyx.Web.Types
+import qualified Nomyx.Auth                  as Auth
 import           Prelude                     hiding (div)
 import           Text.Blaze.Html5            hiding (br, label, map)
 import qualified Text.Blaze.Html5            as H
@@ -65,7 +66,7 @@ postAuthenticate = do
 
 authenticate :: AuthenticateURL -> RoutedNomyxServer Response
 authenticate authURL = do
-  rt <- use routeAuthenticate
+  rt <- use (authState . Auth.routeAuthenticate)
   mapRouteT lift $ nestURL Auth $ rt authURL
 
 changePasswordPanel :: RoutedNomyxServer Response

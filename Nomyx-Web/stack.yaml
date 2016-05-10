@@ -7,6 +7,8 @@ packages:
   extra-dep: true
 - location: ../Nomyx-Library
   extra-dep: true
+- location: ../Nomyx-Auth
+  extra-dep: true
 - ../../Haskell/hint-server
 extra-deps:
 - Nomyx-Core-0.7.6

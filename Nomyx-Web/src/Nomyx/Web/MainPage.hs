@@ -39,6 +39,7 @@ import           Nomyx.Web.Login
 import           Nomyx.Web.NewGame
 import           Nomyx.Web.Settings
 import           Nomyx.Web.Types
+import qualified Nomyx.Auth                            as Auth
 import           Paths_Nomyx_Language
 import           Prelude                               hiding (div)
 import           Safe
@@ -221,24 +222,8 @@ launchWebServer ts net = do
    let set = _mSettings $ _multi s
    let conf = nullConf {HS.port = T._port net}
    docdir <- liftIO getDocDir
-   let authenticateConfig = AuthenticateConfig
-               { _isAuthAdmin        = const $ return True
-               , _usernameAcceptable = usernamePolicy
-               , _requireEmail       = True
-               }
-   let passwordConfig = PasswordConfig
-               { _resetLink = "http://localhost:8000/#resetPassword"
-               , _domain    =  "example.org"
-               , _passwordAcceptable = \t ->
-                   if T.length t >= 5
-                   then Nothing
-                   else Just "Must be at least 5 characters."
-               }
-   --init authenticate
-   (_, routeAuthenticate, authenticateState) <- liftIO $ 
-      initAuthentication (Just $ _saveDir set) authenticateConfig [initPassword passwordConfig, initOpenId]
-   let ws = WebState ts authenticateState routeAuthenticate
-   simpleHTTP conf $ server ws set net docdir
+   ws <- Auth.launchAuth (_saveDir set)
+   simpleHTTP conf $ server (WebState ts ws) set net docdir
 
 --serving Nomyx web page as well as data from this package and the language library package
 server :: WebState -> Settings -> Network -> String -> ServerPartT IO Response
