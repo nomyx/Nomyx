@@ -47,6 +47,9 @@ playTests saveDir sh mTestName = do
    let session = Session sh (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = saveDir, _webDir = "", _sourceDir = ""}) tp
    mapM (\(title, t, cond) -> (title,) <$> test title session t cond) tests
 
+defaultNetwork :: Network
+defaultNetwork = Network "" 0
+
 -- | test list.
 -- each test can be loaded individually in Nomyx with the command line:
 -- Nomyx -l <"test name">

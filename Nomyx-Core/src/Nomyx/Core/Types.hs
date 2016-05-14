@@ -2,6 +2,8 @@
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeFamilies       #-}
 {-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE TypeSynonymInstances      #-}
+{-# LANGUAGE FlexibleInstances      #-}
 
 module Nomyx.Core.Types where
 
@@ -19,6 +21,7 @@ import           Language.Haskell.Interpreter.Server (ServerHandle)
 import           Language.Nomyx
 import           Network.BSD
 import           Nomyx.Core.Engine
+import Data.Aeson
 
 type PlayerPassword = String
 type Port = Int
@@ -29,13 +32,9 @@ data LastUpload = NoUpload
                 | UploadSuccess
                 | UploadFailure (FilePath, CompileError)
                 deriving (Eq, Ord, Read, Show, Typeable, Data, Generic)
-$(deriveSafeCopy 1 'base ''LastUpload)
 
 data Network = Network {_host :: HostName, _port :: Port}
                deriving (Eq, Show, Read, Typeable)
-
-defaultNetwork :: Network
-defaultNetwork = Network "" 0
 
 data PlayerSettings =
    PlayerSettings { _pPlayerName    :: PlayerName,
@@ -45,8 +44,6 @@ data PlayerSettings =
                     _mailNewOutput  :: Bool,
                     _mailConfirmed  :: Bool}
                     deriving (Eq, Show, Read, Data, Ord, Typeable, Generic)
-$(deriveSafeCopy 1 'base ''PlayerSettings)
-
 
 data Settings = Settings { _net           :: Network,  -- URL where the server is launched
                            _sendMails     :: Bool,     -- send mails or not
@@ -69,8 +66,7 @@ data GameInfo = GameInfo { _loggedGame     :: LoggedGame,
                            _startedAt      :: UTCTime}
                            deriving (Typeable, Show, Eq)
 
-
--- | 'ProfileData' contains application specific
+-- | 'ProfileData' contains player settings
 data ProfileData =
     ProfileData { _pPlayerNumber   :: PlayerNumber, -- same as UserId
                   _pPlayerSettings :: PlayerSettings,
@@ -80,31 +76,10 @@ data ProfileData =
                   }
                   deriving (Eq, Ord, Read, Show, Typeable, Data, Generic)
 
-data ProfileDataOld =
-    ProfileDataOld { _pPlayerNumberOld   :: PlayerNumber, -- same as UserId
-                     _pPlayerSettingsOld :: PlayerSettings,
-                     _pViewingGameOld    :: Maybe GameName,
-                     _pLastRuleOld       :: Maybe LastRule,
-                     _pLastUploadOld     :: LastUpload,
-                     _pIsAdminOld        :: Bool
-                   }
-
-$(deriveSafeCopy 2 'extension ''ProfileData)
-$(deriveSafeCopy 1 'base ''ProfileDataOld)
-
-instance Migrate ProfileData where
-  type MigrateFrom ProfileData = ProfileDataOld
-  migrate (ProfileDataOld a b _ d e f) = (ProfileData a b d e f)
-
-
-$(deriveSafeCopy 1 'base ''RuleTemplate)
-$(deriveSafeCopy 1 'base ''Module)
-
-$(inferIxSet "ProfilesData" ''ProfileData 'noCalcs [''PlayerNumber]) -- , ''Text
+$(inferIxSet "ProfilesData" ''ProfileData 'noCalcs [''PlayerNumber])
 
 data ProfileDataState = ProfileDataState { profilesData :: ProfilesData }
     deriving (Eq, Ord, Read, Show, Typeable, Data)
-$(deriveSafeCopy 1 'base ''ProfileDataState)
 
 data Session = Session { _sh           :: ServerHandle,
                          _multi        :: Multi,
@@ -112,6 +87,13 @@ data Session = Session { _sh           :: ServerHandle,
 
 instance Show Session where
    show (Session _ m _) = show m
+
+$(deriveSafeCopy 1 'base ''LastUpload)
+$(deriveSafeCopy 1 'base ''PlayerSettings)
+$(deriveSafeCopy 1 'base ''ProfileData)
+$(deriveSafeCopy 1 'base ''RuleTemplate)
+$(deriveSafeCopy 1 'base ''Module)
+$(deriveSafeCopy 1 'base ''ProfileDataState)
 
 makeLenses ''Multi
 makeLenses ''GameInfo
@@ -128,3 +110,12 @@ $(deriveJSON defaultOptions ''Network)
 $(deriveJSON defaultOptions ''LastUpload)
 $(deriveJSON defaultOptions ''PlayerSettings)
 $(deriveJSON defaultOptions ''ProfileData)
+$(deriveJSON defaultOptions ''RuleInfo)
+$(deriveJSON defaultOptions ''RuleStatus)
+
+
+instance ToJSON Rule where
+   toJSON _ = object []
+
+instance FromJSON Rule where
+   parseJSON (Object _) = undefined
