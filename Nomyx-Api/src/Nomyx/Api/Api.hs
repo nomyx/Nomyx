@@ -119,14 +119,12 @@ templatesGet tv = do
 
 templatesPost :: TVar Session -> RuleTemplate -> EitherT ServantErr IO ()
 templatesPost tv rt = do
-   (Session sh _ _) <- liftIO $ atomically $ readTVar tv
-   liftIO $ updateSession tv (newRuleTemplate rt 2 sh)
+   liftIO $ updateSession tv (newRuleTemplate rt)
    return ()
 
 templatesPut :: TVar Session -> [RuleTemplate] -> EitherT ServantErr IO ()
-templatesPut tv rt = do
-   (Session sh _ _) <- liftIO $ atomically $ readTVar tv
-   --liftIO $ updateSession tv (newRuleTemplate rt 2 sh)
+templatesPut tv rts = do
+   liftIO $ updateSession tv (updateRuleTemplates rts)
    return ()
 
 instance ToSchema ProfileData

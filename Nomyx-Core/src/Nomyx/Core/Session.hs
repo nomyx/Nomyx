@@ -131,10 +131,15 @@ checkRule sr@(RuleTemplate _ _ code _ _ _ _) pn sh = do
          tracePN pn ("Error in submitted rule: " ++ errorMsg)
          modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
-newRuleTemplate :: RuleTemplate -> PlayerNumber -> ServerHandle -> StateT Session IO ()
-newRuleTemplate rt@(RuleTemplate name _ _ _ _ _ _) pn sh = do
-  tracePN pn $ "new template " ++ show rt
+newRuleTemplate :: RuleTemplate -> StateT Session IO ()
+newRuleTemplate rt@(RuleTemplate _ _ _ author _ _ _) = do
+  liftIO $ putStrLn $ author ++ " inserted new template :" ++ show rt
   (multi . mLibrary) %= (addRT rt)
+
+updateRuleTemplates :: [RuleTemplate] -> StateT Session IO ()
+updateRuleTemplates rts = do
+  liftIO $ putStrLn $ (_rAuthor $ head rts) ++ " has updated templates"
+  (multi . mLibrary) .= rts
 
 addRT :: RuleTemplate -> [RuleTemplate] -> [RuleTemplate]
 addRT rt rts = case (find (\rt' -> (_rName rt) == (_rName rt'))) rts of

@@ -140,8 +140,6 @@ newRuleTemplateForm' rt isGameAdmin =
       <*> inputSubmit "Check"
       -- <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 
-data RuleTemplateForm = RuleTemplateForm {name :: String, desc :: String, code :: String, decls :: (FilePath, FilePath)}
-
 newRuleTemplateForm'' :: RuleTemplate -> NomyxForm RuleTemplateForm
 newRuleTemplateForm'' (RuleTemplate name desc code aut pic cat decls) =
   RuleTemplateForm <$> RB.label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
@@ -158,7 +156,7 @@ newRuleTemplate gn = toResponse <$> do
   ruleName <- case r of
      Right (RuleTemplateForm name desc code (tempName, fileName), Nothing) -> do
        content <- liftIO $ readFile tempName
-       webCommand $ S.newRuleTemplate (RuleTemplate name desc code "" Nothing [] [(Module fileName content)]) pn (_sh s)
+       webCommand $ S.newRuleTemplate (RuleTemplate name desc code "" Nothing [] [(Module fileName content)])
        return name
      Right (RuleTemplateForm name desc code (tempName, fileName), Just _)  -> do
        content <- liftIO $ readFile tempName
