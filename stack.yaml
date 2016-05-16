@@ -1,5 +1,5 @@
 packages:
-#- location: Nomyx
+- location: Nomyx
 - location: Nomyx-Core
 - location: Nomyx-Language
 - location: Nomyx-Library
