@@ -1,0 +1,27 @@
+name:                Nomyx-Client
+version:             0.7.6
+synopsis:            CLI for Nomyx
+description:         Please see README.md
+homepage:            http://www.nomyx.net
+license:             BSD3
+license-file:        LICENSE
+author:              Corentin Dupont
+maintainer:          corentin.dupont@gmail.com
+copyright:           2015 Corentin Dupont
+category:            Game
+build-type:          Simple
+cabal-version:       >=1.10
+
+Executable nomyx-client
+  hs-source-dirs:      src
+  Main-Is:             Main.hs
+  ghc-options:         -Wall
+  build-depends:       base
+                     , Nomyx-Api
+                     , servant
+                     , servant-client
+                     , swagger2
+                     , Nomyx-Language
+                     , lens -any
+  default-language:    Haskell2010
+
