@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
 module Nomyx.Core.Serialize where
 
@@ -44,3 +45,16 @@ updateGameInfo f gi = do
 
 updateLoggedGame :: (RuleCode -> IO Rule) -> LoggedGame -> IO LoggedGame
 updateLoggedGame f (LoggedGame g log) = getLoggedGame g f log
+
+-- read a library filee
+readLibrary :: FilePath -> IO [RuleTemplate]
+readLibrary fp = do
+  s <- BL.readFile fp
+  case decodeEither s of
+     Left e -> error $ "error decoding library: " ++ e
+     Right ts -> (traverse . rDeclarations . traverse) %%~ readModule $ ts
+
+readModule :: Module -> IO Module
+readModule (Module fp _) = do
+  content <- readFile fp
+  return $ Module fp content

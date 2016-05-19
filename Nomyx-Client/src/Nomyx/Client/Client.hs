@@ -13,15 +13,27 @@ module Nomyx.Client.Client
      where
 
 import Data.Proxy
+import Servant
 import Servant.Client
 import Nomyx.Api.Api
+import Nomyx.Core.Serialize
+import Language.Nomyx.Expression
+import Control.Monad.Trans.Either
 
-
-templateApi :: Proxy NomyxApi
+templateApi :: Proxy RuleTemplateApi
 templateApi = Proxy
 
-getTemplate :: EitherT ServantErr IO [RuleTemplate]
-postTemplate :: RuleTemplate -> EitherT ServantErr IO ()
-putTemplates :: [RuleTemplate] -> EitherT ServantErr IO ()
-getTemplate :<|> postTemplate :<|> putTemplates = client nomyxAPI (BaseUrl Http "hackage.haskell.org" 80)
+getTemplate :: EitherT ServantError IO [RuleTemplate]
+postTemplate :: RuleTemplate -> EitherT ServantError IO ()
+putTemplates :: [RuleTemplate] -> EitherT ServantError IO ()
+getTemplate :<|> postTemplate :<|> putTemplates = client templateApi (BaseUrl Http "localhost" 8001)
+
+uploadTemplates :: IO ()
+uploadTemplates = do
+  ts <- readLibrary "Nomyx-Client/templates.yaml"
+  res <- runEitherT $ putTemplates ts
+  putStrLn $ show ts
+  putStrLn $ show res
+  return ()
+
 

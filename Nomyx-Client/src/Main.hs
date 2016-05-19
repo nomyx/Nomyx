@@ -1,4 +1,6 @@
 
 module Main where
 
-main = putStrLn "test"
+import Nomyx.Client.Client
+
+main = uploadTemplates
