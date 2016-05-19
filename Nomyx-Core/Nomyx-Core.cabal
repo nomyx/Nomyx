@@ -68,7 +68,6 @@ library
                      Nomyx.Core.Quotes
                      Nomyx.Core.Mail
                      Nomyx.Core.Utils
-                     Nomyx.Core.Library
                      Nomyx.Core.Test
                      Nomyx.Core.Engine
                      Nomyx.Core.Engine.Evaluation
