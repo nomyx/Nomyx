@@ -6,7 +6,7 @@
 --You can copy-paste them in the field "Code" of the web GUI.
 --You can copy either the name of the function (i.e. "helloWorld") or its body (i.e. "outputAll_ "hello, world!""), but NOT both.
 --Don't hesitate to get inspiration from there and create your own rules!
-module Language.Nomyx.Examples(
+module Examples(
    nothing,
    helloWorld,
    accounts,
