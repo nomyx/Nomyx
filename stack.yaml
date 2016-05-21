@@ -6,6 +6,7 @@ packages:
 - location: Nomyx-Web
 - location: Nomyx-Api
 - location: Nomyx-Auth
+- location: Nomyx-Client
 extra-deps:
 - servant-mock-0.4.4.6
 - hint-server-1.4.2
