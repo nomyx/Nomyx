@@ -2,5 +2,9 @@
 module Main where
 
 import Nomyx.Client.Client
+import           System.Environment
 
-main = uploadTemplates
+main :: IO ()
+main = do
+   args <- getArgs
+   uploadTemplates $ head args
