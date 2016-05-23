@@ -64,7 +64,7 @@ viewMulti mpn saveDir gt gn s = do
          let lr = _pLastRule $ fromJustNote "viewMulti" pfd
          return (isAdmin, lr)
       Nothing -> return (False, Nothing)
-   let gi = fromJust $ S.getGameByName gn s  --TODO fix
+   let gi = fromJust $ getGameByName gn s  --TODO fix
    gns <- viewGamesTab gi isAdmin saveDir mpn
    vg <- viewGameInfo gi mpn lr isAdmin gt (_mLibrary $ _multi s)
    ok $ do

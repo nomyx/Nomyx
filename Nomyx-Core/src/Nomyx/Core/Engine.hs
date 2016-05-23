@@ -51,7 +51,8 @@ module Nomyx.Core.Engine(
    getChoiceEvents,
    getTextEvents,
    runEvaluate,
-   getL
+   getL,
+   InterpretRule
    ) where
 
 import           Nomyx.Core.Engine.Evaluation

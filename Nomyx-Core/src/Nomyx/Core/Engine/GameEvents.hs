@@ -136,7 +136,9 @@ createRule :: RuleTemplate -> PlayerNumber -> InterpretRule -> StateT Game IO Ru
 createRule (RuleTemplate name des code _ _ _ decls) pn inter = do
    rs <- use rules
    let rn = getFreeNumber $ map _rNumber rs
-   rf <- lift $ inter code
+   g <- get
+   let allDecls = decls ++ (concatMap (_rDeclarations . _rRuleTemplate) (_rules g))
+   r <- lift $ inter code allDecls
    tracePN pn $ "Creating rule n=" ++ show rn ++ " code=" ++ code
    let ruleTemplate = RuleTemplate {_rName = name,
                                     _rDescription = des,
@@ -144,10 +146,10 @@ createRule (RuleTemplate name des code _ _ _ decls) pn inter = do
                                     _rAuthor = "Player " ++ (show pn),
                                     _rPicture = Nothing,
                                     _rCategory = [],
-                                    _rDeclarations = []}
+                                    _rDeclarations = decls}
    return RuleInfo {_rNumber = rn,
                     _rProposedBy = pn,
-                    _rRule = rf,
+                    _rRule = r,
                     _rStatus = Pending,
                     _rAssessedBy = Nothing,
                     _rRuleTemplate = ruleTemplate}

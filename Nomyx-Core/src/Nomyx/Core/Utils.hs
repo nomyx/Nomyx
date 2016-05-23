@@ -23,6 +23,7 @@ import           Nomyx.Core.Engine
 import           Nomyx.Core.Types
 import           System.IO
 import           System.IO.PlafCompat
+import           Data.List
 
 saveFile, profilesDir, uploadDir, testDir, authDir, tarFile :: FilePath
 saveFile    = "Nomyx.save"
@@ -160,3 +161,6 @@ watchDog n tid mvar = do
 
 gameNameLens :: Lens' GameInfo GameName
 gameNameLens = loggedGame . game . gameName
+
+getGameByName :: GameName -> Session -> Maybe GameInfo
+getGameByName gn s = find ((==gn) . getL (loggedGame . game . gameName)) (_gameInfos $ _multi s)

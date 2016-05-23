@@ -86,30 +86,34 @@ leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
 submitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
 submitRule rt@(RuleTemplate _ _ code _ _ _ decls) pn gn sh = do
    tracePN pn $ "proposed " ++ show rt
-   mrr <- liftIO $ interpretRule code sh
-   s <- get
-   sd <- use (multi . mSettings . saveDir)
-   let gi = getGameByName gn s
-   let allDecls = decls ++ (concatMap (_rDeclarations . _rRuleTemplate) (_rules $ _game $ _loggedGame $ fromJust gi))
+   gameDcls <- getDecls gn
+   mrr <- liftIO $ interpretRule sh code (decls ++ gameDcls)
    case mrr of
       Right _ -> do
          tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ G.execGameEvent' (Just $ getRuleFunc' sh decls sd) (ProposeRuleEv pn rt)
+         inGameDo gn $ G.execGameEvent' (Just $ interRule sh) (ProposeRuleEv pn rt)
          modifyProfile pn (pLastRule .~ Just (rt, "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."))
-         liftIO $ sendMailsSubmitRule s rt pn (fromJust gi)
+         s <- get
+         liftIO $ sendMailsSubmitRule s rt pn gn
       Left e -> submitRuleError rt pn gn e
 
 adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-adminSubmitRule sr@(RuleTemplate _ _ code _ _ _ _) pn gn sh = do
+adminSubmitRule sr@(RuleTemplate _ _ code _ _ _ decls) pn gn sh = do
    tracePN pn $ "admin proposed " ++ show sr
-   mrr <- liftIO $ interpretRule code sh
-   sd <- use (multi . mSettings . saveDir)
+   gameDcls <- getDecls gn
+   mrr <- liftIO $ interpretRule sh code (decls ++ gameDcls)
    case mrr of
       Right _ -> do
          tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ execGameEvent' (Just $ getRuleFunc' sh [] sd) (SystemAddRule sr)
+         inGameDo gn $ execGameEvent' (Just $ interRule sh) (SystemAddRule sr)
          modifyProfile pn (pLastRule .~ Just (sr, "Admin rule submitted OK!"))
       Left e -> submitRuleError sr pn gn e
+
+getDecls :: GameName -> StateT Session IO [Module]
+getDecls gn = do
+   s <- get
+   let gi = getGameByName gn s
+   return $ concatMap (_rDeclarations . _rRuleTemplate) (_rules $ _game $ _loggedGame $ fromJust gi)
 
 submitRuleError :: RuleTemplate -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
 submitRuleError sr pn gn e = do
@@ -118,10 +122,11 @@ submitRuleError sr pn gn e = do
    tracePN pn ("Error in submitted rule: " ++ errorMsg)
    modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
-checkRule :: RuleTemplate -> PlayerNumber -> ServerHandle -> StateT Session IO ()
-checkRule sr@(RuleTemplate _ _ code _ _ _ _) pn sh = do
+checkRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
+checkRule sr@(RuleTemplate _ _ code _ _ _ decls) pn gn sh = do
    tracePN pn $ "check rule " ++ show sr
-   mrr <- liftIO $ interpretRule code sh
+   gameDcls <- getDecls gn
+   mrr <- liftIO $ interpretRule sh code (decls ++ gameDcls)
    case mrr of
       Right _ -> do
          tracePN pn "proposed rule compiled OK"
@@ -243,5 +248,3 @@ evalSession sm s = do
    writeFile nullFileName $ show $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
    return s'
 
-getGameByName :: GameName -> Session -> Maybe GameInfo
-getGameByName gn s = find ((==gn) . getL (loggedGame . game . gameName)) (_gameInfos $ _multi s)

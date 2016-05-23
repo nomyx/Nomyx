@@ -20,6 +20,7 @@ import           System.Directory                    (copyFile,
 import           System.FilePath                     (dropExtension, joinPath,
                                                       takeFileName, (</>))
 import           System.IO.Error
+import           System.IO.Temp
 
 exts :: [String]
 exts = ["Safe", "GADTs"] ++ map show namedExts
@@ -66,22 +67,18 @@ initializeInterpreter saveDir = do
    setImportsQ importMods
 
 ---- | reads maybe a Rule out of a string.
-interpretRule :: String -> ServerHandle -> IO (Either InterpreterError Rule)
-interpretRule s sh = (liftIO $ runIn sh $ interpret s (as :: Rule))
-   `catchIOError` (\(e::IOException) -> return $ Left $ NotAllowed $ "Caught exception: " ++ (show e))
+interpretRule :: ServerHandle -> RuleCode -> [Module] -> IO (Either InterpreterError Rule)
+interpretRule sh rc ms = do
+   dir <- createTempDirectory "/tmp" "Nomyx"
+   mapM_ (copyModule dir) ms
+   runIn sh $ initializeInterpreter dir
+   runRule `catchIOError` handler where
+      runRule = liftIO $ runIn sh $ interpret rc (as :: Rule)
+      handler (e::IOException) = return $ Left $ NotAllowed $ "Caught exception: " ++ (show e)
 
-getRuleFunc :: ServerHandle -> RuleCode -> IO Rule
-getRuleFunc sh rc = do
-   res <- interpretRule rc sh
-   case res of
-      Right rf -> return rf
-      Left e -> error $ show e
-
-getRuleFunc' :: ServerHandle -> [Module] -> FilePath -> RuleCode -> IO Rule
-getRuleFunc' sh decls saveDir rc = do
-   mapM_ (copyModule saveDir) decls
-   runIn sh $ initializeInterpreter saveDir
-   res <- interpretRule rc sh
+interRule :: ServerHandle -> RuleCode -> [Module] -> IO Rule
+interRule sh rc ms = do
+   res <- interpretRule sh rc ms
    case res of
       Right rf -> return rf
       Left e -> error $ show e

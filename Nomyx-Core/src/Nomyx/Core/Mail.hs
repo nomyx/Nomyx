@@ -66,8 +66,9 @@ newRuleTextBody playerName (RuleTemplate name desc code _ _ _ _) prop net =
 newRuleObject :: PlayerName -> String
 newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 
-sendMailsSubmitRule :: Session -> RuleTemplate -> PlayerNumber -> GameInfo -> IO ()
-sendMailsSubmitRule s sr pn gi = when (_sendMails $ _mSettings $ _multi s) $ do
+sendMailsSubmitRule :: Session -> RuleTemplate -> PlayerNumber -> GameName -> IO ()
+sendMailsSubmitRule s sr pn gn = when (_sendMails $ _mSettings $ _multi s) $ do
+   let (Just gi) = getGameByName gn s
    guard (_isPublic gi)
    putStrLn "Sending mails"
    let sendMailsTo = map _playerNumber (_players $ _game $ _loggedGame gi)

@@ -32,21 +32,22 @@ load fp = do
 
 loadMulti :: Settings -> ServerHandle -> IO Multi
 loadMulti s sh = do
-   m <- load (getSaveFile s)
-   gs' <- mapM (updateGameInfo $ getRuleFunc sh) $ _gameInfos m
+   let sd = getSaveFile s
+   m <- load sd
+   gs' <- mapM (updateGameInfo $ interRule sh) $ _gameInfos m
    let m' = set gameInfos gs' m
    let m'' = set mSettings s m'
    return m''
 
-updateGameInfo :: (RuleCode -> IO Rule) -> GameInfo -> IO GameInfo
+updateGameInfo :: InterpretRule -> GameInfo -> IO GameInfo
 updateGameInfo f gi = do
    gi' <- updateLoggedGame f (_loggedGame gi)
    return $ gi {_loggedGame = gi'}
 
-updateLoggedGame :: (RuleCode -> IO Rule) -> LoggedGame -> IO LoggedGame
+updateLoggedGame :: InterpretRule -> LoggedGame -> IO LoggedGame
 updateLoggedGame f (LoggedGame g log) = getLoggedGame g f log
 
--- read a library filee
+-- read a library file
 readLibrary :: FilePath -> IO [RuleTemplate]
 readLibrary fp = do
   s <- BL.readFile fp

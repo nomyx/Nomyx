@@ -43,7 +43,8 @@ type Evaluate   a = ErrorT String (State EvalEnv ) a
 -- | Environment necessary for the evaluation of NomexNE
 type EvaluateNE a = Reader EvalEnv a
 
-type InterpretRule = RuleCode -> IO Rule
+-- | extract a rule from a code string and an environment
+type InterpretRule = RuleCode -> [Module] -> IO Rule
 
 -- * Game
 
