@@ -75,7 +75,7 @@ viewGamesTab :: GameInfo -> Bool -> FilePath -> (Maybe PlayerNumber) -> RoutedNo
 viewGamesTab gi isAdmin saveDir mpn = do
    let g = getGame gi
    let gn = _gameName g
-   fmods <- liftIO $ getUploadedModules saveDir
+   --fmods <- liftIO $ getUploadedModules saveDir
    ok $ do
      table $ do
        tr $ td ! A.class_ "buttonTD" $ H.a "Home "       ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Home gn)
@@ -86,9 +86,9 @@ viewGamesTab gi isAdmin saveDir mpn = do
      br >> b "Help files:" >> br
      H.a "Rules examples"    ! (href "/html/Language-Nomyx-Examples.html") ! target "_blank" >> br
      H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br
-     when (fmods /= []) $ do
-       br >> b "Uploaded files:" >> br
-       mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : uploadDir </> f)) >> br) (sort fmods)
+     --when (fmods /= []) $ do
+     --  br >> b "Uploaded files:" >> br
+     --  mapM_ (\f -> (H.a $ toHtml f ) ! (href $ toValue (pathSeparator : uploadDir </> f)) >> br) (sort fmods)
      br >> b "Settings:" >> br
      H.a "Advanced"        ! (href $ toValue $ defLink Advanced (isJust mpn)) >> br
      H.a "Logout"          ! (href $ toValue $ showRelURL Login) >> br

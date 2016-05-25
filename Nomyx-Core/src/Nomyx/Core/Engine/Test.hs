@@ -10,13 +10,13 @@ import Language.Nomyx.Rules
 import Language.Nomyx.Events
 import Language.Nomyx.Outputs
 import Language.Nomyx.Inputs
-import Language.Nomyx.Vote
 import Language.Nomyx.Messages
-import Language.Nomyx.Examples
 import Nomyx.Core.Engine.Evaluation
 import Nomyx.Core.Engine.EventEval
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
+import Nomyx.Library.Examples
+import Nomyx.Library.Vote
 import Control.Monad.State
 import Data.Typeable
 import Data.Function hiding ((.))

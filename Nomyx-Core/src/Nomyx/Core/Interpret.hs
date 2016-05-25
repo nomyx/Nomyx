@@ -35,20 +35,20 @@ namedExts = [GADTs,
 startInterpreter :: FilePath -> IO ServerHandle
 startInterpreter saveDir = do
    sh <- start
-   liftIO $ createDirectoryIfMissing True $ saveDir </> uploadDir
-   ir <- runIn sh $ initializeInterpreter saveDir
-   case ir of
-      Right r -> do
-         putStrLn "Interpreter Loaded"
-         return $ Just r
-      Left e -> error $ "sHandle: initialization error:\n" ++ show e
+   --liftIO $ createDirectoryIfMissing True $ saveDir </> uploadDir
+   --ir <- runIn sh $ initializeInterpreter saveDir
+   --case ir of
+   --   Right r -> do
+   --      putStrLn "Interpreter Loaded"
+   --      return $ Just r
+   --   Left e -> error $ "Interpreter initialization error:\n" ++ show e
    return sh
 
 -- get all uploaded modules from the directory (may be empty)
 getUploadModules :: FilePath -> IO [FilePath]
 getUploadModules saveDir = do
     files <- getUploadedModules saveDir `catch` (\(_::SomeException) -> return [])
-    return $ map (\f -> joinPath [saveDir, uploadDir, f]) files
+    return $ map (\f -> joinPath [saveDir, f]) files
 
 -- | initializes the interpreter by loading some modules.
 initializeInterpreter :: FilePath -> Interpreter ()
@@ -86,14 +86,14 @@ interRule sh rc ms = do
 --TODO handle error cases
 copyModule :: FilePath -> Module -> IO ()
 copyModule saveDir decls = do
-   let dest = saveDir </> uploadDir </> (_modPath decls)
+   let dest = saveDir </> (_modPath decls)
    writeFile dest (_modContent decls)
 
 -- | check an uploaded file and reload
 loadModule :: FilePath -> FilePath -> ServerHandle -> FilePath -> IO (Maybe InterpreterError)
 loadModule tempModName name sh saveDir = do
    --copy the new module in the upload directory
-   let dest = saveDir </> uploadDir </> name
+   let dest = saveDir </> name
    exist <- doesFileExist dest
    if exist then return $ Just $ NotAllowed "Module already uploaded"
    else do

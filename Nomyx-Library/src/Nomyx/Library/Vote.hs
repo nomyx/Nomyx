@@ -7,7 +7,7 @@
 {-# LANGUAGE TypeFamilies        #-}
 
 -- | Voting system
-module Vote where
+module Nomyx.Library.Vote where
 
 import           Control.Applicative
 import           Control.Arrow

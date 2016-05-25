@@ -14,7 +14,7 @@ import Control.Exception as E
 import Control.Arrow ((>>>))
 import Control.Lens
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax as THS hiding (lift)
+import Language.Haskell.TH.Syntax as THS hiding (lift, Module)
 import System.IO.Unsafe
 import Data.List
 import Data.Maybe
@@ -125,16 +125,15 @@ submitR r = do
    submitRule (RuleTemplate "" "" r "" Nothing [] []) 1 "test" sh
    inputAllRadios 0
 
-testFile' :: FilePath -> FilePath -> String -> StateT Session IO Bool
+testFile' :: FilePath -> FilePath -> String -> StateT Session IO ()
 testFile' path name func = do
    sh <- use sh
    dataDir <- lift PNC.getDataDir
-   res <- inputUpload 1 (dataDir </> testDir </> path) name sh
-   submitRule (RuleTemplate "" "" func "" Nothing [] []) 1 "test" sh
+   cont <- liftIO $ readFile (dataDir </> testDir </> path)
+   submitRule (RuleTemplate "" "" func "" Nothing [] [Module path cont]) 1 "test" sh
    inputAllRadios 0
-   return res
 
-testFile :: FilePath -> String -> StateT Session IO Bool
+testFile :: FilePath -> String -> StateT Session IO ()
 testFile name = testFile' name name
 
 -- * Tests
@@ -257,7 +256,7 @@ condNoGame m = null $ _gameInfos m
 testFile1 :: StateT Session IO ()
 testFile1 = do
    onePlayerOneGame
-   void $ testFile "SimpleModule.hs" "myRule"
+   testFile "SimpleModule.hs" "myRule"
 
 condNRules :: Int -> Multi -> Bool
 condNRules n m = (length $ _rules $ firstGame m) == n
@@ -266,35 +265,35 @@ condNRules n m = (length $ _rules $ firstGame m) == n
 testFile2 :: StateT Session IO ()
 testFile2 = do
    onePlayerOneGame
-   void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
+   testFile "SimpleModule.hs" "SimpleModule.myRule"
 
 
 --module that imports Data.Time (should be Safe in recent versions)
 testFileTime :: StateT Session IO ()
 testFileTime = do
    onePlayerOneGame
-   void $ testFile "TestTime.hs" "TestTime.myRule"
+   testFile "TestTime.hs" "TestTime.myRule"
 
 --loading two modules with the same name is forbidden
 testFileTwice :: StateT Session IO ()
 testFileTwice = do
    onePlayerOneGame
-   void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
-   void $ testFile' "more/SimpleModule.hs" "SimpleModule.hs" "SimpleModule.myRule2"
+   testFile "SimpleModule.hs" "SimpleModule.myRule"
+   testFile' "more/SimpleModule.hs" "SimpleModule.hs" "SimpleModule.myRule2"
 
 
 --but having the same function name in different modules is OK
 testFileTwice' :: StateT Session IO ()
 testFileTwice' = do
    onePlayerOneGame
-   void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
-   void $ testFile "SimpleModule2.hs" "SimpleModule2.myRule"
+   testFile "SimpleModule.hs" "SimpleModule.myRule"
+   testFile "SimpleModule2.hs" "SimpleModule2.myRule"
 
 --security: no unsafe module imports
 testFileUnsafeIO :: StateT Session IO ()
 testFileUnsafeIO = do
    onePlayerOneGame
-   void $ testFile "UnsafeIO.hs" "UnsafeIO.myRule"
+   testFile "UnsafeIO.hs" "UnsafeIO.myRule"
 
 
 -- * Helpers

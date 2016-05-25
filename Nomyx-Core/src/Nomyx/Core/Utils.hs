@@ -67,8 +67,8 @@ untar fp = do
 
 getUploadedModules :: FilePath -> IO [FilePath]
 getUploadedModules saveDir = do
-   mods <- getDirectoryContents $ saveDir </> uploadDir
-   getRegularFiles (saveDir </> uploadDir) mods
+   mods <- getDirectoryContents $ saveDir
+   getRegularFiles (saveDir) mods
 
 getRegularFiles :: FilePath -> [FilePath] -> IO [FilePath]
 getRegularFiles dir fps = filterM (getFileStatus . (\f -> dir </> f) >=> return . isRegularFile) fps

@@ -12,8 +12,8 @@ description: Many example of rules ready to be played
 category: Language
 Homepage: http://www.nomyx.net
 author: Corentin Dupont
-data-files: static/pictures/*.png
-data-dir: data
+--data-files: static/pictures/*.png
+--data-dir: data
 extra-source-files: AUTHORS README
 
 library
@@ -27,8 +27,8 @@ library
                    safe               == 0.3.*,
                    time               >= 1.4 && < 1.6,
                    time-recurrence    == 0.9.*
-    exposed-modules: Language.Nomyx.Vote
-                     Language.Nomyx.Examples
+    exposed-modules: Nomyx.Library.Vote
+                     Nomyx.Library.Examples
 
     exposed: True
     buildable: True
