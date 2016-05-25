@@ -87,7 +87,7 @@ mainLoop :: Settings -> FilePath -> HostName -> Port -> IO ()
 mainLoop settings saveDir host port = do
    serverCommandUsage
    --start the haskell interpreter
-   sh <- protectHandlers $ startInterpreter saveDir
+   sh <- protectHandlers $ startInterpreter
    --creating game structures
    multi <- Main.loadMulti settings sh
    --main loop
@@ -118,7 +118,7 @@ errMsg set e = do
 
 runTests :: FilePath -> Maybe String -> IO ()
 runTests saveDir mTestName = do
-   sh <- protectHandlers $ startInterpreter saveDir
+   sh <- protectHandlers $ startInterpreter
    putStrLn $ "\nNomyx Language Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") LT.tests
    ts <- playTests saveDir sh mTestName
    putStrLn $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") ts

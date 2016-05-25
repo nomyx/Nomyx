@@ -8,6 +8,7 @@ import           Control.Exception                   as CE
 import           Control.Monad
 import           Data.Either.Unwrap
 import           Data.List
+import           Data.Maybe
 import           Language.Haskell.Interpreter
 import           Language.Haskell.Interpreter.Server
 import           Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
@@ -32,16 +33,16 @@ namedExts = [GADTs,
              DeriveDataTypeable]
 
 -- | the server handle
-startInterpreter :: FilePath -> IO ServerHandle
-startInterpreter saveDir = do
+startInterpreter :: IO ServerHandle
+startInterpreter = do
    sh <- start
    --liftIO $ createDirectoryIfMissing True $ saveDir </> uploadDir
-   --ir <- runIn sh $ initializeInterpreter saveDir
-   --case ir of
-   --   Right r -> do
-   --      putStrLn "Interpreter Loaded"
-   --      return $ Just r
-   --   Left e -> error $ "Interpreter initialization error:\n" ++ show e
+   ir <- runIn sh $ initializeInterpreter Nothing
+   case ir of
+      Right r -> do
+         putStrLn "Interpreter Loaded"
+         return $ Just r
+      Left e -> error $ "Interpreter initialization error:\n" ++ show e
    return sh
 
 -- get all uploaded modules from the directory (may be empty)
@@ -51,18 +52,23 @@ getUploadModules saveDir = do
     return $ map (\f -> joinPath [saveDir, f]) files
 
 -- | initializes the interpreter by loading some modules.
-initializeInterpreter :: FilePath -> Interpreter ()
-initializeInterpreter saveDir = do
-   reset -- Make sure nothing is available
+initializeInterpreter :: Maybe FilePath -> Interpreter ()
+initializeInterpreter modDir = do
+   reset
+   -- Interpreter options
    set [installedModulesInScope := False,
         languageExtensions := map readExt exts]
+   -- GHC options
    unsafeSetGhcOption "-w"
    unsafeSetGhcOption "-fpackage-trust"
    forM_ (defaultPackages >>= words) $ \pkg -> unsafeSetGhcOption ("-trust " ++ pkg)
-   uploadedMods <- liftIO $ getUploadModules saveDir
-   liftIO $ putStrLn $ "Loading modules: " ++ (intercalate ", " uploadedMods)
-   loadModules uploadedMods
-   setTopLevelModules $ map (dropExtension . takeFileName) uploadedMods
+   -- Modules
+   when (isJust modDir) $ do
+      uploadedMods <- liftIO $ getUploadModules $ fromJust modDir
+      liftIO $ putStrLn $ "Loading modules: " ++ (intercalate ", " uploadedMods)
+      loadModules uploadedMods
+      setTopLevelModules $ map (dropExtension . takeFileName) uploadedMods
+   -- Imports
    let importMods = qualImports ++ zip (unQualImports) (repeat Nothing)
    setImportsQ importMods
 
@@ -71,7 +77,7 @@ interpretRule :: ServerHandle -> RuleCode -> [Module] -> IO (Either InterpreterE
 interpretRule sh rc ms = do
    dir <- createTempDirectory "/tmp" "Nomyx"
    mapM_ (copyModule dir) ms
-   runIn sh $ initializeInterpreter dir
+   runIn sh $ initializeInterpreter (Just dir)
    runRule `catchIOError` handler where
       runRule = liftIO $ runIn sh $ interpret rc (as :: Rule)
       handler (e::IOException) = return $ Left $ NotAllowed $ "Caught exception: " ++ (show e)
@@ -90,24 +96,24 @@ copyModule saveDir decls = do
    writeFile dest (_modContent decls)
 
 -- | check an uploaded file and reload
-loadModule :: FilePath -> FilePath -> ServerHandle -> FilePath -> IO (Maybe InterpreterError)
-loadModule tempModName name sh saveDir = do
-   --copy the new module in the upload directory
-   let dest = saveDir </> name
-   exist <- doesFileExist dest
-   if exist then return $ Just $ NotAllowed "Module already uploaded"
-   else do
-      copyFile tempModName dest
-      setMode dest
-      inter <- runIn sh $ initializeInterpreter saveDir
-      case inter of
-         Right _ -> return Nothing
-         Left e -> do
-            --suppress the faulty module
-            removeFile dest
-            final <- runIn sh $ initializeInterpreter saveDir
-            when (isLeft final) $ putStrLn "Error: reinitialize interpreter failed"
-            return $ Just e
+--loadModule :: FilePath -> FilePath -> ServerHandle -> FilePath -> IO (Maybe InterpreterError)
+--loadModule tempModName name sh saveDir = do
+--   --copy the new module in the upload directory
+--   let dest = saveDir </> name
+--   --exist <- doesFileExist dest
+--   --if exist then return $ Just $ NotAllowed "Module already uploaded"
+--   --else do
+--      copyFile tempModName dest
+--      setMode dest
+--      inter <- runIn sh $ initializeInterpreter (Just saveDir)
+--      case inter of
+--         Right _ -> return Nothing
+--         Left e -> do
+--            --suppress the faulty module
+--            removeFile dest
+--            final <- runIn sh $ initializeInterpreter (Just saveDir)
+--            when (isLeft final) $ putStrLn "Error: reinitialize interpreter failed"
+--            return $ Just e
 
 showInterpreterError :: InterpreterError -> String
 showInterpreterError (UnknownError s)  = "Unknown Error\n" ++ s

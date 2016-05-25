@@ -162,22 +162,23 @@ inputResult pn en fa ft ir gn = inGameDo gn $ execGameEvent $ InputResult pn en 
 
 -- | upload a rule file, given a player number, the full path of the file, the file name and the server handle
 inputUpload :: PlayerNumber -> FilePath -> FilePath -> ServerHandle -> StateT Session IO Bool
-inputUpload pn temp mod sh = do
-   sd <- use (multi . mSettings . saveDir)
-   m <- liftIO $ loadModule temp mod sh sd
-   tracePN pn $ " uploaded " ++ show mod
-   case m of
-      Nothing -> do
-         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
-         tracePN pn "upload success"
-         modifyProfile pn (pLastUpload .~ UploadSuccess)
-         return True
-      Just e -> do
-         let errorMsg = showInterpreterError e
-         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
-         tracePN pn $ "upload failed: \n" ++ show e
-         modifyProfile pn (pLastUpload .~ UploadFailure (temp, errorMsg))
-         return False
+inputUpload pn temp mod sh = undefined
+--do
+--   sd <- use (multi . mSettings . saveDir)
+--   m <- liftIO $ loadModule temp mod sh sd
+--   tracePN pn $ " uploaded " ++ show mod
+--   case m of
+--      Nothing -> do
+--         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
+--         tracePN pn "upload success"
+--         modifyProfile pn (pLastUpload .~ UploadSuccess)
+--         return True
+--      Just e -> do
+--         let errorMsg = showInterpreterError e
+--         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
+--         tracePN pn $ "upload failed: \n" ++ show e
+--         modifyProfile pn (pLastUpload .~ UploadFailure (temp, errorMsg))
+--         return False
 
 -- | update player settings
 playerSettings :: PlayerSettings -> PlayerNumber -> StateT Session IO ()
