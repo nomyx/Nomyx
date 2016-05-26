@@ -46,15 +46,6 @@ startInterpreter = do
       Left e -> error $ "Interpreter initialization error:\n" ++ show e
    return sh
 
--- get all uploaded modules from the directory (may be empty)
---getUploadModules :: FilePath -> IO [FilePath]
---getUploadModules dir = do
---   files <- getUploadedModules dir `catch` (\(_::SomeException) -> return [])
---   return $ map (dir </>) files where
---      getUploadedModules saveDir = do
---         mods <- getDirectoryContents $ saveDir
---         getRegularFiles saveDir mods
-
 -- | initializes the interpreter by loading some modules.
 initializeInterpreter :: [Module] -> Interpreter ()
 initializeInterpreter mods = do
