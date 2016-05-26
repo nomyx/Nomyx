@@ -74,7 +74,7 @@ rVoteMajority = RuleTemplate "Majority Vote"
 
 initialGame :: ServerHandle -> StateT GameInfo IO ()
 initialGame sh = zoom loggedGame $ mapM_ addR [rVoteUnanimity, rVictory5Rules]
-   where addR r = execGameEvent' (Just $ interRule sh) (SystemAddRule r)
+   where addR r = execGameEvent' (Just $ Left $ interRule sh) (SystemAddRule r)
 
 initialGameInfo :: GameName -> GameDesc -> Bool -> Maybe PlayerNumber -> UTCTime -> ServerHandle -> IO GameInfo
 initialGameInfo name desc isPub mpn date sh = do

@@ -89,9 +89,9 @@ submitRule rt@(RuleTemplate _ _ code _ _ _ decls) pn gn sh = do
    gameDcls <- getDecls gn
    mrr <- liftIO $ interpretRule sh code (decls ++ gameDcls)
    case mrr of
-      Right _ -> do
+      Right r -> do
          tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ G.execGameEvent' (Just $ interRule sh) (ProposeRuleEv pn rt)
+         inGameDo gn $ G.execGameEvent' (Just $ Right r) (ProposeRuleEv pn rt)
          modifyProfile pn (pLastRule .~ Just (rt, "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."))
          s <- get
          liftIO $ sendMailsSubmitRule s rt pn gn
@@ -103,9 +103,9 @@ adminSubmitRule sr@(RuleTemplate _ _ code _ _ _ decls) pn gn sh = do
    gameDcls <- getDecls gn
    mrr <- liftIO $ interpretRule sh code (decls ++ gameDcls)
    case mrr of
-      Right _ -> do
+      Right r -> do
          tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ execGameEvent' (Just $ interRule sh) (SystemAddRule sr)
+         inGameDo gn $ execGameEvent' (Just $ Right r) (SystemAddRule sr)
          modifyProfile pn (pLastRule .~ Just (sr, "Admin rule submitted OK!"))
       Left e -> submitRuleError sr pn gn e
 
@@ -236,7 +236,8 @@ inGameDo gn action = zoom multi $ do
 updateSession :: TVar Session -> StateT Session IO () -> IO ()
 updateSession ts sm = do
    s <- atomically $ readTVar ts
-   ms <- evalWithWatchdog s (evalSession sm)
+   let delay = _watchdog $ _mSettings $ _multi s
+   ms <- evalWithWatchdog delay s (evalSession sm)
    case ms of
       Just s' -> do
          atomically $ writeTVar ts s'
