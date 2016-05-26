@@ -50,7 +50,8 @@ data Settings = Settings { _net           :: Network,  -- URL where the server i
                            _adminPassword :: String,   -- admin password
                            _saveDir       :: FilePath, -- location of the save file, profiles and uploaded files
                            _webDir        :: FilePath, -- location of the website files
-                           _sourceDir     :: FilePath} -- location of the language files, for display on the web gui (from Nomyx-Language)
+                           _sourceDir     :: FilePath, -- location of the language files, for display on the web gui (from Nomyx-Language)
+                           _watchdog      :: Int}      -- time in seconds before killing the compilation thread
                            deriving (Eq, Show, Read, Typeable)
 
 --- | A structure to hold the active games and players

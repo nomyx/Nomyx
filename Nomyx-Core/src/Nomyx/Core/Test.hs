@@ -6,36 +6,37 @@
 -- | Test module
 module Nomyx.Core.Test where
 
-import Language.Haskell.Interpreter.Server (ServerHandle)
-import Language.Nomyx hiding (getCurrentTime)
-import Control.Applicative
-import Control.Monad.State
-import Control.Exception as E
-import Control.Arrow ((>>>))
-import Control.Lens
-import Language.Haskell.TH
-import Language.Haskell.TH.Syntax as THS hiding (lift, Module)
-import System.IO.Unsafe
-import Data.List
-import Data.Maybe
-import Data.Acid
-import Data.Acid.Memory
-import Data.Time hiding (getCurrentTime)
-import Paths_Nomyx_Core as PNC
-import System.IO.Temp
-import System.FilePath ((</>))
-import System.Directory (createDirectoryIfMissing)
-import Nomyx.Core.Types
-import Nomyx.Core.Multi
-import Nomyx.Core.Session
-import Nomyx.Core.Utils
-import Nomyx.Core.Profile
-import Nomyx.Core.Quotes
-import Nomyx.Core.Engine
+import           Language.Haskell.Interpreter.Server (ServerHandle)
+import           Language.Nomyx hiding (getCurrentTime)
+import           Control.Applicative
+import           Control.Monad.State
+import           Control.Exception as E
+import           Control.Arrow ((>>>))
+import           Control.Lens
+import           Control.Concurrent.STM
+import           Language.Haskell.TH
+import           Language.Haskell.TH.Syntax as THS hiding (lift, Module)
+import           System.IO.Unsafe
+import           Data.List
+import           Data.Maybe
+import           Data.Acid
+import           Data.Acid.Memory
+import           Data.Time hiding (getCurrentTime)
+import           Paths_Nomyx_Core as PNC
+import           System.IO.Temp
+import           System.FilePath ((</>))
+import           System.Directory (createDirectoryIfMissing)
+import           Nomyx.Core.Types
+import           Nomyx.Core.Multi
+import           Nomyx.Core.Session
+import           Nomyx.Core.Utils
+import           Nomyx.Core.Profile
+import           Nomyx.Core.Quotes
+import           Nomyx.Core.Engine
 import qualified Nomyx.Core.Engine as G
 
-playTests :: FilePath -> ServerHandle -> Maybe String -> IO [(String, Bool)]
-playTests saveDir sh mTestName = do
+playTests :: FilePath -> ServerHandle -> Maybe String -> Int -> IO [(String, Bool)]
+playTests saveDir sh mTestName delay = do
    tests <- case mTestName of
       Just testName -> do
          let tsts = fatalTests ++ regularTests
@@ -44,7 +45,7 @@ playTests saveDir sh mTestName = do
    tp <- testProfiles
    dir <- createTempDirectory "/tmp" "Nomyx"
    createDirectoryIfMissing True $ dir </> uploadDir
-   let session = Session sh (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = saveDir, _webDir = "", _sourceDir = ""}) tp
+   let session = Session sh (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = saveDir, _webDir = "", _sourceDir = "", _watchdog = delay}) tp
    mapM (\(title, t, cond) -> (title,) <$> test title session t cond) tests
 
 defaultNetwork :: Network
@@ -86,7 +87,8 @@ test title session tes cond = do
 --Loads a test
 loadTest ::  StateT Session IO () -> Session -> IO Multi
 loadTest tes s = do
-   ms <- evalWithWatchdog s (evalSession tes) --version with no watchdog: ms <- Just <$> execStateT tes s
+   let delay = _watchdog $ _mSettings $ _multi s
+   ms <- evalWithWatchdog delay s (evalSession tes) --version with no watchdog: ms <- Just <$> execStateT tes s
    case ms of
       Just s' -> return $ _multi s'
       Nothing -> do

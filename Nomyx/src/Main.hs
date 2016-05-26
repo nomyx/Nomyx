@@ -75,10 +75,11 @@ start flags = do
    let webDir = fromMaybe defWebDir (findWebDir flags)
    -- source directory: Nomyx-Language files (used only for display in GUI, since this library is statically linked otherwise)
    let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
-   let settings = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir
+   let watchdog = fromMaybe 5 (read <$> findWatchdog flags)
+   let settings = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir watchdog
    let mLoad = findLoadTest flags
    when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\nweb dir = " ++ webDir ++ "\nsource dir = " ++ sourceDir
-   if Test `elem` flags then runTests saveDir mLoad
+   if Test `elem` flags then runTests saveDir mLoad watchdog
    else if DeleteSaveFile `elem` flags then cleanFile saveDir
    else mainLoop settings saveDir host port
 
@@ -116,11 +117,11 @@ errMsg set e = do
   return $ defaultMulti set
 
 
-runTests :: FilePath -> Maybe String -> IO ()
-runTests saveDir mTestName = do
+runTests :: FilePath -> Maybe String -> Int -> IO ()
+runTests saveDir mTestName delay = do
    sh <- protectHandlers $ startInterpreter
    putStrLn $ "\nNomyx Language Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") LT.tests
-   ts <- playTests saveDir sh mTestName
+   ts <- playTests saveDir sh mTestName delay
    putStrLn $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") ts
    let pass = allTests && all snd ts
    putStrLn $ "All Tests Pass: " ++ show pass
@@ -170,6 +171,7 @@ data Flag = Verbose
           | SourceDir FilePath
           | TarFile FilePath
           | API
+          | Watchdog String
        deriving (Show, Eq)
 
 -- | launch options description
@@ -189,7 +191,8 @@ options =
      , Option "f" ["dataDir"]   (ReqArg WebDir "WebDir")       "specify data directory (for profiles and website files)"
      , Option "s" ["sourceDir"] (ReqArg SourceDir "SourceDir") "specify source directory (for Nomyx-Language files)"
      , Option "T" ["tar"]       (ReqArg TarFile "TarFile")     "specify tar file (containing Nomyx.save and uploads)"
-     , Option "" ["api"]       (NoArg API)                    "get swagger API file"
+     , Option ""  ["api"]       (NoArg API)                    "get swagger API file"
+     , Option ""  ["watchdog"]  (ReqArg Watchdog "5")          "time in seconds before killing the compilation thread"
      ]
 
 nomyxOpts :: [String] -> IO ([Flag], [String])
@@ -241,6 +244,10 @@ findTarFile fs = headMay $ mapMaybe isTarFile fs where
     isTarFile (TarFile a) = Just a
     isTarFile _ = Nothing
 
+findWatchdog :: [Flag] -> Maybe String
+findWatchdog fs = headMay $ mapMaybe isWatchdog fs where
+    isWatchdog (Watchdog a) = Just a
+    isWatchdog _ = Nothing
 
 triggerTimeEvent :: TVar Session -> UTCTime -> IO()
 triggerTimeEvent tm t = do

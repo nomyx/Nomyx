@@ -6,7 +6,6 @@ module Nomyx.Core.Utils where
 
 
 import           Codec.Archive.Tar    as Tar
-import           System.Directory
 import           System.FilePath
 import           System.IO.Temp
 #ifndef WINDOWS
@@ -65,11 +64,6 @@ untar fp = do
    extract dir fp
    return dir
 
-getUploadedModules :: FilePath -> IO [FilePath]
-getUploadedModules saveDir = do
-   mods <- getDirectoryContents $ saveDir
-   getRegularFiles (saveDir) mods
-
 getRegularFiles :: FilePath -> [FilePath] -> IO [FilePath]
 getRegularFiles dir fps = filterM (getFileStatus . (\f -> dir </> f) >=> return . isRegularFile) fps
 
@@ -123,8 +117,8 @@ protectHandlers a = MC.bracket saveHandlers restoreHandlers $ const a
 --  which unblocks the main thread. The watchdog then finishes latter, and fills the MVar with Nothing.
 -- Option 2: the watchdog finishes before the evaluation thread. The eval thread is killed, and the
 --  MVar is filled with Nothing, which unblocks the main thread. The watchdog finishes.
-evalWithWatchdog :: Show b => a -> (a -> IO b) -> IO (Maybe b)
-evalWithWatchdog s f = do
+evalWithWatchdog :: Show b => Int -> a -> (a -> IO b) -> IO (Maybe b)
+evalWithWatchdog delay s f = do
    mvar <- newEmptyMVar
    hSetBuffering stdout NoBuffering
    --start evaluation thread
@@ -134,7 +128,7 @@ evalWithWatchdog s f = do
       writeFile nullFileName $ show s''
       putMVar mvar (Just s'')
    --start watchdog thread
-   forkIO $ watchDog 5 id mvar
+   forkIO $ watchDog delay id mvar
    takeMVar mvar
 
 evalWithWatchdog' :: NFData a => IO a -> IO (Maybe a)
