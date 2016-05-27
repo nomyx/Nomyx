@@ -11,7 +11,6 @@ module Nomyx.Library.Vote where
 
 import           Control.Applicative
 import           Control.Arrow
-import           Control.Lens
 import           Control.Monad.State       hiding (forM_)
 import           Control.Shortcut
 import           Data.List
@@ -27,7 +26,6 @@ import           Language.Nomyx.Outputs
 import           Language.Nomyx.Players
 import           Language.Nomyx.Rules
 import           Prelude                   hiding (foldr)
-import           System.Locale
 
 -- | a vote assessing function (such as unanimity, majority...)
 type AssessFunction = VoteStats -> Maybe Bool
