@@ -1,26 +1,28 @@
-- _rName: Vote
+- _rName: Nothing
   _rAuthor: Kau
-  _rDescription: A proposed rule will be activated if all players vote for it
-  _rRuleCode: ! "do\n   onRuleProposed $ callVoteRule unanimity oneDay\n   displayVotes"
-  _rCategory: []
+  _rDescription: A rule that does nothing
+  _rRuleCode: return ()
+  _rCategory: ["Examples"]
   _rDeclarations: []
-  _rPicture: democracy.png
-- _rName: Majority Vote
+  _rPicture:
+
+- _rName: Hello World
   _rAuthor: Kau
-  _rDescription: A proposed rule will be activated if a majority of players is reached,
-    with a minimum of 2 players, and within oone day
-  _rRuleCode: onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDay
-  _rCategory: []
+  _rDescription: A rule that says hello to all players
+  _rRuleCode: outputAll_ "hello, world!"
+  _rCategory: ["Examples"]
   _rDeclarations: []
-  _rPicture: null
+  _rPicture:
+
 - _rName: Victory 5 accepted rules
   _rAuthor: Kau
   _rDescription: Victory is achieved if you have 5 active rules
   _rRuleCode: victoryXRules 5
-  _rCategory: []
+  _rCategory: ["Victory"]
   _rDeclarations: []
-  _rPicture: null
-- _rName: test
+  _rPicture:
+
+- _rName: test4
   _rAuthor: Kau
   _rDescription: test rule
   _rRuleCode: testRule

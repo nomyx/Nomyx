@@ -27,9 +27,14 @@ library
                    safe               == 0.3.*,
                    time               >= 1.4 && < 1.6,
                    time-recurrence    == 0.9.*
-    exposed-modules: Nomyx.Library.Vote
-                     Nomyx.Library.Examples
-
+    exposed-modules: Nomyx.Library.Examples
+                     Nomyx.Library.Democracy
+                     Nomyx.Library.Monarchy
+                     Nomyx.Library.PlayerManagement
+                     Nomyx.Library.Victory
+                     Nomyx.Library.Vote
+                     Nomyx.Library.Elections
+                     Nomyx.Library.Bank
     exposed: True
     buildable: True
     hs-source-dirs: src
