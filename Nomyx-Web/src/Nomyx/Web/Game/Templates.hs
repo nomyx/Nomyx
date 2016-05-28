@@ -1,6 +1,7 @@
 {-# LANGUAGE DoAndIfThenElse      #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 
 module Nomyx.Web.Game.Templates where
 
@@ -8,7 +9,10 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.State
 import           Data.Maybe
+import           Data.Function (on)
 import           Data.String
+import           Data.List (sortBy, groupBy)
+import           Data.Ord (comparing)
 import           Data.Text                   (Text, pack, unpack)
 import           Data.Text.Encoding
 import           Happstack.Server            (Method (..), Response, methodM,
@@ -37,6 +41,7 @@ import qualified Text.Reform.Blaze.String    as RB
 import           Text.Reform.Happstack       (environment)
 import           Web.Routes.RouteT           (liftRouteT)
 import           Happstack.Server            (ContentType)
+import           Safe
 default (Integer, Double, Data.Text.Text)
 
 
@@ -46,19 +51,23 @@ viewRuleTemplates :: [RuleTemplate] -> Maybe LastRule -> GameName -> RoutedNomyx
 viewRuleTemplates rts mlr gn = do
   vrs <- mapM (viewRuleTemplate gn mlr) rts
   ok $ do
-    div ! class_ "ruleList" $ ul $ viewRuleTemplateNames rts mlr
+    div ! class_ "ruleList" $ viewRuleTemplateCats rts mlr
     div ! class_ "rules" $ sequence_ vrs
 
-viewRuleTemplateNames :: [RuleTemplate] -> Maybe LastRule -> Html
-viewRuleTemplateNames rts mlr = do
-  let allRules = rts ++ [(maybe (RuleTemplate "New Rule" "" "" "" Nothing [] []) fst mlr)]
-  mapM_  viewRuleTemplateName allRules
+viewRuleTemplateCats :: [RuleTemplate] -> Maybe LastRule -> Html
+viewRuleTemplateCats rts mlr = do
+  let cat = (headDef "Not category" . _rCategory)
+  let rts' = groupBy ((==) `on` cat) $ sortBy (comparing cat) rts
+  --let allRules = rts' ++ [(maybe (RuleTemplate "New Rule" "" "" "" Nothing [] []) fst mlr)]
+  ul $ mapM_  viewRuleTemplateCat rts'
 
+viewRuleTemplateCat :: [RuleTemplate] -> Html
+viewRuleTemplateCat rts = li $ do
+   fromString $ headDef "No category" $ _rCategory $ head rts
+   ul $ mapM_  viewRuleTemplateName rts
 
 viewRuleTemplateName :: RuleTemplate -> Html
-viewRuleTemplateName rt = do
-  let name = fromString $ _rName $ rt
-  li $ H.a name ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (idEncode $ _rName rt))
+viewRuleTemplateName rt = li $ H.a (fromString $ _rName rt) ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (idEncode $ _rName rt))
 
 viewRuleTemplate :: GameName -> Maybe LastRule -> RuleTemplate -> RoutedNomyxServer Html
 viewRuleTemplate gn mlr rt = do
