@@ -29,7 +29,6 @@ library
     extensions: CPP
     hs-source-dirs: src
     exposed-modules:Nomyx.Auth
-                    Paths_Nomyx_Web
     other-modules: Nomyx.Auth.Types
                    Nomyx.Auth.Auth
     ghc-options: -W -threaded

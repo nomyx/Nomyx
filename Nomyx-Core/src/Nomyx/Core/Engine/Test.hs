@@ -17,6 +17,7 @@ import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
 import Nomyx.Library.Examples
 import Nomyx.Library.Vote
+import Nomyx.Library.Victory
 import Control.Monad.State
 import Data.Typeable
 import Data.Function hiding ((.))
@@ -25,6 +26,7 @@ import Control.Applicative
 import Control.Lens
 import Control.Shortcut
 import System.Random
+import Data.Time hiding (getCurrentTime)
 
 date1, date2, date3 :: UTCTime
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
