@@ -101,6 +101,7 @@ viewrule gn rt = do
     h3 $ fromString $ _rDescription rt
     h2 $ fromString $ "authored by " ++ (_rAuthor rt)
     viewRuleFunc rt
+    viewDecls rt
     blazeForm lf $ showRelURL (SubmitRule gn)
 
 hiddenSubmitRuleTemplatForm :: (Maybe RuleTemplate) -> NomyxForm String
@@ -112,6 +113,10 @@ viewRuleFunc rd = do
  let codeCutLines = 7
  div ! A.id "codeDiv" $ displayCode $ unlines $ take codeCutLines code
  div $ when (length code >= codeCutLines) $ fromString "(...)"
+
+viewDecls :: RuleTemplate -> Html
+viewDecls rd = do
+   mapM_ (div . displayCode . _modContent) (_rDeclarations rd)
 
 -- * Templates submit
 
