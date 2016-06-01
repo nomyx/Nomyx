@@ -48,16 +48,3 @@ updateGameInfo f gi = do
 updateLoggedGame :: InterpretRule -> LoggedGame -> IO LoggedGame
 updateLoggedGame f (LoggedGame g log) = getLoggedGame g f log
 
--- read a library file
-readLibrary :: FilePath -> FilePath -> IO [RuleTemplate]
-readLibrary yamlFile modBaseDir = do
-  s <- BL.readFile yamlFile
-  case decodeEither s of
-     Left e -> error $ "error decoding library: " ++ e
-     Right ts -> (traverse . rDeclarations . traverse) %%~ (readModule modBaseDir) $ ts
-
-readModule :: FilePath -> Module -> IO Module
-readModule base (Module mod _) = do
-  let absPath = base </> mod
-  content <- readFile absPath
-  return $ Module mod content

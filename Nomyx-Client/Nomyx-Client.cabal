@@ -17,18 +17,22 @@ Executable nomyx-client
   Main-Is:             Main.hs
   ghc-options:         -Wall
   other-modules:       Nomyx.Client.Client
-  build-depends:       base
-                     , Nomyx-Api
-                     , Nomyx-Language
-                     , Nomyx-Core
-                     , either -any
-                     , mtl                    >= 2.1 && < 2.3
-                     , servant
-                     , servant-server
-                     , servant-client
-                     , swagger2
-                     , lens -any
-                     , optparse-applicative
-                     , filepath
+  build-depends:       base,
+                       Nomyx-Api,
+                       Nomyx-Language,
+                       Nomyx-Core,
+                       either -any,
+                       mtl                    >= 2.1 && < 2.3,
+                       servant,
+                       servant-server,
+                       servant-client,
+                       swagger2,
+                       lens -any,
+                       optparse-applicative,
+                       filepath,
+                       yaml,
+                       bytestring,
+                       lens,
+                       aeson
   default-language:    Haskell2010
 

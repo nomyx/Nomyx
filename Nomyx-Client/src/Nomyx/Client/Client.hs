@@ -16,11 +16,10 @@ import Data.Proxy
 import Servant
 import Servant.Client
 import Nomyx.Api.Api
-import Nomyx.Core.Serialize
 import Nomyx.Client.Types
+import Nomyx.Client.Serialize
 import Language.Nomyx.Expression
 import Control.Monad.Trans.Either
-import Nomyx.Client.Types
 import System.FilePath
 
 templateApi :: Proxy RuleTemplateApi
