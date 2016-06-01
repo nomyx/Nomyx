@@ -28,5 +28,6 @@ Executable nomyx-client
                      , servant-client
                      , swagger2
                      , lens -any
+                     , optparse-applicative
   default-language:    Haskell2010
 
