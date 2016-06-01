@@ -17,8 +17,11 @@ import Servant
 import Servant.Client
 import Nomyx.Api.Api
 import Nomyx.Core.Serialize
+import Nomyx.Client.Types
 import Language.Nomyx.Expression
 import Control.Monad.Trans.Either
+import Nomyx.Client.Types
+import System.FilePath
 
 templateApi :: Proxy RuleTemplateApi
 templateApi = Proxy
@@ -26,11 +29,12 @@ templateApi = Proxy
 getTemplate :: EitherT ServantError IO [RuleTemplate]
 postTemplate :: RuleTemplate -> EitherT ServantError IO ()
 putTemplates :: [RuleTemplate] -> EitherT ServantError IO ()
-getTemplate :<|> postTemplate :<|> putTemplates = client templateApi (BaseUrl Http "localhost" 8001)
+(getTemplate :<|> postTemplate :<|> putTemplates) = client templateApi (BaseUrl Http "localhost" 8001)
 
-uploadTemplates :: String -> IO ()
-uploadTemplates path = do
-  ts <- readLibrary path
+uploadTemplates :: FilePath -> Options -> IO ()
+uploadTemplates yamlFile os = do
+  let dir = takeDirectory yamlFile
+  ts <- readLibrary yamlFile dir
   res <- runEitherT $ putTemplates ts
   putStrLn $ show ts
   putStrLn $ show res
