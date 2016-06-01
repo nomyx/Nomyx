@@ -204,50 +204,16 @@ nomyxOpts argv =
 header :: String
 header = "Usage: Nomyx [OPTION...]"
 
-findPort :: [Flag] -> Maybe String
-findPort fs = headMay $ mapMaybe isPort fs where
-    isPort (Port a) = Just a
-    isPort _ = Nothing
-
-findHost :: [Flag] -> Maybe String
-findHost fs = headMay $ mapMaybe isHost fs where
-    isHost (HostName a) = Just a
-    isHost _ = Nothing
-
-findLoadTest :: [Flag] -> Maybe String
-findLoadTest fs = headMay $ mapMaybe isLoadTest fs where
-    isLoadTest (LoadTest a) = Just a
-    isLoadTest _ = Nothing
-
-findSaveDir :: [Flag] -> Maybe FilePath
-findSaveDir fs = headMay $ mapMaybe isSaveDir fs where
-    isSaveDir (SaveDir a) = Just a
-    isSaveDir _ = Nothing
-
-findAdminPass :: [Flag] -> Maybe String
-findAdminPass fs = headMay $ mapMaybe isAdminPass fs where
-    isAdminPass (AdminPass a) = Just a
-    isAdminPass _ = Nothing
-
-findWebDir :: [Flag] -> Maybe String
-findWebDir fs = headMay $ mapMaybe isWebDir fs where
-    isWebDir (WebDir a) = Just a
-    isWebDir _ = Nothing
-
-findSourceDir :: [Flag] -> Maybe String
-findSourceDir fs = headMay $ mapMaybe isSourceDir fs where
-    isSourceDir (SourceDir a) = Just a
-    isSourceDir _ = Nothing
-
-findTarFile :: [Flag] -> Maybe String
-findTarFile fs = headMay $ mapMaybe isTarFile fs where
-    isTarFile (TarFile a) = Just a
-    isTarFile _ = Nothing
-
-findWatchdog :: [Flag] -> Maybe String
-findWatchdog fs = headMay $ mapMaybe isWatchdog fs where
-    isWatchdog (Watchdog a) = Just a
-    isWatchdog _ = Nothing
+findPort, findHost, findLoadTest, findSaveDir, findWebDir, findSourceDir, findAdminPass, findTarFile, findWatchdog  :: [Flag] -> Maybe String
+findPort      fs = listToMaybe [a | Port      a <- fs]
+findHost      fs = listToMaybe [a | HostName  a <- fs]
+findLoadTest  fs = listToMaybe [a | LoadTest  a <- fs]
+findSaveDir   fs = listToMaybe [a | SaveDir   a <- fs]
+findWebDir    fs = listToMaybe [a | AdminPass a <- fs]
+findSourceDir fs = listToMaybe [a | WebDir    a <- fs]
+findAdminPass fs = listToMaybe [a | AdminPass a <- fs]
+findTarFile   fs = listToMaybe [a | TarFile   a <- fs]
+findWatchdog  fs = listToMaybe [a | Watchdog  a <- fs]
 
 triggerTimeEvent :: TVar Session -> UTCTime -> IO()
 triggerTimeEvent tm t = do
