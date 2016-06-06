@@ -26,7 +26,7 @@ import           Nomyx.Core.Engine                     hiding (JoinGame,
                                                         LeaveGame)
 import           Nomyx.Core.Profile                    as Profile
 import qualified Nomyx.Core.Session                    as S
-import           Nomyx.Core.Types                      as T
+import           Nomyx.Core.Types                      as T hiding (Library)
 import           Nomyx.Core.Utils
 import           Nomyx.Web.Common                      as W
 import           Nomyx.Web.Game.Details
@@ -66,7 +66,7 @@ viewMulti mpn saveDir gt gn s = do
       Nothing -> return (False, Nothing)
    let gi = fromJust $ getGameByName gn s  --TODO fix
    gns <- viewGamesTab gi isAdmin saveDir mpn
-   vg <- viewGameInfo gi mpn lr isAdmin gt (_mLibrary $ _multi s)
+   vg <- viewGameInfo gi mpn lr isAdmin gt (_mTemplates $ _mLibrary $ _multi s)
    ok $ do
       div ! A.id "gameList" $ gns
       vg

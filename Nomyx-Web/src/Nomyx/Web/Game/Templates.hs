@@ -20,7 +20,7 @@ import           Happstack.Server            (Method (..), Response, methodM,
 import           Language.Nomyx
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Session          as S
-import           Nomyx.Core.Types            as T
+import           Nomyx.Core.Types            as T hiding (Library)
 import           Nomyx.Core.Utils
 import           Nomyx.Web.Common            as NWC
 import qualified Nomyx.Web.Help              as Help
@@ -116,7 +116,8 @@ viewRuleFunc rd = do
 
 viewDecls :: RuleTemplate -> Html
 viewDecls rd = do
-   mapM_ (div . displayCode . _modContent) (_rDeclarations rd)
+   fromString $ show (_rDeclarations rd)
+---mapM_ (div . displayCode . _modContent) (_rDeclarations rd)
 
 -- * Templates submit
 
@@ -171,11 +172,11 @@ newRuleTemplate gn = toResponse <$> do
   ruleName <- case r of
      Right (RuleTemplateForm name desc code (tempName, fileName), Nothing) -> do
        content <- liftIO $ readFile tempName
-       webCommand $ S.newRuleTemplate (RuleTemplate name desc code "" Nothing [] [(Module fileName content)])
+       webCommand $ S.newRuleTemplate (RuleTemplate name desc code "" Nothing [] [Right (Module fileName content)])
        return name
      Right (RuleTemplateForm name desc code (tempName, fileName), Just _)  -> do
        content <- liftIO $ readFile tempName
-       webCommand $ S.checkRule (RuleTemplate name desc code "" Nothing [] [(Module fileName content)]) pn undefined (_sh s)
+       webCommand $ S.checkRule (RuleTemplate name desc code "" Nothing [] [Right (Module fileName content)]) pn undefined (_sh s)
        return name
      _ -> do
        liftIO $ putStrLn "cannot retrieve form data"

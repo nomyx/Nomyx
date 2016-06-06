@@ -23,6 +23,7 @@ import           Text.Blaze.Html5.Attributes hiding (dir, label)
 import           Text.Blaze.Internal
 import           Web.Routes.Happstack        ()
 import           Web.Routes.RouteT
+import           Safe
 
 default (Integer, Double, Data.Text.Text)
 
@@ -55,7 +56,7 @@ logout = do
 -- | add a new player if not existing
 postAuthenticate :: RoutedNomyxServer Response
 postAuthenticate = do
-   pn <- fromJust <$> getPlayerNumber
+   pn <- fromJustNote "postAuthenticate" <$> getPlayerNumber
    pf <- getProfile' pn
    case pf of
       Just _ -> seeOther (showRelURL MainPage) $ toResponse ("to main page" :: String)
