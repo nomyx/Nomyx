@@ -115,7 +115,7 @@ playerDelete tv pn = error "not supported"
 templatesGet :: TVar Session -> EitherT ServantErr IO [RuleTemplate]
 templatesGet tv = do
    s <- liftIO $ atomically $ readTVar tv
-   return $ _mLibrary $ _multi s
+   return $ _mTemplates $ _mLibrary $ _multi s
 
 templatesPost :: TVar Session -> RuleTemplate -> EitherT ServantErr IO ()
 templatesPost tv rt = do

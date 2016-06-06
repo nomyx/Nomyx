@@ -31,16 +31,3 @@ data Options = Options { verbose  :: Bool,
                          port     :: String}
                          deriving (Show)
 
-data TemplateView = TemplateView { name         :: RuleName,         -- short name of the rule
-                                   desc         :: String,           -- description of the rule
-                                   code         :: RuleCode,         -- code of the rule as a string
-                                   author       :: String,           -- the name of the original author
-                                   picture      :: Maybe FilePath,   -- a file name for the illustration image
-                                   category     :: [String],         -- categories
-                                   declarations :: [FilePath]}       -- addictional declarations (Haskell modules)
-                                   deriving (Generic, Show)
-
-instance ToJSON TemplateView where
---    toEncoding = genericToEncoding defaultOptions
-
-instance FromJSON TemplateView
