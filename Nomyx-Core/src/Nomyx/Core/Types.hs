@@ -7,11 +7,11 @@
 
 module Nomyx.Core.Types where
 
-import           Control.Lens
+import           Control.Lens hiding (Indexable)
 import           Data.Acid                           (AcidState)
 import           Data.Aeson.TH                       (defaultOptions, deriveJSON)
 import           Data.Data                           (Data)
-import           Data.IxSet                          (inferIxSet, noCalcs)
+import           Data.IxSet                          (inferIxSet, noCalcs, ixFun, ixSet, Indexable(..), IxSet)
 import           Data.SafeCopy                       (Migrate (..), base,
                                                       deriveSafeCopy, extension)
 import           Data.Time
@@ -28,23 +28,31 @@ type Port = Int
 type CompileError = String
 type LastRule = (RuleTemplate, String)
 
-data LastUpload = NoUpload
-                | UploadSuccess
-                | UploadFailure (FilePath, CompileError)
-                deriving (Eq, Ord, Read, Show, Typeable, Data, Generic)
+-- * Game structures
 
-data Network = Network {_host :: HostName, _port :: Port}
-               deriving (Eq, Show, Read, Typeable)
+-- | Session contains all the game informations.
+data Session = Session { _sh           :: ServerHandle,
+                         _multi        :: Multi,
+                         _acidProfiles :: AcidState ProfileDataState}
 
-data PlayerSettings =
-   PlayerSettings { _pPlayerName    :: PlayerName,
-                    _mail           :: Maybe String,
-                    _mailNewInput   :: Bool,
-                    _mailSubmitRule :: Bool,
-                    _mailNewOutput  :: Bool,
-                    _mailConfirmed  :: Bool}
-                    deriving (Eq, Show, Read, Data, Ord, Typeable, Generic)
+instance Show Session where
+   show (Session _ m _) = show m
 
+-- | A structure to hold the active games and players
+data Multi = Multi { _gameInfos :: [GameInfo],
+                     _mSettings :: Settings,
+                     _mLibrary  :: Library}
+                     deriving (Eq, Show, Typeable)
+
+-- | Informations on a particular game
+data GameInfo = GameInfo { _loggedGame     :: LoggedGame,
+                           _ownedBy        :: Maybe PlayerNumber,
+                           _forkedFromGame :: Maybe GameName,
+                           _isPublic       :: Bool,
+                           _startedAt      :: UTCTime}
+                           deriving (Typeable, Show, Eq)
+
+-- | Global settings
 data Settings = Settings { _net           :: Network,  -- URL where the server is launched
                            _sendMails     :: Bool,     -- send mails or not
                            _adminPassword :: String,   -- admin password
@@ -54,18 +62,20 @@ data Settings = Settings { _net           :: Network,  -- URL where the server i
                            _watchdog      :: Int}      -- time in seconds before killing the compilation thread
                            deriving (Eq, Show, Read, Typeable)
 
---- | A structure to hold the active games and players
-data Multi = Multi { _gameInfos :: [GameInfo],
-                     _mSettings :: Settings,
-                     _mLibrary  :: [RuleTemplate]}
-                     deriving (Eq, Show, Typeable)
+-- | Network infos
+data Network = Network {_host :: HostName, _port :: Port}
+               deriving (Eq, Show, Read, Typeable)
 
-data GameInfo = GameInfo { _loggedGame     :: LoggedGame,
-                           _ownedBy        :: Maybe PlayerNumber,
-                           _forkedFromGame :: Maybe GameName,
-                           _isPublic       :: Bool,
-                           _startedAt      :: UTCTime}
-                           deriving (Typeable, Show, Eq)
+-- | The Library contains a list of rule templates together with their declarations
+data Library = Library { _mTemplates :: [RuleTemplate],
+                         _mModules   :: [Module]}
+                         deriving (Eq, Show, Typeable)
+
+
+-- * Player settings
+
+data ProfileDataState = ProfileDataState { profilesData :: IxSet ProfileData }
+    deriving (Eq, Ord, Read, Show, Typeable, Data)
 
 -- | 'ProfileData' contains player settings
 data ProfileData =
@@ -73,21 +83,27 @@ data ProfileData =
                   _pPlayerSettings :: PlayerSettings,
                   _pLastRule       :: Maybe LastRule,
                   _pLastUpload     :: LastUpload,
-                  _pIsAdmin        :: Bool
-                  }
+                  _pIsAdmin        :: Bool}
                   deriving (Eq, Ord, Read, Show, Typeable, Data, Generic)
 
-$(inferIxSet "ProfilesData" ''ProfileData 'noCalcs [''PlayerNumber])
+instance Indexable ProfileData where
+      empty =  ixSet [ ixFun (\(ProfileData pn _ _ _ _) -> [pn])]
 
-data ProfileDataState = ProfileDataState { profilesData :: ProfilesData }
-    deriving (Eq, Ord, Read, Show, Typeable, Data)
+-- Settings of a single player
+data PlayerSettings =
+   PlayerSettings { _pPlayerName    :: PlayerName,
+                    _mail           :: Maybe String,
+                    _mailNewInput   :: Bool,
+                    _mailSubmitRule :: Bool,
+                    _mailNewOutput  :: Bool,
+                    _mailConfirmed  :: Bool}
+                    deriving (Eq, Show, Read, Data, Ord, Typeable, Generic)
 
-data Session = Session { _sh           :: ServerHandle,
-                         _multi        :: Multi,
-                         _acidProfiles :: AcidState ProfileDataState}
+data LastUpload = NoUpload
+                | UploadSuccess
+                | UploadFailure (FilePath, CompileError)
+                deriving (Eq, Ord, Read, Show, Typeable, Data, Generic)
 
-instance Show Session where
-   show (Session _ m _) = show m
 
 $(deriveSafeCopy 1 'base ''LastUpload)
 $(deriveSafeCopy 1 'base ''PlayerSettings)
@@ -97,6 +113,7 @@ $(deriveSafeCopy 1 'base ''Module)
 $(deriveSafeCopy 1 'base ''ProfileDataState)
 
 makeLenses ''Multi
+makeLenses ''Library
 makeLenses ''GameInfo
 makeLenses ''Settings
 makeLenses ''Network
@@ -104,8 +121,9 @@ makeLenses ''PlayerSettings
 makeLenses ''Session
 makeLenses ''ProfileData
 
-$(deriveJSON defaultOptions ''Multi)
+$(deriveJSON defaultOptions ''Library)
 $(deriveJSON defaultOptions ''GameInfo)
+$(deriveJSON defaultOptions ''Multi)
 $(deriveJSON defaultOptions ''Settings)
 $(deriveJSON defaultOptions ''Network)
 $(deriveJSON defaultOptions ''LastUpload)

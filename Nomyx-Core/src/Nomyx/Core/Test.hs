@@ -132,7 +132,7 @@ testFile' path name func = do
    sh <- use sh
    dataDir <- lift PNC.getDataDir
    cont <- liftIO $ readFile (dataDir </> testDir </> path)
-   submitRule (RuleTemplate "" "" func "" Nothing [] [Module name cont]) 1 "test" sh
+   submitRule (RuleTemplate "" "" func "" Nothing [] [Right $ Module name cont]) 1 "test" sh
    inputAllRadios 0
 
 testFile :: FilePath -> String -> StateT Session IO ()
