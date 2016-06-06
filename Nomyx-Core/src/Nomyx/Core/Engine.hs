@@ -5,6 +5,7 @@
 module Nomyx.Core.Engine(
    -- * Game management
    GameEvent(..),
+   RuleEv(..),
    LoggedGame(..),
    GameName,
    Game(..),

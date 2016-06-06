@@ -89,12 +89,14 @@ emptyGame name desc date gen = Game {
 
 -- | a list of possible events affecting a game
 data GameEvent = JoinGame          PlayerNumber PlayerName
-              | LeaveGame         PlayerNumber
-              | ProposeRuleEv     PlayerNumber RuleTemplate
-              | InputResult       PlayerNumber EventNumber SignalAddress FormField InputData
-              | GLog              (Maybe PlayerNumber) String
-              | TimeEvent         UTCTime
-              | SystemAddRule     RuleTemplate
+               | LeaveGame         PlayerNumber
+               | ProposeRuleEv     RuleEv PlayerNumber RuleTemplate
+               | InputResult       PlayerNumber EventNumber SignalAddress FormField InputData
+               | GLog              (Maybe PlayerNumber) String
+               | TimeEvent         UTCTime
+                deriving (Show, Read, Eq, Ord)
+
+data RuleEv = Propose | Check | SystemAdd
                 deriving (Show, Read, Eq, Ord)
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
@@ -199,13 +201,34 @@ instance FromJSON Game where
       pure (mkStdGen 0)
    parseJSON _ = mzero
 
+instance ToJSON RuleTemplate where
+   toJSON (RuleTemplate n d rc a p cs ds) =
+      object ["name" .= n,
+              "desc" .= d,
+              "rule" .= rc,
+              "author" .= a,
+              "picture" .= p,
+              "category" .= cs,
+              "decls" .= ds]
+
+instance FromJSON RuleTemplate where
+   parseJSON (Object v) = RuleTemplate <$>
+      v .: "name" <*>
+      v .: "desc" <*>
+      v .: "rule" <*>
+      v .: "author" <*>
+      v .: "picture" <*>
+      v .: "category" <*>
+      v .: "decls"
+   parseJSON _ = mzero
+
 $(deriveJSON defaultOptions ''TimedEvent)
 $(deriveJSON defaultOptions ''GameEvent)
+$(deriveJSON defaultOptions ''RuleEv)
 $(deriveJSON defaultOptions ''FormField)
 $(deriveJSON defaultOptions ''InputData)
 $(deriveJSON defaultOptions ''GameDesc)
 $(deriveJSON defaultOptions ''StdGen)
 $(deriveJSON defaultOptions ''SignalAddressElem)
 $(deriveJSON defaultOptions ''LoggedGame)
-$(deriveJSON defaultOptions ''RuleTemplate)
 $(deriveJSON defaultOptions ''Module)

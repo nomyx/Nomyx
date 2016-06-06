@@ -11,6 +11,7 @@ import qualified Data.Acid.Advanced                  as A (query', update')
 import           Data.List
 import           Data.Maybe
 import           Data.Time                           as T
+import           Data.Either
 import           Debug.Trace.Helpers
 import           Language.Haskell.Interpreter        (InterpreterError)
 import           Language.Haskell.Interpreter.Server (ServerHandle)
@@ -84,36 +85,36 @@ leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
 
 -- | insert a rule in pending rules.
 submitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-submitRule rt@(RuleTemplate _ _ code _ _ _ decls) pn gn sh = do
+submitRule rt pn gn sh = do
    tracePN pn $ "proposed " ++ show rt
-   gameDcls <- getDecls gn
-   mrr <- liftIO $ interpretRule sh code (decls ++ gameDcls)
-   case mrr of
-      Right r -> do
-         tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ G.execGameEvent' (Just $ Right r) (ProposeRuleEv pn rt)
-         modifyProfile pn (pLastRule .~ Just (rt, "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."))
-         s <- get
-         liftIO $ sendMailsSubmitRule s rt pn gn
-      Left e -> submitRuleError rt pn gn e
+   compileRule rt pn gn sh Propose "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."
 
 adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-adminSubmitRule sr@(RuleTemplate _ _ code _ _ _ decls) pn gn sh = do
-   tracePN pn $ "admin proposed " ++ show sr
-   gameDcls <- getDecls gn
-   mrr <- liftIO $ interpretRule sh code (decls ++ gameDcls)
+adminSubmitRule rt pn gn sh = do
+   tracePN pn $ "admin proposed " ++ show rt
+   compileRule rt pn gn sh SystemAdd "Admin rule submitted OK!"
+
+checkRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
+checkRule rt pn gn sh = do
+   tracePN pn $ "check rule " ++ show rt
+   compileRule rt pn gn sh Check "Rule compiled OK. Now you can submit it!"
+
+compileRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> RuleEv -> String -> StateT Session IO ()
+compileRule rt pn gn sh re msg = do
+   rt'@(RuleTemplate _ _ code _ _ _ decls) <- setDecls rt
+   mrr <- liftIO $ interpretRule sh code (rights decls)
    case mrr of
       Right r -> do
          tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ execGameEvent' (Just $ Right r) (SystemAddRule sr)
-         modifyProfile pn (pLastRule .~ Just (sr, "Admin rule submitted OK!"))
-      Left e -> submitRuleError sr pn gn e
+         inGameDo gn $ G.execGameEvent' (Just $ Right r) (ProposeRuleEv re pn rt')
+         modifyProfile pn (pLastRule .~ Just (rt, msg))
+      Left e -> submitRuleError rt' pn gn e
 
-getDecls :: GameName -> StateT Session IO [Module]
-getDecls gn = do
+setDecls :: RuleTemplate -> StateT Session IO RuleTemplate
+setDecls gn = do
    s <- get
-   let gi = getGameByName gn s
-   return $ concatMap (_rDeclarations . _rRuleTemplate) (_rules $ _game $ _loggedGame $ fromJust gi)
+   return undefined
+   --return $ concatMap (_rDeclarations . _rRuleTemplate) (_rules $ _game $ _loggedGame $ fromJust gi)
 
 submitRuleError :: RuleTemplate -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
 submitRuleError sr pn gn e = do
@@ -122,29 +123,15 @@ submitRuleError sr pn gn e = do
    tracePN pn ("Error in submitted rule: " ++ errorMsg)
    modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
-checkRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-checkRule sr@(RuleTemplate _ _ code _ _ _ decls) pn gn sh = do
-   tracePN pn $ "check rule " ++ show sr
-   gameDcls <- getDecls gn
-   mrr <- liftIO $ interpretRule sh code (decls ++ gameDcls)
-   case mrr of
-      Right _ -> do
-         tracePN pn "proposed rule compiled OK"
-         modifyProfile pn (pLastRule .~ Just (sr, "Rule compiled OK. Now you can submit it!"))
-      Left e -> do
-         let errorMsg = showInterpreterError e
-         tracePN pn ("Error in submitted rule: " ++ errorMsg)
-         modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
-
 newRuleTemplate :: RuleTemplate -> StateT Session IO ()
 newRuleTemplate rt@(RuleTemplate _ _ _ author _ _ _) = do
   liftIO $ putStrLn $ author ++ " inserted new template :" ++ show rt
-  (multi . mLibrary) %= (addRT rt)
+  (multi . mLibrary . mTemplates) %= (addRT rt)
 
 updateRuleTemplates :: [RuleTemplate] -> StateT Session IO ()
 updateRuleTemplates rts = do
   liftIO $ putStrLn $ (_rAuthor $ head rts) ++ " has updated templates"
-  (multi . mLibrary) .= rts
+  (multi . mLibrary . mTemplates) .= rts
 
 addRT :: RuleTemplate -> [RuleTemplate] -> [RuleTemplate]
 addRT rt rts = case (find (\rt' -> (_rName rt) == (_rName rt'))) rts of
@@ -154,7 +141,7 @@ addRT rt rts = case (find (\rt' -> (_rName rt) == (_rName rt'))) rts of
 delRuleTemplate :: GameName -> RuleName -> PlayerNumber -> StateT Session IO ()
 delRuleTemplate gn rn pn = do
   tracePN pn $ "del template " ++ show rn
-  (multi . mLibrary) %= filter (\rt -> _rName rt /= rn)
+  (multi . mLibrary . mTemplates) %= filter (\rt -> _rName rt /= rn)
 
 
 inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> FormField -> InputData -> GameName -> StateT Session IO ()
@@ -221,7 +208,7 @@ inAllGamesDo action = do
          (_, mylg) <- lift $ runStateT action (set (game . currentTime) t (_loggedGame gi))
          zoom multi $ modifyGame (gi {_loggedGame = mylg})
 
-inGameDo :: GameName -> StateT LoggedGame IO  () -> StateT Session IO ()
+inGameDo :: GameName -> StateT LoggedGame IO () -> StateT Session IO ()
 inGameDo gn action = zoom multi $ do
    (gs :: [GameInfo]) <- use gameInfos
    case find ((==gn) . getL gameNameLens) gs of

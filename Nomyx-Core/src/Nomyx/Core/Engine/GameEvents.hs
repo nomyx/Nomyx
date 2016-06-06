@@ -17,18 +17,19 @@ import Control.Category ((>>>))
 import Control.Exception as E
 import Data.Time
 import Data.Maybe
+import Data.Either
 
 -- | perform a game event
 enactEvent :: GameEvent -> Maybe (Either InterpretRule Rule) -> StateT Game IO ()
 enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
 enactEvent (LeaveGame pn) _                   = mapStateIO $ leaveGame pn
-enactEvent (ProposeRuleEv pn sr) (Just inter) = void $ proposeRule sr pn inter
+enactEvent (ProposeRuleEv Propose pn sr)  (Just inter) = void $ proposeRule sr pn inter
+enactEvent (ProposeRuleEv SystemAdd _ sr) (Just inter) = systemAddRule sr inter
+enactEvent (ProposeRuleEv Check _ _)      (Just inter) = return ()
+enactEvent (ProposeRuleEv _ _ _) Nothing               = error "ProposeRuleEv: interpreter function needed"
 enactEvent (InputResult pn en fa ft ir) _     = mapStateIO $ inputResult pn en fa ft ir
 enactEvent (GLog mpn s) _                     = mapStateIO $ logGame s mpn
 enactEvent (TimeEvent t) _                    = mapStateIO $ runSystemEval' $ evTriggerTime t
-enactEvent (SystemAddRule r) (Just inter)     = systemAddRule r inter
-enactEvent (ProposeRuleEv _ _) Nothing        = error "ProposeRuleEv: interpreter function needed"
-enactEvent (SystemAddRule _) Nothing          = error "SystemAddRule: interpreter function needed"
 
 enactTimedEvent :: Maybe (Either InterpretRule Rule) -> TimedEvent -> StateT Game IO ()
 enactTimedEvent inter (TimedEvent t ge) = flip stateCatch updateError $ do
@@ -137,10 +138,9 @@ createRule (RuleTemplate name des code _ _ _ decls) pn ei = do
    rs <- use rules
    let rn = getFreeNumber $ map _rNumber rs
    g <- get
-   let allDecls = decls ++ (concatMap (_rDeclarations . _rRuleTemplate) (_rules g))
    r <- case ei of
       Right r -> return r
-      Left inter -> lift $ inter code allDecls
+      Left inter -> lift $ inter code (rights decls)
    tracePN pn $ "Creating rule n=" ++ show rn ++ " code=" ++ code
    let ruleTemplate = RuleTemplate {_rName = name,
                                     _rDescription = des,
