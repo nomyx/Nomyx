@@ -1,33 +1,38 @@
-- _rName: Nothing
-  _rAuthor: Kau
-  _rDescription: A rule that does nothing
-  _rRuleCode: return ()
-  _rCategory: ["Examples"]
-  _rDeclarations: []
-  _rPicture:
+# Examples
 
-- _rName: Hello World
-  _rAuthor: Kau
-  _rDescription: A rule that says hello to all players
-  _rRuleCode: outputAll_ "hello, world!"
-  _rCategory: ["Examples"]
-  _rDeclarations: []
-  _rPicture:
+- name:     Nothing
+  author:   Kau
+  desc:     A rule that does nothing
+  rule:     return ()
+  category: ["Examples"]
+  decls:
+    - Left: Nomyx/Library/Examples.hs
+  picture:  null
 
-- _rName: Victory 5 accepted rules
-  _rAuthor: Kau
-  _rDescription: Victory is achieved if you have 5 active rules
-  _rRuleCode: victoryXRules 5
-  _rCategory: ["Victory"]
-  _rDeclarations: []
-  _rPicture:
+- name:     Hello World
+  author:   Kau
+  desc:     A rule that says hello to all players
+  rule:     outputAll_ "hello, world!"
+  category: ["Examples"]
+  decls:
+    - Left: Nomyx/Library/Examples.hs
+  picture:  null
 
-- _rName: test4
-  _rAuthor: Kau
-  _rDescription: test rule
-  _rRuleCode: testRule
-  _rCategory: []
-  _rDeclarations: 
-  - _modPath: "Test.hs"
-    _modContent: ""
-  _rPicture: null
+- name:     Display current time
+  author:   Kau
+  desc:     Will display the current time (when refreshing the screen)
+  rule:     displayCurrentTime
+  category: ["Examples"]
+  decls:
+    - Left: Examples.hs
+  picture:  null
+
+- name:     Display activation time
+  author:   Kau
+  desc:     will display the time at which the rule as been activate
+  rule:     displayActivateTime
+  category: ["Examples"]
+  decls:
+    - Left: Nomyx/Library/Examples.hs
+  picture:  null
+
