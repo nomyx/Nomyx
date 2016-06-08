@@ -20,6 +20,7 @@ library
                      , Nomyx.Api.Model.NewPlayer
                      , Nomyx.Api.Api
                      , Nomyx.Api.Server
+                     , Nomyx.Api.Files
   ghc-options:         -Wall
   build-depends:       base
                      , aeson
@@ -44,5 +45,9 @@ library
                      , mtl                    >= 2.1 && < 2.3
                      , either -any
                      , lens -any
+                     , transformers
+                     , resourcet
+                     , wai-extra
+                     , safe
   default-language:    Haskell2010
 
