@@ -12,6 +12,7 @@
 {-# LANGUAGE StandaloneDeriving        #-}
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE RankNTypes             #-}
 
 -- | This module contains the type definitions necessary to build a Nomic rule.
 module Language.Nomyx.Expression where
@@ -221,6 +222,7 @@ instance MonadPlus Event where
 instance Shortcutable Event where
    shortcut = ShortcutEvents
 
+
 -- EventInfo
 
 data EventInfo = forall e. (Typeable e, Show e) =>
@@ -277,13 +279,13 @@ data RuleTemplate = RuleTemplate { _rName         :: RuleName,         -- short 
                                    _rAuthor       :: String,           -- the name of the original author
                                    _rPicture      :: Maybe FilePath,   -- a file name for the illustration image
                                    _rCategory     :: [String],         -- categories
-                                   _rDeclarations :: [Module]}         -- addictional declarations (Haskell modules)
+                                   _rDeclarations :: [Either FilePath Module]} -- addictional declarations (Haskell modules)
                                    deriving (Typeable, Show, Read, Data, Generic)
 
 
-data Module = Module {_modPath :: FilePath,
-                      _modContent :: String}
-                      deriving (Read, Show, Typeable, Data, Generic)
+data Module = Module {_modPath :: FilePath,  -- file name of the module
+                      _modContent :: String} -- content of the module (or Nothing if module is present in library)
+                      deriving (Eq, Read, Show, Typeable, Data, Generic)
 
 instance Eq RuleInfo where
     (RuleInfo {_rNumber=r1}) == (RuleInfo {_rNumber=r2}) = r1 == r2
