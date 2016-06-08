@@ -44,7 +44,7 @@ getTimeEvents now m = do
 rAutoActivate :: RuleTemplate
 rAutoActivate = RuleTemplate "AutoActivate"
                              "Any proposed rule will be automatically activated, without any vote"
-                             [cr|return ()|]
+                             [cr|autoActivate|]
                              "Kau"
                              Nothing
                              []
