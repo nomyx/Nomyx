@@ -19,7 +19,8 @@ import           System.Directory                    (copyFile,
                                                       createDirectoryIfMissing,
                                                       doesFileExist, removeFile)
 import           System.FilePath                     (dropExtension, joinPath,
-                                                      takeFileName, (</>))
+                                                      takeFileName, dropFileName,
+                                                      splitDirectories, takeBaseName, (</>))
 import           System.IO.Error
 import           System.IO.Temp
 import           System.Directory
@@ -61,12 +62,17 @@ initializeInterpreter mods = do
    when (not $ null mods) $ do
       dir <- liftIO $ createTempDirectory "/tmp" "Nomyx"
       modPaths <- liftIO $ mapM (copyModule dir) mods
-      liftIO $ putStrLn $ "Loading modules: " ++ (intercalate ", " (map _modPath mods))
+      let modNames = map (getModName . _modPath) mods
+      liftIO $ putStrLn $ "Loading modules: " ++ (intercalate ", " modPaths)
+      liftIO $ putStrLn $ "module names: " ++ (intercalate ", " modNames)
       loadModules modPaths
-      setTopLevelModules $ map (dropExtension . takeFileName) modPaths
+      setTopLevelModules modNames
    -- Imports
    let importMods = qualImports ++ zip (unQualImports) (repeat Nothing)
    setImportsQ importMods
+
+getModName :: FilePath -> String
+getModName fp = intercalate "." $ (filter (/= ".") $ splitDirectories $ dropFileName fp) ++ [takeBaseName fp]
 
 ---- | reads a Rule out of a string.
 interpretRule :: ServerHandle -> RuleCode -> [Module] -> IO (Either InterpreterError Rule)
@@ -85,9 +91,10 @@ interRule sh rc ms = do
 
 --TODO handle error cases
 copyModule :: FilePath -> Module -> IO (FilePath)
-copyModule saveDir decls = do
-   let dest = saveDir </> (_modPath decls)
-   writeFile dest (_modContent decls)
+copyModule saveDir mod = do
+   let dest = saveDir </> (_modPath mod)
+   createDirectoryIfMissing True $ dropFileName dest
+   writeFile dest (_modContent mod)
    return dest
 
 showInterpreterError :: InterpreterError -> String

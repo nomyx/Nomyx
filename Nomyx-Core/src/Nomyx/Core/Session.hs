@@ -111,10 +111,14 @@ compileRule rt pn gn sh re msg = do
       Left e -> submitRuleError rt' pn gn e
 
 setDecls :: RuleTemplate -> StateT Session IO RuleTemplate
-setDecls gn = do
+setDecls rt = do
    s <- get
-   return undefined
+   let mods = _mModules $ _mLibrary $ _multi s
+   return $ rDeclarations %~ (\d -> Right <$> (fromJust $ mapM (getModule mods) (lefts d))) $ rt
    --return $ concatMap (_rDeclarations . _rRuleTemplate) (_rules $ _game $ _loggedGame $ fromJust gi)
+
+getModule :: [Module] -> FilePath -> Maybe Module
+getModule ms fp = listToMaybe $ filter (\(Module fp' c) -> (fp==fp')) ms
 
 submitRuleError :: RuleTemplate -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
 submitRuleError sr pn gn e = do
@@ -142,6 +146,10 @@ delRuleTemplate :: GameName -> RuleName -> PlayerNumber -> StateT Session IO ()
 delRuleTemplate gn rn pn = do
   tracePN pn $ "del template " ++ show rn
   (multi . mLibrary . mTemplates) %= filter (\rt -> _rName rt /= rn)
+
+updateModules :: [Module] -> StateT Session IO ()
+updateModules ms = (multi . mLibrary . mModules) .= ms
+
 
 
 inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> FormField -> InputData -> GameName -> StateT Session IO ()
