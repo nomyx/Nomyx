@@ -41,7 +41,27 @@ type OutputNumber = Int
 type InputNumber = Int
 
 
-data Nomex a
+-- * Nomyx Expression
+
+data Eff = Effect | NoEffect deriving (Typeable)
+
+type Effect = 'Effect
+type NoEffect = 'NoEffect
+
+-- | A Nomex (Nomyx Expression) allows the players to write rules.
+-- Within the rules, you can access and modify the state of the game.
+type Nomex = Exp Effect
+
+-- | A NomexNE (Nomyx Expression No Effect) is a specialisation of the type that guarantees
+-- that the instructions will have no effects.
+type NomexNE = Exp NoEffect
+
+data Exp :: Eff -> * -> *   where
+   --Events management
+   OnEvent         :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
+   DelEvent        :: EventNumber -> Nomex Bool
+   GetEvents       :: NomexNE [EventInfo]
+   SendMessage     :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
 
 -- * Events
 
