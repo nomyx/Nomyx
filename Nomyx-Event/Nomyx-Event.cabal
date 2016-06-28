@@ -31,11 +31,17 @@ library
                    time-recurrence    == 0.9.*,
                    monad-loops        == 0.4.*,
                    aeson
-    exposed-modules: Event.Nomyx.Expression
-                     Event.Nomyx.Engine.EvalUtils
-                     Event.Nomyx.Engine.EventEval
-                     Event.Nomyx.Engine.Types
-                     Event.Nomyx.Engine.Utils
+    exposed-modules: Nomyx.Event.Events
+                     Nomyx.Event.Internal.EventEval
+                     Nomyx.Event.Internal.InputEval
+                     Nomyx.Event.Inputs
+                     Nomyx.Event.Events2
+                     --Event.Nomyx.Engine.EvalUtils
+                     --Event.Nomyx.Engine.Evaluation
+                     --Event.Nomyx.Engine.EventEval
+                     --Event.Nomyx.Engine.Types
+                     Nomyx.Event.Internal.Utils
+                     Nomyx.Event.Test
                      Control.Shortcut,
                      Data.Todo
     exposed: True
