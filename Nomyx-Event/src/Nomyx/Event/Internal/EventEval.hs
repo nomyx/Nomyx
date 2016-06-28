@@ -92,6 +92,7 @@ getRemainingSignals' (EventInfo _ e _ _ envi) = do
       Done _ -> []
       Todo a -> a
 
+
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some signals results are pending, return that list instead.
 getEventResult :: Event a -> [SignalOccurence] -> Evaluate n s (Todo (SignalAddress, SomeSignal) a)

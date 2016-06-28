@@ -1,5 +1,5 @@
 
-module Event.Nomyx.Engine.Utils(
+module Nomyx.Event.Internal.Utils (
    (===),
    replaceWith,
    tracePN,
