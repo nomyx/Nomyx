@@ -30,11 +30,14 @@ library
                    time               >= 1.4 && < 1.6,
                    time-recurrence    == 0.9.*,
                    monad-loops        == 0.4.*,
-                   aeson
+                   aeson,
+                   stm
     exposed-modules: Imprevu.Events
                      Imprevu.Internal.EventEval
                      --Imprevu.Internal.InputEval
                      Imprevu.Inputs
+                     Imprevu.Messages
+                     Imprevu.Variables
                      Imprevu.Events2
                      Imprevu.Internal.Utils
                      Imprevu.Test

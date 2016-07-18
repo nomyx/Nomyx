@@ -128,8 +128,8 @@ onEventOnce e h = do
 
 -- | Build a message event, that can be intercepted by another rule
 -- this is useful for message-passing style of communication
---messageEvent :: (Typeable a) => Msg a -> Event e a
---messageEvent m = SignalEvent $ Signal m
+messageEvent :: (Typeable a) => Msg a -> Event a
+messageEvent m = SignalEvent m
 
 -- | Build a event firing immediatly, yelding the value of the Nomex
 --liftEvent :: Nomex a -> Event a

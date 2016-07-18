@@ -43,8 +43,6 @@ data Input a where
   Input :: String -> (InputForm a) -> Input a  -- Fires when the user has complete the input form. Input forms are created automatically when the event is posted.
   deriving (Eq, Typeable, Show)
 
-data Victory = Victory
-
 instance (Typeable a) => Signal (Input a) where
   type SignalDataType (Input a) = a
 
