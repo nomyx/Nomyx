@@ -38,6 +38,7 @@ library
                      Imprevu.Inputs
                      Imprevu.Messages
                      Imprevu.Variables
+                     Imprevu.SysMgt
                      Imprevu.Events2
                      Imprevu.Internal.Utils
                      Imprevu.Test

@@ -9,6 +9,7 @@ module Imprevu.Messages
 import Imprevu.EvMgt
 import Imprevu.Events
 import Imprevu.Events2
+import Imprevu.SysMgt
 import Imprevu.Variables
 import Data.Typeable
 import Control.Monad.Loops (untilJust)
@@ -17,10 +18,6 @@ import Control.Monad
 
 -- * Messages
 -- a rule can send a simple message to another rule, and subscribe to a message.
-
--- | broadcast a message that can be catched by another rule
---sendMessage :: (Typeable a, Show a, EvMgt n) => Msg a -> a -> n ()
---sendMessage = sendMessage
 
 -- | send an empty message
 sendMessage_ :: (EvMgt n) => String -> n ()
@@ -47,13 +44,13 @@ onAPICall :: (Typeable a, Show a, Typeable r, Show r, EvMgt n) => APICall a r ->
 onAPICall (APICall name) action = onMessage (Msg name) (\(msg, a) -> action a >>= sendMessage msg)
 
 -- | version with one parameters
-callAPI :: (Typeable a, Show a, Typeable r, Show r, EvMgt n) => APICall a r -> a -> (r -> n ()) -> n ()
+callAPI :: (Typeable a, Show a, Typeable r, Show r, EvMgt n, SysMgt n) => APICall a r -> a -> (r -> n ()) -> n ()
 callAPI (APICall name) a callback = do
    msgTemp <- createTempMsg callback
    sendMessage (Msg name) (msgTemp, a)
 
 -- | call an API function and wait for the result.
-callAPIBlocking :: (Typeable a, Show a, Typeable r, Show r, EvMgt n) => APICall a r -> a -> n r
+callAPIBlocking :: (Typeable a, Show a, Typeable r, Show r, EvMgt n, VarMgt n, SysMgt n) => APICall a r -> a -> n r
 callAPIBlocking apiName param = do
   v <- getTempVar Nothing
   callAPI apiName param (\r -> void $ writeVar v (Just r))
@@ -64,7 +61,7 @@ callAPIBlocking apiName param = do
 -- * Internals
 
 -- | creates a temporary message with a random name
-createTempMsg :: (Typeable m, Show m, EvMgt n) => (m -> n ()) -> n (Msg m)
+createTempMsg :: (Typeable m, Show m, EvMgt n, SysMgt n) => (m -> n ()) -> n (Msg m)
 createTempMsg callback = do
   r <- getRandomNumber (0, 100000::Int)
   let msg = Msg ("APIcallback" ++ (show r))

@@ -45,11 +45,6 @@ onEventOnce e h = do
     let handler (en, ed) = delEvent en >> h ed
     onEvent e handler
 
---delEvent :: EventNumber -> Nomex Bool
---delEvent = DelEvent
-
---getEvents :: Nomex [EventInfo]
---getEvents = GetEvents
 
 --getEvent :: EventNumber -> Nomex (Maybe EventInfo)
 --getEvent en = find (\(EventInfo en2 _ _ evst _) -> en == en2 && evst == SActive) <$> getEvents

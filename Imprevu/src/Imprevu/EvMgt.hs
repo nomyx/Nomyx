@@ -40,31 +40,20 @@ import           System.Random
 
 -- * Nomyx Expression
 
-class (Typeable n, Monad n, Applicative n, MonadError String n) => EvMgt n where
+class (Typeable n, Applicative n, Monad n, MonadError String n) => EvMgt n where
    --Events management
    onEvent         :: (Typeable a, Show a) => Event a -> ((EventNumber, a) -> n ()) -> n EventNumber
    delEvent        :: EventNumber -> n Bool
    getEvents       :: n [EventInfo n]
    sendMessage     :: (Typeable a, Show a) => Msg a -> a -> n ()
-   currentTime     :: n UTCTime
-   getRandomNumber :: Random a => (a, a) -> n a
-   newVar          :: (Typeable a, Show a) => VarName -> a -> n (Maybe (V a))
-   readVar         :: (Typeable a, Show a) => V a -> n (Maybe a)
-   writeVar        :: (Typeable a, Show a) => V a -> a -> n Bool
-   delVar          :: (V a) -> n Bool
 
-
-type VarName = String
-
--- | a container for a variable name and type
-data V a = V {varName :: VarName} deriving Typeable
 
 data Msg m     = Msg String deriving (Typeable, Show, Eq)
 
 instance Typeable a => Signal (Msg a) where
   type SignalDataType (Msg a) = a
 
-partial :: (EvMgt n) => String -> n (Maybe a) -> n a
+partial :: (MonadError String n) => String -> n (Maybe a) -> n a
 partial s nm = do
    m <- nm
    case m of

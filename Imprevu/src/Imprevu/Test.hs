@@ -13,6 +13,8 @@ module Imprevu.Test where
 import Imprevu.Events
 import Imprevu.Events2
 import Imprevu.Inputs
+import Imprevu.SysMgt
+import Imprevu.Variables
 import Imprevu.Messages
 import Imprevu.EvMgt
 import Imprevu.Internal.EventEval
@@ -20,6 +22,7 @@ import Imprevu.Internal.Utils
 import Control.Monad.State
 import Control.Monad.Error
 import Data.Typeable
+import Data.List
 import Control.Lens
 import Data.Time
 import Control.Concurrent.STM
@@ -39,11 +42,15 @@ instance MonadError String TestIO where
 
 instance EvMgt TestIO where
    onEvent         = evOnEvent
-   delEvent     en = undefined --modify (filter (\a -> _eventNumber a /= en)) >> return True
+   delEvent        = evDelEvent --modify (filter (\a -> _eventNumber a /= en)) >> return True
    getEvents       = error "not implem"
    sendMessage m a = eventsEval $ triggerEvent m a -- :: (Typeable a, Show a) => Msg a -> a -> n ()
+
+instance SysMgt TestIO where
    currentTime     = liftIO getCurrentTime
    getRandomNumber a = liftIO $ randomRIO a
+
+instance VarMgt TestIO where
 
 eventsEval :: Evaluate TestIO [String] () -> TestIO ()
 eventsEval eval = do
@@ -84,6 +91,17 @@ evOnEvent ev h = do
    let en = getFreeNumber (map _eventNumber evs)
    put (TestState ((EventInfo en ev h SActive []) : evs) os)
    return en
+
+evDelEvent :: EventNumber -> TestIO Bool
+evDelEvent en = do
+   (TestState evs os) <- get
+   case find ((== en) . getL eventNumber) evs of
+      Nothing -> return False
+      Just eh -> case _evStatus eh of
+         SActive -> do
+            put (TestState (replaceWith ((== en) . getL eventNumber) eh{_evStatus = SDeleted} evs) os)
+            return True
+         SDeleted -> return False
 
 --evSendMessage :: (Typeable a, Show a) => Msg a -> a -> Evaluate ()
 --evSendMessage m = triggerEvent (Message m)
