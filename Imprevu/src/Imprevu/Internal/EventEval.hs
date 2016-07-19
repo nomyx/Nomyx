@@ -22,7 +22,7 @@ import           Data.List
 import           Data.Maybe
 import           Data.Todo
 import           Data.Typeable
-import           Imprevu.Events
+import           Imprevu.Internal.Event
 import           Imprevu.Internal.EvalUtils
 import           Prelude                     hiding (log, (.))
 import           Safe

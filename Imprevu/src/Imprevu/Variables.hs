@@ -18,7 +18,6 @@ module Imprevu.Variables
  --  getTempVar
     where
 
-import Imprevu.EvMgt
 import Imprevu.SysMgt
 import Imprevu.Events
 import Data.Typeable

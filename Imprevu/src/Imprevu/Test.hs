@@ -12,12 +12,11 @@
 module Imprevu.Test where
 
 import Imprevu.Events
-import Imprevu.Events2
 import Imprevu.Inputs
 import Imprevu.SysMgt
 import Imprevu.Variables
 import Imprevu.Messages
-import Imprevu.EvMgt
+import Imprevu.Internal.Event
 import Imprevu.Internal.EventEval
 import Imprevu.Internal.Utils
 import Control.Monad.State
@@ -118,10 +117,7 @@ exec r = outputs $ _execState $ runIdentity $ flip execStateT (EvalEnv [] (TestS
       Left e -> error $ show "error occured"
 
 putStrLn' :: String -> TestIO ()
-putStrLn' s = do
-  (TestState is ss vs) <- get
-  put (TestState is (s:ss) vs)
-
+putStrLn' s = modify (\(TestState is ss vs) -> (TestState is (s:ss) vs))
 
 allTests = [testSingleInputEx, testMultipleInputsEx, testInputStringEx, testSendMessageEx, testSendMessageEx2, testAPICallEx, testAPICallEx2, testUserInputWriteEx]
 

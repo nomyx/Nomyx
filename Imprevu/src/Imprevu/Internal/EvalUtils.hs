@@ -16,7 +16,7 @@ import           Control.Monad.State
 import           Data.List
 import           Data.Maybe
 import           Data.Typeable
-import           Imprevu.Events
+import           Imprevu.Internal.Event
 import           Imprevu.Internal.Utils
 import           Prelude                   hiding (log, (.))
 import           Safe

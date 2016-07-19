@@ -2,10 +2,6 @@
 module Imprevu.Internal.Utils (
    (===),
    replaceWith,
-   tracePN,
-   traceData,
-   parse822Time,
-   sndMaybe,
    mapStateIO,
    getFreeNumber,
    sel,
@@ -33,20 +29,6 @@ replaceWith :: (a -> Bool)   -- ^ Value to search
         -> [a] -- ^ Output list
 replaceWith f y = map (\z -> if f z then y else z)
 
-tracePN :: (Monad m) => Int -> String -> m ()
-tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s
-
-traceData :: (Show a) => String -> a -> a
-traceData s a = trace (s ++ " " ++ (show a)) a
-
-parse822Time :: String -> UTCTime
-parse822Time = zonedTimeToUTC
-              . fromJust
-              . parseTime defaultTimeLocale rfc822DateFormat
-
-sndMaybe :: (a, Maybe b) -> Maybe (a,b)
-sndMaybe (a, Just b) = Just (a,b)
-sndMaybe (_, Nothing) = Nothing
 
 mapStateIO :: Show s => State s a -> StateT s IO a
 mapStateIO = mapStateT $ return . runIdentity

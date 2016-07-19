@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Imprevu.Messages
 --  sendMessage, sendMessage_,
@@ -6,14 +7,14 @@ module Imprevu.Messages
 --  APICall(..), onAPICall, callAPI, callAPIBlocking,
   where
 
-import Imprevu.EvMgt
 import Imprevu.Events
-import Imprevu.Events2
+import Imprevu.Internal.Event
 import Imprevu.SysMgt
 import Imprevu.Variables
 import Data.Typeable
 import Control.Monad.Loops (untilJust)
 import Control.Monad
+import Control.Monad.Error
 
 
 -- * Messages
@@ -50,7 +51,7 @@ callAPI (APICall name) a callback = do
    sendMessage (Msg name) (msgTemp, a)
 
 -- | call an API function and wait for the result.
-callAPIBlocking :: (Typeable a, Show a, Typeable r, Show r, EvMgt n, VarMgt n, SysMgt n) => APICall a r -> a -> n r
+callAPIBlocking :: (Typeable a, Show a, Typeable r, Show r, EvMgt n, VarMgt n, SysMgt n, MonadError String n) => APICall a r -> a -> n r
 callAPIBlocking apiName param = do
   v <- getTempVar Nothing
   callAPI apiName param (\r -> void $ writeVar v (Just r))

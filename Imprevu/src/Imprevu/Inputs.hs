@@ -18,10 +18,8 @@ module Imprevu.Inputs
     where
 
 import Imprevu.Events
-import Imprevu.Events2
---import Imprevu.Internal.InputEval
+import Imprevu.Internal.Event
 import Imprevu.Internal.EventEval
-import Imprevu.EvMgt
 import Data.Typeable
 import Control.Applicative
 

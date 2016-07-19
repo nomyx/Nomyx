@@ -33,16 +33,15 @@ library
                    aeson,
                    stm
     exposed-modules: Imprevu.Events
-                     Imprevu.Internal.EventEval
-                     --Imprevu.Internal.InputEval
                      Imprevu.Inputs
                      Imprevu.Messages
                      Imprevu.Variables
                      Imprevu.SysMgt
-                     Imprevu.Events2
+                     Imprevu.Internal.Event
+                     Imprevu.Internal.EventEval
                      Imprevu.Internal.Utils
                      Imprevu.Test
-                     Control.Shortcut,
+                     Control.Shortcut
                      Data.Todo
     exposed: True
     buildable: True
