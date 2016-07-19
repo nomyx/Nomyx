@@ -7,6 +7,7 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 
 module Imprevu.Test where
 
@@ -31,10 +32,16 @@ import System.Random
 
 --type Evaluate n s a = ErrorT String (State (EvalEnv n s)) a
 data TestState = TestState {eventInfos :: [EventInfo TestIO],
-                            outputs :: [String]}
+                            outputs    :: [String],
+                            variable  :: Var}
 
 newtype TestIO a = TestIO {unTestIO :: StateT TestState IO a}
   deriving (Functor, Applicative, Monad, MonadIO, MonadState TestState)
+
+-- | stores the variable's data
+data Var = forall a . (Typeable a, Show a) =>
+   Var { vName :: String,
+         vData :: a}
 
 instance MonadError String TestIO where
   throwError = undefined
@@ -42,72 +49,57 @@ instance MonadError String TestIO where
 
 instance EvMgt TestIO where
    onEvent         = evOnEvent
-   delEvent        = evDelEvent --modify (filter (\a -> _eventNumber a /= en)) >> return True
+   delEvent        = evDelEvent
    getEvents       = error "not implem"
-   sendMessage m a = eventsEval $ triggerEvent m a -- :: (Typeable a, Show a) => Msg a -> a -> n ()
+   sendMessage m a = eventsEval $ triggerEvent m a
 
 instance SysMgt TestIO where
    currentTime     = liftIO getCurrentTime
    getRandomNumber a = liftIO $ randomRIO a
 
 instance VarMgt TestIO where
+   newVar       v a = modify (\(TestState eis os _) -> (TestState eis os (Var v a))) >> (return $ Just (V v))
+   readVar        v = gets variable >>= (\(Var _ a) -> return $ cast a)
+   writeVar (V v) a = modify (\(TestState eis os _) -> (TestState eis os (Var v a))) >> return True
+   delVar        _  = return True
 
-eventsEval :: Evaluate TestIO [String] () -> TestIO ()
+eventsEval :: Evaluate TestIO TestState () -> TestIO ()
 eventsEval eval = do
-   (TestState eis os) <- get
-   let (EvalEnv eis' os' f g) = runIdentity $ flip execStateT (EvalEnv eis os (void . evalEvents) undefined) $ do
+   s <- get
+   let (EvalEnv eis s' _ _) = runIdentity $ flip execStateT (EvalEnv (eventInfos s) s (void . evalEvents) undefined) $ do
        res <- runErrorT eval
        case res of
          Right a -> return a
          Left e -> error $ show "error occured"
-   put (TestState eis' os')
+   put s'
 
-evalEvents :: TestIO a -> Evaluate TestIO [String] a
+evalEvents :: TestIO a -> Evaluate TestIO TestState a
 evalEvents (TestIO tio) = do
-   (EvalEnv (eis :: [EventInfo TestIO]) (s :: [String]) f g) <- get
-   let (a, (TestState eis' s')) = unsafePerformIO $ runStateT tio (TestState eis s)
-   put (EvalEnv eis' s' f g)
+   (EvalEnv eis s f g) <- get
+   let (a, s') = unsafePerformIO $ runStateT tio s
+   put (EvalEnv (eventInfos s') s' f g)
    return a
-
---data EvalEnv n s = EvalEnv { _events      :: [EventInfo n],
---                             _execState   :: s,
---                             evalFunc :: forall a. (Show a) => n a -> Evaluate n s (),       -- evaluation function
---                             errorHandler :: EventNumber -> String -> Evaluate n s ()}    -- error function
---type Evaluate n s a = ErrorT String (State (EvalEnv n s)) a
-
---class (Typeable n, Monad n, Applicative n) => EvMgt n where
---   --Events management
---   onEvent         :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> n ()) -> n EventNumber
---   delEvent        :: EventNumber -> n Bool
---   getEvents       :: StateT [EventInfo IO] IO [EventInfo n]
---   sendMessage     :: (Typeable a, Show a) => Msg a -> a -> n ()
---   currentTime     :: n UTCTime
---
---get :: Monad m => StateT s m s
 
 evOnEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> TestIO ()) -> TestIO EventNumber
 evOnEvent ev h = do
-   (TestState evs os) <- get
+   (TestState evs os vs) <- get
    let en = getFreeNumber (map _eventNumber evs)
-   put (TestState ((EventInfo en ev h SActive []) : evs) os)
+   put (TestState ((EventInfo en ev h SActive []) : evs) os vs)
    return en
 
 evDelEvent :: EventNumber -> TestIO Bool
 evDelEvent en = do
-   (TestState evs os) <- get
+   (TestState evs os vs) <- get
    case find ((== en) . getL eventNumber) evs of
       Nothing -> return False
       Just eh -> case _evStatus eh of
          SActive -> do
-            put (TestState (replaceWith ((== en) . getL eventNumber) eh{_evStatus = SDeleted} evs) os)
+            put (TestState (replaceWith ((== en) . getL eventNumber) eh{_evStatus = SDeleted} evs) os vs)
             return True
          SDeleted -> return False
 
---evSendMessage :: (Typeable a, Show a) => Msg a -> a -> Evaluate ()
---evSendMessage m = triggerEvent (Message m)
-
 execEvents :: (Signal e) => TestIO a -> e -> SignalDataType e -> [String]
-execEvents r f d = _execState $ runIdentity $ flip execStateT (EvalEnv [] [] (void . evalEvents) undefined) $ do
+execEvents r f d = outputs $ _execState $ runIdentity $ flip execStateT (EvalEnv [] (TestState [] [] (Var "" "")) (void . evalEvents) undefined) $ do
    res <- runErrorT $ do
       void $ evalEvents r
       triggerEvent f d
@@ -117,7 +109,7 @@ execEvents r f d = _execState $ runIdentity $ flip execStateT (EvalEnv [] [] (vo
       Left e -> error $ show "error occured"
 
 exec :: TestIO a -> [String]
-exec r = _execState $ runIdentity $ flip execStateT (EvalEnv [] [] (void . evalEvents) undefined) $ do
+exec r = outputs $ _execState $ runIdentity $ flip execStateT (EvalEnv [] (TestState [] [] (Var "" "")) (void . evalEvents) undefined) $ do
    res <- runErrorT $ do
       void $ evalEvents r
       return ()
@@ -127,9 +119,11 @@ exec r = _execState $ runIdentity $ flip execStateT (EvalEnv [] [] (void . evalE
 
 putStrLn' :: String -> TestIO ()
 putStrLn' s = do
-  (TestState is ss) <- get
-  put (TestState is (s:ss))
+  (TestState is ss vs) <- get
+  put (TestState is (s:ss) vs)
 
+
+allTests = [testSingleInputEx, testMultipleInputsEx, testInputStringEx, testSendMessageEx, testSendMessageEx2, testAPICallEx, testAPICallEx2, testUserInputWriteEx]
 
 data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 
@@ -195,3 +189,25 @@ testAPICall2 = do
 
 testAPICallEx2 :: Bool
 testAPICallEx2 = "toto" `elem` (exec testAPICall2)
+
+data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
+
+-- Test user input + variable read/write
+testUserInputWrite :: TestIO ()
+testUserInputWrite = do
+    newVar_ "vote" (Nothing::Maybe Choice2)
+    onEvent_ (messageEvent (Msg "voted" :: Msg ())) h2
+    void $ onEvent_ (SignalEvent $ Input "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
+        h1 a = do
+            writeVar (V "vote") (Just a)
+            sendMessage (Msg "voted") ()
+        h2 _ = do
+            a <- readVar (V "vote")
+            void $ case a of
+                Just (Just Me) -> putStrLn' "voted Me"
+                _ -> putStrLn' "problem"
+
+
+testUserInputWriteEx :: Bool
+testUserInputWriteEx = "voted Me" `elem` g where
+   g = execEvents testUserInputWrite (Input "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
