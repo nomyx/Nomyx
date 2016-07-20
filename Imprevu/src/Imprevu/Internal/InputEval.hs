@@ -22,6 +22,7 @@ import           Data.Maybe
 import           Data.Todo
 import           Data.Typeable
 import           Imprevu.Events
+import           Imprevu.Internal.Event
 import           Imprevu.Internal.EventEval
 import           Imprevu.Internal.EvalUtils
 import           Prelude                     hiding (log, (.))
@@ -45,30 +46,17 @@ data InputData = RadioData    Int
                | ButtonData
                  deriving (Show, Read, Eq, Ord)
 
--- | Input forms as programmed by the user
-data InputForm a where
-   Text     ::                                    InputForm String
-   TextArea ::                                    InputForm String
-   Button   ::                                    InputForm ()
-   Radio    :: (Show a, Eq a) => [(a, String)] -> InputForm a
-   Checkbox :: (Show a, Eq a) => [(a, String)] -> InputForm [a]
-   deriving Typeable
-
-deriving instance Show (InputForm a)
-deriving instance Eq (InputForm e)
-
-
 -- * Input triggers
 
 -- trigger the input form with the input data
-triggerInput :: (Eq e) => FormField -> InputData -> SignalAddress -> EventNumber -> Evaluate n s e ()
+triggerInput :: FormField -> InputData -> SignalAddress -> EventNumber -> Evaluate n s ()
 triggerInput ff i sa en = do
    evs <- use events
    let mei = find (\a -> a ^. eventNumber == en) evs
    F.forM_ mei (triggerInputSignal i sa ff)
 
 -- trigger the input signal with the input data
-triggerInputSignal :: (Eq e) => InputData -> SignalAddress -> FormField -> EventInfo n e -> Evaluate n s e ()
+triggerInputSignal :: InputData -> SignalAddress -> FormField -> EventInfo n -> Evaluate n s ()
 triggerInputSignal ide sa ff ei@(EventInfo _ _ _ SActive _) = do
    i <- findField ff sa ei
    case i of
@@ -77,7 +65,7 @@ triggerInputSignal ide sa ff ei@(EventInfo _ _ _ SActive _) = do
 triggerInputSignal _ _ _ _ = return ()
 
 -- trigger the input signal with the input data
-triggerInputSignal' :: InputData -> SomeSignal e -> SignalAddress -> EventInfo n e -> Evaluate n s e ()
+triggerInputSignal' :: InputData -> SomeSignal -> SignalAddress -> EventInfo n -> Evaluate n s ()
 --triggerInputSignal' (TextData s)      (SomeSignal e)         sa ei = triggerEvent' (SignalData e s)                     (Just sa) [ei]
 --triggerInputSignal' (TextAreaData s)  (SomeSignal e@(Input _  TextArea))     sa ei = triggerEvent' (SignalData e s)                     (Just sa) [ei]
 --triggerInputSignal' (ButtonData)      (SomeSignal e@(Input _  Button))       sa ei = triggerEvent' (SignalData e ())                    (Just sa) [ei]
@@ -87,10 +75,10 @@ triggerInputSignal' _ _ _ _ = return ()
 
 
 -- | Get the form field at a certain address
-findField :: (Eq e) => FormField -> SignalAddress -> EventInfo n e -> Evaluate n s e (Maybe (SomeSignal e))
+findField :: FormField -> SignalAddress -> EventInfo n -> Evaluate n s (Maybe SomeSignal)
 findField ff addr (EventInfo _ e _ _ envi) = findField' addr e envi ff
 
-findField' :: (Eq e) => SignalAddress -> Event e a -> [SignalOccurence e] -> FormField -> Evaluate n s e (Maybe (SomeSignal e))
+findField' :: SignalAddress -> Event e -> [SignalOccurence] -> FormField -> Evaluate n s (Maybe SomeSignal)
 findField' []         (SignalEvent f)    _   ff = return $ do
    ff' <- getFormField (SomeSignal f)
    guard (ff' == ff)
@@ -112,12 +100,12 @@ findField' (Shortcut:as) (ShortcutEvents es _) envi ff = do
 findField' fa _ _ _ = error $ "findField: wrong field address: " ++ (show fa)
 
 -- | removes one element of signal address for all signal occurences
-filterPath :: SignalAddressElem -> [SignalOccurence e] -> [SignalOccurence e]
+filterPath :: SignalAddressElem -> [SignalOccurence] -> [SignalOccurence]
 filterPath fa envi = mapMaybe f envi where
    f (SignalOccurence sd (fa':fas)) | fa == fa' = Just $ SignalOccurence sd fas
    f fr = Just fr
 
-getFormField :: SomeSignal e -> Maybe FormField
+getFormField :: SomeSignal -> Maybe FormField
 --getFormField (SomeSignal (Signal a)) = case cast a of
 --   Just (Radio choices :: InputForm a) -> Just $ RadioField    "" (zip [0..] (snd <$> choices))
 --   Just (Text :: InputForm String)          -> Just $ TextField     ""
