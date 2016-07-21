@@ -46,7 +46,7 @@ import Unsafe.Coerce
 default (Integer, Double, Data.Text.Text)
 
 
-viewInput :: EventInfo n -> RoutedServer (Maybe Html)
+viewInput :: EventInfo n -> RoutedServer s (Maybe Html)
 viewInput ei@(EventInfo en _ _ SActive _) = do
    ds <- mapMaybeM (viewInput' en) (getRemainingSignals ei undefined)
    return $ if null ds
@@ -63,12 +63,12 @@ test :: SomeData' -> Bool
 test (SomeData' a) = if (Nothing == Nothing) then True else False
 
 
-viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer (Maybe Html)
+viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer s (Maybe Html)
 viewInput' en (fa, ss@(SomeSignal a)) = do
     if (toConstr a) == (toConstr ((Input "" Button) :: Input ()))
       then do
         let (ev :: Input ()) = unsafeCoerce a
-        lf  <- liftRouteT $ viewForm "user" $ inputForm ev
+        lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm ev
         let link = showRelURL (DoInput en fa (fromJust $ getFormField' ev))
         return $ Just $ tr $ td $ do
 --          fromString title
@@ -108,12 +108,13 @@ getFormField' = undefined -- | toConstr a == toConstr (
 ----   Just (Checkbox choices) -> Just $ CheckboxField "" (zip [1..] (snd <$> choices))
 --getFormField _ = Nothing
 -- | a form result has been sent
-newInput :: EventNumber -> SignalAddress -> FormField -> RoutedServer Response
+newInput :: EventNumber -> SignalAddress -> FormField -> RoutedServer s Response
 newInput en fa ft = toResponse <$> do
    methodM POST
-   r <- liftRouteT $ eitherForm environment "user" (inputForm' ft)
+   (WebState tv updateSession) <- get
+   r <- liftRouteT $ lift $ eitherForm environment "user" (inputForm' ft)
    case r of
-      (Right c) -> webCommand $ inputResult en fa ft c
+      (Right c) -> liftIO $ updateSession tv $ InputResult en fa ft c
       (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
    seeOther (showRelURL $ Main) "Redirecting..."
 
@@ -142,10 +143,3 @@ blazeForm html link =
             do html
                input ! A.type_ "submit" ! A.value "Submit"
 
-inputResult :: EventNumber -> SignalAddress -> FormField -> InputData -> StateT s IO ()
-inputResult en fa ft ir = undefined --inGameDo gn $ execGameEvent $ InputResult pn en fa ft ir
-
-webCommand :: StateT s IO () -> RoutedServer ()
-webCommand ss = undefined --do
---  ts <- use session
---  liftIO $ updateSession ts ss

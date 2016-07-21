@@ -34,7 +34,8 @@ library
                    web-routes             == 0.27.*,
                    web-routes-happstack   == 0.23.*,
                    web-routes-th          == 0.22.*,
-                   monad-extras -any
+                   monad-extras -any,
+                   stm
     exposed-modules: Imprevu.Happstack.Forms
                      Imprevu.Happstack.Types
     exposed: True

@@ -11,12 +11,15 @@
 module Imprevu.Happstack.Types where
 
 import Imprevu.Internal.Event
+import Imprevu.Inputs
+import Imprevu.Internal.EventEval
 import Imprevu.Internal.InputEval
 import Imprevu.Events
 import Imprevu.Inputs
 import Control.Monad
 import Control.Monad.Extra (mapMaybeM)
 import Control.Applicative
+import Control.Concurrent.STM
 import Data.Monoid
 import Data.Maybe
 import Data.Typeable
@@ -43,7 +46,12 @@ import           Web.Routes.TH
 import  Data.Text                           (Text)
 default (Integer, Double, Data.Text.Text)
 
-type RoutedServer a = RouteT Command (ServerPartT IO) a
+data InputResult = InputResult EventNumber SignalAddress FormField InputData
+
+data WebState s = WebState {session      :: TVar s,
+                            updateSession :: TVar s -> InputResult -> IO ()}
+
+type RoutedServer s a = RouteT Command (StateT (WebState s) (ServerPartT IO)) a
 
 data Command =
     Main
