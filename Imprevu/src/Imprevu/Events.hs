@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 -- | All the building blocks to allow rules to build events.
 module Imprevu.Events
@@ -23,20 +24,21 @@ import Control.Monad.Error
 import Control.Applicative
 import Data.List
 import Data.Maybe
+import Data.Data
 import Data.Time hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
 import Safe
 
 class (Typeable n, Applicative n, Monad n) => EvMgt n where
    --Events management
-   onEvent         :: (Typeable a, Show a) => Event a -> ((EventNumber, a) -> n ()) -> n EventNumber
+   onEvent         :: (Typeable a, Show a, Data a) => Event a -> ((EventNumber, a) -> n ()) -> n EventNumber
    delEvent        :: EventNumber -> n Bool
    getEvents       :: n [EventInfo n]
-   sendMessage     :: (Typeable a, Show a) => Msg a -> a -> n ()
+   sendMessage     :: (Typeable a, Show a, Data a) => Msg a -> a -> n ()
 
-data Msg m     = Msg String deriving (Typeable, Show, Eq)
+data Msg m     = Msg String deriving (Typeable, Show, Eq, Data)
 
-instance Typeable a => Signal (Msg a) where
+instance (Typeable a, Data a) => Signal (Msg a) where
   type SignalDataType (Msg a) = a
 
 partial :: (MonadError String n) => String -> n (Maybe a) -> n a
@@ -49,11 +51,11 @@ partial s nm = do
 -- * Events
 
 -- | register a callback on an event, disregard the event number
-onEvent_ :: (Typeable a, Show a, EvMgt n) => Event a -> (a -> n ()) -> n EventNumber
+onEvent_ :: (Typeable a, Show a, Data a, EvMgt n) => Event a -> (a -> n ()) -> n EventNumber
 onEvent_ e h = onEvent e (\(_, d) -> h d)
 
 -- | set an handler for an event that will be triggered only once
-onEventOnce :: (Typeable a, Show a, EvMgt n) => Event a -> (a -> n ()) -> n EventNumber
+onEventOnce :: (Typeable a, Show a, Data a, EvMgt n) => Event a -> (a -> n ()) -> n EventNumber
 onEventOnce e h = do
     let handler (en, ed) = delEvent en >> h ed
     onEvent e handler
@@ -136,7 +138,7 @@ onEventOnce e h = do
 
 -- | Build a message event, that can be intercepted by another rule
 -- this is useful for message-passing style of communication
-messageEvent :: (Typeable a) => Msg a -> Event a
+messageEvent :: (Typeable a, Data a) => Msg a -> Event a
 messageEvent m = SignalEvent m
 
 -- | Build a event firing immediatly, yelding the value of the Nomex

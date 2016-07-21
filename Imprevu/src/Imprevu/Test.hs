@@ -8,6 +8,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module Imprevu.Test where
 
@@ -23,6 +24,7 @@ import Control.Monad.State
 import Control.Monad.Error
 import Data.Typeable
 import Data.List
+import Data.Data
 import Control.Lens
 import Data.Time
 import Control.Concurrent.STM
@@ -121,7 +123,7 @@ putStrLn' s = modify (\(TestState is ss vs) -> (TestState is (s:ss) vs))
 
 allTests = [testSingleInputEx, testMultipleInputsEx, testInputStringEx, testSendMessageEx, testSendMessageEx2, testAPICallEx, testAPICallEx2, testUserInputWriteEx]
 
-data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
+data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded, Data)
 
 -- Test input
 testSingleInput :: TestIO ()
@@ -186,7 +188,7 @@ testAPICall2 = do
 testAPICallEx2 :: Bool
 testAPICallEx2 = "toto" `elem` (exec testAPICall2)
 
-data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
+data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded, Data)
 
 -- Test user input + variable read/write
 testUserInputWrite :: TestIO ()

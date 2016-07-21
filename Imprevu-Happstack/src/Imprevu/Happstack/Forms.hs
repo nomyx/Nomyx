@@ -21,8 +21,10 @@ import Data.Monoid
 import Data.Maybe
 import Data.Typeable
 import Data.String
+import Data.Data
 import           Control.Monad.State
-import Happstack.Server              as HS (Input, Response, ServerPartT, Method (..), methodM,
+import qualified Happstack.Server    as HS (Input)
+import Happstack.Server              as HS (Response, ServerPartT, Method (..), methodM,
                                               ok, seeOther, toResponse)
 import           Text.Blaze.Html5            (ToMarkup, Html, toHtml, a, br, div, h3, h4,
                                               pre, table, td, toValue, tr, (!), input)
@@ -40,6 +42,7 @@ import           Web.Routes.Happstack                ()
 import           Web.Routes.RouteT
 import           Web.Routes.PathInfo
 import  Data.Text                           (Text)
+import Unsafe.Coerce
 default (Integer, Double, Data.Text.Text)
 
 
@@ -61,15 +64,18 @@ test (SomeData' a) = if (Nothing == Nothing) then True else False
 
 
 viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer (Maybe Html)
-viewInput' en (fa, ss@(SomeSignal a)) = case (cast ss) of
-    Just ((undefined )) -> undefined --do -- (Input title _))) = do
---  lf  <- liftRouteT $ viewForm "user" $ inputForm ev
---  let link = showRelURL (DoInput en fa (fromJust $ getFormField ev))
---  return $ Just $ tr $ td $ do
---     fromString title
---     fromString " "
---     blazeForm lf link ! A.id "InputForm"
---viewInput' _ _ = return Nothing
+viewInput' en (fa, ss@(SomeSignal a)) = do
+    if (toConstr a) == (toConstr ((Input "" Button) :: Input ()))
+      then do
+        let (ev :: Input ()) = unsafeCoerce a
+        lf  <- liftRouteT $ viewForm "user" $ inputForm ev
+        let link = showRelURL (DoInput en fa (fromJust $ getFormField' ev))
+        return $ Just $ tr $ td $ do
+--          fromString title
+          fromString " "
+          blazeForm lf link ! A.id "InputForm"
+      else return Nothing
+viewInput' _ _ = return Nothing
 
 
 --f :: SomeSignal -> Maybe (Imprevu.Inputs.Input ())
@@ -93,10 +99,10 @@ inputForm' (TextAreaField _)         = TextAreaData <$> textarea 50 5  "" <++ la
 inputForm' (ButtonField _)           = pure ButtonData
 inputForm' (CheckboxField _ choices) = CheckboxData <$> inputCheckboxes choices (const False) <++ label (" " :: String)
 
---getFormField :: SomeSignal -> Maybe FormField
---getFormField (SomeSignal a) = case cast a of
+getFormField' :: Input () -> Maybe FormField
+getFormField' = undefined -- | toConstr a == toConstr (
 --   Just ((Input _ (Radio choices)) ) -> Just $ RadioField    "" (zip [0..] (snd <$> choices))
-----   Just (Text :: InputForm String)          -> Just $ TextField     ""
+--   Just (Text :: InputForm String)          -> Just $ TextField     ""
 ----   Just (TextArea)      -> Just $ TextAreaField ""
 ----   Just (Button)        -> Just $ ButtonField   ""
 ----   Just (Checkbox choices) -> Just $ CheckboxField "" (zip [1..] (snd <$> choices))

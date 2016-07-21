@@ -15,7 +15,7 @@ import Data.Typeable
 import Control.Monad.Loops (untilJust)
 import Control.Monad
 import Control.Monad.Error
-
+import Data.Data
 
 -- * Messages
 -- a rule can send a simple message to another rule, and subscribe to a message.
@@ -25,11 +25,11 @@ sendMessage_ :: (EvMgt n) => String -> n ()
 sendMessage_ m = sendMessage (Msg m) ()
 
 -- | subscribe on a message
-onMessage :: (Typeable m, Show m, EvMgt n) => Msg m -> (m -> n ()) -> n EventNumber
+onMessage :: (Typeable m, Show m, Data m, EvMgt n) => Msg m -> (m -> n ()) -> n EventNumber
 onMessage name = onEvent_ (messageEvent name)
 
 -- | subscribe on a message, delete it on the first call
-onMessageOnce :: (Typeable m, Show m, EvMgt n) => Msg m -> (m -> n ()) -> n EventNumber
+onMessageOnce :: (Typeable m, Show m, Data m, EvMgt n) => Msg m -> (m -> n ()) -> n EventNumber
 onMessageOnce name = onEventOnce (messageEvent name)
 
 -- * API calls
@@ -41,17 +41,17 @@ onMessageOnce name = onEventOnce (messageEvent name)
 data APICall a r = APICall String
 
 -- version with one parameters
-onAPICall :: (Typeable a, Show a, Typeable r, Show r, EvMgt n) => APICall a r -> (a -> n r) -> n EventNumber
+onAPICall :: (Typeable a, Show a, Data a, Typeable r, Show r, Data r, EvMgt n) => APICall a r -> (a -> n r) -> n EventNumber
 onAPICall (APICall name) action = onMessage (Msg name) (\(msg, a) -> action a >>= sendMessage msg)
 
 -- | version with one parameters
-callAPI :: (Typeable a, Show a, Typeable r, Show r, EvMgt n, SysMgt n) => APICall a r -> a -> (r -> n ()) -> n ()
+callAPI :: (Typeable a, Show a, Data a, Typeable r, Show r, Data r, EvMgt n, SysMgt n) => APICall a r -> a -> (r -> n ()) -> n ()
 callAPI (APICall name) a callback = do
    msgTemp <- createTempMsg callback
    sendMessage (Msg name) (msgTemp, a)
 
 -- | call an API function and wait for the result.
-callAPIBlocking :: (Typeable a, Show a, Typeable r, Show r, EvMgt n, VarMgt n, SysMgt n, MonadError String n) => APICall a r -> a -> n r
+callAPIBlocking :: (Typeable a, Show a, Data a, Typeable r, Show r, Data r, EvMgt n, VarMgt n, SysMgt n, MonadError String n) => APICall a r -> a -> n r
 callAPIBlocking apiName param = do
   v <- getTempVar Nothing
   callAPI apiName param (\r -> void $ writeVar v (Just r))
@@ -62,7 +62,7 @@ callAPIBlocking apiName param = do
 -- * Internals
 
 -- | creates a temporary message with a random name
-createTempMsg :: (Typeable m, Show m, EvMgt n, SysMgt n) => (m -> n ()) -> n (Msg m)
+createTempMsg :: (Typeable m, Show m, Data m, EvMgt n, SysMgt n) => (m -> n ()) -> n (Msg m)
 createTempMsg callback = do
   r <- getRandomNumber (0, 100000::Int)
   let msg = Msg ("APIcallback" ++ (show r))
