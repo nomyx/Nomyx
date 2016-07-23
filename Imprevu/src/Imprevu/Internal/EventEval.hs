@@ -133,13 +133,10 @@ getEventResult' (ShortcutEvents es f) ers fa = do
 
 
 getRemainingSignals :: EventInfo n -> EvalEnv n s -> [(SignalAddress, SomeSignal)]
-getRemainingSignals (EventInfo _ e _ _ occ) env = case evalState (runEvalError (getEventResult e occ)) env of
+getRemainingSignals (EventInfo _ e _ _ occ) env = case evalState (runEvalError' (getEventResult e occ)) env of
    Just (Todo a) -> a
    Just (Done _) -> []
    Nothing -> []
-
-runEvalError :: Evaluate n s a -> State s (Maybe a)
-runEvalError egs = undefined --evalEnv (runEvalError' egs)
 
 runEvalError' :: Evaluate n s a -> State (EvalEnv n s) (Maybe a)
 runEvalError' egs = do
