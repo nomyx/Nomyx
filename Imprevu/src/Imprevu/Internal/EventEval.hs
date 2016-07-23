@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell           #-}
 
@@ -27,14 +28,20 @@ import           Imprevu.Internal.EvalUtils
 import           Prelude                     hiding (log, (.))
 import           Safe
 
+
+class HasEvents n s where
+   getEvents :: s -> [EventInfo n]
+   setEvents :: [EventInfo n] -> s -> s
+
 -- | Environment necessary for the evaluation of any nomyx expressions or events
 --TODO: should the first field be a "Maybe RuleNumber"?
 --Indeed an evaluation is not always performed by a rule but also by the system (in which case we currently use rule number 0)
-data EvalEnv n s = EvalEnv { _events      :: [EventInfo n],
-                             _execState   :: s,
-                             evalFunc :: forall a. (Show a) => n a -> Evaluate n s (),       -- evaluation function
+data EvalEnv n s = EvalEnv { _evalEnv      :: s,
+                             evalFunc     :: forall a. (Show a) => n a -> Evaluate n s (),       -- evaluation function
                              errorHandler :: EventNumber -> String -> Evaluate n s ()}    -- error function
 
+events :: (HasEvents n s) => Lens' (EvalEnv n s) [EventInfo n]
+events f (EvalEnv s g h) = fmap (\s' -> (EvalEnv (setEvents s' s) g h)) (f (getEvents s))
 
 -- | Environment necessary for the evaluation of Nome
 type Evaluate n s a = ErrorT String (State (EvalEnv n s)) a
@@ -44,13 +51,13 @@ makeLenses ''EvalEnv
 -- * Event triggers
 
 -- trigger an event with an event result
-triggerEvent :: (Signal e) => e -> (SignalDataType e) -> Evaluate n s ()
-triggerEvent s dat = do
-   evs <- gets _events
-   triggerEvent' (SignalData s dat) Nothing evs
+triggerEvent :: (Signal e, HasEvents n s) => e -> (SignalDataType e) -> Evaluate n s ()
+triggerEvent e dat = do
+   (EvalEnv s _ _) <- get
+   triggerEvent' (SignalData e dat) Nothing (getEvents s)
 
 -- trigger some specific signal
-triggerEvent' :: SignalData -> Maybe SignalAddress -> [EventInfo n] -> Evaluate n s ()
+triggerEvent' :: (HasEvents n s) => SignalData -> Maybe SignalAddress -> [EventInfo n] -> Evaluate n s ()
 triggerEvent' sd msa evs = do
    let evs' = evs -- sortBy (compare `on` _ruleNumber) evs
    eids <- mapM (getUpdatedEventInfo sd msa) evs'           -- get all the EventInfos updated with the field
@@ -125,4 +132,20 @@ getEventResult' (ShortcutEvents es f) ers fa = do
      else Todo $ join $ lefts $ toEither <$> ers'                                                        -- otherwise, return the list of remaining fields to complete from each event
 
 
+getRemainingSignals :: EventInfo n -> EvalEnv n s -> [(SignalAddress, SomeSignal)]
+getRemainingSignals (EventInfo _ e _ _ occ) env = case evalState (runEvalError (getEventResult e occ)) env of
+   Just (Todo a) -> a
+   Just (Done _) -> []
+   Nothing -> []
 
+runEvalError :: Evaluate n s a -> State s (Maybe a)
+runEvalError egs = undefined --evalEnv (runEvalError' egs)
+
+runEvalError' :: Evaluate n s a -> State (EvalEnv n s) (Maybe a)
+runEvalError' egs = do
+   e <- runErrorT egs
+   case e of
+      Right a -> return $ Just a
+      Left e' -> error $ "error " ++ e'
+         --tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
+         --void $ runErrorT $ log mpn "Error: "

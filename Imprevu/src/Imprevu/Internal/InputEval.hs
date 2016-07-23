@@ -49,7 +49,7 @@ data InputData = RadioData    Int
 -- * Input triggers
 
 -- trigger the input form with the input data
-triggerInput :: FormField -> InputData -> SignalAddress -> EventNumber -> Evaluate n s ()
+triggerInput :: (HasEvents n s) => FormField -> InputData -> SignalAddress -> EventNumber -> Evaluate n s ()
 triggerInput ff i sa en = do
    evs <- use events
    let mei = find (\a -> a ^. eventNumber == en) evs

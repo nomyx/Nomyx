@@ -39,6 +39,10 @@ data TestState = TestState {eventInfos :: [EventInfo TestIO],
 newtype TestIO a = TestIO {unTestIO :: StateT TestState IO a}
   deriving (Functor, Applicative, Monad, MonadIO, MonadState TestState)
 
+instance HasEvents TestIO TestState where
+  getEvents = eventInfos
+  setEvents eis (TestState _ os vs) = (TestState eis os vs)
+
 -- | stores the variable's data
 data Var = forall a . (Typeable a, Show a) =>
    Var { vName :: String,
@@ -67,7 +71,7 @@ instance VarMgt TestIO where
 eventsEval :: Evaluate TestIO TestState () -> TestIO ()
 eventsEval eval = do
    s <- get
-   let (EvalEnv eis s' _ _) = runIdentity $ flip execStateT (EvalEnv (eventInfos s) s (void . evalEvents) undefined) $ do
+   let (EvalEnv s' _ _) = runIdentity $ flip execStateT (EvalEnv s (void . evalEvents) undefined) $ do
        res <- runErrorT eval
        case res of
          Right a -> return a
@@ -76,9 +80,9 @@ eventsEval eval = do
 
 evalEvents :: TestIO a -> Evaluate TestIO TestState a
 evalEvents (TestIO tio) = do
-   (EvalEnv eis s f g) <- get
+   (EvalEnv s f g) <- get
    let (a, s') = unsafePerformIO $ runStateT tio s
-   put (EvalEnv (eventInfos s') s' f g)
+   put (EvalEnv s' f g)
    return a
 
 evOnEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> TestIO ()) -> TestIO EventNumber
@@ -99,8 +103,17 @@ evDelEvent en = do
             return True
          SDeleted -> return False
 
+execEvents' :: TestIO a -> TestState -> TestState
+execEvents' r ts = _evalEnv $ runIdentity $ flip execStateT (EvalEnv ts (void . evalEvents) undefined) $ do
+   res <- runErrorT $ do
+      void $ evalEvents r
+      return ()
+   case res of
+      Right a -> return a
+      Left e -> error $ show "error occured"
+
 execEvents :: (Signal e) => TestIO a -> e -> SignalDataType e -> [String]
-execEvents r f d = outputs $ _execState $ runIdentity $ flip execStateT (EvalEnv [] (TestState [] [] (Var "" "")) (void . evalEvents) undefined) $ do
+execEvents r f d = outputs $ _evalEnv $ runIdentity $ flip execStateT (EvalEnv (TestState [] [] (Var "" "")) (void . evalEvents) undefined) $ do
    res <- runErrorT $ do
       void $ evalEvents r
       triggerEvent f d
@@ -110,7 +123,7 @@ execEvents r f d = outputs $ _execState $ runIdentity $ flip execStateT (EvalEnv
       Left e -> error $ show "error occured"
 
 exec :: TestIO a -> [String]
-exec r = outputs $ _execState $ runIdentity $ flip execStateT (EvalEnv [] (TestState [] [] (Var "" "")) (void . evalEvents) undefined) $ do
+exec r = outputs $ _evalEnv $ runIdentity $ flip execStateT (EvalEnv (TestState [] [] (Var "" "")) (void . evalEvents) undefined) $ do
    res <- runErrorT $ do
       void $ evalEvents r
       return ()
