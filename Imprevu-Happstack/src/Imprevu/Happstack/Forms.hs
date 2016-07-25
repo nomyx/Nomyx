@@ -10,13 +10,15 @@
 module Imprevu.Happstack.Forms where
 
 import Imprevu.Internal.Event
+import Imprevu.Internal.EventEval
 import Imprevu.Internal.InputEval
-import Imprevu.Events
+--import Imprevu.Events
 import Imprevu.Inputs
 import Imprevu.Happstack.Types
 import Control.Monad
 import Control.Monad.Extra (mapMaybeM)
 import Control.Applicative
+import Control.Concurrent.STM
 import Data.Monoid
 import Data.Maybe
 import Data.Typeable
@@ -46,24 +48,17 @@ import Unsafe.Coerce
 default (Integer, Double, Data.Text.Text)
 
 
-viewInput :: EventInfo n -> RoutedServer s (Maybe Html)
+viewInput :: (HasEvents n s) => EventInfo n -> RoutedServer n s (Maybe Html)
 viewInput ei@(EventInfo en _ _ SActive _) = do
-   ds <- mapMaybeM (viewInput' en) (getRemainingSignals ei undefined)
+   (WebState tvs _ f g) <- get
+   s <- liftIO $ atomically $ readTVar tvs
+   ds <- mapMaybeM (viewInput' en) (getRemainingSignals ei (EvalEnv s f g))
    return $ if null ds
       then Nothing
       else Just $ sequence_ ds
 viewInput _ = return Nothing
 
-data SomeData' = forall e. (Typeable e, Eq e) => SomeData' e
-
-(===) :: (Typeable a, Typeable b, Eq a, Eq b) => a -> b -> Bool
-(===) x y = cast x == Just y
-
-test :: SomeData' -> Bool
-test (SomeData' a) = if (Nothing == Nothing) then True else False
-
-
-viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer s (Maybe Html)
+viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer n s (Maybe Html)
 viewInput' en (fa, ss@(SomeSignal a)) = do
     if (toConstr a) == (toConstr ((Input "" Button) :: Input ()))
       then do
@@ -77,10 +72,6 @@ viewInput' en (fa, ss@(SomeSignal a)) = do
       else return Nothing
 viewInput' _ _ = return Nothing
 
-
---f :: SomeSignal -> Maybe (Imprevu.Inputs.Input ())
---f (SomeSignal a) = case (toConstr a) of
---   (toConstr (Input _ _)) -> undefined
 
 --- TODO: merge SomeSignal and FormField...
 inputForm :: Imprevu.Inputs.Input a -> ImpForm InputData
@@ -99,19 +90,19 @@ inputForm' (TextAreaField _)         = TextAreaData <$> textarea 50 5  "" <++ la
 inputForm' (ButtonField _)           = pure ButtonData
 inputForm' (CheckboxField _ choices) = CheckboxData <$> inputCheckboxes choices (const False) <++ label (" " :: String)
 
-getFormField' :: Input () -> Maybe FormField
-getFormField' = undefined -- | toConstr a == toConstr (
---   Just ((Input _ (Radio choices)) ) -> Just $ RadioField    "" (zip [0..] (snd <$> choices))
---   Just (Text :: InputForm String)          -> Just $ TextField     ""
-----   Just (TextArea)      -> Just $ TextAreaField ""
-----   Just (Button)        -> Just $ ButtonField   ""
-----   Just (Checkbox choices) -> Just $ CheckboxField "" (zip [1..] (snd <$> choices))
+getFormField' :: Input a -> Maybe FormField
+getFormField' (Input _ (Radio choices)) = Just $ RadioField    "" (zip [0..] (snd <$> choices))
+getFormField' (Input _ Text)          = Just $ TextField     ""
+getFormField' (Input _ TextArea)      = Just $ TextAreaField ""
+getFormField' (Input _ Button)        = Just $ ButtonField   ""
+getFormField' (Input _ (Checkbox choices)) = Just $ CheckboxField "" (zip [1..] (snd <$> choices))
 --getFormField _ = Nothing
+
 -- | a form result has been sent
-newInput :: EventNumber -> SignalAddress -> FormField -> RoutedServer s Response
+newInput :: EventNumber -> SignalAddress -> FormField -> RoutedServer n s Response
 newInput en fa ft = toResponse <$> do
    methodM POST
-   (WebState tv updateSession) <- get
+   (WebState tv updateSession _ _) <- get
    r <- liftRouteT $ lift $ eitherForm environment "user" (inputForm' ft)
    case r of
       (Right c) -> liftIO $ updateSession tv $ InputResult en fa ft c

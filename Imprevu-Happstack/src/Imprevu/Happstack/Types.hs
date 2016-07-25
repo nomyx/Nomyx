@@ -48,10 +48,13 @@ default (Integer, Double, Data.Text.Text)
 
 data InputResult = InputResult EventNumber SignalAddress FormField InputData
 
-data WebState s = WebState {session      :: TVar s,
-                            updateSession :: TVar s -> InputResult -> IO ()}
+data WebState n s = WebState {session      :: TVar s,
+                             updateSession :: TVar s -> InputResult -> IO (),
+                             evalFunc     :: forall a. (Show a) => n a -> Evaluate n s (),       -- evaluation function
+                             errorHandler :: EventNumber -> String -> Evaluate n s ()}    -- error function
+                              --getEvents :: TVar s -> IO [EventInfo n]}
 
-type RoutedServer s a = RouteT Command (StateT (WebState s) (ServerPartT IO)) a
+type RoutedServer n s a = RouteT Command (StateT (WebState n s) (ServerPartT IO)) a
 
 data Command =
     Main

@@ -38,6 +38,7 @@ library
                    stm
     exposed-modules: Imprevu.Happstack.Forms
                      Imprevu.Happstack.Types
+                     Imprevu.Happstack.Test
     exposed: True
     buildable: True
     hs-source-dirs: src
