@@ -38,7 +38,7 @@ class (Typeable n, Applicative n, Monad n) => EvMgt n where
 
 data Msg m     = Msg String deriving (Typeable, Show, Eq, Data)
 
-instance (Typeable a, Data a) => Signal (Msg a) where
+instance (Typeable a, Data a, Show a) => Signal (Msg a) where
   type SignalDataType (Msg a) = a
 
 partial :: (MonadError String n) => String -> n (Maybe a) -> n a
@@ -138,7 +138,7 @@ onEventOnce e h = do
 
 -- | Build a message event, that can be intercepted by another rule
 -- this is useful for message-passing style of communication
-messageEvent :: (Typeable a, Data a) => Msg a -> Event a
+messageEvent :: (Typeable a, Data a, Show a) => Msg a -> Event a
 messageEvent m = SignalEvent m
 
 -- | Build a event firing immediatly, yelding the value of the Nomex
@@ -159,11 +159,6 @@ oneMinute = 60
 
 signalEvent :: (Signal e) => e -> Event (SignalDataType e)                -- Embed a single Signal as an Event
 signalEvent = SignalEvent
-
-getRemainingSignals :: EventInfo n -> [EventInfo n] -> [(SignalAddress, SomeSignal)]
-getRemainingSignals (EventInfo _ e _ _ en) eis = undefined  --case runEvaluate eis $ runEvalError (getEventResult e en) of
---   Done _ -> []
---   Todo a -> a
 
 
 --extract the game state from an Evaluate

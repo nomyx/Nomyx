@@ -8,6 +8,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
 module Imprevu.Test where
@@ -19,6 +20,7 @@ import Imprevu.Variables
 import Imprevu.Messages
 import Imprevu.Internal.Event
 import Imprevu.Internal.EventEval
+import Imprevu.Internal.InputEval
 import Imprevu.Internal.Utils
 import Control.Monad.State
 import Control.Monad.Error
@@ -36,6 +38,8 @@ data TestState = TestState {eventInfos :: [EventInfo TestIO],
                             outputs    :: [String],
                             variable  :: Var}
 
+deriving instance (Show TestState)
+
 newtype TestIO a = TestIO {unTestIO :: StateT TestState IO a}
   deriving (Functor, Applicative, Monad, MonadIO, MonadState TestState)
 
@@ -47,6 +51,8 @@ instance HasEvents TestIO TestState where
 data Var = forall a . (Typeable a, Show a) =>
    Var { vName :: String,
          vData :: a}
+
+deriving instance (Show Var)
 
 instance MonadError String TestIO where
   throwError = undefined
@@ -134,91 +140,91 @@ exec r = outputs $ _evalEnv $ runIdentity $ flip execStateT (EvalEnv (TestState 
 putStrLn' :: String -> TestIO ()
 putStrLn' s = modify (\(TestState is ss vs) -> (TestState is (s:ss) vs))
 
-allTests = [testSingleInputEx, testMultipleInputsEx, testInputStringEx, testSendMessageEx, testSendMessageEx2, testAPICallEx, testAPICallEx2, testUserInputWriteEx]
-
+--allTests = [testSingleInputEx, testMultipleInputsEx, testInputStringEx, testSendMessageEx, testSendMessageEx2, testAPICallEx, testAPICallEx2, testUserInputWriteEx]
+--
 data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded, Data)
-
--- Test input
-testSingleInput :: TestIO ()
-testSingleInput = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, Sarkozy] h 1 where
-   h a = putStrLn' ("voted for " ++ show a)
-
-testSingleInputEx :: Bool
-testSingleInputEx = "voted for Holland" `elem` g where
-   g = execEvents testSingleInput (Input "Vote for Holland or Sarkozy" (Radio [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) Holland
-
-testMultipleInputs :: TestIO ()
-testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
-   h a = putStrLn' ("voted for " ++ show a)
-
-testMultipleInputsEx :: Bool
-testMultipleInputsEx = "voted for [Holland,Sarkozy]" `elem` g where
-   g = execEvents testMultipleInputs (Input "Vote for Holland and Sarkozy" (Checkbox [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) [Holland, Sarkozy]
-
-testInputString :: TestIO ()
-testInputString = void $ onInputText_ "Enter a number:" h 1 where
-   h a = putStrLn' ("You entered: " ++ a)
-
-testInputStringEx :: Bool
-testInputStringEx = "You entered: 1" `elem` g where
-   g = execEvents testInputString (Input "Enter a number:" Text) "1"
-
--- Test message
-testSendMessage :: TestIO ()
-testSendMessage = do
-    let msg = Msg "msg" :: Msg String
-    onEvent_ (messageEvent msg) f
-    sendMessage msg "toto" where
-        f (a :: String) = putStrLn' a
-
-testSendMessageEx :: Bool
-testSendMessageEx = "toto" `elem` (exec testSendMessage)
-
-testSendMessage2 :: TestIO ()
-testSendMessage2 = do
-    onEvent_ (messageEvent (Msg "msg" :: Msg ())) $ const $ putStrLn' "Received"
-    sendMessage_ "msg"
-
-testSendMessageEx2 :: Bool
-testSendMessageEx2 = "Received" `elem` (exec testSendMessage2)
-
-testAPICall :: TestIO ()
-testAPICall = do
-    let call = APICall "test" :: APICall String String
-    onAPICall call return
-    callAPI call "toto" putStrLn'
-
-testAPICallEx :: Bool
-testAPICallEx = "toto" `elem` (exec testAPICall)
-
-testAPICall2 :: TestIO ()
-testAPICall2 = do
-    let call = APICall "test" :: APICall String String
-    onAPICall call return
-    a <- callAPIBlocking call "toto"
-    putStrLn' a
-
-testAPICallEx2 :: Bool
-testAPICallEx2 = "toto" `elem` (exec testAPICall2)
-
-data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded, Data)
-
--- Test user input + variable read/write
-testUserInputWrite :: TestIO ()
-testUserInputWrite = do
-    newVar_ "vote" (Nothing::Maybe Choice2)
-    onEvent_ (messageEvent (Msg "voted" :: Msg ())) h2
-    void $ onEvent_ (SignalEvent $ Input "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
-        h1 a = do
-            writeVar (V "vote") (Just a)
-            sendMessage (Msg "voted") ()
-        h2 _ = do
-            a <- readVar (V "vote")
-            void $ case a of
-                Just (Just Me) -> putStrLn' "voted Me"
-                _ -> putStrLn' "problem"
-
-
-testUserInputWriteEx :: Bool
-testUserInputWriteEx = "voted Me" `elem` g where
-   g = execEvents testUserInputWrite (Input "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me
+--
+---- Test input
+--testSingleInput :: TestIO ()
+--testSingleInput = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, Sarkozy] h 1 where
+--   h a = putStrLn' ("voted for " ++ show a)
+--
+--testSingleInputEx :: Bool
+--testSingleInputEx = "voted for Holland" `elem` g where
+--   g = execEvents testSingleInput (Input "Vote for Holland or Sarkozy" (Radio [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) Holland
+--
+--testMultipleInputs :: TestIO ()
+--testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
+--   h a = putStrLn' ("voted for " ++ show a)
+--
+--testMultipleInputsEx :: Bool
+--testMultipleInputsEx = "voted for [Holland,Sarkozy]" `elem` g where
+--   g = execEvents testMultipleInputs (Input "Vote for Holland and Sarkozy" (Checkbox [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) [Holland, Sarkozy]
+--
+--testInputString :: TestIO ()
+--testInputString = void $ onInputText_ "Enter a number:" h 1 where
+--   h a = putStrLn' ("You entered: " ++ a)
+--
+--testInputStringEx :: Bool
+--testInputStringEx = "You entered: 1" `elem` g where
+--   g = execEvents testInputString (Input "Enter a number:" Text) "1"
+--
+---- Test message
+--testSendMessage :: TestIO ()
+--testSendMessage = do
+--    let msg = Msg "msg" :: Msg String
+--    onEvent_ (messageEvent msg) f
+--    sendMessage msg "toto" where
+--        f (a :: String) = putStrLn' a
+--
+--testSendMessageEx :: Bool
+--testSendMessageEx = "toto" `elem` (exec testSendMessage)
+--
+--testSendMessage2 :: TestIO ()
+--testSendMessage2 = do
+--    onEvent_ (messageEvent (Msg "msg" :: Msg ())) $ const $ putStrLn' "Received"
+--    sendMessage_ "msg"
+--
+--testSendMessageEx2 :: Bool
+--testSendMessageEx2 = "Received" `elem` (exec testSendMessage2)
+--
+--testAPICall :: TestIO ()
+--testAPICall = do
+--    let call = APICall "test" :: APICall String String
+--    onAPICall call return
+--    callAPI call "toto" putStrLn'
+--
+--testAPICallEx :: Bool
+--testAPICallEx = "toto" `elem` (exec testAPICall)
+--
+--testAPICall2 :: TestIO ()
+--testAPICall2 = do
+--    let call = APICall "test" :: APICall String String
+--    onAPICall call return
+--    a <- callAPIBlocking call "toto"
+--    putStrLn' a
+--
+--testAPICallEx2 :: Bool
+--testAPICallEx2 = "toto" `elem` (exec testAPICall2)
+--
+--data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded, Data)
+--
+---- Test user input + variable read/write
+--testUserInputWrite :: TestIO ()
+--testUserInputWrite = do
+--    newVar_ "vote" (Nothing::Maybe Choice2)
+--    onEvent_ (messageEvent (Msg "voted" :: Msg ())) h2
+--    void $ onEvent_ (SignalEvent $ Input "Vote for" (Radio [(Me, "Me"), (You, "You")])) h1 where
+--        h1 a = do
+--            writeVar (V "vote") (Just a)
+--            sendMessage (Msg "voted") ()
+--        h2 _ = do
+--            a <- readVar (V "vote")
+--            void $ case a of
+--                Just (Just Me) -> putStrLn' "voted Me"
+--                _ -> putStrLn' "problem"
+--
+--
+--testUserInputWriteEx :: Bool
+--testUserInputWriteEx = "voted Me" `elem` g where
+--   g = execEvents testUserInputWrite (Input "Vote for" (Radio [(Me, "Me"), (You, "You")])) Me

@@ -68,11 +68,14 @@ instance Shortcutable (Event) where
 -- | Signals
 -- A signal is something that may occur at a point in time.
 -- They are the leafs of the event tree
-class (Eq e, Typeable e, Show e, Data e, Typeable (SignalDataType e)) => Signal e where
+class (Eq e, Typeable e, Show e, Show (SignalDataType e), Typeable (SignalDataType e), Typeable (SignalView e)) => Signal e where
   type SignalDataType e :: *
+  type SignalView e :: *
+  type SignalView e = ()
+  viewSignal :: e -> SignalView e
 
 -- | Type agnostic base signal
-data SomeSignal = forall a. (Signal a, Typeable a, Data a) => SomeSignal a
+data SomeSignal = forall a. (Signal a, Typeable a) => SomeSignal a
 
 --deriving instance (Show e) => Show (SomeSignal e)
 
@@ -123,6 +126,8 @@ data SignalData = forall a. (Signal a, Show a) =>
    SignalData {signal     :: a,
                signalData :: SignalDataType a}
 
+instance Show SignalData where
+  show (SignalData s sd) = show s ++ " " ++ (show sd)
 
 -- SignalAddress is a representation of the address of a signal in the event tree
 type SignalAddress = [SignalAddressElem]

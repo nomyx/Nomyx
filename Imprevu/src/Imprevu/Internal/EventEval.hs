@@ -25,8 +25,10 @@ import           Data.Todo
 import           Data.Typeable
 import           Imprevu.Internal.Event
 import           Imprevu.Internal.EvalUtils
+import           Imprevu.Internal.Utils
 import           Prelude                     hiding (log, (.))
 import           Safe
+import           Debug.Trace.Helpers    (traceM)
 
 
 class HasEvents n s where
@@ -61,6 +63,7 @@ triggerEvent' :: (HasEvents n s) => SignalData -> Maybe SignalAddress -> [EventI
 triggerEvent' sd msa evs = do
    let evs' = evs -- sortBy (compare `on` _ruleNumber) evs
    eids <- mapM (getUpdatedEventInfo sd msa) evs'           -- get all the EventInfos updated with the field
+   traceM $ "triggerEvent' eids=" ++ (show eids) ++ " sd=" ++ (show sd) ++ " msa=" ++ (show msa) ++ " evs=" ++ (show evs)
    events %= union (map fst eids)                           -- store them
    void $ mapM triggerIfComplete eids                           -- trigger the handlers for completed events
 
@@ -68,6 +71,7 @@ triggerEvent' sd msa evs = do
 triggerIfComplete :: (EventInfo n, Maybe SomeData) -> Evaluate n s ()
 triggerIfComplete (EventInfo en _ h SActive _, Just (SomeData val)) = case cast val of
    Just a -> do
+      traceM $ "triggerIfComplete" ++ (show a)
       eval <- gets evalFunc
       err <- gets errorHandler
       (void $ (eval $ h (en, a))) `catchError` (err en)
@@ -80,15 +84,23 @@ triggerIfComplete _ = return ()
 getUpdatedEventInfo :: SignalData -> Maybe SignalAddress -> EventInfo n -> Evaluate n s (EventInfo n, Maybe SomeData)
 getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ ev _ _ envi) = do
    trs <- getEventResult ev envi
+   traceM $ "getUpdatedEventInfo"
    case trs of
-      Todo rs -> case find (\(sa, ss) -> (ss == SomeSignal sig) && maybe True (==sa) addr) rs of -- check if our signal match one of the remaining signals
+      Todo rs -> case find (\(sa, (SomeSignal ss)) -> (ss === sig) && maybe True (==sa) addr) rs of -- check if our signal match one of the remaining signals
          Just (sa, _) -> do
+            traceM $ "getUpdatedEventInfo sa=" ++ (show sa)
             let envi' = SignalOccurence sd sa : envi
             er <- getEventResult ev envi'                                                           -- add our event to the environment and get the result
-            return $ case er of
-               Todo _ -> (env .~ envi' $ ei, Nothing)                                              -- some other signals are left to complete: add ours in the environment
-               Done a -> (env .~  [] $ ei, Just $ SomeData a)                                       -- event complete: return the final data result
-         Nothing -> return (ei, Nothing)                                                            -- our signal does not belong to this event.
+            case er of
+               Todo _ -> do
+                 traceM $ "getUpdatedEventInfo"
+                 return (env .~ envi' $ ei, Nothing)                                              -- some other signals are left to complete: add ours in the environment
+               Done a -> do
+                 traceM $ "getUpdatedEventInfo a=" ++ (show a)
+                 return (env .~  [] $ ei, Just $ SomeData a)                                       -- event complete: return the final data result
+         Nothing -> do
+           traceM "getUpdatedEventInfo Nothing"
+           return (ei, Nothing)                                                            -- our signal does not belong to this event.
       Done a -> return (env .~  [] $ ei, Just $ SomeData a)
 
 --get the signals left to be completed in an event

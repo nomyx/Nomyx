@@ -6,6 +6,7 @@
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE ExistentialQuantification    #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Imprevu.Happstack.Forms where
 
@@ -45,6 +46,7 @@ import           Web.Routes.RouteT
 import           Web.Routes.PathInfo
 import  Data.Text                           (Text)
 import Unsafe.Coerce
+import           Debug.Trace.Helpers    (traceM)
 default (Integer, Double, Data.Text.Text)
 
 
@@ -59,27 +61,27 @@ viewInput ei@(EventInfo en _ _ SActive _) = do
 viewInput _ = return Nothing
 
 viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer n s (Maybe Html)
-viewInput' en (fa, ss@(SomeSignal a)) = do
-    if (toConstr a) == (toConstr ((Input "" Button) :: Input ()))
-      then do
-        let (ev :: Input ()) = unsafeCoerce a
+viewInput' en (sa, ss@(SomeSignal a)) = do
+     traceM $ "viewInput' " ++ (show a)
+     case (cast (viewSignal a)) of
+      Just (ev@(InputRadioView s cs)) -> do
         lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm ev
-        let link = showRelURL (DoInput en fa (fromJust $ getFormField' ev))
+        let link = showRelURL (DoInput en sa (RadioField  "" cs))
         return $ Just $ tr $ td $ do
 --          fromString title
           fromString " "
           blazeForm lf link ! A.id "InputForm"
-      else return Nothing
+     -- else return Nothing
 viewInput' _ _ = return Nothing
 
 
 --- TODO: merge SomeSignal and FormField...
-inputForm :: Imprevu.Inputs.Input a -> ImpForm InputData
-inputForm ((Input _ (Radio choices)))    = RadioData    <$> (reformInputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label (" " :: String))
-inputForm ((Input _ Text))               = TextData     <$> RB.inputText "" <++ label (" " :: String)
-inputForm ((Input _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
-inputForm ((Input _ Button))             = pure ButtonData
-inputForm ((Input _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label (" " :: String)
+inputForm :: InputRadioView -> ImpForm InputData
+inputForm ((InputRadioView _ choices))    = RadioData    <$> (reformInputRadio' choices (== 0) <++ label (" " :: String))
+--inputForm ((Input _ Text))               = TextData     <$> RB.inputText "" <++ label (" " :: String)
+--inputForm ((Input _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
+--inputForm ((Input _ Button))             = pure ButtonData
+--inputForm ((Input _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label (" " :: String)
 inputForm _ = error "Not an input form"
 
 
@@ -90,27 +92,20 @@ inputForm' (TextAreaField _)         = TextAreaData <$> textarea 50 5  "" <++ la
 inputForm' (ButtonField _)           = pure ButtonData
 inputForm' (CheckboxField _ choices) = CheckboxData <$> inputCheckboxes choices (const False) <++ label (" " :: String)
 
-getFormField' :: Input a -> Maybe FormField
-getFormField' (Input _ (Radio choices)) = Just $ RadioField    "" (zip [0..] (snd <$> choices))
-getFormField' (Input _ Text)          = Just $ TextField     ""
-getFormField' (Input _ TextArea)      = Just $ TextAreaField ""
-getFormField' (Input _ Button)        = Just $ ButtonField   ""
-getFormField' (Input _ (Checkbox choices)) = Just $ CheckboxField "" (zip [1..] (snd <$> choices))
---getFormField _ = Nothing
 
 -- | a form result has been sent
 newInput :: EventNumber -> SignalAddress -> FormField -> RoutedServer n s Response
-newInput en fa ft = toResponse <$> do
+newInput en sa ff = toResponse <$> do
    methodM POST
    (WebState tv updateSession _ _) <- get
-   r <- liftRouteT $ lift $ eitherForm environment "user" (inputForm' ft)
+   r <- liftRouteT $ lift $ eitherForm environment "user" (inputForm' ff)
    case r of
-      (Right c) -> liftIO $ updateSession tv $ InputResult en fa ft c
+      (Right c) -> liftIO $ updateSession tv $ InputResult en sa ff c
       (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
    seeOther (showRelURL $ Main) "Redirecting..."
 
 showRelURL :: Command -> Text
-showRelURL c = "/Nomyx" <> (toPathInfo c)
+showRelURL c = "/Test" <> (toPathInfo c)
 
 -- | Create a group of radio elements without BR between elements
 reformInputRadio' :: (Functor m, Monad m, FormError error, ErrorInputType error ~ input, FormInput input, ToMarkup lbl) =>
