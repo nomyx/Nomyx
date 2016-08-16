@@ -71,10 +71,11 @@ instance Shortcutable (Event) where
 class (Eq e, Typeable e, Show e, Show (SignalDataType e), Typeable (SignalDataType e)) => Signal e where
   type SignalDataType e :: *
 
+
 -- | Type agnostic base signal
 data SomeSignal = forall a. (Signal a, Typeable a) => SomeSignal a
 
---deriving instance (Show e) => Show (SomeSignal e)
+deriving instance Show SomeSignal
 
 -- | Type agnostic result data
 data SomeData = forall e. (Typeable e, Show e) => SomeData e
@@ -117,6 +118,8 @@ data Status = SActive | SDeleted deriving (Eq, Show)
 -- data and addres from an occurence of a signal
 data SignalOccurence = SignalOccurence {_signalOccData    :: SignalData,
                                         _signalOccAddress :: SignalAddress}
+
+deriving instance Show SignalOccurence
 
 -- result data from a signal
 data SignalData = forall a. (Signal a, Show a) =>

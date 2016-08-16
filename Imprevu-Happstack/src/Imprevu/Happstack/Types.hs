@@ -7,6 +7,7 @@
 {-# LANGUAGE TypeSynonymInstances   #-}
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE ExistentialQuantification    #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 
 module Imprevu.Happstack.Types where
 
@@ -46,7 +47,8 @@ import           Web.Routes.TH
 import  Data.Text                           (Text)
 default (Integer, Double, Data.Text.Text)
 
-data InputResult = InputResult EventNumber SignalAddress FormField InputData
+
+data InputResult = InputResult EventNumber SignalAddress InputView InputDataView
 
 data WebState n s = WebState {session      :: TVar s,
                               updateSession :: TVar s -> InputResult -> IO (),
@@ -58,8 +60,8 @@ type RoutedServer n s a = RouteT Command (StateT (WebState n s) (ServerPartT IO)
 
 data Command =
     Main
-  | DoInput   EventNumber SignalAddress FormField
-  deriving (Show)
+  | DoInput   EventNumber SignalAddress InputView
+    deriving (Show)
 
 
 data ImpFormError = ImpFormError (CommonFormError [HS.Input])
@@ -75,7 +77,7 @@ type ImpForm a = Form (ServerPartT IO) [HS.Input] ImpFormError Html () a
 
 instance PathInfo SignalAddressElem
 instance PathInfo SignalAddress
-instance PathInfo FormField
+instance PathInfo InputView
 instance PathInfo (Int, String)
 instance PathInfo [(Int, String)]
 $(derivePathInfo ''Command)

@@ -61,12 +61,12 @@ viewInput ei@(EventInfo en _ _ SActive _) = do
 viewInput _ = return Nothing
 
 viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer n s (Maybe Html)
-viewInput' en (sa, ss@(SomeSignal a)) = do
-     traceM $ "viewInput' " ++ (show a)
-     case (cast (viewSignal a)) of
-      Just (ev@(InputRadioView s cs)) -> do
-        lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm ev
-        let link = showRelURL (DoInput en sa (RadioField  "" cs))
+viewInput' en (sa, ss@(SomeSignal s)) = do
+     traceM $ "viewInput' " ++ (show s)
+     case (unsafeCoerce s) of
+       (viewSignal -> (SInputView iv) ) -> do
+        lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm' iv
+        let link = showRelURL (DoInput en sa iv)--(RadioField  "" cs))
         return $ Just $ tr $ td $ do
 --          fromString title
           fromString " "
@@ -76,16 +76,18 @@ viewInput' _ _ = return Nothing
 
 
 --- TODO: merge SomeSignal and FormField...
-inputForm :: InputRadioView -> ImpForm InputData
-inputForm ((InputRadioView _ choices))    = RadioData    <$> (reformInputRadio' choices (== 0) <++ label (" " :: String))
+--inputForm :: InputView -> ImpForm (InputDataView v)
+--inputForm v = case (cast v) of
+--                Just ((InputRadioView _ choices):: View (InputRadio a))    -> InputRadioDataView    <$> (reformInputRadio' choices (== 0) <++ label (" " :: String))
+--inputForm  (RadioField _ choices)    = RadioData    <$> (reformInputRadio' choices (== 0) <++ label (" " :: String))
 --inputForm ((Input _ Text))               = TextData     <$> RB.inputText "" <++ label (" " :: String)
 --inputForm ((Input _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
 --inputForm ((Input _ Button))             = pure ButtonData
 --inputForm ((Input _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label (" " :: String)
-inputForm _ = error "Not an input form"
+--inputForm _ = error "Not an input form"
 
 
-inputForm' :: FormField -> ImpForm InputData
+inputForm' :: InputView -> ImpForm InputDataView
 inputForm' (RadioField _ choices)    = RadioData    <$> (RB.inputRadio choices (== 0)) <++ RB.label (" " :: String)
 inputForm' (TextField _)             = TextData     <$> RB.inputText "" <++ label (" " :: String)
 inputForm' (TextAreaField _)         = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
@@ -94,7 +96,7 @@ inputForm' (CheckboxField _ choices) = CheckboxData <$> inputCheckboxes choices 
 
 
 -- | a form result has been sent
-newInput :: EventNumber -> SignalAddress -> FormField -> RoutedServer n s Response
+newInput :: EventNumber -> SignalAddress -> InputView -> RoutedServer n s Response
 newInput en sa ff = toResponse <$> do
    methodM POST
    (WebState tv updateSession _ _) <- get
