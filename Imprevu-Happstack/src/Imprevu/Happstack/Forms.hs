@@ -63,17 +63,28 @@ viewInput _ = return Nothing
 viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer n s (Maybe Html)
 viewInput' en (sa, ss@(SomeSignal s)) = do
      traceM $ "viewInput' " ++ (show s)
-     case (unsafeCoerce s) of
-       (viewSignal -> (SInputView iv) ) -> do
-        lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm' iv
-        let link = showRelURL (DoInput en sa iv)--(RadioField  "" cs))
+     case (cast s) of
+      Just (a::Input a) -> case (viewSignal a) of
+       (SInputView iv@(RadioField _ _)) -> do
+        --lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm' iv
+        --let link = showRelURL (DoInput en sa iv)--(RadioField  "" cs))
         return $ Just $ tr $ td $ do
 --          fromString title
           fromString " "
-          blazeForm lf link ! A.id "InputForm"
+          --blazeForm lf link ! A.id "InputForm"
      -- else return Nothing
 viewInput' _ _ = return Nothing
 
+--instance (Eq a, Typeable a, Show a) => Signal(Input a) where
+--  type SignalDataType (Input a) = a
+--  data View (Input a) = SInputView InputView deriving Show
+--  data DataView (Input a) = SInputDataView InputDataView deriving Show
+--  --viewSignal :: Input a -> View (Input a)
+--  viewSignal (Radio s cs)    = SInputView (RadioField s (zip [0..] (snd <$> cs)))
+--  viewSignal (Checkbox s cs) = SInputView (CheckboxField s (zip [0..] (snd <$> cs)))
+--  viewSignal (Text s)        = SInputView (TextField s)
+--  viewSignal (TextArea s)    = SInputView (TextAreaField s)
+--  viewSignal (Button s)      = SInputView (ButtonField s)
 
 --- TODO: merge SomeSignal and FormField...
 --inputForm :: InputView -> ImpForm (InputDataView v)

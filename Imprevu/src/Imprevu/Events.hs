@@ -24,22 +24,18 @@ import Control.Monad.Error
 import Control.Applicative
 import Data.List
 import Data.Maybe
-import Data.Data
 import Data.Time hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
 import Safe
 
 class (Typeable n, Applicative n, Monad n) => EvMgt n where
    --Events management
-   onEvent         :: (Typeable a, Show a, Data a) => Event a -> ((EventNumber, a) -> n ()) -> n EventNumber
+   onEvent         :: (Typeable a, Show a) => Event a -> ((EventNumber, a) -> n ()) -> n EventNumber
    delEvent        :: EventNumber -> n Bool
    getEvents       :: n [EventInfo n]
-   sendMessage     :: (Typeable a, Show a, Data a) => Msg a -> a -> n ()
+   sendMessage     :: (Typeable a, Show a, Eq a) => Msg a -> a -> n ()
 
-data Msg m     = Msg String deriving (Typeable, Show, Eq, Data)
-
-instance (Typeable a, Data a, Show a) => Signal (Msg a) where
-  type SignalDataType (Msg a) = a
+type Msg m = Signal String m
 
 partial :: (MonadError String n) => String -> n (Maybe a) -> n a
 partial s nm = do
@@ -51,11 +47,11 @@ partial s nm = do
 -- * Events
 
 -- | register a callback on an event, disregard the event number
-onEvent_ :: (Typeable a, Show a, Data a, EvMgt n) => Event a -> (a -> n ()) -> n EventNumber
+onEvent_ :: (Typeable a, Show a, EvMgt n) => Event a -> (a -> n ()) -> n EventNumber
 onEvent_ e h = onEvent e (\(_, d) -> h d)
 
 -- | set an handler for an event that will be triggered only once
-onEventOnce :: (Typeable a, Show a, Data a, EvMgt n) => Event a -> (a -> n ()) -> n EventNumber
+onEventOnce :: (Typeable a, Show a, EvMgt n) => Event a -> (a -> n ()) -> n EventNumber
 onEventOnce e h = do
     let handler (en, ed) = delEvent en >> h ed
     onEvent e handler
@@ -138,7 +134,7 @@ onEventOnce e h = do
 
 -- | Build a message event, that can be intercepted by another rule
 -- this is useful for message-passing style of communication
-messageEvent :: (Typeable a, Data a, Show a) => Msg a -> Event a
+messageEvent :: (Typeable a, Show a) => Msg a -> Event a
 messageEvent m = SignalEvent m
 
 -- | Build a event firing immediatly, yelding the value of the Nomex
@@ -157,8 +153,8 @@ oneMinute = 60
 --inputFormSignal :: (Typeable a) => String -> (InputForm a) -> Signal a
 --inputFormSignal s iform = Input s iform
 
-signalEvent :: (Signal e) => e -> Event (SignalDataType e)                -- Embed a single Signal as an Event
-signalEvent = SignalEvent
+signalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e) => s -> Event e                                  -- Embed a single Signal as an Event
+signalEvent = SignalEvent . Signal
 
 
 --extract the game state from an Evaluate

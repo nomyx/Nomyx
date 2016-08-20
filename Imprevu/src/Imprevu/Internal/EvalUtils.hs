@@ -22,14 +22,14 @@ import           Prelude                   hiding (log, (.))
 import           Safe
 
 -- find a signal occurence in an environment
-lookupSignal :: (Signal e) => e -> SignalAddress -> [SignalOccurence] -> Maybe (SignalDataType e)
+lookupSignal :: (Typeable a) => Signal s a -> SignalAddress -> [SignalOccurence] -> Maybe a
 lookupSignal s sa envi = headMay $ mapMaybe (getSignalData s sa) envi
 
 --get the signal data from the signal occurence
-getSignalData :: (Signal e) => e -> SignalAddress -> SignalOccurence -> Maybe (SignalDataType e)
+getSignalData :: Typeable a => Signal s a -> SignalAddress -> SignalOccurence -> Maybe a
 getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
-   res' <- cast res
-   if (sa' == sa) then Just res' else Nothing
+  res' <- cast res
+  if (sa' == sa)  then Just res' else Nothing -- && (s === s')
 
 
 --errorHandler :: EventNumber -> String -> Evaluate ()

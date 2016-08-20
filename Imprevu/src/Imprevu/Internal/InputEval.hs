@@ -42,27 +42,15 @@ import Unsafe.Coerce
 import           Debug.Trace.Helpers    (traceM)
 
 
-class (Signal v, Show(View v), Typeable(View v)) => SignalView v where
-  data View v
-  data DataView v :: *
-  -- construct a view
-  viewSignal :: v -> View v
-  --viewSignal v = ()
-  actSignal :: v -> DataView v -> SignalDataType v
-  --actSignal v dv = ()
 
 --data InputRadio a = InputRadio String [(a, String)] deriving (Eq, Typeable, Show)
 
+
 instance (Eq a, Typeable a, Show a) => Signal(Input a) where
   type SignalDataType (Input a) = a
-
-instance (Eq a, Typeable a, Show a) => SignalView(Input a) where
-  data View (Input a) = SInputView InputView
-    deriving Show
-  data DataView (Input a) = SInputDataView InputDataView
-    deriving Show
-
-  viewSignal :: Input a -> View (Input a)
+  data View (Input a) = SInputView InputView deriving (Show, Typeable)
+  data DataView (Input a) = SInputDataView InputDataView deriving Show
+  --viewSignal :: Input a -> View (Input a)
   viewSignal (Radio s cs)    = SInputView (RadioField s (zip [0..] (snd <$> cs)))
   viewSignal (Checkbox s cs) = SInputView (CheckboxField s (zip [0..] (snd <$> cs)))
   viewSignal (Text s)        = SInputView (TextField s)
@@ -70,7 +58,7 @@ instance (Eq a, Typeable a, Show a) => SignalView(Input a) where
   viewSignal (Button s)      = SInputView (ButtonField s)
 
   -- fire a view
-  actSignal :: Input a -> DataView (Input a) -> a
+  --actSignal :: Input a -> DataView (Input a) -> a
   actSignal (Radio _ cs) (SInputDataView (RadioData i)) = fst $ cs !! i
   actSignal (Checkbox _ cs) (SInputDataView (CheckboxData is)) = fst <$> cs `sel` is
   actSignal (Text _) (SInputDataView (TextData d)) = d
@@ -81,14 +69,14 @@ instance (Eq a, Typeable a, Show a) => SignalView(Input a) where
 --data Proxy a
 
 -- trigger the input form with the input data
-triggerInput :: (HasEvents n s, SignalView v) => View v -> DataView v -> SignalAddress -> EventNumber -> Evaluate n s ()
+triggerInput :: (HasEvents n s, Signal v) => View v -> DataView v -> SignalAddress -> EventNumber -> Evaluate n s ()
 triggerInput sv dv sa en = do
    evs <- use events
    let mei = find (\a -> a ^. eventNumber == en) evs
    mapM_ (triggerInputSignal sv dv sa) mei
 
 -- trigger the input signal with the input data
-triggerInputSignal :: forall n s v. (HasEvents n s, SignalView v) => View v -> DataView v -> SignalAddress -> EventInfo n -> Evaluate n s ()
+triggerInputSignal :: forall n s v. (HasEvents n s, Signal v) => View v -> DataView v -> SignalAddress -> EventInfo n -> Evaluate n s ()
 triggerInputSignal sv dv sa ei@(EventInfo _ _ _ SActive _) = do
        mss <- findField sv sa ei
        case mss of
@@ -100,10 +88,10 @@ triggerInputSignal _ _ _ _ = return ()
 
 
 -- | Get the form field at a certain address
-findField :: SignalView v => View v -> SignalAddress -> EventInfo n -> Evaluate n s (Maybe SomeSignal)
+findField :: Signal v => View v -> SignalAddress -> EventInfo n -> Evaluate n s (Maybe SomeSignal)
 findField sv sa (EventInfo _ e _ _ envi) = findField' sa e envi sv
 
-findField' :: SignalView v => SignalAddress -> Event e -> [SignalOccurence] -> View v -> Evaluate n s (Maybe SomeSignal)
+findField' :: Signal v => SignalAddress -> Event e -> [SignalOccurence] -> View v -> Evaluate n s (Maybe SomeSignal)
 findField' []         (SignalEvent f)    _   ff = return $ do
    --ff' <- getFormField f
    --guard (ff' == ff)
@@ -151,7 +139,7 @@ data InputView = RadioField    String [(Int, String)]
                | TextAreaField String
                | ButtonField   String
                | CheckboxField String [(Int, String)]
-                 deriving (Show, Read, Ord, Eq, Generic)
+               deriving (Show, Read, Ord, Eq, Generic, Typeable)
 
 -- data sent back by the form fields
 data InputDataView = RadioData    Int
@@ -159,17 +147,6 @@ data InputDataView = RadioData    Int
                | TextData     String
                | TextAreaData String
                | ButtonData
-                 deriving (Show, Read, Eq, Ord)
+               deriving (Show, Read, Eq, Ord, Typeable)
 
--- | Input forms as programmed by the user
-data Input a where
-   Text     :: String ->                                   Input String
-   TextArea :: String ->                                   Input String
-   Button   :: String ->                                   Input ()
-   Radio    :: (Show a, Eq a, Data a) => String -> [(a, String)] -> Input a
-   Checkbox :: (Show a, Eq a, Data [a]) => String -> [(a, String)] -> Input [a]
-   deriving Typeable
-
-deriving instance Show (Input a)
-deriving instance Eq (Input e)
 

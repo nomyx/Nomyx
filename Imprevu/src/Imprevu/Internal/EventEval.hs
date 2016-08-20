@@ -50,13 +50,14 @@ type Evaluate n s a = ErrorT String (State (EvalEnv n s)) a
 
 makeLenses ''EvalEnv
 
+
 -- * Event triggers
 
 -- trigger an event with an event result
-triggerEvent :: (Signal e, HasEvents n s) => e -> (SignalDataType e) -> Evaluate n s ()
-triggerEvent e dat = do
+triggerEvent :: (HasEvents n s, Show a, Typeable a, Show e, Typeable e, Eq a, Eq e) => Signal a e -> e -> Evaluate n s ()
+triggerEvent (Signal e) dat = do
    (EvalEnv s _ _) <- get
-   triggerEvent' (SignalData e dat) Nothing (getEvents s)
+   triggerEvent' (SignalData (Signal e) dat) Nothing (getEvents s)
 
 -- trigger some specific signal
 triggerEvent' :: (HasEvents n s) => SignalData -> Maybe SignalAddress -> [EventInfo n] -> Evaluate n s ()
@@ -118,7 +119,7 @@ getEventResult :: Event a -> [SignalOccurence] -> Evaluate n s (Todo (SignalAddr
 getEventResult e frs = getEventResult' e frs []
 
 -- compute the result of an event given an environment. The third argument is used to know where we are in the event tree.
-getEventResult' :: Event e -> [SignalOccurence] -> SignalAddress -> Evaluate n s (Todo (SignalAddress, SomeSignal) e)
+getEventResult' :: Event a -> [SignalOccurence] -> SignalAddress -> Evaluate n s (Todo (SignalAddress, SomeSignal) a)
 getEventResult' (PureEvent a)   _   _  = return $ Done a
 getEventResult'  EmptyEvent     _   _  = return $ Todo []
 getEventResult' (SumEvent a b)  ers fa = liftM2 (<|>) (getEventResult' a ers (fa ++ [SumL])) (getEventResult' b ers (fa ++ [SumR]))
@@ -138,7 +139,7 @@ getEventResult' (SignalEvent a) ers fa = return $ case lookupSignal a fa ers of
    Nothing -> Todo [(fa, SomeSignal a)]
 
 getEventResult' (ShortcutEvents es f) ers fa = do
-  (ers' :: [Todo (SignalAddress, SomeSignal) a]) <- mapM (\e -> getEventResult' e ers (fa ++ [Shortcut])) es -- get the result for each event in the list
+  ers' <- mapM (\e -> getEventResult' e ers (fa ++ [Shortcut])) es -- get the result for each event in the list
   return $ if f (toMaybe <$> ers')                                                                     -- apply f to the event results that we already have
      then Done $ toMaybe <$> ers'                                                                        -- if the result is true, we are done. Return the list of maybe results
      else Todo $ join $ lefts $ toEither <$> ers'                                                        -- otherwise, return the list of remaining fields to complete from each event

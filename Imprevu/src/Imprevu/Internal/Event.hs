@@ -40,7 +40,7 @@ data Event a where
    EmptyEvent     :: Event a                                              -- An event that is never fired.
    BindEvent      :: Event a -> (a -> Event b) -> Event b                 -- A First event should fire, then a second event is constructed
    ShortcutEvents :: [Event a] -> ([Maybe a] -> Bool) -> Event [Maybe a]  -- Return the intermediate results as soon as the function evaluates to True, dismissing the events that hasn't fired yet
-   SignalEvent    :: (Signal e) => e -> Event (SignalDataType e)                -- Embed a single Signal as an Event
+   SignalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e) => Signal s e -> Event e                                  -- Embed a single Signal as an Event
    deriving Typeable
 
 instance Functor (Event) where
@@ -65,26 +65,24 @@ instance MonadPlus (Event) where
 instance Shortcutable (Event) where
    shortcut = ShortcutEvents
 
--- | Signals
--- A signal is something that may occur at a point in time.
--- They are the leafs of the event tree
-class (Eq e, Typeable e, Show e, Show (SignalDataType e), Typeable (SignalDataType e)) => Signal e where
-  type SignalDataType e :: *
 
+data Signal s a = Signal s
+  deriving (Show, Read, Eq)
 
 -- | Type agnostic base signal
-data SomeSignal = forall a. (Signal a, Typeable a) => SomeSignal a
+data SomeSignal = forall a s. (Typeable a, Typeable s, Show a, Show s) => SomeSignal (Signal s a)
 
 deriving instance Show SomeSignal
 
 -- | Type agnostic result data
 data SomeData = forall e. (Typeable e, Show e) => SomeData e
+
 deriving instance Show SomeData
 
-instance Eq SomeSignal where
-   (SomeSignal e1) == (SomeSignal e2) = e1 === e2
-
 -- * EventInfo
+type DataS = String
+type SignalBodyS = String
+type SignalS = Signal SignalBodyS DataS
 
 type EventNumber = Int
 type EventName = String
@@ -122,9 +120,9 @@ data SignalOccurence = SignalOccurence {_signalOccData    :: SignalData,
 deriving instance Show SignalOccurence
 
 -- result data from a signal
-data SignalData = forall a. (Signal a, Show a) =>
-   SignalData {signal     :: a,
-               signalData :: SignalDataType a}
+data SignalData = forall s a. (Typeable s, Typeable a, Show s, Show a, Eq s, Eq a) =>
+   SignalData {signal     :: Signal s a,
+               signalData :: a}
 
 instance Show SignalData where
   show (SignalData s sd) = show s ++ " " ++ (show sd)
