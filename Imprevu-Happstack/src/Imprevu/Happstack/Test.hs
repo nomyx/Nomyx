@@ -81,7 +81,7 @@ updateSessionTest tvs (InputResult en sa ff ida) = do
    s <- atomically $ readTVar tvs
    putStrLn $ show s
    putStrLn  $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show sa ++ ", Form " ++ show ff ++ ", choice " ++ show ida
-   let ev = runEvalError' $ triggerInput (SInputView ff) (SInputDataView ida) sa en
+   let ev = runEvalError' $ triggerInput ff ida sa en
    let (EvalEnv s' _ _) = execState ev (EvalEnv s (void . evalEvents) undefined)
    atomically $ writeTVar tvs s'
 

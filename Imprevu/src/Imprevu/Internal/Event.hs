@@ -65,10 +65,26 @@ instance MonadPlus (Event) where
 instance Shortcutable (Event) where
    shortcut = ShortcutEvents
 
+data Signal s a where
+  Signal :: s -> Signal s a
+  InputS :: Input a -> Signal () a
 
-data Signal s a = Signal s
-  deriving (Show, Read, Eq)
+deriving instance (Show s, Show a) => Show (Signal s a)
+deriving instance (Eq s) => Eq (Signal s a)
+deriving instance (Typeable s, Typeable a) => Typeable (Signal s a)
 
+
+-- | Input forms as programmed by the user
+data Input a where
+   Text     :: String ->                                   Input String
+   TextArea :: String ->                                   Input String
+   Button   :: String ->                                   Input ()
+   Radio    :: (Show a, Eq a, Data a) => String -> [(a, String)] -> Input a
+   Checkbox :: (Show a, Eq a, Data [a]) => String -> [(a, String)] -> Input [a]
+   deriving Typeable
+
+deriving instance Show (Input a)
+deriving instance Eq (Input e)
 -- | Type agnostic base signal
 data SomeSignal = forall a s. (Typeable a, Typeable s, Show a, Show s) => SomeSignal (Signal s a)
 
@@ -120,7 +136,7 @@ data SignalOccurence = SignalOccurence {_signalOccData    :: SignalData,
 deriving instance Show SignalOccurence
 
 -- result data from a signal
-data SignalData = forall s a. (Typeable s, Typeable a, Show s, Show a, Eq s, Eq a) =>
+data SignalData = forall s a. (Typeable s, Typeable a, Show s, Show a, Eq s) =>
    SignalData {signal     :: Signal s a,
                signalData :: a}
 

@@ -24,11 +24,11 @@ sendMessage_ :: (EvMgt n) => String -> n ()
 sendMessage_ m = sendMessage (Signal m) ()
 
 -- | subscribe on a message
-onMessage :: (Typeable m, Show m, EvMgt n) => Msg m -> (m -> n ()) -> n EventNumber
+onMessage :: (Typeable m, Show m, Eq m, EvMgt n) => Msg m -> (m -> n ()) -> n EventNumber
 onMessage name = onEvent_ (messageEvent name)
 
 -- | subscribe on a message, delete it on the first call
-onMessageOnce :: (Typeable m, Show m, EvMgt n) => Msg m -> (m -> n ()) -> n EventNumber
+onMessageOnce :: (Typeable m, Show m, Eq m, EvMgt n) => Msg m -> (m -> n ()) -> n EventNumber
 onMessageOnce name = onEventOnce (messageEvent name)
 
 -- * API calls
@@ -40,7 +40,7 @@ onMessageOnce name = onEventOnce (messageEvent name)
 data APICall a r = APICall String
 
 -- version with one parameters
-onAPICall :: (Typeable a, Show a, Typeable r, Show r, Eq r, EvMgt n) => APICall a r -> (a -> n r) -> n EventNumber
+onAPICall :: (Typeable a, Show a, Eq a, Typeable r, Show r, Eq r, EvMgt n) => APICall a r -> (a -> n r) -> n EventNumber
 onAPICall (APICall name) action = onMessage (Signal name) (\(msg, a) -> action a >>= sendMessage msg)
 
 -- | version with one parameters
@@ -61,7 +61,7 @@ callAPIBlocking apiName param = do
 -- * Internals
 
 -- | creates a temporary message with a random name
-createTempMsg :: (Typeable m, Show m, EvMgt n, SysMgt n) => (m -> n ()) -> n (Msg m)
+createTempMsg :: (Typeable m, Show m, Eq m, EvMgt n, SysMgt n) => (m -> n ()) -> n (Msg m)
 createTempMsg callback = do
   r <- getRandomNumber (0, 100000::Int)
   let msg = Signal ("APIcallback" ++ (show r))

@@ -12,6 +12,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE ImpredicativeTypes #-}
+{-# LANGUAGE ViewPatterns #-}
 
 -- | Evaluation of the events
 module Imprevu.Internal.InputEval where
@@ -32,6 +33,7 @@ import           Data.Data
 import           Data.Todo
 import           Data.Typeable
 import           Imprevu.Events
+import           Imprevu.Inputs
 import           Imprevu.Internal.Event
 import           Imprevu.Internal.EventEval
 import           Imprevu.Internal.EvalUtils
@@ -42,56 +44,49 @@ import Unsafe.Coerce
 import           Debug.Trace.Helpers    (traceM)
 
 
+viewSignal :: Input a -> InputView
+viewSignal (Radio s cs)    = (RadioField s (zip [0..] (snd <$> cs)))
+viewSignal (Checkbox s cs) = (CheckboxField s (zip [0..] (snd <$> cs)))
+viewSignal (Text s)        = (TextField s)
+viewSignal (TextArea s)    = (TextAreaField s)
+viewSignal (Button s)      = (ButtonField s)
 
---data InputRadio a = InputRadio String [(a, String)] deriving (Eq, Typeable, Show)
-
-
-instance (Eq a, Typeable a, Show a) => Signal(Input a) where
-  type SignalDataType (Input a) = a
-  data View (Input a) = SInputView InputView deriving (Show, Typeable)
-  data DataView (Input a) = SInputDataView InputDataView deriving Show
-  --viewSignal :: Input a -> View (Input a)
-  viewSignal (Radio s cs)    = SInputView (RadioField s (zip [0..] (snd <$> cs)))
-  viewSignal (Checkbox s cs) = SInputView (CheckboxField s (zip [0..] (snd <$> cs)))
-  viewSignal (Text s)        = SInputView (TextField s)
-  viewSignal (TextArea s)    = SInputView (TextAreaField s)
-  viewSignal (Button s)      = SInputView (ButtonField s)
-
-  -- fire a view
-  --actSignal :: Input a -> DataView (Input a) -> a
-  actSignal (Radio _ cs) (SInputDataView (RadioData i)) = fst $ cs !! i
-  actSignal (Checkbox _ cs) (SInputDataView (CheckboxData is)) = fst <$> cs `sel` is
-  actSignal (Text _) (SInputDataView (TextData d)) = d
-  actSignal (TextArea _) (SInputDataView (TextAreaData d)) = d
-  actSignal (Button _) (SInputDataView (ButtonData)) = ()
+ -- fire a view
+actSignal :: (Show a) => Input a -> InputDataView -> a
+actSignal (Radio _ cs)    (RadioData i) = fst $ cs !! i
+actSignal (Checkbox _ cs) (CheckboxData is) = fst <$> cs `sel` is
+actSignal (Text _)        (TextData d) = d
+actSignal (TextArea _)    (TextAreaData d) = d
+actSignal (Button _)      (ButtonData) = ()
 
 -- * Input triggers
 --data Proxy a
 
 -- trigger the input form with the input data
-triggerInput :: (HasEvents n s, Signal v) => View v -> DataView v -> SignalAddress -> EventNumber -> Evaluate n s ()
+triggerInput :: (HasEvents n s) => InputView -> InputDataView -> SignalAddress -> EventNumber -> Evaluate n s ()
 triggerInput sv dv sa en = do
    evs <- use events
    let mei = find (\a -> a ^. eventNumber == en) evs
    mapM_ (triggerInputSignal sv dv sa) mei
 
 -- trigger the input signal with the input data
-triggerInputSignal :: forall n s v. (HasEvents n s, Signal v) => View v -> DataView v -> SignalAddress -> EventInfo n -> Evaluate n s ()
+triggerInputSignal :: forall n s. (HasEvents n s) => InputView -> InputDataView -> SignalAddress -> EventInfo n -> Evaluate n s ()
 triggerInputSignal sv dv sa ei@(EventInfo _ _ _ SActive _) = do
        mss <- findField sv sa ei
        case mss of
-          Just (SomeSignal e) -> do
-            let e' = unsafeCoerce e
-            triggerEvent' (SignalData e' (actSignal e' dv))  (Just sa) [ei]
+          Just (SomeSignal (InputS e')) -> triggerEvent' (SignalData (Signal e') (actSignal (e') dv))  (Just sa) [ei]
           Nothing -> error $ "Input not found" --, signal view=" ++ (show sv) ++ " SignalAddress=" ++ (show sa) ++ " signal view data=" ++ (show dv)
 triggerInputSignal _ _ _ _ = return ()
 
+f :: Typeable a => a -> a
+f = id
+
 
 -- | Get the form field at a certain address
-findField :: Signal v => View v -> SignalAddress -> EventInfo n -> Evaluate n s (Maybe SomeSignal)
+findField :: InputView -> SignalAddress -> EventInfo n -> Evaluate n s (Maybe SomeSignal)
 findField sv sa (EventInfo _ e _ _ envi) = findField' sa e envi sv
 
-findField' :: Signal v => SignalAddress -> Event e -> [SignalOccurence] -> View v -> Evaluate n s (Maybe SomeSignal)
+findField' :: SignalAddress -> Event e -> [SignalOccurence] -> InputView -> Evaluate n s (Maybe SomeSignal)
 findField' []         (SignalEvent f)    _   ff = return $ do
    --ff' <- getFormField f
    --guard (ff' == ff)

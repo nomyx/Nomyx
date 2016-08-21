@@ -61,17 +61,18 @@ viewInput ei@(EventInfo en _ _ SActive _) = do
 viewInput _ = return Nothing
 
 viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer n s (Maybe Html)
-viewInput' en (sa, ss@(SomeSignal s)) = do
+viewInput' en (sa, ss@(SomeSignal (InputS s))) = do
      traceM $ "viewInput' " ++ (show s)
-     case (cast s) of
-      Just (a::Input a) -> case (viewSignal a) of
-       (SInputView iv@(RadioField _ _)) -> do
-        --lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm' iv
-        --let link = showRelURL (DoInput en sa iv)--(RadioField  "" cs))
-        return $ Just $ tr $ td $ do
+     --case (cast s) of
+     -- Just (a::Input a) -> case (viewSignal a) of
+     --  (SInputView iv@(RadioField _ _)) -> do
+     let iv = viewSignal s
+     lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm' iv
+     let link = showRelURL (DoInput en sa iv)--(RadioField  "" cs))
+     return $ Just $ tr $ td $ do
 --          fromString title
           fromString " "
-          --blazeForm lf link ! A.id "InputForm"
+          blazeForm lf link ! A.id "InputForm"
      -- else return Nothing
 viewInput' _ _ = return Nothing
 

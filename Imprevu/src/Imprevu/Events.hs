@@ -134,7 +134,7 @@ onEventOnce e h = do
 
 -- | Build a message event, that can be intercepted by another rule
 -- this is useful for message-passing style of communication
-messageEvent :: (Typeable a, Show a) => Msg a -> Event a
+messageEvent :: (Typeable a, Show a, Eq a) => Msg a -> Event a
 messageEvent m = SignalEvent m
 
 -- | Build a event firing immediatly, yelding the value of the Nomex
@@ -153,7 +153,7 @@ oneMinute = 60
 --inputFormSignal :: (Typeable a) => String -> (InputForm a) -> Signal a
 --inputFormSignal s iform = Input s iform
 
-signalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e) => s -> Event e                                  -- Embed a single Signal as an Event
+signalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e, Eq e) => s -> Event e                                  -- Embed a single Signal as an Event
 signalEvent = SignalEvent . Signal
 
 

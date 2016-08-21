@@ -30,27 +30,17 @@ import Control.Applicative
 
 type PlayerNumber = Int
 
--- | Input forms as programmed by the user
-data Input a where
-   Text     :: String ->                                   Input String
-   TextArea :: String ->                                   Input String
-   Button   :: String ->                                   Input ()
-   Radio    :: (Show a, Eq a, Data a) => String -> [(a, String)] -> Input a
-   Checkbox :: (Show a, Eq a, Data [a]) => String -> [(a, String)] -> Input [a]
-   deriving Typeable
 
-deriving instance Show (Input a)
-deriving instance Eq (Input e)
 -- * Inputs
 
 -- ** Radio inputs
 
 -- | event based on a radio input choice
 inputRadio :: (Eq c, Show c, Typeable c, Data c) => PlayerNumber -> String -> [(c, String)] -> Event c
-inputRadio pn title cs = signalEvent $ Radio title cs
+inputRadio pn title cs = SignalEvent $ InputS $ Radio title cs
 
 inputRadio' :: (Eq c, Show c, Typeable c, Data c) => PlayerNumber -> String -> [c] -> Event c
-inputRadio' pn title cs = signalEvent $ Radio title (zip cs (show <$> cs))
+inputRadio' pn title cs = SignalEvent $ InputS $ Radio title (zip cs (show <$> cs))
 
 -- | triggers a choice input to the user. The result will be sent to the callback
 onInputRadio :: (Typeable a, Eq a,  Show a, Data a, EvMgt n) => String -> [a] -> (EventNumber -> a -> n ()) -> PlayerNumber -> n EventNumber
