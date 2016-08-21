@@ -55,9 +55,9 @@ makeLenses ''EvalEnv
 
 -- trigger an event with an event result
 triggerEvent :: (HasEvents n s, Show a, Typeable a, Show e, Typeable e, Eq a, Eq e) => Signal a e -> e -> Evaluate n s ()
-triggerEvent (Signal e) dat = do
+triggerEvent e dat = do
    (EvalEnv s _ _) <- get
-   triggerEvent' (SignalData (Signal e) dat) Nothing (getEvents s)
+   triggerEvent' (SignalData e dat) Nothing (getEvents s)
 
 -- trigger some specific signal
 triggerEvent' :: (HasEvents n s) => SignalData -> Maybe SignalAddress -> [EventInfo n] -> Evaluate n s ()

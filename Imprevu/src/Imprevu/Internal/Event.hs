@@ -96,9 +96,6 @@ data SomeData = forall e. (Typeable e, Show e) => SomeData e
 deriving instance Show SomeData
 
 -- * EventInfo
-type DataS = String
-type SignalBodyS = String
-type SignalS = Signal SignalBodyS DataS
 
 type EventNumber = Int
 type EventName = String
