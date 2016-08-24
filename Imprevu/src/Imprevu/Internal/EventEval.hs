@@ -24,7 +24,6 @@ import           Data.Maybe
 import           Data.Todo
 import           Data.Typeable
 import           Imprevu.Internal.Event
-import           Imprevu.Internal.EvalUtils
 import           Imprevu.Internal.Utils
 import           Prelude                     hiding (log, (.))
 import           Safe
@@ -35,20 +34,18 @@ class HasEvents n s where
    getEvents :: s -> [EventInfo n]
    setEvents :: [EventInfo n] -> s -> s
 
--- | Environment necessary for the evaluation of any nomyx expressions or events
---TODO: should the first field be a "Maybe RuleNumber"?
---Indeed an evaluation is not always performed by a rule but also by the system (in which case we currently use rule number 0)
+-- | Environment necessary for the evaluation of events
 data EvalEnv n s = EvalEnv { _evalEnv      :: s,
                              evalFunc     :: forall a. (Show a) => n a -> Evaluate n s (),       -- evaluation function
                              errorHandler :: EventNumber -> String -> Evaluate n s ()}    -- error function
-
-events :: (HasEvents n s) => Lens' (EvalEnv n s) [EventInfo n]
-events f (EvalEnv s g h) = fmap (\s' -> (EvalEnv (setEvents s' s) g h)) (f (getEvents s))
 
 -- | Environment necessary for the evaluation of Nome
 type Evaluate n s a = ErrorT String (State (EvalEnv n s)) a
 
 makeLenses ''EvalEnv
+
+events :: (HasEvents n s) => Lens' (EvalEnv n s) [EventInfo n]
+events f (EvalEnv s g h) = fmap (\s' -> (EvalEnv (setEvents s' s) g h)) (f (getEvents s))
 
 
 -- * Event triggers
@@ -140,9 +137,9 @@ getEventResult' (SignalEvent a) ers fa = return $ case lookupSignal a fa ers of
 
 getEventResult' (ShortcutEvents es f) ers fa = do
   ers' <- mapM (\e -> getEventResult' e ers (fa ++ [Shortcut])) es -- get the result for each event in the list
-  return $ if f (toMaybe <$> ers')                                                                     -- apply f to the event results that we already have
-     then Done $ toMaybe <$> ers'                                                                        -- if the result is true, we are done. Return the list of maybe results
-     else Todo $ join $ lefts $ toEither <$> ers'                                                        -- otherwise, return the list of remaining fields to complete from each event
+  return $ if f (toMaybe <$> ers')                                   -- apply f to the event results that we already have
+     then Done $ toMaybe <$> ers'                               -- if the result is true, we are done. Return the list of maybe results
+     else Todo $ join $ lefts $ toEither <$> ers'                  -- otherwise, return the list of remaining fields to complete from each event
 
 
 getRemainingSignals :: EventInfo n -> EvalEnv n s -> [(SignalAddress, SomeSignal)]
@@ -159,3 +156,14 @@ runEvalError' egs = do
       Left e' -> error $ "error " ++ e'
          --tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
          --void $ runErrorT $ log mpn "Error: "
+
+-- find a signal occurence in an environment
+lookupSignal :: (Typeable a) => Signal s a -> SignalAddress -> [SignalOccurence] -> Maybe a
+lookupSignal s sa envi = headMay $ mapMaybe (getSignalData s sa) envi
+
+--get the signal data from the signal occurence
+getSignalData :: Typeable a => Signal s a -> SignalAddress -> SignalOccurence -> Maybe a
+getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
+  res' <- cast res
+  if (sa' == sa)  then Just res' else Nothing -- && (s === s')
+

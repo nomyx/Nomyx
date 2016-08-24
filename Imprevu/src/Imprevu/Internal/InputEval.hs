@@ -36,14 +36,29 @@ import           Imprevu.Events
 import           Imprevu.Inputs
 import           Imprevu.Internal.Event
 import           Imprevu.Internal.EventEval
-import           Imprevu.Internal.EvalUtils
+import           Imprevu.Internal.Utils
 import           Prelude                     hiding (log, (.))
 import           Safe
 import           GHC.Generics
-import Unsafe.Coerce
 import           Debug.Trace.Helpers    (traceM)
 
+-- a form field with its title
+data InputView = RadioField    String [(Int, String)]
+               | TextField     String
+               | TextAreaField String
+               | ButtonField   String
+               | CheckboxField String [(Int, String)]
+               deriving (Show, Read, Ord, Eq, Generic, Typeable)
 
+-- data sent back by the form fields
+data InputDataView = RadioData    Int
+               | CheckboxData [Int]
+               | TextData     String
+               | TextAreaData String
+               | ButtonData
+               deriving (Show, Read, Eq, Ord, Typeable)
+
+--View an Input
 viewSignal :: Input a -> InputView
 viewSignal (Radio s cs)    = (RadioField s (zip [0..] (snd <$> cs)))
 viewSignal (Checkbox s cs) = (CheckboxField s (zip [0..] (snd <$> cs)))
@@ -51,7 +66,7 @@ viewSignal (Text s)        = (TextField s)
 viewSignal (TextArea s)    = (TextAreaField s)
 viewSignal (Button s)      = (ButtonField s)
 
- -- fire a view
+ -- act an Input
 actSignal :: (Show a) => Input a -> InputDataView -> a
 actSignal (Radio _ cs)    (RadioData i) = fst $ cs !! i
 actSignal (Checkbox _ cs) (CheckboxData is) = fst <$> cs `sel` is
@@ -60,7 +75,6 @@ actSignal (TextArea _)    (TextAreaData d) = d
 actSignal (Button _)      (ButtonData) = ()
 
 -- * Input triggers
---data Proxy a
 
 -- trigger the input form with the input data
 triggerInput :: (HasEvents n s) => InputView -> InputDataView -> SignalAddress -> EventNumber -> Evaluate n s ()
@@ -72,15 +86,11 @@ triggerInput sv dv sa en = do
 -- trigger the input signal with the input data
 triggerInputSignal :: forall n s. (HasEvents n s) => InputView -> InputDataView -> SignalAddress -> EventInfo n -> Evaluate n s ()
 triggerInputSignal sv dv sa ei@(EventInfo _ _ _ SActive _) = do
-       mss <- findField sv sa ei
-       case mss of
-          Just (SomeSignal (InputS e')) -> triggerEvent' (SignalData (InputS e') (actSignal (e') dv))  (Just sa) [ei]
-          Nothing -> error $ "Input not found" --, signal view=" ++ (show sv) ++ " SignalAddress=" ++ (show sa) ++ " signal view data=" ++ (show dv)
+    mss <- findField sv sa ei
+    case mss of
+       Just (SomeSignal (InputS e')) -> triggerEvent' (SignalData (InputS e') (actSignal e' dv))  (Just sa) [ei]
+       Nothing -> error $ "Input not found"
 triggerInputSignal _ _ _ _ = return ()
-
-f :: Typeable a => a -> a
-f = id
-
 
 -- | Get the form field at a certain address
 findField :: InputView -> SignalAddress -> EventInfo n -> Evaluate n s (Maybe SomeSignal)
@@ -112,36 +122,5 @@ filterPath :: SignalAddressElem -> [SignalOccurence] -> [SignalOccurence]
 filterPath fa envi = mapMaybe f envi where
    f (SignalOccurence sd (fa':fas)) | fa == fa' = Just $ SignalOccurence sd fas
    f fr = Just fr
-
-sel :: [a]   -- ^ List of indices to select
-    -> [Int] -- ^ List of elements
-    -> [a]   -- ^ List composed of elements selected from original set by indices provided
-sel xs is = map (\i -> xs!!i) is
-
-
---triggerInputSignal' (TextData s) (SomeSignal e) sa ei = case (cast e) of
---                                                          Just (e' :: Input String) -> triggerEvent' (SignalData e' s)                     (Just sa) [ei]
---triggerInputSignal' (TextData s) (SomeSignal e) sa ei = triggerEvent' (SignalData e s)                     (Just sa) [ei]
---triggerInputSignal' (TextAreaData s)   (TextArea)     sa ei = triggerEvent' (SignalData e s)                     (Just sa) [ei]
---triggerInputSignal' (ButtonData)       (Button)       sa ei = triggerEvent' (SignalData e ())                    (Just sa) [ei]
---triggerInputSignal' (RadioData i)      (SomeSignal e)     sa ei = case (cast e) of
---    Just (InputRadio _ cs) -> triggerEvent' (SignalData e (fst $ cs!!i))         (Just sa) [ei]
---triggerInputSignal' (CheckboxData is)  (Checkbox cs)  sa ei = triggerEvent' (SignalData e (fst <$> cs `sel` is)) (Just sa) [ei]
-
--- a form field with its title
-data InputView = RadioField    String [(Int, String)]
-               | TextField     String
-               | TextAreaField String
-               | ButtonField   String
-               | CheckboxField String [(Int, String)]
-               deriving (Show, Read, Ord, Eq, Generic, Typeable)
-
--- data sent back by the form fields
-data InputDataView = RadioData    Int
-               | CheckboxData [Int]
-               | TextData     String
-               | TextAreaData String
-               | ButtonData
-               deriving (Show, Read, Eq, Ord, Typeable)
 
 

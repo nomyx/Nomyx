@@ -37,10 +37,10 @@ type PlayerNumber = Int
 
 -- | event based on a radio input choice
 inputRadio :: (Eq c, Show c, Typeable c, Data c) => PlayerNumber -> String -> [(c, String)] -> Event c
-inputRadio pn title cs = SignalEvent $ InputS $ Radio title cs
+inputRadio pn title cs = inputEvent $ Radio title cs
 
 inputRadio' :: (Eq c, Show c, Typeable c, Data c) => PlayerNumber -> String -> [c] -> Event c
-inputRadio' pn title cs = SignalEvent $ InputS $ Radio title (zip cs (show <$> cs))
+inputRadio' pn title cs = inputEvent $ Radio title (zip cs (show <$> cs))
 
 -- | triggers a choice input to the user. The result will be sent to the callback
 onInputRadio :: (Typeable a, Eq a,  Show a, Data a, EvMgt n) => String -> [a] -> (EventNumber -> a -> n ()) -> PlayerNumber -> n EventNumber
@@ -58,7 +58,7 @@ onInputRadioOnce title choices handler pn = onEventOnce (inputRadio' pn title ch
 
 -- | event based on a text input
 inputText :: PlayerNumber -> String -> Event String
-inputText pn title = signalEvent $ inputTextSignal pn title
+inputText pn title = inputEvent $ inputTextSignal pn title
 
 -- | triggers a string input to the user. The result will be sent to the callback
 onInputText :: (EvMgt n) => String -> (EventNumber -> String -> n ()) -> PlayerNumber -> n EventNumber
@@ -77,7 +77,7 @@ onInputTextOnce title handler pn = onEventOnce (inputText pn title) handler
 
 -- | event based on a checkbox input
 inputCheckbox :: (Eq c, Show c, Typeable c, Data c) => PlayerNumber -> String -> [(c, String)] -> Event [c]
-inputCheckbox pn title cs = signalEvent $ inputCheckboxSignal pn title cs
+inputCheckbox pn title cs = inputEvent $ inputCheckboxSignal pn title cs
 
 onInputCheckbox :: (Typeable a, Eq a,  Show a, Data a, EvMgt n) => String -> [(a, String)] -> (EventNumber -> [a] -> n ()) -> PlayerNumber -> n EventNumber
 onInputCheckbox title choices handler pn = onEvent (inputCheckbox pn title choices) (\(en, a) -> handler en a)
@@ -92,7 +92,7 @@ onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn tit
 
 -- | event based on a button
 inputButton :: PlayerNumber -> String -> Event ()
-inputButton pn title = signalEvent $ inputButtonSignal pn title
+inputButton pn title = inputEvent $ inputButtonSignal pn title
 
 onInputButton :: (EvMgt n) => String -> (EventNumber -> () -> n ()) -> PlayerNumber -> n EventNumber
 onInputButton title handler pn = onEvent (inputButton pn title) (\(en, ()) -> handler en ())
@@ -108,7 +108,7 @@ onInputButtonOnce title handler pn = onEventOnce (inputButton pn title) handler
 
 -- | event based on a text area
 inputTextarea :: PlayerNumber -> String -> Event String
-inputTextarea pn title = signalEvent $ inputTextareaSignal pn title
+inputTextarea pn title = inputEvent $ inputTextareaSignal pn title
 
 onInputTextarea :: (EvMgt n) => String -> (EventNumber -> String -> n ()) -> PlayerNumber -> n EventNumber
 onInputTextarea title handler pn = onEvent (inputTextarea pn title) (\(en, a) -> handler en a)
@@ -118,7 +118,6 @@ onInputTextarea_ title handler pn = onEvent_ (inputTextarea pn title) handler
 
 onInputTextareaOnce :: (EvMgt n) => String -> (String -> n ()) -> PlayerNumber -> n EventNumber
 onInputTextareaOnce title handler pn = onEventOnce (inputTextarea pn title) handler
-
 
 
 -- ** Internals
@@ -138,6 +137,3 @@ inputButtonSignal pn title = Button title
 inputTextareaSignal :: PlayerNumber -> String -> Input String
 inputTextareaSignal pn title = TextArea title
 
-
---inputFormSignal :: (Typeable a) => PlayerNumber -> String -> (InputForm a) -> Input a
---inputFormSignal pn s iform = Input s iform

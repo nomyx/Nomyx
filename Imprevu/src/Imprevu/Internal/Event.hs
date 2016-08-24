@@ -85,6 +85,7 @@ data Input a where
 
 deriving instance Show (Input a)
 deriving instance Eq (Input e)
+
 -- | Type agnostic base signal
 data SomeSignal = forall a s. (Typeable a, Typeable s, Show a, Show s) => SomeSignal (Signal s a)
 
@@ -113,6 +114,12 @@ instance Eq (EventInfo n) where
 
 instance Ord (EventInfo n) where
    (EventInfo {_eventNumber=e1}) <= (EventInfo {_eventNumber=e2}) = e1 <= e2
+
+instance Show (EventInfo n) where
+   show (EventInfo en _ _ s envi) =
+      "event num: " ++ (show en) ++
+      ", envs: " ++ (show envi) ++
+      ", status: " ++ (show s)
 
 eventNumber :: Lens' (EventInfo n) EventNumber
 eventNumber f (EventInfo e ev h evs env) = fmap (\e' -> (EventInfo e' ev h evs env)) (f e)

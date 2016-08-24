@@ -150,35 +150,13 @@ oneMinute = 60
 
 -- * internals
 
---inputFormSignal :: (Typeable a) => String -> (InputForm a) -> Signal a
---inputFormSignal s iform = Input s iform
-
-signalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e, Eq e) => s -> Event e                                  -- Embed a single Signal as an Event
+ -- Embed a single Signal as an Event
+signalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e, Eq e) => s -> Event e
 signalEvent = SignalEvent . Signal
 
-
---extract the game state from an Evaluate
---knowing the rule number performing the evaluation (0 if by the system)
---and the player number to whom display errors (set to Nothing for all players)
---TODO: clean
---runEvalError :: Evaluate n s a -> State (EvalEnv n s) a
---runEvalError eva = undefined --modify (\g -> _eGame $ execState (runEvalError' mpn egs) (EvalEnv rn g evalNomex evalNomexNE))
---
---runEvalError' :: Evaluate a -> State (EvalEnv n s) ()
---runEvalError' eva = do
---   e <- runErrorT eva
---   case e of
---      Right _ -> return ()
---      Left e' -> undefined
---        --tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
-         --void $ runErrorT $ log mpn "Error: "
-
---runSystemEval :: Evaluate n s a -> State s a
---runSystemEval eva = focus execState $ runEvalError eva
---
---runSystemEval' :: Evaluate n s a -> State s ()
---runSystemEval' eva = void $ runSystemEval eva
-
+-- Embed a single Signal as an Event
+inputEvent    :: (Typeable e, Show e, Eq e) => Input e -> Event e
+inputEvent = SignalEvent . InputS
 
 displayEvent :: [EventInfo n] -> EventInfo n -> String
 displayEvent eis ei@(EventInfo en _ _ s envi) =
