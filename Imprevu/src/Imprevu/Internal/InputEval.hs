@@ -30,7 +30,7 @@ import           Data.Function               (on)
 import           Data.List
 import           Data.Maybe
 import           Data.Data
-import           Data.Todo
+import           Data.Validation
 import           Data.Typeable
 import           Imprevu.Events
 import           Imprevu.Inputs
@@ -56,11 +56,11 @@ data InputDataView = RadioData    Int
                | TextData     String
                | TextAreaData String
                | ButtonData
-               deriving (Show, Read, Eq, Ord, Typeable)
+               deriving (ow, Read, Eq, Ord, Typeable)
 
 --View an Input
-viewSignal :: Input a -> InputView
-viewSignal (Radio s cs)    = (RadioField s (zip [0..] (snd <$> cs)))
+viewSignal :: Input a InputView
+viewSignal (Radio s )    = (RadioField s (zip [0..] (snd <$> cs)))
 viewSignal (Checkbox s cs) = (CheckboxField s (zip [0..] (snd <$> cs)))
 viewSignal (Text s)        = (TextField s)
 viewSignal (TextArea s)    = (TextAreaField s)
@@ -109,8 +109,8 @@ findField' (BindL:as) (BindEvent e1 _) envi ff = findField' as e1 (filterPath Bi
 findField' (BindR:as) (BindEvent e1 f) envi ff = do
    ter <- getEventResult e1 (filterPath BindL envi)
    case ter of
-      Done e2 -> findField' as (f e2) (filterPath BindR envi) ff
-      Todo _  -> return Nothing
+      AccSuccess e2 -> findField' as (f e2) (filterPath BindR envi) ff
+      AccFailure _  -> return Nothing
 findField' (Shortcut:as) (ShortcutEvents es _) envi ff = undefined --do
 --   msfs <- mapM (\e-> findField' as e envi ff) es
 --   return $ headMay $ catMaybes msfs  -- returning the first field that matches

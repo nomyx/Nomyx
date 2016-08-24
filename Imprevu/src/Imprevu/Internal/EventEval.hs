@@ -21,7 +21,7 @@ import qualified Data.Foldable               as F hiding (find)
 import           Data.Function               (on)
 import           Data.List
 import           Data.Maybe
-import           Data.Todo
+import           Data.Validation
 import           Data.Typeable
 import           Imprevu.Internal.Event
 import           Imprevu.Internal.Utils
@@ -84,22 +84,22 @@ getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ ev _ _ envi) = do
    trs <- getEventResult ev envi
    traceM $ "getUpdatedEventInfo trs=" ++ (show trs) ++ " envi=" ++ (show envi) ++ " sig=" ++ (show sig) ++ " addr=" ++ (show addr)
    case trs of
-      Todo rs -> case find (\(sa, (SomeSignal ss)) -> (ss === sig) && maybe True (==sa) addr) rs of -- check if our signal match one of the remaining signals
+      AccFailure rs -> case find (\(sa, (SomeSignal ss)) -> (ss === sig) && maybe True (==sa) addr) rs of -- check if our signal match one of the remaining signals
          Just (sa, _) -> do
             traceM $ "getUpdatedEventInfo sa=" ++ (show sa)
             let envi' = SignalOccurence sd sa : envi
             er <- getEventResult ev envi'                                                           -- add our event to the environment and get the result
             case er of
-               Todo _ -> do
+               AccFailure _ -> do
                  traceM $ "getUpdatedEventInfo"
                  return (env .~ envi' $ ei, Nothing)                                              -- some other signals are left to complete: add ours in the environment
-               Done a -> do
+               AccSuccess a -> do
                  traceM $ "getUpdatedEventInfo a=" ++ (show a)
                  return (env .~  [] $ ei, Just $ SomeData a)                                       -- event complete: return the final data result
          Nothing -> do
            traceM "getUpdatedEventInfo Nothing"
            return (ei, Nothing)                                                            -- our signal does not belong to this event.
-      Done a -> return (env .~  [] $ ei, Just $ SomeData a)
+      AccSucess a -> return (env .~  [] $ ei, Just $ SomeData a)
 
 --get the signals left to be completed in an event
 getRemainingSignals' :: EventInfo n -> Evaluate n s [(SignalAddress, SomeSignal)]
