@@ -3,10 +3,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
--- | All the building blocks to allow rules to build variables.
--- for example, you can create a variable with:
---do
---   newVar_ "MyMoney" (0::Int)
 
 module Imprevu.Variables
  --  V(..),
@@ -21,14 +17,8 @@ module Imprevu.Variables
 import Imprevu.SysMgt
 import Imprevu.Events
 import Data.Typeable
-import Control.Monad.State
-import Control.Applicative
-import Control.Monad.Error
-import Data.Maybe
-import qualified Data.Map as M
-import Data.Map hiding (map, filter, insert, mapMaybe, null)
-import Data.Foldable as F (mapM_)
 import Control.Monad.Loops
+import Control.Monad.Except
 
 type VarName = String
 

@@ -6,10 +6,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 -- | All the building blocks to allow rules to get inputs.
--- for example, you can create a button that will display a message like this:
--- do
---    void $ onInputButton_ "Click here:" (const $ outputAll_ "Bravo!") 1
-
 module Imprevu.Inputs
 --   InputForm(..),
 --   inputRadio, inputText, inputCheckbox, inputButton, inputTextarea,
@@ -22,11 +18,7 @@ module Imprevu.Inputs
 
 import Imprevu.Events
 import Imprevu.Internal.Event
-import Imprevu.Internal.EventEval
---import Imprevu.Internal.InputEval
 import Data.Typeable
-import Data.Data
-import Control.Applicative
 
 type PlayerNumber = Int
 
@@ -36,22 +28,22 @@ type PlayerNumber = Int
 -- ** Radio inputs
 
 -- | event based on a radio input choice
-inputRadio :: (Eq c, Show c, Typeable c, Data c) => PlayerNumber -> String -> [(c, String)] -> Event c
+inputRadio :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Event c
 inputRadio pn title cs = inputEvent $ Radio title cs
 
-inputRadio' :: (Eq c, Show c, Typeable c, Data c) => PlayerNumber -> String -> [c] -> Event c
+inputRadio' :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> Event c
 inputRadio' pn title cs = inputEvent $ Radio title (zip cs (show <$> cs))
 
 -- | triggers a choice input to the user. The result will be sent to the callback
-onInputRadio :: (Typeable a, Eq a,  Show a, Data a, EvMgt n) => String -> [a] -> (EventNumber -> a -> n ()) -> PlayerNumber -> n EventNumber
+onInputRadio :: (Typeable a, Eq a,  Show a, EvMgt n) => String -> [a] -> (EventNumber -> a -> n ()) -> PlayerNumber -> n EventNumber
 onInputRadio title choices handler pn = onEvent (inputRadio' pn title choices) (\(en, a) -> handler en a)
 
 -- | the same, disregard the event number
-onInputRadio_ :: (Typeable a, Eq a, Show a, Data a, EvMgt n) => String -> [a] -> (a -> n ()) -> PlayerNumber -> n EventNumber
+onInputRadio_ :: (Typeable a, Eq a, Show a, EvMgt n) => String -> [a] -> (a -> n ()) -> PlayerNumber -> n EventNumber
 onInputRadio_ title choices handler pn = onEvent_ (inputRadio' pn title choices) handler
 
 -- | the same, suppress the event after first trigger
-onInputRadioOnce :: (Typeable a, Eq a, Show a, Data a, EvMgt n) => String -> [a] -> (a -> n ()) -> PlayerNumber -> n EventNumber
+onInputRadioOnce :: (Typeable a, Eq a, Show a, EvMgt n) => String -> [a] -> (a -> n ()) -> PlayerNumber -> n EventNumber
 onInputRadioOnce title choices handler pn = onEventOnce (inputRadio' pn title choices) handler
 
 -- ** Text inputs
@@ -76,16 +68,16 @@ onInputTextOnce title handler pn = onEventOnce (inputText pn title) handler
 -- ** Checkbox inputs
 
 -- | event based on a checkbox input
-inputCheckbox :: (Eq c, Show c, Typeable c, Data c) => PlayerNumber -> String -> [(c, String)] -> Event [c]
+inputCheckbox :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Event [c]
 inputCheckbox pn title cs = inputEvent $ inputCheckboxSignal pn title cs
 
-onInputCheckbox :: (Typeable a, Eq a,  Show a, Data a, EvMgt n) => String -> [(a, String)] -> (EventNumber -> [a] -> n ()) -> PlayerNumber -> n EventNumber
+onInputCheckbox :: (Typeable a, Eq a,  Show a, EvMgt n) => String -> [(a, String)] -> (EventNumber -> [a] -> n ()) -> PlayerNumber -> n EventNumber
 onInputCheckbox title choices handler pn = onEvent (inputCheckbox pn title choices) (\(en, a) -> handler en a)
 
-onInputCheckbox_ :: (Typeable a, Eq a,  Show a, Data a, EvMgt n) => String -> [(a, String)] -> ([a] -> n ()) -> PlayerNumber -> n EventNumber
+onInputCheckbox_ :: (Typeable a, Eq a,  Show a, EvMgt n) => String -> [(a, String)] -> ([a] -> n ()) -> PlayerNumber -> n EventNumber
 onInputCheckbox_ title choices handler pn = onEvent_ (inputCheckbox pn title choices) handler
 
-onInputCheckboxOnce :: (Typeable a, Eq a,  Show a, Data a, EvMgt n) => String -> [(a, String)] -> ([a] -> n ()) -> PlayerNumber -> n EventNumber
+onInputCheckboxOnce :: (Typeable a, Eq a, Show a, EvMgt n) => String -> [(a, String)] -> ([a] -> n ()) -> PlayerNumber -> n EventNumber
 onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn title choices) handler
 
 -- ** Button inputs
@@ -122,13 +114,13 @@ onInputTextareaOnce title handler pn = onEventOnce (inputTextarea pn title) hand
 
 -- ** Internals
 
-inputRadioSignal :: (Eq c, Show c, Data c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Input c
+inputRadioSignal :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Input c
 inputRadioSignal pn title cs = Radio title cs
 
 inputTextSignal :: PlayerNumber -> String -> Input String
 inputTextSignal pn title = Text title
 
-inputCheckboxSignal :: (Eq c, Show c, Data c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Input [c]
+inputCheckboxSignal :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Input [c]
 inputCheckboxSignal pn title cs = Checkbox title cs
 
 inputButtonSignal :: PlayerNumber -> String -> Input ()

@@ -19,14 +19,8 @@ module Imprevu.Events
 
 import Imprevu.Internal.Event
 import Data.Typeable
-import Control.Monad.State
 import Control.Monad.Error
-import Control.Applicative
-import Data.List
-import Data.Maybe
 import Data.Time hiding (getCurrentTime)
-import Data.Time.Recurrence hiding (filter)
-import Safe
 
 class (Typeable n, Applicative n, Monad n) => EvMgt n where
    --Events management

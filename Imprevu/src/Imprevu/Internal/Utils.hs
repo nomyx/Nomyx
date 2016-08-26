@@ -6,17 +6,22 @@ module Imprevu.Internal.Utils (
    getFreeNumber,
    sel,
    getL,
+   toEither,
+   toMaybe,
    module Debug.Trace) where
 
 import           Control.Lens           hiding (runIdentity)
 import           Control.Monad.Identity
 import           Control.Monad.State
+import           Control.Applicative
 import           Data.Maybe             (fromJust)
 import           Data.Time              (UTCTime, zonedTimeToUTC, parseTime, rfc822DateFormat)
 import           Data.Time.Format       (defaultTimeLocale)
 import           Data.Typeable          (Typeable, cast)
 import           Debug.Trace            (trace)
 import           Debug.Trace.Helpers    (traceM)
+import           Data.Validation
+import           Data.Semigroup
 
 -- | an equality that tests also the types.
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool
@@ -43,3 +48,17 @@ sel xs is = map (\i -> xs!!i) is
 
 getL :: Getting a s a -> s -> a
 getL = flip (^.)
+
+toMaybe :: AccValidation a b -> Maybe b
+toMaybe (AccFailure _) = Nothing
+toMaybe (AccSuccess a) = Just a
+
+toEither :: AccValidation a b -> Either a b
+toEither (AccFailure as) = Left as
+toEither (AccSuccess a)  = Right a
+
+instance (Monoid e, Semigroup e) => Alternative (AccValidation e) where
+   empty               = AccFailure mempty
+   AccFailure as <|> AccFailure bs = AccFailure $ as `mappend` bs
+   AccFailure _  <|> n       = n
+   m       <|> _       = m

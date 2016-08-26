@@ -21,14 +21,10 @@ module Imprevu.Internal.Event where
 
 import           Control.Applicative hiding (Const)
 import           Control.Lens
-import           Control.Monad.Error
 import           Control.Shortcut
-import           Data.Data           (Data)
-import           Data.Time
+import           Control.Monad
 import           Data.Typeable
 import           GHC.Generics
-import           System.Random
-import           Imprevu.Internal.Utils
 
 -- * Event
 
@@ -79,8 +75,8 @@ data Input a where
    Text     :: String ->                                   Input String
    TextArea :: String ->                                   Input String
    Button   :: String ->                                   Input ()
-   Radio    :: (Show a, Eq a, Data a) => String -> [(a, String)] -> Input a
-   Checkbox :: (Show a, Eq a, Data [a]) => String -> [(a, String)] -> Input [a]
+   Radio    :: (Show a, Eq a) => String -> [(a, String)] -> Input a
+   Checkbox :: (Show a, Eq a) => String -> [(a, String)] -> Input [a]
    deriving Typeable
 
 deriving instance Show (Input a)

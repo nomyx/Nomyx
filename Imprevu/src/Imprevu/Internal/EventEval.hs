@@ -9,16 +9,11 @@
 module Imprevu.Internal.EventEval where
 
 import           Control.Applicative
-import           Control.Category            hiding (id)
 import           Control.Lens
 import           Control.Monad
-import           Control.Monad.Error.Class   (MonadError (..))
-import           Control.Monad.Error
-import           Control.Monad.Reader
 import           Control.Monad.State
+import           Control.Monad.Except
 import           Data.Either
-import qualified Data.Foldable               as F hiding (find)
-import           Data.Function               (on)
 import           Data.List
 import           Data.Maybe
 import           Data.Validation
@@ -40,7 +35,7 @@ data EvalEnv n s = EvalEnv { _evalEnv      :: s,
                              errorHandler :: EventNumber -> String -> Evaluate n s ()}    -- error function
 
 -- | Environment necessary for the evaluation of Nome
-type Evaluate n s a = ErrorT String (State (EvalEnv n s)) a
+type Evaluate n s a = ExceptT String (State (EvalEnv n s)) a
 
 makeLenses ''EvalEnv
 
@@ -99,26 +94,26 @@ getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ ev _ _ envi) = do
          Nothing -> do
            traceM "getUpdatedEventInfo Nothing"
            return (ei, Nothing)                                                            -- our signal does not belong to this event.
-      AccSucess a -> return (env .~  [] $ ei, Just $ SomeData a)
+      AccSuccess a -> return (env .~  [] $ ei, Just $ SomeData a)
 
 --get the signals left to be completed in an event
 getRemainingSignals' :: EventInfo n -> Evaluate n s [(SignalAddress, SomeSignal)]
 getRemainingSignals' (EventInfo _ e _ _ envi) = do
    tr <- getEventResult e envi
    return $ case tr of
-      Done _ -> []
-      Todo a -> a
+      AccSuccess _ -> []
+      AccFailure a -> a
 
 
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some signals results are pending, return that list instead.
-getEventResult :: Event a -> [SignalOccurence] -> Evaluate n s (Todo (SignalAddress, SomeSignal) a)
+getEventResult :: Event a -> [SignalOccurence] -> Evaluate n s (AccValidation [(SignalAddress, SomeSignal)] a)
 getEventResult e frs = getEventResult' e frs []
 
 -- compute the result of an event given an environment. The third argument is used to know where we are in the event tree.
-getEventResult' :: Event a -> [SignalOccurence] -> SignalAddress -> Evaluate n s (Todo (SignalAddress, SomeSignal) a)
-getEventResult' (PureEvent a)   _   _  = return $ Done a
-getEventResult'  EmptyEvent     _   _  = return $ Todo []
+getEventResult' :: Event a -> [SignalOccurence] -> SignalAddress -> Evaluate n s (AccValidation [(SignalAddress, SomeSignal)] a)
+getEventResult' (PureEvent a)   _   _  = return $ AccSuccess a
+getEventResult'  EmptyEvent     _   _  = return $ AccFailure []
 getEventResult' (SumEvent a b)  ers fa = liftM2 (<|>) (getEventResult' a ers (fa ++ [SumL])) (getEventResult' b ers (fa ++ [SumR]))
 getEventResult' (AppEvent f b)  ers fa = liftM2 (<*>) (getEventResult' f ers (fa ++ [AppL])) (getEventResult' b ers (fa ++ [AppR]))
 --getEventResult' (LiftEvent a)   _   _  = do
@@ -128,29 +123,29 @@ getEventResult' (AppEvent f b)  ers fa = liftM2 (<*>) (getEventResult' f ers (fa
 getEventResult' (BindEvent a f) ers fa = do
    er <- getEventResult' a ers (fa ++ [BindL])
    case er of
-      Done a' -> getEventResult' (f a') ers (fa ++ [BindR])
-      Todo bs -> return $ Todo bs
+      AccSuccess a' -> getEventResult' (f a') ers (fa ++ [BindR])
+      AccFailure bs -> return $ AccFailure bs
 
 getEventResult' (SignalEvent a) ers fa = return $ case lookupSignal a fa ers of
-   Just r  -> Done r
-   Nothing -> Todo [(fa, SomeSignal a)]
+   Just r  -> AccSuccess r
+   Nothing -> AccFailure [(fa, SomeSignal a)]
 
 getEventResult' (ShortcutEvents es f) ers fa = do
   ers' <- mapM (\e -> getEventResult' e ers (fa ++ [Shortcut])) es -- get the result for each event in the list
   return $ if f (toMaybe <$> ers')                                   -- apply f to the event results that we already have
-     then Done $ toMaybe <$> ers'                               -- if the result is true, we are done. Return the list of maybe results
-     else Todo $ join $ lefts $ toEither <$> ers'                  -- otherwise, return the list of remaining fields to complete from each event
+     then AccSuccess $ toMaybe <$> ers'                               -- if the result is true, we are done. Return the list of maybe results
+     else AccFailure $ join $ lefts $ toEither <$> ers'                  -- otherwise, return the list of remaining fields to complete from each event
 
 
 getRemainingSignals :: EventInfo n -> EvalEnv n s -> [(SignalAddress, SomeSignal)]
 getRemainingSignals (EventInfo _ e _ _ occ) env = case evalState (runEvalError' (getEventResult e occ)) env of
-   Just (Todo a) -> a
-   Just (Done _) -> []
+   Just (AccFailure a) -> a
+   Just (AccSuccess _) -> []
    Nothing -> []
 
 runEvalError' :: Evaluate n s a -> State (EvalEnv n s) (Maybe a)
 runEvalError' egs = do
-   e <- runErrorT egs
+   e <- runExceptT egs
    case e of
       Right a -> return $ Just a
       Left e' -> error $ "error " ++ e'
@@ -158,12 +153,12 @@ runEvalError' egs = do
          --void $ runErrorT $ log mpn "Error: "
 
 -- find a signal occurence in an environment
-lookupSignal :: (Typeable a) => Signal s a -> SignalAddress -> [SignalOccurence] -> Maybe a
+lookupSignal :: (Typeable a, Typeable s, Eq s) => Signal s a -> SignalAddress -> [SignalOccurence] -> Maybe a
 lookupSignal s sa envi = headMay $ mapMaybe (getSignalData s sa) envi
 
 --get the signal data from the signal occurence
-getSignalData :: Typeable a => Signal s a -> SignalAddress -> SignalOccurence -> Maybe a
+getSignalData :: (Typeable a, Typeable s, Eq s) => Signal s a -> SignalAddress -> SignalOccurence -> Maybe a
 getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
   res' <- cast res
-  if (sa' == sa)  then Just res' else Nothing -- && (s === s')
+  if (sa' == sa) && (s === s') then Just res' else Nothing
 

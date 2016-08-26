@@ -18,29 +18,18 @@
 module Imprevu.Internal.InputEval where
 
 import           Control.Applicative
-import           Control.Category            hiding (id)
 import           Control.Lens
 import           Control.Monad
-import           Control.Monad.Error.Class   (MonadError (..))
-import           Control.Monad.Reader
-import           Control.Monad.State
-import           Data.Either
-import qualified Data.Foldable               as F hiding (find)
-import           Data.Function               (on)
 import           Data.List
-import           Data.Maybe
-import           Data.Data
-import           Data.Validation
 import           Data.Typeable
-import           Imprevu.Events
-import           Imprevu.Inputs
+import           Data.Maybe
+import           Data.Validation
 import           Imprevu.Internal.Event
 import           Imprevu.Internal.EventEval
 import           Imprevu.Internal.Utils
 import           Prelude                     hiding (log, (.))
-import           Safe
 import           GHC.Generics
-import           Debug.Trace.Helpers    (traceM)
+import           Safe
 
 -- a form field with its title
 data InputView = RadioField    String [(Int, String)]
@@ -56,11 +45,11 @@ data InputDataView = RadioData    Int
                | TextData     String
                | TextAreaData String
                | ButtonData
-               deriving (ow, Read, Eq, Ord, Typeable)
+               deriving (Show, Read, Eq, Ord, Typeable)
 
 --View an Input
-viewSignal :: Input a InputView
-viewSignal (Radio s )    = (RadioField s (zip [0..] (snd <$> cs)))
+viewSignal :: Input a -> InputView
+viewSignal (Radio s cs)    = (RadioField s (zip [0..] (snd <$> cs)))
 viewSignal (Checkbox s cs) = (CheckboxField s (zip [0..] (snd <$> cs)))
 viewSignal (Text s)        = (TextField s)
 viewSignal (TextArea s)    = (TextAreaField s)
@@ -73,6 +62,7 @@ actSignal (Checkbox _ cs) (CheckboxData is) = fst <$> cs `sel` is
 actSignal (Text _)        (TextData d) = d
 actSignal (TextArea _)    (TextAreaData d) = d
 actSignal (Button _)      (ButtonData) = ()
+actSignal _ _ = error "actSignal"
 
 -- * Input triggers
 
@@ -89,7 +79,7 @@ triggerInputSignal sv dv sa ei@(EventInfo _ _ _ SActive _) = do
     mss <- findField sv sa ei
     case mss of
        Just (SomeSignal (InputS e')) -> triggerEvent' (SignalData (InputS e') (actSignal e' dv))  (Just sa) [ei]
-       Nothing -> error $ "Input not found"
+       _ -> error $ "Input not found"
 triggerInputSignal _ _ _ _ = return ()
 
 -- | Get the form field at a certain address
@@ -111,9 +101,9 @@ findField' (BindR:as) (BindEvent e1 f) envi ff = do
    case ter of
       AccSuccess e2 -> findField' as (f e2) (filterPath BindR envi) ff
       AccFailure _  -> return Nothing
-findField' (Shortcut:as) (ShortcutEvents es _) envi ff = undefined --do
---   msfs <- mapM (\e-> findField' as e envi ff) es
---   return $ headMay $ catMaybes msfs  -- returning the first field that matches
+findField' (Shortcut:as) (ShortcutEvents es _) envi ff = do
+   msfs <- mapM (\e-> findField' as e envi ff) es
+   return $ headMay $ catMaybes msfs  -- returning the first field that matches
 
 findField' fa _ _ _ = error $ "findField: wrong field address: " ++ (show fa)
 

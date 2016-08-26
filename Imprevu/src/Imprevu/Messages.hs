@@ -14,7 +14,7 @@ import Imprevu.Variables
 import Data.Typeable
 import Control.Monad.Loops (untilJust)
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Except
 
 -- * Messages
 -- a rule can send a simple message to another rule, and subscribe to a message.
