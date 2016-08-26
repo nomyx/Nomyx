@@ -32,7 +32,9 @@ library
                    monad-loops        == 0.4.*,
                    aeson,
                    stm,
-                   validation
+                   validation,
+                   semigroups,
+                   Cabal              >= 0.22
     exposed-modules: Imprevu.Events
                      Imprevu.Inputs
                      Imprevu.Messages
@@ -43,13 +45,12 @@ library
                      Imprevu.Internal.InputEval
                      Imprevu.Internal.Utils
                      Control.Shortcut
-                     Data.Todo
     exposed: True
     buildable: True
     hs-source-dirs: src
     ghc-options: -W
 
-Test-Suite test-imprevu
+Test-Suite test
     type:      detailed-0.9
     test-module:    Test
     hs-source-dirs: test
