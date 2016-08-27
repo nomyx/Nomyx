@@ -1,6 +1,6 @@
 name: Imprevu-Happstack
 version: 0.7.6
-cabal-version: >=1.6
+cabal-version: >=1.8
 build-type: Simple
 license: BSD3
 license-file: LICENSE
@@ -43,6 +43,14 @@ library
     buildable: True
     hs-source-dirs: src
     ghc-options: -W
+
+Test-Suite test
+    type:      detailed-0.9
+    test-module:    Test
+    hs-source-dirs: test
+    build-depends: base,
+                   Imprevu-Happstack  == 0.7.6,
+                   Cabal              >= 0.22
 
 source-repository head
   type:              git

@@ -35,19 +35,18 @@ nomyxPage = do
    (TestState eis os _) <- liftIO $ atomically $ readTVar tts
    m <- mapM viewInput eis
    return $ toResponse $ do
-     head $ catMaybes m
+     sequence_ $ catMaybes m
      toHtml $ show os
 
 nomyxSite :: TestWebState -> Site Command (ServerPartT IO Response)
 nomyxSite ws = setDefault Main $ mkSitePI $ (\a b -> evalStateT (runRouteT routedCommands a b) ws)
 
 
+defaultTestState = TestState [] [] (Var "" "")
+
 start :: IO ()
 start = do
-  let ts = TestState {eventInfos = [],
-                      outputs    = [],
-                      variable   = Var "" ""}
-  let ts' = execEvents' testSingleInput' ts
+  let ts' = execEvents' (testSingleInput' >> testMultipleInputs') defaultTestState
   tv <- atomically $ newTVar ts'
   launchWebServer tv
 
@@ -70,11 +69,11 @@ testSingleInput' :: TestIO ()
 testSingleInput' = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, Sarkozy] h 1 where
    h a = putStrLn' ("voted for " ++ show a)
 
---testMultipleInputs :: TestIO ()
---testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
---   h a = do
---     liftIO $ putStrLn "callback"
---     putStrLn' ("voted for " ++ show a)
+testMultipleInputs' :: TestIO ()
+testMultipleInputs' = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
+   h a = do
+     liftIO $ putStrLn "callback"
+     putStrLn' ("voted for " ++ show a)
 
 updateSessionTest :: TVar TestState -> InputResult -> IO ()
 updateSessionTest tvs (InputResult en sa ff ida) = do

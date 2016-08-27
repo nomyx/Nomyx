@@ -55,6 +55,7 @@ viewInput ei@(EventInfo en _ _ SActive _) = do
    (WebState tvs _ f g) <- get
    s <- liftIO $ atomically $ readTVar tvs
    ds <- mapMaybeM (viewInput' en) (getRemainingSignals ei (EvalEnv s f g))
+   traceM $ "viewInput " ++ (show $ length ds)
    return $ if null ds
       then Nothing
       else Just $ sequence_ ds
@@ -63,41 +64,14 @@ viewInput _ = return Nothing
 viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer n s (Maybe Html)
 viewInput' en (sa, ss@(SomeSignal (InputS s))) = do
      traceM $ "viewInput' " ++ (show s)
-     --case (cast s) of
-     -- Just (a::Input a) -> case (viewSignal a) of
-     --  (SInputView iv@(RadioField _ _)) -> do
      let iv = viewSignal s
      lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm' iv
-     let link = showRelURL (DoInput en sa iv)--(RadioField  "" cs))
+     let link = showRelURL (DoInput en sa iv)
      return $ Just $ tr $ td $ do
 --          fromString title
           fromString " "
           blazeForm lf link ! A.id "InputForm"
-     -- else return Nothing
 viewInput' _ _ = return Nothing
-
---instance (Eq a, Typeable a, Show a) => Signal(Input a) where
---  type SignalDataType (Input a) = a
---  data View (Input a) = SInputView InputView deriving Show
---  data DataView (Input a) = SInputDataView InputDataView deriving Show
---  --viewSignal :: Input a -> View (Input a)
---  viewSignal (Radio s cs)    = SInputView (RadioField s (zip [0..] (snd <$> cs)))
---  viewSignal (Checkbox s cs) = SInputView (CheckboxField s (zip [0..] (snd <$> cs)))
---  viewSignal (Text s)        = SInputView (TextField s)
---  viewSignal (TextArea s)    = SInputView (TextAreaField s)
---  viewSignal (Button s)      = SInputView (ButtonField s)
-
---- TODO: merge SomeSignal and FormField...
---inputForm :: InputView -> ImpForm (InputDataView v)
---inputForm v = case (cast v) of
---                Just ((InputRadioView _ choices):: View (InputRadio a))    -> InputRadioDataView    <$> (reformInputRadio' choices (== 0) <++ label (" " :: String))
---inputForm  (RadioField _ choices)    = RadioData    <$> (reformInputRadio' choices (== 0) <++ label (" " :: String))
---inputForm ((Input _ Text))               = TextData     <$> RB.inputText "" <++ label (" " :: String)
---inputForm ((Input _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
---inputForm ((Input _ Button))             = pure ButtonData
---inputForm ((Input _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label (" " :: String)
---inputForm _ = error "Not an input form"
-
 
 inputForm' :: InputView -> ImpForm InputDataView
 inputForm' (RadioField _ choices)    = RadioData    <$> (RB.inputRadio choices (== 0)) <++ RB.label (" " :: String)
