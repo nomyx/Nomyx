@@ -1,52 +1,22 @@
 {-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE ScopedTypeVariables    #-}
 {-# LANGUAGE RankNTypes   #-}
-{-# LANGUAGE ImpredicativeTypes   #-}
 {-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TypeSynonymInstances   #-}
 {-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE ExistentialQuantification    #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 
 module Imprevu.Happstack.Types where
 
+import Control.Concurrent.STM
+import Control.Monad.State
+import Happstack.Server            as HS (Input, ServerPartT)
 import Imprevu.Internal.Event
-import Imprevu.Inputs
 import Imprevu.Internal.EventEval
 import Imprevu.Internal.InputEval
-import Imprevu.Events
-import Imprevu.Inputs
-import Control.Monad
-import Control.Monad.Extra (mapMaybeM)
-import Control.Applicative
-import Control.Concurrent.STM
-import Data.Monoid
-import Data.Maybe
-import Data.Typeable
-import Data.String
-import           Control.Monad.State
-import Happstack.Server              as HS (Input, Response, ServerPartT, Method (..), methodM,
-                                              ok, seeOther, toResponse)
-import           Text.Blaze.Html5            (ToMarkup, Html, toHtml, a, br, div, h3, h4,
-                                              pre, table, td, toValue, tr, (!), input)
-import qualified Text.Blaze.Html5    as H    (form, label)
-import           Text.Blaze.Html5.Attributes as A (id, href, type_, name, value, checked, for, action, method, enctype)
-import           Text.Reform                 (eitherForm, viewForm, (<++), CommonFormError, ErrorInputType,
-                                                Form, FormError (..), FormInput)
-import           Text.Reform.Blaze.String    (inputCheckboxes, label, textarea)
-import qualified Text.Reform.Blaze.String    as RB
-import           Text.Reform.Happstack       (environment)
-import           Web.Routes.RouteT           (liftRouteT, RouteT)
-import qualified Text.Reform.Generalized             as G
-import           Web.Routes.Base
-import           Web.Routes.Happstack                ()
-import           Web.Routes.RouteT
-import           Web.Routes.PathInfo
-import           Web.Routes.TH
-import  Data.Text                           (Text)
-default (Integer, Double, Data.Text.Text)
-
+import Text.Blaze.Html5                  (Html)
+import Text.Reform                       (CommonFormError, ErrorInputType, Form, FormError (..))
+import Web.Routes.Happstack              ()
+import Web.Routes.RouteT
+import Web.Routes.PathInfo
+import Web.Routes.TH
 
 data InputResult = InputResult EventNumber SignalAddress InputView InputDataView
 
@@ -69,9 +39,6 @@ data ImpFormError = ImpFormError (CommonFormError [HS.Input])
 instance FormError ImpFormError where
     type ErrorInputType ImpFormError = [HS.Input]
     commonFormError = ImpFormError
-
---instance ToMarkup ImpError where
---    toMarkup (ImpFormError e)       = fromString $ show e
 
 type ImpForm a = Form (ServerPartT IO) [HS.Input] ImpFormError Html () a
 

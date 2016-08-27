@@ -1,52 +1,32 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE ScopedTypeVariables    #-}
-{-# LANGUAGE RankNTypes   #-}
-{-# LANGUAGE ImpredicativeTypes   #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE ExistentialQuantification    #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Imprevu.Happstack.Forms where
 
-import Imprevu.Internal.Event
-import Imprevu.Internal.EventEval
-import Imprevu.Internal.InputEval
---import Imprevu.Events
-import Imprevu.Inputs
-import Imprevu.Happstack.Types
-import Control.Monad
-import Control.Monad.Extra (mapMaybeM)
-import Control.Applicative
-import Control.Concurrent.STM
-import Data.Monoid
-import Data.Maybe
-import Data.Typeable
-import Data.String
-import Data.Data
+import           Control.Monad.Extra                 (mapMaybeM)
+import           Control.Concurrent.STM
 import           Control.Monad.State
-import qualified Happstack.Server    as HS (Input)
-import Happstack.Server              as HS (Response, ServerPartT, Method (..), methodM,
-                                              ok, seeOther, toResponse)
-import           Text.Blaze.Html5            (ToMarkup, Html, toHtml, a, br, div, h3, h4,
-                                              pre, table, td, toValue, tr, (!), input)
-import qualified Text.Blaze.Html5    as H    (form, label)
-import           Text.Blaze.Html5.Attributes as A (id, href, type_, name, value, checked, for, action, method, enctype)
-import           Text.Reform                 (eitherForm, viewForm, (<++), CommonFormError, ErrorInputType,
-                                                Form, FormError (..), FormInput)
-import           Text.Reform.Blaze.String    (inputCheckboxes, label, textarea)
-import qualified Text.Reform.Blaze.String    as RB
-import           Text.Reform.Happstack       (environment)
-import           Web.Routes.RouteT           (liftRouteT, RouteT)
-import qualified Text.Reform.Generalized             as G
-import           Web.Routes.Base
+import           Data.Monoid
+import           Data.String
+import           Data.Text                           (Text)
+import           Debug.Trace.Helpers                 (traceM)
+import           Imprevu.Internal.Event
+import           Imprevu.Internal.EventEval
+import           Imprevu.Internal.InputEval
+import           Imprevu.Happstack.Types
+import           Happstack.Server              as HS (Response, Method (..), methodM, seeOther, toResponse)
+import           Text.Blaze.Html5                    (ToMarkup, Html, toHtml, td, toValue, tr, (!), input)
+import qualified Text.Blaze.Html5              as H  (form, label)
+import           Text.Blaze.Html5.Attributes   as A  (id, type_, name, value, checked, for, action, method, enctype)
+import           Text.Reform                         (eitherForm, viewForm, (<++), ErrorInputType, Form, FormError (..), FormInput)
+import           Text.Reform.Blaze.String            (inputCheckboxes, label, textarea)
+import qualified Text.Reform.Blaze.String      as RB
+import           Text.Reform.Happstack               (environment)
+import qualified Text.Reform.Generalized       as G
 import           Web.Routes.Happstack                ()
 import           Web.Routes.RouteT
 import           Web.Routes.PathInfo
-import  Data.Text                           (Text)
-import Unsafe.Coerce
-import           Debug.Trace.Helpers    (traceM)
 default (Integer, Double, Data.Text.Text)
 
 
@@ -62,7 +42,7 @@ viewInput ei@(EventInfo en _ _ SActive _) = do
 viewInput _ = return Nothing
 
 viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer n s (Maybe Html)
-viewInput' en (sa, ss@(SomeSignal (InputS s))) = do
+viewInput' en (sa, (SomeSignal (InputS s))) = do
      traceM $ "viewInput' " ++ (show s)
      let iv = viewSignal s
      lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm' iv
