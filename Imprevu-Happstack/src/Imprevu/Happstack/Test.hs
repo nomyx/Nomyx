@@ -5,22 +5,22 @@
 
 module Imprevu.Happstack.Test where
 
+import Control.Concurrent.STM
+import Control.Monad
+import Control.Monad.State
+import Data.Maybe
+import Happstack.Server            as HS
 import Imprevu.Happstack.Forms
 import Imprevu.Happstack.Types
 import Imprevu.Test
 import Imprevu.Inputs
 import Imprevu.Internal.InputEval
 import Imprevu.Internal.EventEval
-import           Web.Routes.Happstack
-import           Web.Routes.PathInfo
-import           Web.Routes.RouteT                     (runRouteT)
-import           Web.Routes.Site
-import           Happstack.Server                      as HS
-import Control.Concurrent.STM
-import Control.Monad
-import Data.Maybe
-import Control.Monad.State
-import           Text.Blaze.Html5            (toHtml)
+import Text.Blaze.Html5            (toHtml)
+import Web.Routes.Happstack
+import Web.Routes.PathInfo
+import Web.Routes.RouteT           (runRouteT)
+import Web.Routes.Site
 
 type TestServer a = RoutedServer TestIO TestState a
 type TestWebState = WebState TestIO TestState
@@ -46,7 +46,7 @@ defaultTestState = TestState [] [] (Var "" "")
 
 start :: IO ()
 start = do
-  let ts' = execEvents' (testSingleInput' >> testMultipleInputs') defaultTestState
+  let ts' = execEvents' (testSingleInput >> testMultipleInputs) defaultTestState
   tv <- atomically $ newTVar ts'
   launchWebServer tv
 
@@ -63,17 +63,6 @@ server ws = mconcat [
     do decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
        html <- implSite ("http://127.0.0.1") "/Test" (nomyxSite ws)
        return $ toResponse html]
-
--- Test input
-testSingleInput' :: TestIO ()
-testSingleInput' = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, Sarkozy] h 1 where
-   h a = putStrLn' ("voted for " ++ show a)
-
-testMultipleInputs' :: TestIO ()
-testMultipleInputs' = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
-   h a = do
-     liftIO $ putStrLn "callback"
-     putStrLn' ("voted for " ++ show a)
 
 updateSessionTest :: TVar TestState -> InputResult -> IO ()
 updateSessionTest tvs (InputResult en sa ff ida) = do
