@@ -13,11 +13,11 @@
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE DeriveGeneric             #-}
 {-# LANGUAGE RankNTypes                #-}
-{-# LANGUAGE TypeFamilies                #-}
-{-# LANGUAGE FlexibleContexts                #-}
+{-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE FlexibleContexts          #-}
 
 -- | This module contains the type definitions necessary to build a Nomic rule.
-module Imprevu.Internal.Event where
+module Imprevu.Evaluation.Event where
 
 import           Control.Applicative hiding (Const)
 import           Control.Lens

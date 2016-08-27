@@ -1,5 +1,5 @@
 
-module Imprevu.Internal.Utils (
+module Imprevu.Evaluation.Utils (
    (===),
    replaceWith,
    mapStateIO,
@@ -10,18 +10,14 @@ module Imprevu.Internal.Utils (
    toMaybe,
    module Debug.Trace) where
 
-import           Control.Lens           hiding (runIdentity)
-import           Control.Monad.Identity
-import           Control.Monad.State
-import           Control.Applicative
-import           Data.Maybe             (fromJust)
-import           Data.Time              (UTCTime, zonedTimeToUTC, parseTime, rfc822DateFormat)
-import           Data.Time.Format       (defaultTimeLocale)
-import           Data.Typeable          (Typeable, cast)
-import           Debug.Trace            (trace)
-import           Debug.Trace.Helpers    (traceM)
-import           Data.Validation
-import           Data.Semigroup
+import Control.Lens           hiding (runIdentity)
+import Control.Monad.Identity
+import Control.Monad.State
+import Control.Applicative
+import Data.Typeable          (Typeable, cast)
+import Debug.Trace            (trace)
+import Data.Validation
+import Data.Semigroup
 
 -- | an equality that tests also the types.
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool

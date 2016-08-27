@@ -10,25 +10,24 @@
 
 module Imprevu.Test where
 
+import Control.Monad.State
+import Control.Monad.Except
+import Control.Applicative
+import Control.Shortcut
+import Control.Lens
+import Data.Typeable
+import Data.List
+import Data.Maybe
+import Data.Time
 import Imprevu.Events
 import Imprevu.Inputs
 import Imprevu.SysMgt
 import Imprevu.Variables
 import Imprevu.Messages
-import Imprevu.Internal.Event
-import Imprevu.Internal.EventEval
-import Imprevu.Internal.InputEval
-import Imprevu.Internal.Utils
-import Control.Monad.State
-import Control.Monad.Except
-import Control.Applicative
-import Control.Shortcut
-import Data.Typeable
-import Data.List
-import Data.Maybe
-import Control.Lens
-import Data.Time
-import Control.Concurrent.STM
+import Imprevu.Evaluation.Event
+import Imprevu.Evaluation.EventEval
+import Imprevu.Evaluation.InputEval
+import Imprevu.Evaluation.Utils
 import System.IO.Unsafe
 import System.Random
 

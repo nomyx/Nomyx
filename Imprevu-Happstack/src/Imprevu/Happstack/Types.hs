@@ -8,9 +8,9 @@ module Imprevu.Happstack.Types where
 import Control.Concurrent.STM
 import Control.Monad.State
 import Happstack.Server            as HS (Input, ServerPartT)
-import Imprevu.Internal.Event
-import Imprevu.Internal.EventEval
-import Imprevu.Internal.InputEval
+import Imprevu.Evaluation.Event
+import Imprevu.Evaluation.EventEval
+import Imprevu.Evaluation.InputEval
 import Text.Blaze.Html5                  (Html)
 import Text.Reform                       (CommonFormError, ErrorInputType, Form, FormError (..))
 import Web.Routes.Happstack              ()

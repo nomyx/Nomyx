@@ -6,7 +6,7 @@
 
 
 -- | Evaluation of the events
-module Imprevu.Internal.EventEval where
+module Imprevu.Evaluation.EventEval where
 
 import           Control.Applicative
 import           Control.Lens
@@ -18,8 +18,8 @@ import           Data.List
 import           Data.Maybe
 import           Data.Validation
 import           Data.Typeable
-import           Imprevu.Internal.Event
-import           Imprevu.Internal.Utils
+import           Imprevu.Evaluation.Event
+import           Imprevu.Evaluation.Utils
 import           Prelude                     hiding (log, (.))
 import           Safe
 import           Debug.Trace.Helpers    (traceM)

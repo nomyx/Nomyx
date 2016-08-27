@@ -12,10 +12,9 @@ import Data.Maybe
 import Happstack.Server            as HS
 import Imprevu.Happstack.Forms
 import Imprevu.Happstack.Types
+import Imprevu.Evaluation.InputEval
+import Imprevu.Evaluation.EventEval
 import Imprevu.Test
-import Imprevu.Inputs
-import Imprevu.Internal.InputEval
-import Imprevu.Internal.EventEval
 import Text.Blaze.Html5            (toHtml)
 import Web.Routes.Happstack
 import Web.Routes.PathInfo

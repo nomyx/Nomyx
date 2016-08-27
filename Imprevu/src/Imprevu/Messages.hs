@@ -7,14 +7,14 @@ module Imprevu.Messages
 --  APICall(..), onAPICall, callAPI, callAPIBlocking,
   where
 
-import Imprevu.Events
-import Imprevu.Internal.Event
-import Imprevu.SysMgt
-import Imprevu.Variables
-import Data.Typeable
 import Control.Monad.Loops (untilJust)
 import Control.Monad
 import Control.Monad.Except
+import Data.Typeable
+import Imprevu.Events
+import Imprevu.Evaluation.Event
+import Imprevu.SysMgt
+import Imprevu.Variables
 
 -- * Messages
 -- a rule can send a simple message to another rule, and subscribe to a message.

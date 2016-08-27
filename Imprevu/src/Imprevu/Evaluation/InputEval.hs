@@ -15,7 +15,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 -- | Evaluation of the events
-module Imprevu.Internal.InputEval where
+module Imprevu.Evaluation.InputEval where
 
 import           Control.Applicative
 import           Control.Lens
@@ -24,9 +24,9 @@ import           Data.List
 import           Data.Typeable
 import           Data.Maybe
 import           Data.Validation
-import           Imprevu.Internal.Event
-import           Imprevu.Internal.EventEval
-import           Imprevu.Internal.Utils
+import           Imprevu.Evaluation.Event
+import           Imprevu.Evaluation.EventEval
+import           Imprevu.Evaluation.Utils
 import           Prelude                     hiding (log, (.))
 import           GHC.Generics
 import           Safe

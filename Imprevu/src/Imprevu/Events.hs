@@ -17,7 +17,7 @@ module Imprevu.Events
 --   liftEvent
     where
 
-import Imprevu.Internal.Event
+import Imprevu.Evaluation.Event
 import Data.Typeable
 import Control.Monad.Error
 import Data.Time hiding (getCurrentTime)

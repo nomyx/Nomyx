@@ -17,7 +17,7 @@ module Imprevu.Inputs
     where
 
 import Imprevu.Events
-import Imprevu.Internal.Event
+import Imprevu.Evaluation.Event
 import Data.Typeable
 
 type PlayerNumber = Int

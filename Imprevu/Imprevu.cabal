@@ -40,10 +40,10 @@ library
                      Imprevu.Variables
                      Imprevu.SysMgt
                      Imprevu.Test
-                     Imprevu.Internal.Event
-                     Imprevu.Internal.EventEval
-                     Imprevu.Internal.InputEval
-                     Imprevu.Internal.Utils
+                     Imprevu.Evaluation.Event
+                     Imprevu.Evaluation.EventEval
+                     Imprevu.Evaluation.InputEval
+                     Imprevu.Evaluation.Utils
                      Control.Shortcut
     exposed: True
     buildable: True

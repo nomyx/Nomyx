@@ -11,9 +11,9 @@ import           Data.Monoid
 import           Data.String
 import           Data.Text                           (Text)
 import           Debug.Trace.Helpers                 (traceM)
-import           Imprevu.Internal.Event
-import           Imprevu.Internal.EventEval
-import           Imprevu.Internal.InputEval
+import           Imprevu.Evaluation.Event
+import           Imprevu.Evaluation.EventEval
+import           Imprevu.Evaluation.InputEval
 import           Imprevu.Happstack.Types
 import           Happstack.Server              as HS (Response, Method (..), methodM, seeOther, toResponse)
 import           Text.Blaze.Html5                    (ToMarkup, Html, toHtml, td, toValue, tr, (!), input)
