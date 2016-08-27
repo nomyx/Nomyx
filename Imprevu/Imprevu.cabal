@@ -33,13 +33,13 @@ library
                    aeson,
                    stm,
                    validation,
-                   semigroups,
-                   Cabal              >= 0.22
+                   semigroups
     exposed-modules: Imprevu.Events
                      Imprevu.Inputs
                      Imprevu.Messages
                      Imprevu.Variables
                      Imprevu.SysMgt
+                     Imprevu.Test
                      Imprevu.Internal.Event
                      Imprevu.Internal.EventEval
                      Imprevu.Internal.InputEval
