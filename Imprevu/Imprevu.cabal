@@ -55,12 +55,7 @@ Test-Suite test
     test-module:    Test
     hs-source-dirs: test
     build-depends: base,
-                   Imprevu,
-                   mtl                >= 2.1 && < 2.3,
-                   random             == 1.1.*,
-                   time               >= 1.4 && < 1.6,
-                   lens               >= 4.7 && < 4.14,
-                   stm,
+                   Imprevu            == 0.7.6,
                    Cabal              >= 0.22
 
 source-repository head

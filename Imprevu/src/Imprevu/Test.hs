@@ -110,6 +110,14 @@ evDelEvent en = do
 
 defaultEvalEnv = EvalEnv (TestState [] [] (Var "" "")) (void . evalEvents) undefined
 
+execEvents' :: TestIO a -> TestState -> TestState
+execEvents' r ts = _evalEnv $ runIdentity $ flip execStateT (EvalEnv ts (void . evalEvents) undefined) $ do
+   res <- runExceptT $ do
+      void $ evalEvents r
+   case res of
+      Right a -> return a
+      Left e -> error $ show "error occured"
+
 execEvent :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestIO a -> Signal s e -> e -> [String]
 execEvent r f d = execEvents r [(f,d)]
 
@@ -117,8 +125,7 @@ execEvents :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestIO a -
 execEvents r sds = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
    res <- runExceptT $ do
       void $ evalEvents r
-      mapM (\(f,d) -> triggerEvent f d) sds
-      return ()
+      mapM_ (\(f,d) -> triggerEvent f d) sds
    case res of
       Right a -> return a
       Left e -> error $ show "error occured"
@@ -128,7 +135,6 @@ execInput r en sa ff ide = outputs $ _evalEnv $ runIdentity $ flip execStateT de
    res <- runExceptT $ do
       void $ evalEvents r
       triggerInput ff ide sa en
-      return ()
    case res of
       Right a -> return a
       Left e -> error $ show "error occured"
