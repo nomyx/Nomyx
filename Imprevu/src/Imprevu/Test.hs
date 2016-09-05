@@ -108,6 +108,7 @@ evDelEvent en = do
          SDeleted -> return False
 
 
+defaultEvalEnv :: EvalEnv TestIO TestState
 defaultEvalEnv = defaultEvalEnv' (TestState [] [] (Var "" ""))
 
 defaultEvalEnv' :: TestState -> EvalEnv TestIO TestState
@@ -321,4 +322,26 @@ testDoubleEvent2PlayerArrive = execEvents testDoubleEvent [(Signal Arrive, Playe
 testDoubleEventEx :: Bool
 testDoubleEventEx = "2" `elem` testDoubleEvent2PlayerArrive
 
+--testTimeEvent :: Rule
+--testTimeEvent = void $ onEvent_ (timeEvent date1) f where
+--   f _ = outputAll_ $ show date1
+--
+--testTimeEventEx :: Bool
+--testTimeEventEx = isOutput (show date1) g where
+--   g = execRuleEvent testTimeEvent (Time date1) date1
+--
+--testTimeEvent2 :: Nomex ()
+--testTimeEvent2 = schedule' [date1, date2] (outputAll_ . show)
+--
+--testTimeEventEx2 :: Bool
+--testTimeEventEx2 = isOutput (show date1) g && isOutput (show date2) g where
+--    g = execState (runSystemEval' $ evalNomex testTimeEvent2 >> void gameEvs) testGame
+--    gameEvs = do
+--        evTriggerTime date1
+--        evTriggerTime date2
 
+testTime :: TestIO ()
+testTime = do
+  t <- liftIO Data.Time.getCurrentTime
+  void $ onEvent_ (True <$ inputButton 1 "click here before 5 seconds:" <|> False <$ (timeEvent $ addUTCTime 5 t)) f where
+   f a = putStrLn' $ show a

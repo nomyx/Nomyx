@@ -6,6 +6,7 @@
 module Imprevu.Happstack.Test where
 
 import Control.Concurrent.STM
+import Control.Concurrent
 import Control.Monad
 import Control.Monad.State
 import Data.Maybe
@@ -15,6 +16,7 @@ import Imprevu.Happstack.Types
 import Imprevu.Evaluation.InputEval
 import Imprevu.Evaluation.EventEval
 import Imprevu.Test
+import Imprevu.Time
 import Text.Blaze.Html5            (toHtml)
 import Web.Routes.Happstack
 import Web.Routes.PathInfo
@@ -40,20 +42,19 @@ nomyxPage = do
 nomyxSite :: TestWebState -> Site Command (ServerPartT IO Response)
 nomyxSite ws = setDefault Main $ mkSitePI $ (\a b -> evalStateT (runRouteT routedCommands a b) ws)
 
-
-defaultTestState = TestState [] [] (Var "" "")
-
 start :: IO ()
 start = do
-  let ts' = execEvents' (testSingleInput >> testMultipleInputs) defaultTestState
-  tv <- atomically $ newTVar ts'
+  let ts = execSignals (testSingleInput >> testMultipleInputs) [] defaultEvalEnv
+  let ts = execSignals (testTime) [] defaultEvalEnv
+  tv <- atomically $ newTVar ts
   launchWebServer tv
 
 launchWebServer :: TVar TestState -> IO ()
-launchWebServer ts = do
+launchWebServer tv = do
    putStrLn $ "Starting web server..."
    let conf = nullConf {HS.port = 8080}
-   let ws = WebState ts updateSessionTest (void . evalEvents) undefined
+   let ws = WebState tv updateSessionTest (void . evalEvents) undefined
+   forkIO $ launchTimeEvents tv (EvalFunc (void . evalEvents) undefined)
    simpleHTTP conf $ server ws
 
 --serving Nomyx web page as well as data from this package and the language library package

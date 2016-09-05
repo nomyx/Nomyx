@@ -1,6 +1,7 @@
 
 {-# LANGUAGE AllowAmbiguousTypes      #-}
 {-# LANGUAGE ScopedTypeVariables      #-}
+{-# LANGUAGE Rank2Types      #-}
 
 module Imprevu.Time where
 
@@ -14,33 +15,32 @@ import Control.Monad
 import Data.Typeable
 import Control.Lens
 
-
-
 type Time = Signal UTCTime UTCTime
-type EvalFunc n s = (s -> EvalEnv n s)
 
-launchTimeEvents :: (HasEvents n s, Monad n) => TVar (EvalEnv n s) -> IO ()
-launchTimeEvents tvee = do
+data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. (Show a) => n a -> Evaluate n s (),       -- evaluation function
+                               _errorHandler :: EventNumber -> String -> Evaluate n s ()}    -- error function
+
+launchTimeEvents :: (HasEvents n s, Monad n) => TVar s -> EvalFunc n s -> IO ()
+launchTimeEvents tv ef = do
     now <- getCurrentTime
     --putStrLn $ "tick " ++ (show now)
-    ee <- atomically $ readTVar tvee
-    let timeEvents = join $ maybeToList $ runEvaluate (getTimeEvents now) ee
+    s <- atomically $ readTVar tv
+    let timeEvents = join $ maybeToList $ runEvaluate (getTimeEvents now) (EvalEnv s (_evalFunc ef) (_errorHandler ef))
     unless (null timeEvents) $ putStrLn "found time event(s)"
-    mapM_ (triggerTimeEvent tvee) timeEvents
+    mapM_ (triggerTimeEvent tv ef) timeEvents
     --sleep 30 second roughly
     threadDelay 30000000
-    launchTimeEvents tvee
+    launchTimeEvents tv ef
 
-triggerTimeEvent :: (HasEvents n s, Monad n) => TVar (EvalEnv n s) -> UTCTime -> IO ()
-triggerTimeEvent tvee t = do
-    ee <- atomically $ readTVar tvee
-    let ee' = trig t ee
-    atomically $ writeTVar tvee ee'
+triggerTimeEvent :: (HasEvents n s, Monad n) => TVar s -> EvalFunc n s -> UTCTime -> IO ()
+triggerTimeEvent tv ef t = do
+    s <- atomically $ readTVar tv
+    let s' = trig t (EvalEnv s (_evalFunc ef) (_errorHandler ef))
+    atomically $ writeTVar tv s'
     --save m'
 
-trig :: (HasEvents n s, Monad n) => UTCTime -> EvalEnv n s -> EvalEnv n s
-trig t ee = let ee' = execSignals (return ()) [(Signal t, t)] ee
-             in ee{_evalEnv = ee'}
+trig :: (HasEvents n s, Monad n) => UTCTime -> EvalEnv n s -> s
+trig t ee = execSignals (return ()) [(Signal t, t)] ee
 
 --execSignals :: (Show a, Show e, Typeable e, Eq e, Show d, Typeable d, Eq d, HasEvents n s) => n a -> [(Signal e d, d)] -> EvalEnv n s -> s
 
