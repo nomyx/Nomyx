@@ -18,9 +18,13 @@ module Imprevu.Events
     where
 
 import Imprevu.Evaluation.Event
+import Imprevu.SysMgt
 import Data.Typeable
 import Control.Monad.Error
 import Data.Time hiding (getCurrentTime)
+import Data.Time.Recurrence hiding (filter)
+import Data.List
+import Safe
 
 class (Typeable n, Applicative n, Monad n) => EvMgt n where
    --Events management
@@ -66,65 +70,49 @@ onEventOnce e h = do
 --getInputResult _ = Nothing
 
 -- | on the provided schedule, the supplied function will be called
---schedule :: Schedule Freq -> (UTCTime -> Nomex ()) -> Nomex ()
---schedule sched f = do
---    now <- getCurrentTime
---    let next = head $ starting now sched
---    if next == now then executeAndScheduleNext f sched now
---                   else void $ onEventOnce (timeEvent next) $ executeAndScheduleNext f sched
---
---executeAndScheduleNext :: (UTCTime -> Nomex ()) -> Schedule Freq -> UTCTime -> Nomex ()
---executeAndScheduleNext f sched now = do
---   f now
---   let rest = drop 1 $ starting now sched
---   when (rest /= []) $ void $ onEventOnce (timeEvent $ head rest) $ executeAndScheduleNext f sched
---
---schedule_ :: Schedule Freq -> Nomex () -> Nomex ()
---schedule_ ts f = schedule ts (const f)
---
-----at each time provided, the supplied function will be called
---schedule' :: [UTCTime] -> (UTCTime -> Nomex ()) -> Nomex ()
---schedule' sched f = do
---    let sched' = sort sched
---    now <- getCurrentTime
---    let nextMay = headMay $ filter (>=now) sched'
---    case nextMay of
---        Just next -> if next == now then executeAndScheduleNext' f sched' now
---                                    else void $ onEventOnce (timeEvent next) $ executeAndScheduleNext' f sched'
---        Nothing -> return ()
---
---
---executeAndScheduleNext' :: (UTCTime -> Nomex ()) -> [UTCTime] -> UTCTime -> Nomex ()
---executeAndScheduleNext' f sched now = do
---   f now
---   let rest = drop 1 sched
---   when (rest /= []) $ void $ onEventOnce (timeEvent $ head rest) $ executeAndScheduleNext' f sched
---
---
+schedule :: (EvMgt n, SysMgt n) => Schedule Freq -> (UTCTime -> n ()) -> n ()
+schedule sched f = do
+    now <- getCurrentTime
+    let next = head $ starting now sched
+    if next == now then executeAndScheduleNext f sched now
+                   else void $ onEventOnce (timeEvent next) $ executeAndScheduleNext f sched
+
+executeAndScheduleNext :: (EvMgt n) => (UTCTime -> n ()) -> Schedule Freq -> UTCTime -> n ()
+executeAndScheduleNext f sched now = do
+   f now
+   let rest = drop 1 $ starting now sched
+   when (rest /= []) $ void $ onEventOnce (timeEvent $ head rest) $ executeAndScheduleNext f sched
+
+schedule_ :: (EvMgt n, SysMgt n) => Schedule Freq -> n () -> n ()
+schedule_ ts f = schedule ts (const f)
+
+--at each time provided, the supplied function will be called
+schedule' :: (EvMgt n, SysMgt n) => [UTCTime] -> (UTCTime -> n ()) -> n ()
+schedule' sched f = do
+    let sched' = sort sched
+    now <- getCurrentTime
+    let nextMay = headMay $ filter (>=now) sched'
+    case nextMay of
+        Just next -> if next == now then executeAndScheduleNext' f sched' now
+                                    else void $ onEventOnce (timeEvent next) $ executeAndScheduleNext' f sched'
+        Nothing -> return ()
+
+
+executeAndScheduleNext' :: (EvMgt n) => (UTCTime -> n ()) -> [UTCTime] -> UTCTime -> n ()
+executeAndScheduleNext' f sched now = do
+   f now
+   let rest = drop 1 sched
+   when (rest /= []) $ void $ onEventOnce (timeEvent $ head rest) $ executeAndScheduleNext' f sched
+
+
 --schedule'_ :: [UTCTime] -> Nomex () -> Nomex ()
 --schedule'_ ts f = schedule' ts (const f)
-
--- | get the current time as UTCTime
---getCurrentTime :: Nomex UTCTime
---getCurrentTime = CurrentTime
 
 -- * Individual events
 
 -- | Build an event firing at a specific time
---timeEvent :: UTCTime -> Event UTCTime
---timeEvent t = SignalEvent $ Signal t
-
--- | Build a event firing when the victory condition is changed
---victoryEvent :: Event VictoryInfo
---victoryEvent = SignalEvent Victory
-
--- | Build a event firing when a player arrives or leaves
---playerEvent :: Player -> Event PlayerInfo
---playerEvent = SignalEvent . Player
-
--- | Build a event firing when an action is made on a rule
---ruleEvent :: RuleEvent -> Event RuleInfo
---ruleEvent re = SignalEvent $ RuleEv re
+timeEvent :: UTCTime -> Event UTCTime
+timeEvent t = SignalEvent $ Signal t
 
 -- | Build a message event, that can be intercepted by another rule
 -- this is useful for message-passing style of communication

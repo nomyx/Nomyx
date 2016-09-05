@@ -96,6 +96,9 @@ getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ ev _ _ envi) = do
            return (ei, Nothing)                                                            -- our signal does not belong to this event.
       AccSuccess a -> return (env .~  [] $ ei, Just $ SomeData a)
 
+
+-- * Evaluations
+
 --get the signals left to be completed in an event
 getRemainingSignals' :: EventInfo n -> Evaluate n s [(SignalAddress, SomeSignal)]
 getRemainingSignals' (EventInfo _ e _ _ envi) = do
@@ -103,6 +106,9 @@ getRemainingSignals' (EventInfo _ e _ _ envi) = do
    return $ case tr of
       AccSuccess _ -> []
       AccFailure a -> a
+
+getRemainingSignals :: EventInfo n -> EvalEnv n s -> [(SignalAddress, SomeSignal)]
+getRemainingSignals ei env = join $ maybeToList $ evalState (runEvalError' (getRemainingSignals' ei)) env
 
 
 -- compute the result of an event given an environment.
@@ -137,12 +143,6 @@ getEventResult' (ShortcutEvents es f) ers fa = do
      else AccFailure $ join $ lefts $ toEither <$> ers'                  -- otherwise, return the list of remaining fields to complete from each event
 
 
-getRemainingSignals :: EventInfo n -> EvalEnv n s -> [(SignalAddress, SomeSignal)]
-getRemainingSignals (EventInfo _ e _ _ occ) env = case evalState (runEvalError' (getEventResult e occ)) env of
-   Just (AccFailure a) -> a
-   Just (AccSuccess _) -> []
-   Nothing -> []
-
 runEvalError' :: Evaluate n s a -> State (EvalEnv n s) (Maybe a)
 runEvalError' egs = do
    e <- runExceptT egs
@@ -151,6 +151,9 @@ runEvalError' egs = do
       Left e' -> error $ "error " ++ e'
          --tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
          --void $ runErrorT $ log mpn "Error: "
+
+runEvaluate :: Evaluate n s a -> EvalEnv n s -> Maybe a
+runEvaluate ev ee = evalState (runEvalError' ev) ee
 
 -- find a signal occurence in an environment
 lookupSignal :: (Typeable a, Typeable s, Eq s) => Signal s a -> SignalAddress -> [SignalOccurence] -> Maybe a
@@ -161,4 +164,15 @@ getSignalData :: (Typeable a, Typeable s, Eq s) => Signal s a -> SignalAddress -
 getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
   res' <- cast res
   if (sa' == sa) && (s === s') then Just res' else Nothing
+
+
+execSignals :: (Show a, Show e, Typeable e, Eq e, Show d, Typeable d, Eq d, HasEvents n s) => n a -> [(Signal e d, d)] -> EvalEnv n s -> s
+execSignals r sds evalEnv = _evalEnv $ runIdentity $ flip execStateT evalEnv $ do
+   res <- runExceptT $ do
+      evalFunc evalEnv r
+      mapM_ (\(f,d) -> triggerEvent f d) sds
+   case res of
+      Right a -> return a
+      Left e -> error $ show "error occured"
+
 

@@ -30,6 +30,7 @@ import Imprevu.Evaluation.InputEval
 import Imprevu.Evaluation.Utils
 import System.IO.Unsafe
 import System.Random
+import Prelude
 
 --type Evaluate n s a = ErrorT String (State (EvalEnv n s)) a
 data TestState = TestState {eventInfos :: [EventInfo TestIO],
@@ -62,7 +63,7 @@ instance EvMgt TestIO where
    sendMessage m a = eventsEval $ triggerEvent m a
 
 instance SysMgt TestIO where
-   currentTime     = liftIO getCurrentTime
+   getCurrentTime    = liftIO Data.Time.getCurrentTime
    getRandomNumber a = liftIO $ randomRIO a
 
 instance VarMgt TestIO where
@@ -107,27 +108,16 @@ evDelEvent en = do
          SDeleted -> return False
 
 
-defaultEvalEnv = EvalEnv (TestState [] [] (Var "" "")) (void . evalEvents) undefined
+defaultEvalEnv = defaultEvalEnv' (TestState [] [] (Var "" ""))
 
-execEvents' :: TestIO a -> TestState -> TestState
-execEvents' r ts = _evalEnv $ runIdentity $ flip execStateT (EvalEnv ts (void . evalEvents) undefined) $ do
-   res <- runExceptT $ do
-      void $ evalEvents r
-   case res of
-      Right a -> return a
-      Left e -> error $ show "error occured"
+defaultEvalEnv' :: TestState -> EvalEnv TestIO TestState
+defaultEvalEnv' ts = EvalEnv ts (void . evalEvents) undefined
 
-execEvent :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestIO a -> Signal s e -> e -> [String]
+execEvent :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestIO () -> Signal s e -> e -> [String]
 execEvent r f d = execEvents r [(f,d)]
 
-execEvents :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestIO a -> [(Signal s e, e)] -> [String]
-execEvents r sds = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
-   res <- runExceptT $ do
-      void $ evalEvents r
-      mapM_ (\(f,d) -> triggerEvent f d) sds
-   case res of
-      Right a -> return a
-      Left e -> error $ show "error occured"
+execEvents :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestIO () -> [(Signal s e, e)] -> [String]
+execEvents r sds = outputs $ execSignals r sds defaultEvalEnv
 
 execInput :: TestIO a -> EventNumber -> SignalAddress -> InputView -> InputDataView -> [String]
 execInput r en sa ff ide = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
