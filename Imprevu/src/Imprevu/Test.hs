@@ -63,12 +63,12 @@ instance EvMgt TestIO where
    sendMessage m a = eventsEval $ triggerEvent m a
 
 instance SysMgt TestIO where
-   getCurrentTime    = liftIO Data.Time.getCurrentTime
+   getCurrentTime    = return date1 --liftIO Data.Time.getCurrentTime
    getRandomNumber a = liftIO $ randomRIO a
 
 instance VarMgt TestIO where
    newVar       v a = modify (\(TestState eis os _) -> (TestState eis os (Var v a))) >> (return $ Just (V v))
-   readVar        v = gets variable >>= (\(Var _ a) -> return $ cast a)
+   readVar        _ = gets variable >>= (\(Var _ a) -> return $ cast a)
    writeVar (V v) a = modify (\(TestState eis os _) -> (TestState eis os (Var v a))) >> return True
    delVar        _  = return True
 
@@ -79,7 +79,7 @@ eventsEval eval = do
        res <- runExceptT eval
        case res of
          Right a -> return a
-         Left e -> error $ show "error occured"
+         Left _ -> error $ show "error occured"
    put s'
 
 evalEvents :: TestIO a -> Evaluate TestIO TestState a
@@ -127,7 +127,7 @@ execInput r en sa ff ide = outputs $ _evalEnv $ runIdentity $ flip execStateT de
       triggerInput ff ide sa en
    case res of
       Right a -> return a
-      Left e -> error $ show "error occured"
+      Left _ -> error $ show "error occured"
 
 execInputs :: TestIO a -> EventNumber -> [(SignalAddress, InputView, InputDataView)] -> [String]
 execInputs r en fads = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
@@ -137,7 +137,7 @@ execInputs r en fads = outputs $ _evalEnv $ runIdentity $ flip execStateT defaul
       return ()
    case res of
       Right a -> return a
-      Left e -> error $ show "error occured"
+      Left _ -> error $ show "error occured"
 
 exec :: TestIO a -> [String]
 exec r = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
@@ -146,7 +146,7 @@ exec r = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
       return ()
    case res of
       Right a -> return a
-      Left e -> error $ show "error occured"
+      Left _ -> error $ show "error occured"
 
 putStrLn' :: String -> TestIO ()
 putStrLn' s = modify (\(TestState is ss vs) -> (TestState is (s:ss) vs))
@@ -322,23 +322,32 @@ testDoubleEvent2PlayerArrive = execEvents testDoubleEvent [(Signal Arrive, Playe
 testDoubleEventEx :: Bool
 testDoubleEventEx = "2" `elem` testDoubleEvent2PlayerArrive
 
---testTimeEvent :: Rule
---testTimeEvent = void $ onEvent_ (timeEvent date1) f where
---   f _ = outputAll_ $ show date1
---
---testTimeEventEx :: Bool
---testTimeEventEx = isOutput (show date1) g where
---   g = execRuleEvent testTimeEvent (Time date1) date1
---
---testTimeEvent2 :: Nomex ()
---testTimeEvent2 = schedule' [date1, date2] (outputAll_ . show)
---
---testTimeEventEx2 :: Bool
---testTimeEventEx2 = isOutput (show date1) g && isOutput (show date2) g where
---    g = execState (runSystemEval' $ evalNomex testTimeEvent2 >> void gameEvs) testGame
---    gameEvs = do
---        evTriggerTime date1
---        evTriggerTime date2
+-- * Time events
+
+date1, date2, date3 :: UTCTime
+date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
+date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
+date3 = parse822Time "Tue, 02 Sep 1997 11:00:00 -0400"
+
+parse822Time :: String -> UTCTime
+parse822Time = zonedTimeToUTC
+              . fromJust
+              . parseTimeM True defaultTimeLocale rfc822DateFormat
+
+testTimeEvent :: TestIO ()
+testTimeEvent = void $ onEvent_ (timeEvent date1) f where
+   f _ = putStrLn' $ show date1
+
+testTimeEventEx :: Bool
+testTimeEventEx = (show date1) `elem` g where
+   g = execEvent testTimeEvent (Signal date1) date1
+
+testTimeEvent2 :: TestIO ()
+testTimeEvent2 = schedule' [date1, date2] (putStrLn' . show)
+
+testTimeEventEx2 :: Bool
+testTimeEventEx2 = ((show date1) `elem` g) && ((show date2) `elem` g) where
+  g = execEvents testTimeEvent2 [(Signal date1, date1),(Signal date2, date2)]
 
 testTime :: TestIO ()
 testTime = do

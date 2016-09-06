@@ -1,13 +1,3 @@
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE ExistentialQuantification #-}
-
 module Test where
 
 import Imprevu.Test
@@ -29,7 +19,10 @@ tests = return [
    test testTwoEventsEx      "two events",
    test testMonadicEventEx   "monadic event",
    test testShorcutEventEx   "shortcut event",
-   test testDoubleEventEx    "double event"]
+   test testDoubleEventEx    "double event",
+   test testTimeEventEx      "time event",
+   test testTimeEventEx2     "time event 2"
+   ]
 
 test :: Bool -> String -> Test
 test p t = Test $ test' p t

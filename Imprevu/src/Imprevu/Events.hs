@@ -89,14 +89,13 @@ schedule_ ts f = schedule ts (const f)
 --at each time provided, the supplied function will be called
 schedule' :: (EvMgt n, SysMgt n) => [UTCTime] -> (UTCTime -> n ()) -> n ()
 schedule' sched f = do
-    let sched' = sort sched
-    now <- getCurrentTime
-    let nextMay = headMay $ filter (>=now) sched'
-    case nextMay of
-        Just next -> if next == now then executeAndScheduleNext' f sched' now
-                                    else void $ onEventOnce (timeEvent next) $ executeAndScheduleNext' f sched'
-        Nothing -> return ()
-
+   let sched' = sort sched
+   now <- getCurrentTime
+   let nextMay = headMay $ filter (>=now) sched'
+   case nextMay of
+       Just next -> if next == now then executeAndScheduleNext' f sched' now
+                                  else void $ onEventOnce (timeEvent next) $ executeAndScheduleNext' f sched'
+       Nothing -> return ()
 
 executeAndScheduleNext' :: (EvMgt n) => (UTCTime -> n ()) -> [UTCTime] -> UTCTime -> n ()
 executeAndScheduleNext' f sched now = do
