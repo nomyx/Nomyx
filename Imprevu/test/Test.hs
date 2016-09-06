@@ -1,6 +1,6 @@
 module Test where
 
-import Imprevu.Test
+import Imprevu.Test.Test
 import Distribution.TestSuite
 
 tests :: IO [Test]

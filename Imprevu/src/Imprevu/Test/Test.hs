@@ -8,154 +8,30 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Imprevu.Test where
+module Imprevu.Test.Test where
 
 import Control.Monad.State
-import Control.Monad.Except
 import Control.Applicative
 import Control.Shortcut
-import Control.Lens
 import Data.Typeable
 import Data.List
 import Data.Maybe
 import Data.Time
 import Imprevu.Events
 import Imprevu.Inputs
-import Imprevu.SysMgt
 import Imprevu.Variables
 import Imprevu.Messages
 import Imprevu.Evaluation.Event
-import Imprevu.Evaluation.EventEval
 import Imprevu.Evaluation.InputEval
-import Imprevu.Evaluation.Utils
-import System.IO.Unsafe
-import System.Random
+import Imprevu.Test.TestMgt
 import Prelude
 
---type Evaluate n s a = ErrorT String (State (EvalEnv n s)) a
-data TestState = TestState {eventInfos :: [EventInfo TestIO],
-                            outputs    :: [String],
-                            variable  :: Var}
-                            deriving Show
-
-newtype TestIO a = TestIO {unTestIO :: StateT TestState IO a}
-  deriving (Functor, Applicative, Monad, MonadIO, MonadState TestState)
-
-instance HasEvents TestIO TestState where
-  getEvents = eventInfos
-  setEvents eis (TestState _ os vs) = (TestState eis os vs)
-
--- | stores the variable's data
-data Var = forall a . (Typeable a, Show a) =>
-   Var { vName :: String,
-         vData :: a}
-
-deriving instance (Show Var)
-
-instance MonadError String TestIO where
-  throwError = undefined
-  catchError = undefined
-
-instance EvMgt TestIO where
-   onEvent         = evOnEvent
-   delEvent        = evDelEvent
-   getEvents       = error "not implem"
-   sendMessage m a = eventsEval $ triggerEvent m a
-
-instance SysMgt TestIO where
-   getCurrentTime    = return date1 --liftIO Data.Time.getCurrentTime
-   getRandomNumber a = liftIO $ randomRIO a
-
-instance VarMgt TestIO where
-   newVar       v a = modify (\(TestState eis os _) -> (TestState eis os (Var v a))) >> (return $ Just (V v))
-   readVar        _ = gets variable >>= (\(Var _ a) -> return $ cast a)
-   writeVar (V v) a = modify (\(TestState eis os _) -> (TestState eis os (Var v a))) >> return True
-   delVar        _  = return True
-
-eventsEval :: Evaluate TestIO TestState () -> TestIO ()
-eventsEval eval = do
-   s <- get
-   let (EvalEnv s' _ _) = runIdentity $ flip execStateT (EvalEnv s (void . evalEvents) undefined) $ do
-       res <- runExceptT eval
-       case res of
-         Right a -> return a
-         Left _ -> error $ show "error occured"
-   put s'
-
-evalEvents :: TestIO a -> Evaluate TestIO TestState a
-evalEvents (TestIO tio) = do
-   (EvalEnv s f g) <- get
-   let (a, s') = unsafePerformIO $ runStateT tio s
-   put (EvalEnv s' f g)
-   return a
-
-evOnEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> TestIO ()) -> TestIO EventNumber
-evOnEvent ev h = do
-   (TestState evs os vs) <- get
-   let en = getFreeNumber (map _eventNumber evs)
-   put (TestState ((EventInfo en ev h SActive []) : evs) os vs)
-   return en
-
-evDelEvent :: EventNumber -> TestIO Bool
-evDelEvent en = do
-   (TestState evs os vs) <- get
-   case find ((== en) . getL eventNumber) evs of
-      Nothing -> return False
-      Just eh -> case _evStatus eh of
-         SActive -> do
-            put (TestState (replaceWith ((== en) . getL eventNumber) eh{_evStatus = SDeleted} evs) os vs)
-            return True
-         SDeleted -> return False
-
-
-defaultEvalEnv :: EvalEnv TestIO TestState
-defaultEvalEnv = defaultEvalEnv' (TestState [] [] (Var "" ""))
-
-defaultEvalEnv' :: TestState -> EvalEnv TestIO TestState
-defaultEvalEnv' ts = EvalEnv ts (void . evalEvents) undefined
-
-execEvent :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestIO () -> Signal s e -> e -> [String]
-execEvent r f d = execEvents r [(f,d)]
-
-execEvents :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestIO () -> [(Signal s e, e)] -> [String]
-execEvents r sds = outputs $ execSignals r sds defaultEvalEnv
-
-execInput :: TestIO a -> EventNumber -> SignalAddress -> InputView -> InputDataView -> [String]
-execInput r en sa ff ide = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
-   res <- runExceptT $ do
-      void $ evalEvents r
-      triggerInput ff ide sa en
-   case res of
-      Right a -> return a
-      Left _ -> error $ show "error occured"
-
-execInputs :: TestIO a -> EventNumber -> [(SignalAddress, InputView, InputDataView)] -> [String]
-execInputs r en fads = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
-   res <- runExceptT $ do
-      void $ evalEvents r
-      mapM (\(sa, ff, ide) -> triggerInput ff ide sa en) fads
-      return ()
-   case res of
-      Right a -> return a
-      Left _ -> error $ show "error occured"
-
-exec :: TestIO a -> [String]
-exec r = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
-   res <- runExceptT $ do
-      void $ evalEvents r
-      return ()
-   case res of
-      Right a -> return a
-      Left _ -> error $ show "error occured"
-
-putStrLn' :: String -> TestIO ()
-putStrLn' s = modify (\(TestState is ss vs) -> (TestState is (s:ss) vs))
-
+-- * Tests
 
 data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 
 -- Test input
-testSingleInput :: TestIO ()
+testSingleInput :: TestM ()
 testSingleInput = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, Sarkozy] h 1 where
    h a = putStrLn' ("voted for " ++ show a)
 
@@ -163,7 +39,7 @@ testSingleInputEx :: Bool
 testSingleInputEx = "voted for Holland" `elem` g where
    g = execEvent testSingleInput (InputS (Radio "Vote for Holland or Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) Holland
 
-testMultipleInputs :: TestIO ()
+testMultipleInputs :: TestM ()
 testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
    h a = putStrLn' ("voted for " ++ show a)
 
@@ -171,7 +47,7 @@ testMultipleInputsEx :: Bool
 testMultipleInputsEx = "voted for [Holland,Sarkozy]" `elem` g where
    g = execEvent testMultipleInputs (InputS (Checkbox "Vote for Holland and Sarkozy"  [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) [Holland, Sarkozy]
 
-testInputString :: TestIO ()
+testInputString :: TestM ()
 testInputString = void $ onInputText_ "Enter a number:" h 1 where
    h a = putStrLn' ("You entered: " ++ a)
 
@@ -180,7 +56,7 @@ testInputStringEx = "You entered: 1" `elem` g where
    g = execEvent testInputString (InputS $ Text "Enter a number:") "1"
 
 -- Test message
-testSendMessage :: TestIO ()
+testSendMessage :: TestM ()
 testSendMessage = do
     let msg = Signal "msg" :: Msg String
     onEvent_ (messageEvent msg) f
@@ -190,7 +66,7 @@ testSendMessage = do
 testSendMessageEx :: Bool
 testSendMessageEx = "toto" `elem` (exec testSendMessage)
 
-testSendMessage2 :: TestIO ()
+testSendMessage2 :: TestM ()
 testSendMessage2 = do
     onEvent_ (messageEvent (Signal "msg" :: Msg ())) $ const $ putStrLn' "Received"
     sendMessage_ "msg"
@@ -198,7 +74,7 @@ testSendMessage2 = do
 testSendMessageEx2 :: Bool
 testSendMessageEx2 = "Received" `elem` (exec testSendMessage2)
 
-testAPICall :: TestIO ()
+testAPICall :: TestM ()
 testAPICall = do
     let call = APICall "test" :: APICall String String
     onAPICall call return
@@ -207,7 +83,7 @@ testAPICall = do
 testAPICallEx :: Bool
 testAPICallEx = "toto" `elem` (exec testAPICall)
 
-testAPICall2 :: TestIO ()
+testAPICall2 :: TestM ()
 testAPICall2 = do
     let call = APICall "test" :: APICall String String
     onAPICall call return
@@ -220,7 +96,7 @@ testAPICallEx2 = "toto" `elem` (exec testAPICall2)
 data Choice2 = Me | You deriving (Enum, Typeable, Show, Eq, Bounded)
 
 -- Test user input + variable read/write
-testUserInputWrite :: TestIO ()
+testUserInputWrite :: TestM ()
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (messageEvent (Signal "voted" :: Msg ())) h2
@@ -241,7 +117,7 @@ testUserInputWriteEx = "voted Me" `elem` g where
 
 -- Event composition
 
-testSumCompose :: TestIO ()
+testSumCompose :: TestM ()
 testSumCompose = void $ onEvent_ (True <$ inputButton 1 "click here:" <|> False <$ inputButton 2 "") f where
    f a = putStrLn' $ show a
 
@@ -249,7 +125,7 @@ testSumComposeEx :: Bool
 testSumComposeEx = "True" `elem` g where
    g = execInput testSumCompose 1 [SumL, AppR] (ButtonField "click here:") ButtonData
 
-testProdCompose :: TestIO ()
+testProdCompose :: TestM ()
 testProdCompose = void $ onEvent_ ((,) <$> inputText 1 "" <*> inputText 1 "") f where
    f a = putStrLn' $ show a
 
@@ -261,7 +137,7 @@ testProdComposeEx2 :: Bool
 testProdComposeEx2 = "(\"toto\",\"tata\")" `elem` g where
    g = execInputs testProdCompose 1 [([AppL, AppR], (TextField ""), TextData "toto"), ([AppR], (TextField ""), TextData "tata")]
 
-testTwoEvents :: TestIO ()
+testTwoEvents :: TestM ()
 testTwoEvents = do
    void $ onEvent_ (inputText 1 "") f
    void $ onEvent_ (inputText 1 "") f where
@@ -271,7 +147,7 @@ testTwoEventsEx :: Bool
 testTwoEventsEx = (length g) == 1 where
    g = execInput testTwoEvents 1 [] (TextField "") (TextData "toto")
 
-testMonadicEvent :: TestIO ()
+testMonadicEvent :: TestM ()
 testMonadicEvent = do
    let displayMsg a = putStrLn' a
    let e = do
@@ -283,7 +159,7 @@ testMonadicEventEx :: Bool
 testMonadicEventEx = "coco2" `elem` g where
    g = execInputs testMonadicEvent 1 [([BindL], (TextField ""), TextData "coco1"), ([BindR, BindR], (TextField ""), TextData "coco2")]
 
-testShorcutEvent :: TestIO ()
+testShorcutEvent :: TestM ()
 testShorcutEvent = do
    let displayMsg a = putStrLn' (concat $ catMaybes a)
    let e = do
@@ -307,7 +183,7 @@ data PlayerInfo = PlayerInfo { _playerNumber :: Int}
                                deriving (Eq, Typeable, Show)
 
 --This event waits for two identical signals to fire
-testDoubleEvent :: TestIO ()
+testDoubleEvent :: TestM ()
 testDoubleEvent = do
    let displayMsg a = putStrLn' $ show $ _playerNumber a
    let e :: Event PlayerInfo
@@ -324,17 +200,7 @@ testDoubleEventEx = "2" `elem` testDoubleEvent2PlayerArrive
 
 -- * Time events
 
-date1, date2, date3 :: UTCTime
-date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
-date2 = parse822Time "Tue, 02 Sep 1997 10:00:00 -0400"
-date3 = parse822Time "Tue, 02 Sep 1997 11:00:00 -0400"
-
-parse822Time :: String -> UTCTime
-parse822Time = zonedTimeToUTC
-              . fromJust
-              . parseTimeM True defaultTimeLocale rfc822DateFormat
-
-testTimeEvent :: TestIO ()
+testTimeEvent :: TestM ()
 testTimeEvent = void $ onEvent_ (timeEvent date1) f where
    f _ = putStrLn' $ show date1
 
@@ -342,14 +208,14 @@ testTimeEventEx :: Bool
 testTimeEventEx = (show date1) `elem` g where
    g = execEvent testTimeEvent (Signal date1) date1
 
-testTimeEvent2 :: TestIO ()
+testTimeEvent2 :: TestM ()
 testTimeEvent2 = schedule' [date1, date2] (putStrLn' . show)
 
 testTimeEventEx2 :: Bool
 testTimeEventEx2 = ((show date1) `elem` g) && ((show date2) `elem` g) where
   g = execEvents testTimeEvent2 [(Signal date1, date1),(Signal date2, date2)]
 
-testTime :: TestIO ()
+testTime :: TestM ()
 testTime = do
   t <- liftIO Data.Time.getCurrentTime
   void $ onEvent_ (True <$ inputButton 1 "click here before 5 seconds:" <|> False <$ (timeEvent $ addUTCTime 5 t)) f where

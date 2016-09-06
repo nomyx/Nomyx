@@ -39,12 +39,13 @@ library
                      Imprevu.Messages
                      Imprevu.Variables
                      Imprevu.SysMgt
-                     Imprevu.Test
                      Imprevu.Evaluation.Event
                      Imprevu.Evaluation.EventEval
                      Imprevu.Evaluation.InputEval
                      Imprevu.Evaluation.TimeEval
                      Imprevu.Evaluation.Utils
+                     Imprevu.Test.TestMgt
+                     Imprevu.Test.Test
                      Control.Shortcut
     exposed: True
     buildable: True

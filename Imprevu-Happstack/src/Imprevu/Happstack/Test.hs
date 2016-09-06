@@ -16,22 +16,23 @@ import Imprevu.Happstack.Types
 import Imprevu.Evaluation.InputEval
 import Imprevu.Evaluation.EventEval
 import Imprevu.Evaluation.TimeEval
-import Imprevu.Test
+import Imprevu.Test.Test
+import Imprevu.Test.TestMgt
 import Text.Blaze.Html5            (toHtml)
 import Web.Routes.Happstack
 import Web.Routes.PathInfo
 import Web.Routes.RouteT           (runRouteT)
 import Web.Routes.Site
 
-type TestServer a = RoutedServer TestIO TestState a
-type TestWebState = WebState TestIO TestState
+type TestServer a = RoutedServer TestM TestState a
+type TestWebState = WebState TestM TestState
 
 routedCommands :: Command -> TestServer Response
-routedCommands Main             = nomyxPage
+routedCommands Main               = mainPage
 routedCommands (DoInput en fa ft) = newInput en fa ft
 
-nomyxPage :: TestServer Response
-nomyxPage = do
+mainPage :: TestServer Response
+mainPage = do
    (WebState tts _ _ _) <- get
    (TestState eis os _) <- liftIO $ atomically $ readTVar tts
    m <- mapM viewInput eis
@@ -39,13 +40,12 @@ nomyxPage = do
      sequence_ $ catMaybes m
      toHtml $ show os
 
-nomyxSite :: TestWebState -> Site Command (ServerPartT IO Response)
-nomyxSite ws = setDefault Main $ mkSitePI $ (\a b -> evalStateT (runRouteT routedCommands a b) ws)
+site :: TestWebState -> Site Command (ServerPartT IO Response)
+site ws = setDefault Main $ mkSitePI $ (\a b -> evalStateT (runRouteT routedCommands a b) ws)
 
 start :: IO ()
 start = do
   let ts = execSignals (testSingleInput >> testMultipleInputs) [] defaultEvalEnv
-  let ts = execSignals (testTime) [] defaultEvalEnv
   tv <- atomically $ newTVar ts
   launchWebServer tv
 
@@ -61,7 +61,7 @@ launchWebServer tv = do
 server :: TestWebState -> ServerPartT IO Response
 server ws = mconcat [
     do decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
-       html <- implSite ("http://127.0.0.1") "/Test" (nomyxSite ws)
+       html <- implSite ("http://127.0.0.1") "/Test" (site ws)
        return $ toResponse html]
 
 updateSessionTest :: TVar TestState -> InputResult -> IO ()
