@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables      #-}
 {-# LANGUAGE Rank2Types      #-}
 
-module Imprevu.Time where
+module Imprevu.Evaluation.TimeEval where
 
 import Imprevu.Evaluation.EventEval
 import Imprevu.Evaluation.Event
@@ -17,7 +17,7 @@ import Control.Lens
 
 type Time = Signal UTCTime UTCTime
 
-data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. (Show a) => n a -> Evaluate n s (),       -- evaluation function
+data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. (Show a) => n a -> Evaluate n s (),     -- evaluation function
                                _errorHandler :: EventNumber -> String -> Evaluate n s ()}    -- error function
 
 launchTimeEvents :: (HasEvents n s, Monad n) => TVar s -> EvalFunc n s -> IO ()
@@ -35,14 +35,10 @@ launchTimeEvents tv ef = do
 triggerTimeEvent :: (HasEvents n s, Monad n) => TVar s -> EvalFunc n s -> UTCTime -> IO ()
 triggerTimeEvent tv ef t = do
     s <- atomically $ readTVar tv
-    let s' = trig t (EvalEnv s (_evalFunc ef) (_errorHandler ef))
+    let ee = EvalEnv s (_evalFunc ef) (_errorHandler ef)
+    let s' = execSignals (return ()) [(Signal t, t)] ee
     atomically $ writeTVar tv s'
     --save m'
-
-trig :: (HasEvents n s, Monad n) => UTCTime -> EvalEnv n s -> s
-trig t ee = execSignals (return ()) [(Signal t, t)] ee
-
---execSignals :: (Show a, Show e, Typeable e, Eq e, Show d, Typeable d, Eq d, HasEvents n s) => n a -> [(Signal e d, d)] -> EvalEnv n s -> s
 
 -- | get all events that has not been triggered yet
 getTimeEvents :: (HasEvents n s) => UTCTime -> Evaluate n s [UTCTime]

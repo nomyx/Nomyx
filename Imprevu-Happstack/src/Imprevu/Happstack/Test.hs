@@ -15,8 +15,8 @@ import Imprevu.Happstack.Forms
 import Imprevu.Happstack.Types
 import Imprevu.Evaluation.InputEval
 import Imprevu.Evaluation.EventEval
+import Imprevu.Evaluation.TimeEval
 import Imprevu.Test
-import Imprevu.Time
 import Text.Blaze.Html5            (toHtml)
 import Web.Routes.Happstack
 import Web.Routes.PathInfo
