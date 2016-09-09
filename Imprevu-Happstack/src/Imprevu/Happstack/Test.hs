@@ -27,21 +27,6 @@ import Web.Routes.Site
 type TestServer a = RoutedServer TestM TestState a
 type TestWebState = WebState TestM TestState
 
-routedCommands :: Command -> TestServer Response
-routedCommands Main               = mainPage
-routedCommands (DoInput en fa ft) = newInput en fa ft
-
-mainPage :: TestServer Response
-mainPage = do
-   (WebState tts _ _ _) <- get
-   (TestState eis os _) <- liftIO $ atomically $ readTVar tts
-   m <- mapM viewInput eis
-   return $ toResponse $ do
-     sequence_ $ catMaybes m
-     toHtml $ show os
-
-site :: TestWebState -> Site Command (ServerPartT IO Response)
-site ws = setDefault Main $ mkSitePI $ (\a b -> evalStateT (runRouteT routedCommands a b) ws)
 
 start :: IO ()
 start = do
@@ -73,3 +58,18 @@ updateSessionTest tvs (InputResult en sa ff ida) = do
    let (EvalEnv s' _ _) = execState ev (EvalEnv s (void . evalEvents) undefined)
    atomically $ writeTVar tvs s'
 
+routedCommands :: Command -> TestServer Response
+routedCommands Main               = mainPage
+routedCommands (DoInput en fa ft) = newInput en fa ft
+
+mainPage :: TestServer Response
+mainPage = do
+   (WebState tts _ _ _) <- get
+   (TestState eis os _) <- liftIO $ atomically $ readTVar tts
+   m <- mapM viewInput eis
+   return $ toResponse $ do
+     sequence_ $ catMaybes m
+     toHtml $ show os
+
+site :: TestWebState -> Site Command (ServerPartT IO Response)
+site ws = setDefault Main $ mkSitePI $ (\a b -> evalStateT (runRouteT routedCommands a b) ws)
