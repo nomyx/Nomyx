@@ -19,7 +19,7 @@ import           Happstack.Server              as HS (Response, Method (..), met
 import           Text.Blaze.Html5                    (ToMarkup, Html, toHtml, td, toValue, tr, (!), input)
 import qualified Text.Blaze.Html5              as H  (form, label)
 import           Text.Blaze.Html5.Attributes   as A  (id, type_, name, value, checked, for, action, method, enctype)
-import           Text.Reform                         (eitherForm, viewForm, (<++), ErrorInputType, Form, FormError (..), FormInput)
+import           Text.Reform                         (eitherForm, viewForm, (<++), (++>), ErrorInputType, Form, FormError (..), FormInput)
 import           Text.Reform.Blaze.String            (inputCheckboxes, label, textarea)
 import qualified Text.Reform.Blaze.String      as RB
 import           Text.Reform.Happstack               (environment)
@@ -48,13 +48,13 @@ viewInput' en (sa, (SomeSignal (InputS s))) = do
      lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm' iv
      let link = showRelURL (DoInput en sa iv)
      return $ Just $ tr $ td $ do
---          fromString title
+          --fromString title
           fromString " "
           blazeForm lf link ! A.id "InputForm"
 viewInput' _ _ = return Nothing
 
 inputForm' :: InputView -> ImpForm InputDataView
-inputForm' (RadioField _ choices)    = RadioData    <$> (RB.inputRadio choices (== 0)) <++ RB.label (" " :: String)
+inputForm' (RadioField s choices)    = RadioData    <$> RB.label s ++> (RB.inputRadio choices (== 0)) <++ RB.label (" " :: String)
 inputForm' (TextField _)             = TextData     <$> RB.inputText "" <++ label (" " :: String)
 inputForm' (TextAreaField _)         = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
 inputForm' (ButtonField _)           = pure ButtonData
