@@ -63,14 +63,14 @@ data Settings = Settings { _net           :: Network,  -- URL where the server i
                            deriving (Eq, Show, Read, Typeable)
 
 -- | Network infos
-data Network = Network {_host :: HostName, _port :: Port}
-               deriving (Eq, Show, Read, Typeable)
+data Network = Network {_host :: HostName,
+                        _port :: Port}
+                        deriving (Eq, Show, Read, Typeable)
 
 -- | The Library contains a list of rule templates together with their declarations
 data Library = Library { _mTemplates :: [RuleTemplate],
-                         _mModules   :: [Module]}
+                         _mModules   :: [ModuleInfo]}
                          deriving (Eq, Show, Typeable)
-
 
 -- * Player settings
 
@@ -109,11 +109,12 @@ $(deriveSafeCopy 1 'base ''LastUpload)
 $(deriveSafeCopy 1 'base ''PlayerSettings)
 $(deriveSafeCopy 1 'base ''ProfileData)
 $(deriveSafeCopy 1 'base ''RuleTemplate)
-$(deriveSafeCopy 1 'base ''Module)
+$(deriveSafeCopy 1 'base ''ModuleInfo)
 $(deriveSafeCopy 1 'base ''ProfileDataState)
 
 makeLenses ''Multi
 makeLenses ''Library
+makeLenses ''ModuleInfo
 makeLenses ''GameInfo
 makeLenses ''Settings
 makeLenses ''Network

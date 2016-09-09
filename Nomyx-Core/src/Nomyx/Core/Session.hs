@@ -101,24 +101,23 @@ checkRule rt pn gn sh = do
 
 compileRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> RuleEv -> String -> StateT Session IO ()
 compileRule rt pn gn sh re msg = do
-   rt'@(RuleTemplate _ _ code _ _ _ decls) <- setDecls rt
-   mrr <- liftIO $ interpretRule sh code (rights decls)
+   mods <- getModules rt
+   mrr <- liftIO $ interpretRule sh (_rRuleCode rt) mods
    case mrr of
       Right r -> do
          tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ G.execGameEvent' (Just $ Right r) (ProposeRuleEv re pn rt')
+         inGameDo gn $ G.execGameEvent' (Just $ Right r) (ProposeRuleEv re pn rt mods)
          modifyProfile pn (pLastRule .~ Just (rt, msg))
-      Left e -> submitRuleError rt' pn gn e
+      Left e -> submitRuleError rt pn gn e
 
-setDecls :: RuleTemplate -> StateT Session IO RuleTemplate
-setDecls rt = do
+getModules :: RuleTemplate -> StateT Session IO [ModuleInfo]
+getModules rt = do
    s <- get
    let mods = _mModules $ _mLibrary $ _multi s
-   return $ rDeclarations %~ (\d -> Right <$> (fromJust $ mapM (getModule mods) (lefts d))) $ rt
-   --return $ concatMap (_rDeclarations . _rRuleTemplate) (_rules $ _game $ _loggedGame $ fromJust gi)
+   return $ catMaybes $ map (getModule mods) (_rDeclarations rt)
 
-getModule :: [Module] -> FilePath -> Maybe Module
-getModule ms fp = listToMaybe $ filter (\(Module fp' c) -> (fp==fp')) ms
+getModule :: [ModuleInfo] -> FilePath -> Maybe ModuleInfo
+getModule ms fp = listToMaybe $ filter (\(ModuleInfo fp' c) -> (fp==fp')) ms
 
 submitRuleError :: RuleTemplate -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
 submitRuleError sr pn gn e = do
@@ -147,7 +146,7 @@ delRuleTemplate gn rn pn = do
   tracePN pn $ "del template " ++ show rn
   (multi . mLibrary . mTemplates) %= filter (\rt -> _rName rt /= rn)
 
-updateModules :: [Module] -> StateT Session IO ()
+updateModules :: [ModuleInfo] -> StateT Session IO ()
 updateModules ms = (multi . mLibrary . mModules) .= ms
 
 

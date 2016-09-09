@@ -14,8 +14,8 @@ import           Control.Exception as E
 import           Control.Arrow ((>>>))
 import           Control.Lens
 import           Control.Concurrent.STM
-import           Language.Haskell.TH
-import           Language.Haskell.TH.Syntax as THS hiding (lift, Module)
+import           Language.Haskell.TH hiding (ModuleInfo)
+import           Language.Haskell.TH.Syntax as THS hiding (lift, Module, ModuleInfo)
 import           System.IO.Unsafe
 import           Data.List
 import           Data.Maybe
@@ -132,7 +132,8 @@ testFile' path name func = do
    sh <- use sh
    dataDir <- lift PNC.getDataDir
    cont <- liftIO $ readFile (dataDir </> testDir </> path)
-   submitRule (RuleTemplate "" "" func "" Nothing [] [Right $ Module name cont]) 1 "test" sh
+   (multi . mLibrary . mModules) .= [ModuleInfo name cont]
+   submitRule (RuleTemplate "" "" func "" Nothing [] [name]) 1 "test" sh
    inputAllRadios 0
 
 testFile :: FilePath -> String -> StateT Session IO ()

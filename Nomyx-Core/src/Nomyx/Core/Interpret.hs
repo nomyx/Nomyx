@@ -41,14 +41,12 @@ startInterpreter = do
    --liftIO $ createDirectoryIfMissing True $ saveDir </> uploadDir
    ir <- runIn sh $ initializeInterpreter []
    case ir of
-      Right r -> do
-         putStrLn "Interpreter Loaded"
-         return $ Just r
+      Right _ -> putStrLn "Interpreter Loaded"
       Left e -> error $ "Interpreter initialization error:\n" ++ show e
    return sh
 
 -- | initializes the interpreter by loading some modules.
-initializeInterpreter :: [Module] -> Interpreter ()
+initializeInterpreter :: [ModuleInfo] -> Interpreter ()
 initializeInterpreter mods = do
    reset
    -- Interpreter options
@@ -75,14 +73,17 @@ getModName :: FilePath -> String
 getModName fp = intercalate "." $ (filter (/= ".") $ splitDirectories $ dropFileName fp) ++ [takeBaseName fp]
 
 ---- | reads a Rule out of a string.
-interpretRule :: ServerHandle -> RuleCode -> [Module] -> IO (Either InterpreterError Rule)
+interpretRule :: ServerHandle -> RuleCode -> [ModuleInfo] -> IO (Either InterpreterError Rule)
 interpretRule sh rc ms = do
-   runIn sh $ initializeInterpreter ms
-   let runRule = liftIO $ runIn sh $ interpret rc (as :: Rule)
-   let handler (e::IOException) = return $ Left $ NotAllowed $ "Caught exception: " ++ (show e)
-   runRule `catchIOError` handler
+   res <- runIn sh $ initializeInterpreter ms
+   case res of
+      Left e -> return $ Left e
+      Right _ -> do
+         let runRule = liftIO $ runIn sh $ interpret rc (as :: Rule)
+         let handler (e::IOException) = return $ Left $ NotAllowed $ "Caught exception: " ++ (show e)
+         runRule `catchIOError` handler
 
-interRule :: ServerHandle -> RuleCode -> [Module] -> IO Rule
+interRule :: ServerHandle -> RuleCode -> [ModuleInfo] -> IO Rule
 interRule sh rc ms = do
    res <- interpretRule sh rc ms
    case res of
@@ -90,7 +91,7 @@ interRule sh rc ms = do
       Left e -> error $ show e
 
 --TODO handle error cases
-copyModule :: FilePath -> Module -> IO (FilePath)
+copyModule :: FilePath -> ModuleInfo -> IO (FilePath)
 copyModule saveDir mod = do
    let dest = saveDir </> (_modPath mod)
    createDirectoryIfMissing True $ dropFileName dest

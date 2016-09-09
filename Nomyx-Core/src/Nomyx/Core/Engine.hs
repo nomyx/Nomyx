@@ -24,6 +24,7 @@ module Nomyx.Core.Engine(
 
    -- * Rules management
    activeRules, pendingRules, rejectedRules,
+   InterpretRule,
 
    -- * Events management
    events,
@@ -52,8 +53,7 @@ module Nomyx.Core.Engine(
    getChoiceEvents,
    getTextEvents,
    runEvaluate,
-   getL,
-   InterpretRule
+   getL
    ) where
 
 import           Nomyx.Core.Engine.Evaluation

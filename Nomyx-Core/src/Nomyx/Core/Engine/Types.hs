@@ -44,7 +44,7 @@ type Evaluate   a = ErrorT String (State EvalEnv ) a
 type EvaluateNE a = Reader EvalEnv a
 
 -- | extract a rule from a code string and an environment
-type InterpretRule = RuleCode -> [Module] -> IO Rule
+type InterpretRule = RuleCode -> [ModuleInfo] -> IO Rule
 
 -- * Game
 
@@ -90,7 +90,7 @@ emptyGame name desc date gen = Game {
 -- | a list of possible events affecting a game
 data GameEvent = JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
-               | ProposeRuleEv     RuleEv PlayerNumber RuleTemplate
+               | ProposeRuleEv     RuleEv PlayerNumber RuleTemplate [ModuleInfo]
                | InputResult       PlayerNumber EventNumber SignalAddress FormField InputData
                | GLog              (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
@@ -231,4 +231,4 @@ $(deriveJSON defaultOptions ''GameDesc)
 $(deriveJSON defaultOptions ''StdGen)
 $(deriveJSON defaultOptions ''SignalAddressElem)
 $(deriveJSON defaultOptions ''LoggedGame)
-$(deriveJSON defaultOptions ''Module)
+$(deriveJSON defaultOptions ''ModuleInfo)
