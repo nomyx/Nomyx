@@ -7,12 +7,16 @@ packages:
 - location: Nomyx-Api
 - location: Nomyx-Auth
 - location: Nomyx-Client
+- location: Imprevu
 extra-deps:
-- servant-mock-0.4.4.6
+- Nomyx-Core-0.7.6
+- Nomyx-Language-0.7.6
+- Nomyx-Web-0.7.6
+- Nomyx-Api-0.7.6
 - hint-server-1.4.2
 - DebugTraceHelpers-0.12
-- eprocess-1.7.2
 - time-recurrence-0.9.2
+- eprocess-1.7.2
 - web-routes-regular-0.19.0.1
 - regular-0.3.4.4
 resolver: lts-5.11
