@@ -75,7 +75,7 @@ start flags = do
    let webDir = fromMaybe defWebDir (findWebDir flags)
    -- source directory: Nomyx-Language files (used only for display in GUI, since this library is statically linked otherwise)
    let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
-   let watchdog = fromMaybe 5 (read <$> findWatchdog flags)
+   let watchdog = fromMaybe 20 (read <$> findWatchdog flags)
    let settings = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir watchdog
    let mLoad = findLoadTest flags
    when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\nweb dir = " ++ webDir ++ "\nsource dir = " ++ sourceDir
