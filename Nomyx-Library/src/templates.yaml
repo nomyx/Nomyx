@@ -5,7 +5,7 @@
   desc:     A rule that does nothing
   rule:     return ()
   category: [Examples]
-  decls:    [Left: Nomyx/Library/Examples.hs]
+  decls:    [Nomyx/Library/Examples.hs]
   picture:  null
 
 - name:     Hello World
@@ -13,7 +13,7 @@
   desc:     A rule that says hello to all players
   rule:     outputAll_ "hello, world!"
   category: [Examples]
-  decls:    [Left: Nomyx/Library/Examples.hs]
+  decls:    [Nomyx/Library/Examples.hs]
   picture:  null
 
 - name:     Display current time
@@ -21,7 +21,7 @@
   desc:     Will display the current time (when refreshing the screen)
   rule:     displayCurrentTime
   category: [Examples]
-  decls:    [Left: Nomyx/Library/Examples.hs]
+  decls:    [Nomyx/Library/Examples.hs]
   picture:  null
 
 - name:     Display activation time
@@ -29,7 +29,7 @@
   desc:     will display the time at which the rule as been activate
   rule:     displayActivateTime
   category: [Examples]
-  decls:    [Left: Nomyx/Library/Examples.hs]
+  decls:    [Nomyx/Library/Examples.hs]
   picture:  null
 
 - name:     Delete rule
@@ -37,7 +37,7 @@
   desc:     Delete rule number one and then deletes itself
   rule:     suppressRule_ 1 >> autoDelete
   category: [Examples]
-  decls:    [Left: Nomyx/Library/Examples.hs]
+  decls:    [Nomyx/Library/Examples.hs]
   picture:  null
 
 - name:     Bravo button
@@ -45,7 +45,7 @@
   desc:     display a button and greets you when pressed (for player 1)
   rule:     void $ onInputButton_ "Click here:" (const $ outputAll_ "Bravo!") 1
   category: [Examples]
-  decls:    [Left: Nomyx/Library/Examples.hs]
+  decls:    [Nomyx/Library/Examples.hs]
   picture:  null
 
 - name:     Hello button
@@ -53,7 +53,7 @@
   desc:     display a button to greet other players
   rule:     helloButton
   category: [Examples]
-  decls:    [Left: Nomyx/Library/Examples.hs]
+  decls:    [Nomyx/Library/Examples.hs]
   picture:  null
 
 - name:     Enter Haiku
@@ -61,7 +61,7 @@
   desc:     display a field where you can enter a poem
   rule:     void $ onInputTextarea_ "Enter a haiku:" outputAll_ 1
   category: [Examples]
-  decls:    [Left: Nomyx/Library/Examples.hs]
+  decls:    [Nomyx/Library/Examples.hs]
   picture:  null
 
 # Bank accounts
@@ -71,7 +71,7 @@
   desc:     Create a bank account for each players
   rule:     createBankAccounts
   category: [Bank]
-  decls:    [Left: Nomyx/Library/Bank.hs]
+  decls:    [Nomyx/Library/Bank.hs]
   picture:  null
 
 - name:     Bank services
@@ -79,7 +79,7 @@
   desc:     Activate bank services
   rule:     bankServices
   category: [Bank]
-  decls:    [Left: Nomyx/Library/Bank.hs]
+  decls:    [Nomyx/Library/Bank.hs]
   picture:  null
 
 - name:     Display accounts
@@ -87,7 +87,7 @@
   desc:     Display all bank accounts
   rule:     displayBankAccounts
   category: [Bank]
-  decls:    [Left: Nomyx/Library/Bank.hs]
+  decls:    [Nomyx/Library/Bank.hs]
   picture:  null
 
 - name:     Daily salaries
@@ -95,7 +95,7 @@
   desc:     each player wins 10 Ecu each days
   rule:     winXEcuPerDay 10 
   category: [Bank]
-  decls:    [Left: Nomyx/Library/Bank.hs]
+  decls:    [Nomyx/Library/Bank.hs]
   picture:  null
 
 - name:     Bonus rule accepted
@@ -103,7 +103,7 @@
   desc:     a player wins 100 Ecu if a rule proposed is accepted
   rule:     winXEcuOnRuleAccepted 100
   category: [Bank]
-  decls:    [Left: Nomyx/Library/Bank.hs]
+  decls:    [Nomyx/Library/Bank.hs]
   picture:  null
 
 - name:     Money transfer
@@ -111,7 +111,7 @@
   desc:     a player can transfer money to another player
   rule:     moneyTransfer
   category: [Bank]
-  decls:    [Left: Nomyx/Library/Bank.hs]
+  decls:    [Nomyx/Library/Bank.hs]
   picture:  null
 
 # Democracy
@@ -124,8 +124,8 @@
   rule:     onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDay
   category: [Democracy]
   decls:
-    - Left: Nomyx/Library/Vote.hs
-    - Left: Nomyx/Library/Democracy.hs
+    - Nomyx/Library/Vote.hs
+    - Nomyx/Library/Democracy.hs
   picture:  null
 
 - name:     Unanimity vote
@@ -134,6 +134,6 @@
   rule:     onRuleProposed $ callVoteRule unanimity oneDay
   category: [Democracy]
   decls:
-    - Left: Nomyx/Library/Vote.hs
-    - Left: Nomyx/Library/Democracy.hs
+    - Nomyx/Library/Vote.hs
+    - Nomyx/Library/Democracy.hs
   picture:  null
