@@ -269,6 +269,7 @@ data RuleInfo = RuleInfo { _rNumber       :: RuleNumber,       -- number of the 
                            _rRule         :: Rule,             -- function representing the rule (interpreted from rRuleCode)
                            _rStatus       :: RuleStatus,       -- status of the rule
                            _rAssessedBy   :: Maybe RuleNumber, -- which rule accepted or rejected this rule
+                           _rModules      :: [Module],
                            _rRuleTemplate :: RuleTemplate}
                            deriving (Typeable, Show)
 
@@ -279,13 +280,14 @@ data RuleTemplate = RuleTemplate { _rName         :: RuleName,         -- short 
                                    _rAuthor       :: String,           -- the name of the original author
                                    _rPicture      :: Maybe FilePath,   -- a file name for the illustration image
                                    _rCategory     :: [String],         -- categories
-                                   _rDeclarations :: [Either FilePath Module]} -- addictional declarations (Haskell modules)
+                                   _rDeclarations :: [FilePath]} -- addictional declarations (Haskell modules)
                                    deriving (Typeable, Show, Read, Data, Generic)
 
+type Module = String
 
-data Module = Module {_modPath :: FilePath,  -- file name of the module
-                      _modContent :: String} -- content of the module (or Nothing if module is present in library)
-                      deriving (Eq, Read, Show, Typeable, Data, Generic)
+data ModuleInfo = ModuleInfo {_modPath :: FilePath,  -- file name of the module
+                              _modContent :: Module} -- content of the module (or Nothing if module is present in library)
+                              deriving (Eq, Read, Show, Typeable, Data, Generic, Ord)
 
 instance Eq RuleInfo where
     (RuleInfo {_rNumber=r1}) == (RuleInfo {_rNumber=r2}) = r1 == r2
@@ -348,7 +350,7 @@ makeLenses ''RuleTemplate
 makeLenses ''PlayerInfo
 makeLenses ''EventInfo
 makeLenses ''SignalOccurence
-makeLenses ''Module
+makeLenses ''ModuleInfo
 
 eventNumber :: Lens' EventInfo EventNumber
 eventNumber f (EventInfo e rn ev h evs env) = fmap (\e' -> (EventInfo e' rn ev h evs env)) (f e)
