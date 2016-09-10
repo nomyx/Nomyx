@@ -41,6 +41,7 @@ viewInput ei@(EventInfo en _ _ SActive _) = do
       else Just $ sequence_ ds
 viewInput _ = return Nothing
 
+--TODO filter with ClientNumber
 viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer n s (Maybe Html)
 viewInput' en (sa, (SomeSignal (InputS s))) = do
      traceM $ "viewInput' " ++ (show s)
