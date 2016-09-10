@@ -41,11 +41,11 @@ newVar' :: (Typeable a, Show a) => V a -> a -> Nomex Bool
 newVar' v a = maybe False (const True) <$> (newVar (varName v) a)
 
 -- | variable reading
-readVar :: (Typeable a, Show a) => V a -> NomexNE (Maybe a)
+readVar :: (Typeable a, Show a) => V a -> Nomex (Maybe a)
 readVar = ReadVar
 
 readVar_ :: (Typeable a, Show a) => V a -> Nomex a
-readVar_ v@(V a) = partial ("readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing") (liftEffect $ readVar v)
+readVar_ v@(V a) = partial ("readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing") (readVar v)
 
 -- | variable writing
 writeVar :: (Typeable a, Show a) => V a -> a -> Nomex Bool

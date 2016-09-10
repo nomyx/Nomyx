@@ -162,7 +162,7 @@ testVarEx2 = True --_variables (execRuleFunc testVar2) == []
 testVar3 :: Rule
 testVar3 = do
    var <- newVar_ "toto" (1::Int)
-   a <- liftEffect $ readVar var
+   a <- readVar var
    case a of
       Just (1::Int) -> void $ newOutput (Just 1) (return "ok")
       _ -> void $ newOutput (Just 1) (return "nok")
@@ -175,7 +175,7 @@ testVar4 :: Rule
 testVar4 = do
    var <- newVar_ "toto" (1::Int)
    writeVar var (2::Int)
-   a <- liftEffect $ readVar var
+   a <- readVar var
    case a of
       Just (2::Int) -> void $ newOutput (Just 1) (return "ok")
       _ -> void $ newOutput (Just 1) (return "nok")
@@ -188,7 +188,7 @@ testVar5 :: Rule
 testVar5 = do
    var <- newVar_ "toto" ([]::[Int])
    writeVar var ([1]::[Int])
-   a <- liftEffect $ readVar var
+   a <- readVar var
    case a of
       Just (a::[Int]) -> void $ writeVar var (2:a)
       Nothing         -> void $ newOutput (Just 1) (return "nok")
@@ -273,7 +273,7 @@ testUserInputWrite = do
             writeVar (V "vote") (Just a)
             SendMessage (Msg "voted") ()
         h2 _ = do
-            a <- liftEffect $ readVar (V "vote")
+            a <- readVar (V "vote")
             void $ case a of
                 Just (Just Me) -> newOutput (Just 1) (return "voted Me")
                 _ -> newOutput (Just 1) (return "problem")
@@ -286,7 +286,7 @@ testUserInputWriteEx = isOutput "voted Me" g where
 -- Test rule activation
 testActivateRule :: Rule
 testActivateRule = do
-    a <- liftEffect GetRules
+    a <- GetRules
     when (_rStatus (head a) == Pending) $ void $ ActivateRule $ _rNumber (head a)
 
 

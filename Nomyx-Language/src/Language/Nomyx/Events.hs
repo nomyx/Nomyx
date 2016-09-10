@@ -44,13 +44,13 @@ onEventOnce e h = do
 delEvent :: EventNumber -> Nomex Bool
 delEvent = DelEvent
 
-getEvents :: NomexNE [EventInfo]
+getEvents :: Nomex [EventInfo]
 getEvents = GetEvents
 
-getEvent :: EventNumber -> NomexNE (Maybe EventInfo)
+getEvent :: EventNumber -> Nomex (Maybe EventInfo)
 getEvent en = find (\(EventInfo en2 _ _ _ evst _) -> en == en2 && evst == SActive) <$> getEvents
 
-getIntermediateResults :: EventNumber -> NomexNE (Maybe [(PlayerNumber, SomeData)])
+getIntermediateResults :: EventNumber -> Nomex (Maybe [(PlayerNumber, SomeData)])
 getIntermediateResults en = do
    mev <- getEvent en
    case mev of
@@ -64,7 +64,7 @@ getInputResult _ = Nothing
 -- | on the provided schedule, the supplied function will be called
 schedule :: Schedule Freq -> (UTCTime -> Nomex ()) -> Nomex ()
 schedule sched f = do
-    now <- liftEffect getCurrentTime
+    now <- getCurrentTime
     let next = head $ starting now sched
     if next == now then executeAndScheduleNext f sched now
                    else void $ onEventOnce (timeEvent next) $ executeAndScheduleNext f sched
@@ -82,7 +82,7 @@ schedule_ ts f = schedule ts (const f)
 schedule' :: [UTCTime] -> (UTCTime -> Nomex ()) -> Nomex ()
 schedule' sched f = do
     let sched' = sort sched
-    now <- liftEffect getCurrentTime
+    now <- getCurrentTime
     let nextMay = headMay $ filter (>=now) sched'
     case nextMay of
         Just next -> if next == now then executeAndScheduleNext' f sched' now
@@ -101,7 +101,7 @@ schedule'_ :: [UTCTime] -> Nomex () -> Nomex ()
 schedule'_ ts f = schedule' ts (const f)
 
 -- | get the current time as UTCTime
-getCurrentTime :: NomexNE UTCTime
+getCurrentTime :: Nomex UTCTime
 getCurrentTime = CurrentTime
 
 -- * Individual events
@@ -128,7 +128,7 @@ messageEvent :: (Typeable a) => Msg a -> Event a
 messageEvent = SignalEvent . Message
 
 -- | Build a event firing immediatly, yelding the value of the NomexNE
-liftEvent :: NomexNE a -> Event a
+liftEvent :: Nomex a -> Event a
 liftEvent = LiftEvent
 
 -- | duration

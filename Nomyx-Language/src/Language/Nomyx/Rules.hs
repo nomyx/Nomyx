@@ -60,21 +60,21 @@ rejectRule = RejectRule
 rejectRule_ :: RuleNumber -> Nomex ()
 rejectRule_ r = void $ rejectRule r
 
-getRules :: NomexNE [RuleInfo]
+getRules :: Nomex [RuleInfo]
 getRules = GetRules
 
-getActiveRules :: NomexNE [RuleInfo]
+getActiveRules :: Nomex [RuleInfo]
 getActiveRules = filter ((== Active) . _rStatus) <$> getRules
 
-getRule :: RuleNumber -> NomexNE (Maybe RuleInfo)
+getRule :: RuleNumber -> Nomex (Maybe RuleInfo)
 getRule rn = do
    rs <- GetRules
    return $ find (\a -> a ^. rNumber == rn) rs
 
-getRulesByNumbers :: [RuleNumber] -> NomexNE [RuleInfo]
+getRulesByNumbers :: [RuleNumber] -> Nomex [RuleInfo]
 getRulesByNumbers = mapMaybeM getRule
 
-getRuleFuncs :: NomexNE [Nomex ()]
+getRuleFuncs :: Nomex [Nomex ()]
 getRuleFuncs = map _rRule <$> getRules
 
 -- | add a rule to the game, it will have to be activated
@@ -87,12 +87,12 @@ addRule_ = void . AddRule
 -- | add a rule to the game as described by the parameters
 addRule' :: RuleName -> Rule -> RuleCode -> String -> Nomex RuleNumber
 addRule' name rule code desc = do
-   number <- liftEffect getFreeRuleNumber
+   number <- getFreeRuleNumber
    res <- addRule $ defaultRuleInfo { _rRule = rule, _rNumber = number, _rRuleTemplate = defaultRuleTemplate {_rName = name,  _rRuleCode = code,  _rDescription = desc}}
    return $ if res then number else error "addRule': cannot add rule"
 
 
-getFreeRuleNumber :: NomexNE RuleNumber
+getFreeRuleNumber :: Nomex RuleNumber
 getFreeRuleNumber = getFreeNumber . map _rNumber <$> getRules
 
 getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
@@ -106,7 +106,7 @@ suppressRule_ = void . RejectRule
 
 suppressAllRules :: Nomex Bool
 suppressAllRules = do
-    rs <- liftEffect getRules
+    rs <- getRules
     res <- mapM (suppressRule . _rNumber) rs
     return $ and res
 
@@ -118,10 +118,10 @@ proposeRule :: RuleInfo -> Nomex Bool
 proposeRule = ProposeRule
 
 -- | allows a rule to retrieve its own number (for auto-deleting for example)
-getSelfRuleNumber :: NomexNE RuleNumber
+getSelfRuleNumber :: Nomex RuleNumber
 getSelfRuleNumber = SelfRuleNumber
 
-getSelfRule :: NomexNE RuleInfo
+getSelfRule :: Nomex RuleInfo
 getSelfRule  = do
    srn <- getSelfRuleNumber
    [rs] <- getRulesByNumbers [srn]
@@ -133,12 +133,12 @@ activateOrRejectRule r b = if b then activateRule_ (_rNumber r) else rejectRule_
 
 -- | a rule can autodelete itself (generaly after having performed some actions)
 autoDelete :: Nomex ()
-autoDelete = liftEffect getSelfRuleNumber >>= suppressRule_
+autoDelete = getSelfRuleNumber >>= suppressRule_
 
 -- | All rules from player p are erased:
 eraseAllRules :: PlayerNumber -> Nomex Bool
 eraseAllRules p = do
-    rs <- liftEffect getRules
+    rs <- getRules
     let myrs = filter (\a -> a ^. rProposedBy == p) rs
     res <- mapM (suppressRule . _rNumber) myrs
     return $ and res
@@ -150,7 +150,7 @@ autoActivate = void $ onEvent_ (ruleEvent Proposed) (activateRule_ . _rNumber)
 -- * Meta Rules
 
 -- | A meta rule is a rule that can juge the legality of another rule.
-type MetaRule = RuleInfo -> NomexNE Bool
+type MetaRule = RuleInfo -> Nomex Bool
 
 -- | The meta rules are stored in a list variable
 metaruleVar :: V [(String, MetaRule)]
@@ -165,7 +165,7 @@ addMetarule :: MetaRule -> String -> Nomex ()
 addMetarule mr code = void $ modifyVar metaruleVar ((code, mr):)
 
 -- | use the list of meta rules to juge a new rule
-testWithMetaRules :: RuleInfo -> NomexNE Bool
+testWithMetaRules :: RuleInfo -> Nomex Bool
 testWithMetaRules r = do
    mmrs <- readVar metaruleVar
    case mmrs of
@@ -198,7 +198,7 @@ immutableRule rn rule = do
    maybe (return True) (const $ simulate (_rRule rule) (isJust <$> getRule rn)) immu
 
 -- | simulate the execution of rule "sim" and then run rule "test" over the result
-simulate :: Nomex a -> NomexNE Bool -> NomexNE Bool
+simulate :: Nomex a -> Nomex Bool -> Nomex Bool
 simulate = Simu
 
 -- | sets a callback called for each rule proposed

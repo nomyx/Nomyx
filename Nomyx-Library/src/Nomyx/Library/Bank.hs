@@ -47,12 +47,12 @@ deposit (pn, amount) = do
 
 withdraw :: (PlayerNumber, Int) -> Nomex Bool
 withdraw (pn, amount) = do
-  balance <- liftEffect $ getValueOfPlayer pn accounts
+  balance <- getValueOfPlayer pn accounts
   if (amount > 0 && fromJust balance >= amount) then modifyValueOfPlayer pn accounts (\a -> a - amount)
   else return False
 
 getBalance :: PlayerNumber -> Nomex (Maybe Int)
-getBalance pn = liftEffect $ getValueOfPlayer pn accounts
+getBalance pn = getValueOfPlayer pn accounts
 
 -- | Permanently display the bank accounts
 displayBankAccounts :: Rule

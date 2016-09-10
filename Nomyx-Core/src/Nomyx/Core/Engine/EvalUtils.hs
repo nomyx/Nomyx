@@ -49,8 +49,8 @@ log mpn s = focusGame $ do
    time <- use currentTime
    void $ logs %= (Log mpn time s : )
 
-liftEval :: EvaluateNE a -> Evaluate a
-liftEval r = runReader r <$> get
+--liftEval :: EvaluateNE a -> Evaluate a
+--liftEval r = runReader r <$> get
 
 
 

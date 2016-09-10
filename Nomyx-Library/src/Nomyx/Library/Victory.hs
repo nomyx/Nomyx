@@ -37,12 +37,12 @@ victoryXEcu x = setVictory $ do
 noGroupVictory ::  Rule
 noGroupVictory = do
    let testVictory (VictoryInfo _ cond) = do
-       vics <- liftEffect cond
+       vics <- cond
        when (length vics >1) $ setVictory (return []) --unset victory condition
    void $ onEvent_ victoryEvent testVictory
 
 -- | Rule that state that you win. Good luck on having this accepted by other players ;)
 iWin :: Rule
-iWin = liftEffect getProposerNumber >>= giveVictory
+iWin = getProposerNumber >>= giveVictory
 
 

@@ -59,7 +59,7 @@ unanimityVote = do
 -- | call a vote on a rule for every players, with an assessing function and a delay
 callVoteRule :: AssessFunction -> NominalDiffTime -> RuleInfo -> Nomex ()
 callVoteRule assess delay ri = do
-   endTime <- addUTCTime delay <$> liftEffect getCurrentTime
+   endTime <- addUTCTime delay <$> getCurrentTime
    callVoteRule' assess endTime ri
 
 callVoteRule' :: AssessFunction -> UTCTime -> RuleInfo -> Nomex ()
@@ -72,7 +72,7 @@ finishVote :: AssessFunction -> RuleInfo -> [(PlayerNumber, Maybe Bool)] -> Nome
 finishVote assess ri vs = do
    let passed = fromJust $ assess $ getVoteStats (map snd vs) True
    activateOrRejectRule ri passed
-   end <- liftEffect getCurrentTime
+   end <- getCurrentTime
    sendMessage voteEnd (VoteEnd ri vs passed end)
 
 -- | call a vote for every players, with an assessing function, a delay and a function to run on the result
@@ -178,7 +178,7 @@ getBooleanResult (pn, SomeData sd) = case (cast sd) of
    Just a  -> (pn, a)
    Nothing -> error "incorrect vote field"
 
-showOnGoingVote :: [(PlayerNumber, Maybe Bool)] -> RuleNumber -> UTCTime -> NomexNE String
+showOnGoingVote :: [(PlayerNumber, Maybe Bool)] -> RuleNumber -> UTCTime -> Nomex String
 showOnGoingVote [] rn _ = return $ "Nobody voted yet for rule #" ++ (show rn) ++ "."
 showOnGoingVote listVotes rn endTime = do
    list <- mapM showVote listVotes
@@ -190,14 +190,14 @@ showOnGoingVote listVotes rn endTime = do
 displayFinishedVote :: VoteEnd -> Nomex ()
 displayFinishedVote (VoteEnd ri vs passed end) = void $ outputAll $ showFinishedVote (_rNumber ri) passed vs end
 
-showFinishedVote :: RuleNumber -> Bool -> [(PlayerNumber, Maybe Bool)] -> UTCTime -> NomexNE String
+showFinishedVote :: RuleNumber -> Bool -> [(PlayerNumber, Maybe Bool)] -> UTCTime -> Nomex String
 showFinishedVote rn passed l _ = do
    let title = "Vote finished for rule #" ++ (show rn) ++ ", passed: " ++ (show passed)
    let voted = filter (\(_, r) -> isJust r) l
    votes <- mapM showVote voted
    return $ title ++ " (" ++ (intercalate ", " $ map (\(name, vote) -> name ++ ": " ++ vote) votes) ++ ")"
 
-showVote :: (PlayerNumber, Maybe Bool) -> NomexNE (String, String)
+showVote :: (PlayerNumber, Maybe Bool) -> Nomex (String, String)
 showVote (pn, v) = do
    name <- showPlayer pn
    return (name, showChoice v)

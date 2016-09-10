@@ -47,7 +47,7 @@ evalNomex (ModifyRule m rule)     = evModifyRule m rule
 evalNomex (SetPlayerName pn n)    = evChangeName pn n
 evalNomex (DelPlayer pn)          = evDelPlayer pn
 evalNomex (SetVictory ps)         = evSetVictory ps
-evalNomex (LiftEffect e)          = liftEval $ evalNomexNE e
+--evalNomex (LiftEffect e)          = liftEval $ evalNomex e
 evalNomex (ThrowError s)          = throwError s
 evalNomex (CatchError n h)        = catchError (evalNomex n) (evalNomex . h)
 evalNomex (Return a)              = return a
@@ -55,17 +55,17 @@ evalNomex (Bind ex f)             = evalNomex ex >>= \e -> evalNomex (f e)
 evalNomex (GetRandomNumber r)     = evGetRandomNumber r
 
 -- | evaluate an effectless expression.
-evalNomexNE :: NomexNE a -> EvaluateNE a
-evalNomexNE (ReadVar v)     = evReadVar v
-evalNomexNE (GetOutput on)  = evGetOutput on
-evalNomexNE  GetRules       = _rules <$> asks _eGame
-evalNomexNE  GetPlayers     = _players <$> asks _eGame
-evalNomexNE  GetEvents      = _events <$> asks _eGame
-evalNomexNE  SelfRuleNumber = asks _eRuleNumber
-evalNomexNE (CurrentTime)   = _currentTime <$> asks _eGame
-evalNomexNE (Return a)      = return a
-evalNomexNE (Bind ex f)     = evalNomexNE ex >>= \e -> evalNomexNE (f e)
-evalNomexNE (Simu sim ev)   = evSimu sim ev
+--evalNomexNE :: NomexNE a -> EvaluateNE a
+evalNomex (ReadVar v)     = evReadVar v
+evalNomex (GetOutput on)  = evGetOutput on
+evalNomex  GetRules       = _rules <$> gets _eGame
+evalNomex  GetPlayers     = _players <$> gets _eGame
+evalNomex  GetEvents      = _events <$> gets _eGame
+evalNomex  SelfRuleNumber = gets _eRuleNumber
+evalNomex (CurrentTime)   = _currentTime <$> gets _eGame
+evalNomex (Return a)      = return a
+evalNomex (Bind ex f)     = evalNomex ex >>= \e -> evalNomex (f e)
+evalNomex (Simu sim ev)   = evSimu sim ev
 
 
 evNewVar :: (Typeable a, Show a) => VarName -> a -> Evaluate (Maybe (V a))
@@ -200,23 +200,23 @@ evDelEvent en = do
 evTriggerTime :: UTCTime -> Evaluate ()
 evTriggerTime t = triggerEvent (Time t) t
 
-evNewOutput :: Maybe PlayerNumber -> NomexNE String -> Evaluate OutputNumber
+evNewOutput :: Maybe PlayerNumber -> Nomex String -> Evaluate OutputNumber
 evNewOutput pn s = do
    (ops, rn) <- accessGame outputs
    let on = getFreeNumber (map _outputNumber ops)
    modifyGame outputs (Output on rn pn s SActive : )
    return on
 
-evGetOutput :: OutputNumber -> EvaluateNE (Maybe String)
+evGetOutput :: OutputNumber -> Evaluate (Maybe String)
 evGetOutput on = do
-   ops <- _outputs <$> asks _eGame
+   ops <- _outputs <$> gets _eGame
    case find (\(Output myOn _ _ _ s) -> myOn == on && s == SActive) ops of
       Nothing -> return Nothing
       Just (Output _ _ _ o _) -> do
-         out <- evalNomexNE o
+         out <- evalNomex o
          return $ Just out
 
-evUpdateOutput :: OutputNumber -> NomexNE String -> Evaluate Bool
+evUpdateOutput :: OutputNumber -> Nomex String -> Evaluate Bool
 evUpdateOutput on s = do
    (ops, _) <- accessGame outputs
    case find (\(Output myOn _ _ _ st) -> myOn == on && st == SActive) ops of
@@ -236,15 +236,15 @@ evDelOutput on = do
             return True
          SDeleted -> return False
 
-evSetVictory :: NomexNE [PlayerNumber] -> Evaluate ()
+evSetVictory :: Nomex [PlayerNumber] -> Evaluate ()
 evSetVictory ps = do
    rn <- use eRuleNumber
    putGame victory (Just $ VictoryInfo rn ps)
    triggerEvent Victory (VictoryInfo rn ps)
 
-evReadVar :: (Typeable a, Show a) => V a -> EvaluateNE (Maybe a)
+evReadVar :: (Typeable a, Show a) => V a -> Evaluate (Maybe a)
 evReadVar (V name) = do
-   vars <- _variables <$> asks _eGame
+   vars <- _variables <$> gets _eGame
    let var = find ((== name) . getL vName) vars
    case var of
       Nothing -> return Nothing
@@ -261,23 +261,23 @@ evGetRandomNumber r = do
 
 --TODO should we also give a rule number to simulate the Nomex with?
 -- currently we use the simulating rule number
-evSimu :: Nomex a -> NomexNE Bool -> EvaluateNE Bool
+evSimu :: Nomex a -> Nomex Bool -> Evaluate Bool
 evSimu sim ev = do
-   rn <- asks _eRuleNumber
+   rn <- gets _eRuleNumber
    let s = runEvalError rn Nothing (evalNomex sim)
-   g <- asks _eGame
+   g <- gets _eGame
    let g' = execState s g
-   return $ runEvaluateNE g' rn (evalNomexNE ev)
+   return $ runEvaluate' g' rn (evalNomex ev)
 
 -- * misc
 
 getVictorious :: Game -> [PlayerNumber]
 getVictorious g = case _victory g of
    Nothing -> []
-   Just (VictoryInfo rn v) -> runEvaluateNE g rn (evalNomexNE v)
+   Just (VictoryInfo rn v) -> runEvaluate' g rn (evalNomex v)
 
 evalOutput :: Game -> Output -> String
-evalOutput g (Output _ rn _ o _) = runEvaluateNE g rn (evalNomexNE o)
+evalOutput g (Output _ rn _ o _) = runEvaluate' g rn (evalNomex o)
 
 allOutputs :: Game -> [String]
 allOutputs g = map (evalOutput g) (_outputs g)
@@ -311,7 +311,7 @@ delVictoryRule rn = do
 --and the player number to whom display errors (set to Nothing for all players)
 --TODO: clean
 runEvalError :: RuleNumber -> Maybe PlayerNumber -> Evaluate a -> State Game ()
-runEvalError rn mpn egs = modify (\g -> _eGame $ execState (runEvalError' mpn egs) (EvalEnv rn g evalNomex evalNomexNE))
+runEvalError rn mpn egs = modify (\g -> _eGame $ execState (runEvalError' mpn egs) (EvalEnv rn g evalNomex))
 
 runEvalError' :: Maybe PlayerNumber -> Evaluate a -> State EvalEnv ()
 runEvalError' mpn egs = do
@@ -329,16 +329,31 @@ runSystemEval' :: Evaluate a -> State Game ()
 runSystemEval' = runEvalError 0 Nothing
 
 --get the signals left to be completed in an event
-getRemainingSignals :: EventInfo -> Game -> [(SignalAddress, SomeSignal)]
-getRemainingSignals (EventInfo _ rn e _ _ en) g = case runEvaluateNE g rn (getEventResult e en) of
-   Done _ -> []
-   Todo a -> a
+--getRemainingSignals :: EventInfo -> Game -> [(SignalAddress, SomeSignal)]
+--getRemainingSignals (EventInfo _ rn e _ _ en) g = case runEvaluate g rn (getEventResult e en) of
+--   Done _ -> []
+--   Todo a -> a
 
-runEvaluateNE :: Game -> RuleNumber -> EvaluateNE a -> a
-runEvaluateNE g rn ev = runReader ev (EvalEnv rn g evalNomex evalNomexNE)
+getRemainingSignals :: EventInfo -> Game -> [(SignalAddress, SomeSignal)]
+getRemainingSignals ei g = evalState (runEvalError'' Nothing (getRemainingSignals' ei)) (EvalEnv 0 g evalNomex)
+
+runEvalError'' :: Maybe PlayerNumber -> Evaluate a -> State EvalEnv a
+runEvalError'' mpn egs = do
+   e <- runErrorT egs
+   case e of
+      Right a -> return a
+      Left e' -> do
+         tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
+         void $ runErrorT $ log mpn "Error: "
+         error "Eval"
+--runEvaluateNE :: Game -> RuleNumber -> Evaluate a -> a
+--runEvaluateNE g rn ev = runReader ev (EvalEnv rn g evalNomex)
 
 runEvaluate :: Game -> RuleNumber -> State EvalEnv a -> a
-runEvaluate g rn ev = evalState ev (EvalEnv rn g evalNomex evalNomexNE)
+runEvaluate g rn ev = evalState ev (EvalEnv rn g evalNomex)
+
+runEvaluate' :: Game -> RuleNumber -> Evaluate a -> a
+runEvaluate' g rn ev = evalState (runEvalError'' Nothing ev) (EvalEnv rn g evalNomex)
 
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)

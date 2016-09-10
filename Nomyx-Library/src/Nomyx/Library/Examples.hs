@@ -31,7 +31,7 @@ displayCurrentTime = void $ outputAll $ do
 -- | will display the time at which the rule as been activated
 displayActivateTime :: Nomex ()
 displayActivateTime = do
-   time <- liftEffect getCurrentTime
+   time <- getCurrentTime
    outputAll_ $ "This rule was activated at: " ++ (show time)
 
 -- | display a button and greets you when pressed (for player 1)

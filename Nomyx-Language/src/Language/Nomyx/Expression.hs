@@ -42,29 +42,29 @@ type InputNumber = Int
 
 -- * Nomyx Expression
 
-data Eff = Effect | NoEffect deriving (Typeable)
+--data Eff = Effect | NoEffect deriving (Typeable)
 
-type Effect = 'Effect
-type NoEffect = 'NoEffect
+--type Effect = 'Effect
+--type NoEffect = 'NoEffect
 
 -- | A Nomex (Nomyx Expression) allows the players to write rules.
 -- Within the rules, you can access and modify the state of the game.
-type Nomex = Exp Effect
+--type Nomex = Exp Effect
 
 -- | A NomexNE (Nomyx Expression No Effect) is a specialisation of the type that guarantees
 -- that the instructions will have no effects.
-type NomexNE = Exp NoEffect
+--type NomexNE = Exp NoEffect
 
-data Exp :: Eff -> * -> *   where
+data Nomex a  where
    --Variables management
    NewVar          :: (Typeable a, Show a) => VarName -> a -> Nomex (Maybe (V a))
-   ReadVar         :: (Typeable a, Show a) => V a -> NomexNE (Maybe a)
+   ReadVar         :: (Typeable a, Show a) => V a -> Nomex (Maybe a)
    WriteVar        :: (Typeable a, Show a) => V a -> a -> Nomex Bool
    DelVar          :: (V a) -> Nomex Bool
    --Events management
    OnEvent         :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
    DelEvent        :: EventNumber -> Nomex Bool
-   GetEvents       :: NomexNE [EventInfo]
+   GetEvents       :: Nomex [EventInfo]
    SendMessage     :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
    --Rules management
    ProposeRule     :: RuleInfo -> Nomex Bool
@@ -72,64 +72,67 @@ data Exp :: Eff -> * -> *   where
    RejectRule      :: RuleNumber -> Nomex Bool
    AddRule         :: RuleInfo -> Nomex Bool
    ModifyRule      :: RuleNumber -> RuleInfo -> Nomex Bool
-   GetRules        :: NomexNE [RuleInfo]
-   SelfRuleNumber  :: NomexNE RuleNumber
+   GetRules        :: Nomex [RuleInfo]
+   SelfRuleNumber  :: Nomex RuleNumber
    --Players management
-   GetPlayers      :: NomexNE [PlayerInfo]
+   GetPlayers      :: Nomex [PlayerInfo]
    SetPlayerName   :: PlayerNumber -> PlayerName -> Nomex Bool
    DelPlayer       :: PlayerNumber -> Nomex Bool
    --Outputs
-   NewOutput       :: Maybe PlayerNumber -> NomexNE String -> Nomex OutputNumber
-   GetOutput       :: OutputNumber -> NomexNE (Maybe String)
-   UpdateOutput    :: OutputNumber -> NomexNE String -> Nomex Bool
+   NewOutput       :: Maybe PlayerNumber -> Nomex String -> Nomex OutputNumber
+   GetOutput       :: OutputNumber -> Nomex (Maybe String)
+   UpdateOutput    :: OutputNumber -> Nomex String -> Nomex Bool
    DelOutput       :: OutputNumber -> Nomex Bool
    --Victory
-   SetVictory      :: NomexNE [PlayerNumber] -> Nomex ()
+   SetVictory      :: Nomex [PlayerNumber] -> Nomex ()
    --Mileacenous
-   CurrentTime     :: NomexNE UTCTime
+   CurrentTime     :: Nomex UTCTime
    GetRandomNumber :: Random a => (a, a) -> Nomex a
    --Monadic bindings
-   Return          :: a -> Exp e a
-   Bind            :: Exp e a -> (a -> Exp e b) -> Exp e b
-   ThrowError      :: String -> Exp Effect a
+   Return          :: a -> Nomex a
+   Bind            :: Nomex a -> (a -> Nomex b) -> Nomex b
+   ThrowError      :: String -> Nomex a
    CatchError      :: Nomex a -> (String -> Nomex a) -> Nomex a
-   LiftEffect      :: NomexNE a -> Nomex a
-   Simu            :: Nomex a -> NomexNE Bool -> NomexNE Bool
+   Simu            :: Nomex a -> Nomex Bool -> Nomex Bool
 
+deriving instance Typeable Nomex
 
-#if __GLASGOW_HASKELL__ >= 708
-deriving instance Typeable Exp
-deriving instance Typeable 'Effect
-deriving instance Typeable 'NoEffect
-
-instance Typeable a => Show (Exp NoEffect a) where
+instance Typeable a => Show (Nomex a) where
    show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
 
-instance Typeable a => Show (Exp Effect a) where
-   show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
+-- #if __GLASGOW_HASKELL__ >= 708
+--deriving instance Typeable Exp
+--deriving instance Typeable 'Effect
+--deriving instance Typeable 'NoEffect
+--
+--instance Typeable a => Show (Exp NoEffect a) where
+--   show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
+--
+--instance Typeable a => Show (Exp Effect a) where
+--   show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
+--
+-- #else
+--instance Typeable1 (Exp NoEffect) where
+--    typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp NoEffect") []
+--
+--instance Typeable1 (Exp Effect) where
+--    typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp Effect") []
+--
+--instance Typeable a => Show (Exp NoEffect a) where
+--   show e = "<" ++ (show $ typeOf e) ++ ">"
+--
+--instance Typeable a => Show (Exp Effect a) where
+--   show e = "<" ++ (show $ typeOf e) ++ ">"
+-- #endif
 
-#else
-instance Typeable1 (Exp NoEffect) where
-    typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp NoEffect") []
-
-instance Typeable1 (Exp Effect) where
-    typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp Effect") []
-
-instance Typeable a => Show (Exp NoEffect a) where
-   show e = "<" ++ (show $ typeOf e) ++ ">"
-
-instance Typeable a => Show (Exp Effect a) where
-   show e = "<" ++ (show $ typeOf e) ++ ">"
-#endif
-
-instance Monad (Exp a) where
+instance Monad Nomex where
    return = Return
    (>>=) = Bind
 
-instance Functor (Exp a) where
+instance Functor Nomex where
    fmap f e = Bind e $ Return . f
 
-instance Applicative (Exp a) where
+instance Applicative Nomex where
    pure = Return
    f <*> a = do
       f' <- f
@@ -139,9 +142,6 @@ instance Applicative (Exp a) where
 instance MonadError String Nomex where
    throwError = ThrowError
    catchError = CatchError
-
-liftEffect :: NomexNE a -> Nomex a
-liftEffect = LiftEffect
 
 -- * Variables
 
@@ -159,7 +159,7 @@ data Event a where
    BindEvent      :: Event a -> (a -> Event b) -> Event b                 -- A First event should fire, then a second event is constructed
    ShortcutEvents :: [Event a] -> ([Maybe a] -> Bool) -> Event [Maybe a]  -- Return the intermediate results as soon as the function evaluates to True, dismissing the events that hasn't fired yet
    SignalEvent    :: (Typeable a) => Signal a -> Event a                  -- Embed a single Signal as an Event
-   LiftEvent      :: NomexNE a -> Event a                                 -- create an event containing the result of the NomexNE.
+   LiftEvent      :: Nomex a -> Event a                                 -- create an event containing the result of the NomexNE.
    deriving Typeable
 
 -- | Signals
@@ -321,7 +321,7 @@ instance Ord PlayerInfo where
 -- * Victory
 
 data VictoryInfo = VictoryInfo { _vRuleNumber :: RuleNumber,
-                                 _vCond       :: NomexNE [PlayerNumber]}
+                                 _vCond       :: Nomex [PlayerNumber]}
                                  deriving (Show, Typeable)
 
 -- * Miscellaneous

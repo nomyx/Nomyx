@@ -38,7 +38,7 @@ triggerEvent s dat = do
 triggerEvent' :: SignalData -> Maybe SignalAddress -> [EventInfo] -> Evaluate ()
 triggerEvent' sd msa evs = do
    let evs' = sortBy (compare `on` _ruleNumber) evs
-   eids <- mapM (liftEval . (getUpdatedEventInfo sd msa)) evs'  -- get all the EventInfos updated with the field
+   eids <- mapM (getUpdatedEventInfo sd msa) evs'  -- get all the EventInfos updated with the field
    (eGame . events) %= union (map fst eids)                   -- store them
    void $ mapM triggerIfComplete eids                           -- trigger the handlers for completed events
 
@@ -53,7 +53,7 @@ triggerIfComplete _ = return ()
 
 -- get update the EventInfo updated with the signal data.
 -- get the event result if all signals are completed
-getUpdatedEventInfo :: SignalData -> Maybe SignalAddress -> EventInfo -> EvaluateNE (EventInfo, Maybe SomeData)
+getUpdatedEventInfo :: SignalData -> Maybe SignalAddress -> EventInfo -> Evaluate (EventInfo, Maybe SomeData)
 getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ _ ev _ _ envi) = do
    trs <- getEventResult ev envi
    case trs of
@@ -68,7 +68,7 @@ getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ _ ev _ _ envi) = 
       Done a -> return (env .~  [] $ ei, Just $ SomeData a)
 
 --get the signals left to be completed in an event
-getRemainingSignals' :: EventInfo -> EvaluateNE [(SignalAddress, SomeSignal)]
+getRemainingSignals' :: EventInfo -> Evaluate [(SignalAddress, SomeSignal)]
 getRemainingSignals' (EventInfo _ _ e _ _ envi) = do
    tr <- getEventResult e envi
    return $ case tr of
@@ -77,18 +77,18 @@ getRemainingSignals' (EventInfo _ _ e _ _ envi) = do
 
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some signals results are pending, return that list instead.
-getEventResult :: Event a -> [SignalOccurence] -> EvaluateNE (Todo (SignalAddress, SomeSignal) a)
+getEventResult :: Event a -> [SignalOccurence] -> Evaluate (Todo (SignalAddress, SomeSignal) a)
 getEventResult e frs = getEventResult' e frs []
 
 -- compute the result of an event given an environment. The third argument is used to know where we are in the event tree.
-getEventResult' :: Event a -> [SignalOccurence] -> SignalAddress -> EvaluateNE (Todo (SignalAddress, SomeSignal) a)
+getEventResult' :: Event a -> [SignalOccurence] -> SignalAddress -> Evaluate (Todo (SignalAddress, SomeSignal) a)
 getEventResult' (PureEvent a)   _   _  = return $ Done a
 getEventResult'  EmptyEvent     _   _  = return $ Todo []
 getEventResult' (SumEvent a b)  ers fa = liftM2 (<|>) (getEventResult' a ers (fa ++ [SumL])) (getEventResult' b ers (fa ++ [SumR]))
 getEventResult' (AppEvent f b)  ers fa = liftM2 (<*>) (getEventResult' f ers (fa ++ [AppL])) (getEventResult' b ers (fa ++ [AppR]))
 getEventResult' (LiftEvent a)   _   _  = do
-   evalNomexNE <- asks evalNomexNEFunc
-   r <- evalNomexNE a
+   evalNomex <- gets evalNomexFunc
+   r <- evalNomex a
    return $ Done r
 getEventResult' (BindEvent a f) ers fa = do
    er <- getEventResult' a ers (fa ++ [BindL])
@@ -119,7 +119,7 @@ triggerInput ff i sa en = do
 -- trigger the input signal with the input data
 triggerInputSignal :: InputData -> SignalAddress -> FormField -> EventInfo -> Evaluate ()
 triggerInputSignal ide sa ff ei@(EventInfo _ _ _ _ SActive _) = do
-   i <- liftEval $ findField ff sa ei
+   i <- findField ff sa ei
    case i of
       Just sf -> triggerInputSignal' ide sf sa ei
       Nothing -> logAll $ "Input not found, InputData=" ++ (show ide) ++ " SignalAddress=" ++ (show sa) ++ " FormField=" ++ (show ff)
@@ -136,10 +136,10 @@ triggerInputSignal' _ _ _ _ = return ()
 
 
 -- | Get the form field at a certain address
-findField :: FormField -> SignalAddress -> EventInfo -> EvaluateNE (Maybe SomeSignal)
+findField :: FormField -> SignalAddress -> EventInfo -> Evaluate (Maybe SomeSignal)
 findField ff addr (EventInfo _ _ e _ _ envi) = findField' addr e envi ff
 
-findField' :: SignalAddress -> Event e -> [SignalOccurence] -> FormField -> EvaluateNE (Maybe SomeSignal)
+findField' :: SignalAddress -> Event e -> [SignalOccurence] -> FormField -> Evaluate (Maybe SomeSignal)
 findField' []         (SignalEvent f)    _   ff = return $ do
    ff' <- getFormField (SomeSignal f)
    guard (ff' == ff)
