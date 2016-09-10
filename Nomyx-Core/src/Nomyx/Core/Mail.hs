@@ -40,8 +40,8 @@ sendMail to obj htmlBody textBody = do
    putStrLn "done"
 
 
-newRuleHtmlBody :: PlayerName -> SubmitRule -> PlayerName -> Network -> Html
-newRuleHtmlBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ do
+newRuleHtmlBody :: PlayerName -> RuleTemplate -> PlayerName -> Network -> Html
+newRuleHtmlBody playerName (RuleTemplate name desc code _ _ _ _) prop net = docTypeHtml $ do
    toHtml ("Dear " ++ playerName ++ ",") >> H.br
    toHtml ("a new rule has been proposed by player " ++ prop ++ ".") >> H.br
    toHtml ("Name: " ++ name) >> H.br
@@ -51,8 +51,8 @@ newRuleHtmlBody playerName (SubmitRule name desc code) prop net = docTypeHtml $ 
    toHtml (nomyxURL net ++ "/Nomyx") >> H.br >> H.br
    toHtml "You received this mail because you subscribed to Nomyx. To stop receiving mails, login to Nomyx with the above address, go to Settings and uncheck the corresponding box." >> H.br
 
-newRuleTextBody :: PlayerName -> SubmitRule -> PlayerName -> Network -> String
-newRuleTextBody playerName (SubmitRule name desc code) prop net =
+newRuleTextBody :: PlayerName -> RuleTemplate -> PlayerName -> Network -> String
+newRuleTextBody playerName (RuleTemplate name desc code _ _ _ _) prop net =
    "Dear " ++ playerName ++ ",\n" ++
    "a new rule has been proposed by player " ++ prop ++ ".\n" ++
    "Name: " ++ name ++ "\n" ++
@@ -66,8 +66,9 @@ newRuleTextBody playerName (SubmitRule name desc code) prop net =
 newRuleObject :: PlayerName -> String
 newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 
-sendMailsNewRule :: Session -> SubmitRule -> PlayerNumber -> GameInfo -> IO ()
-sendMailsNewRule s sr pn gi = when (_sendMails $ _mSettings $ _multi s) $ do
+sendMailsSubmitRule :: Session -> RuleTemplate -> PlayerNumber -> GameName -> IO ()
+sendMailsSubmitRule s sr pn gn = when (_sendMails $ _mSettings $ _multi s) $ do
+   let (Just gi) = getGameByName gn s
    guard (_isPublic gi)
    putStrLn "Sending mails"
    let sendMailsTo = map _playerNumber (_players $ _game $ _loggedGame gi)
@@ -76,8 +77,8 @@ sendMailsNewRule s sr pn gi = when (_sendMails $ _mSettings $ _multi s) $ do
    mapM_ (send proposer (_net $ _mSettings $ _multi s) sr) (_pPlayerSettings <$> catMaybes profiles)
 
 
-send :: PlayerName -> Network -> SubmitRule -> PlayerSettings -> IO()
-send prop net sr set = when (_mailNewRule set && (isJust $ _mail set))
+send :: PlayerName -> Network -> RuleTemplate -> PlayerSettings -> IO()
+send prop net sr set = when (_mailSubmitRule set && (isJust $ _mail set))
    $ sendMail (fromJust $ _mail set)
               (newRuleObject prop)
               (newRuleTextBody (_pPlayerName set) sr prop net)

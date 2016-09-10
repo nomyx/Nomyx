@@ -9,35 +9,19 @@ packages:
   extra-dep: true
 - location: ../Nomyx-Web
   extra-dep: true
+- location: ../Nomyx-Api
+  extra-dep: true
+- location: ../Nomyx-Auth
+  extra-dep: true
 extra-deps:
 - Nomyx-Core-0.7.6
 - Nomyx-Language-0.7.6
 - Nomyx-Web-0.7.6
+- Nomyx-Api-0.7.6
 - hint-server-1.4.2
 - DebugTraceHelpers-0.12
-- acid-state-0.12.4
-- either-unwrap-1.1
-- eprocess-1.7.2
-- happstack-authenticate-2.1.4
-- reform-0.2.7
-- reform-blaze-0.2.4
-- reform-happstack-0.2.5
 - time-recurrence-0.9.2
-- web-routes-0.27.9
-- web-routes-happstack-0.23.9
-- web-routes-regular-0.19.0
-- web-routes-th-0.22.3
-- boomerang-1.4.5
-- data-ordlist-0.4.7.0
-- happstack-hsp-7.3.5
-- happstack-jmacro-7.0.10
-- hsp-0.10.0
-- hsx-jmacro-7.3.6
-- hsx2hs-0.13.3.2
-- ixset-typed-0.3
-- jwt-0.6.0
-- pwstore-purehaskell-2.1.4
-- web-routes-boomerang-0.28.4
-- web-routes-hsp-0.24.6
-- harp-0.4.1
-resolver: lts-2.19
+- eprocess-1.7.2
+- web-routes-regular-0.19.0.1
+- regular-0.3.4.4
+resolver: lts-5.11

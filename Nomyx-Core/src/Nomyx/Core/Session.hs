@@ -1,36 +1,37 @@
+{-# LANGUAGE DoAndIfThenElse     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE DoAndIfThenElse #-}
 
 -- | This module manages multi-player commands.
 module Nomyx.Core.Session where
 
-import Language.Haskell.Interpreter.Server (ServerHandle)
-import Language.Haskell.Interpreter (InterpreterError)
-import Debug.Trace.Helpers
-import Control.Lens
-import Data.Time as T
-import Data.List
-import Data.Maybe
-import qualified Data.Acid.Advanced as A (update', query')
-import Control.Monad.State
-import Control.Concurrent.STM
-import System.IO.PlafCompat
-import Language.Nomyx
-import Nomyx.Core.Types
-import Nomyx.Core.Utils
-import Nomyx.Core.Multi
-import Nomyx.Core.Profile
-import Nomyx.Core.Interpret
-import Nomyx.Core.Serialize
-import Nomyx.Core.Engine as G
-import Nomyx.Core.Mail
+import           Control.Concurrent.STM
+import           Control.Lens
+import           Control.Monad.State
+import qualified Data.Acid.Advanced                  as A (query', update')
+import           Data.List
+import           Data.Maybe
+import           Data.Time                           as T
+import           Data.Either
+import           Debug.Trace.Helpers
+import           Language.Haskell.Interpreter        (InterpreterError)
+import           Language.Haskell.Interpreter.Server (ServerHandle)
+import           Language.Nomyx
+import           Nomyx.Core.Engine                   as G
+import           Nomyx.Core.Interpret
+import           Nomyx.Core.Mail
+import           Nomyx.Core.Multi
+import           Nomyx.Core.Profile
+import           Nomyx.Core.Serialize
+import           Nomyx.Core.Types
+import           Nomyx.Core.Utils
+import           System.IO.PlafCompat
 
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
-newPlayer uid ms = do
+newPlayer uid ps = do
    s <- get
    --void $ A.update' (acidAuth $ _profiles s) (SetDefaultSessionTimeout $ 3600 * 24 * 7 *25)
-   void $ A.update' (_acidProfiles s) (NewProfileData uid ms)
+   void $ A.update' (_acidProfiles s) (NewProfileData uid ps)
 
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> Bool -> StateT Session IO ()
@@ -83,72 +84,95 @@ leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
 leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
 
 -- | insert a rule in pending rules.
-submitRule :: SubmitRule -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-submitRule sr@(SubmitRule _ _ code) pn gn sh = do
-   tracePN pn $ "proposed " ++ show sr
-   mrr <- liftIO $ interpretRule code sh
+submitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
+submitRule rt pn gn sh = do
+   tracePN pn $ "proposed " ++ show rt
+   compileRule rt pn gn sh Propose "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."
+
+adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
+adminSubmitRule rt pn gn sh = do
+   tracePN pn $ "admin proposed " ++ show rt
+   compileRule rt pn gn sh SystemAdd "Admin rule submitted OK!"
+
+checkRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
+checkRule rt pn gn sh = do
+   tracePN pn $ "check rule " ++ show rt
+   compileRule rt pn gn sh Check "Rule compiled OK. Now you can submit it!"
+
+compileRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> RuleEv -> String -> StateT Session IO ()
+compileRule rt pn gn sh re msg = do
+   mods <- getModules rt
+   mrr <- liftIO $ interpretRule sh (_rRuleCode rt) mods
+   case mrr of
+      Right r -> do
+         tracePN pn "proposed rule compiled OK "
+         inGameDo gn $ G.execGameEvent' (Just $ Right r) (ProposeRuleEv re pn rt mods)
+         modifyProfile pn (pLastRule .~ Just (rt, msg))
+      Left e -> submitRuleError rt pn gn e
+
+getModules :: RuleTemplate -> StateT Session IO [ModuleInfo]
+getModules rt = do
    s <- get
-   let gi = getGameByName gn s
-   case mrr of
-      Right _ -> do
-         tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ G.execGameEvent' (Just $ getRuleFunc sh) (ProposeRuleEv pn sr)
-         modifyProfile pn (pLastRule .~ Just (sr, "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."))
-         liftIO $ sendMailsNewRule s sr pn (fromJust gi)
-      Left e -> submitRuleError sr pn gn e
+   let mods = _mModules $ _mLibrary $ _multi s
+   return $ catMaybes $ map (getModule mods) (_rDeclarations rt)
 
-adminSubmitRule :: SubmitRule -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-adminSubmitRule sr@(SubmitRule _ _ code) pn gn sh = do
-   tracePN pn $ "admin proposed " ++ show sr
-   mrr <- liftIO $ interpretRule code sh
-   case mrr of
-      Right _ -> do
-         tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ execGameEvent' (Just $ getRuleFunc sh) (SystemAddRule sr)
-         modifyProfile pn (pLastRule .~ Just (sr, "Admin rule submitted OK!"))
-      Left e -> submitRuleError sr pn gn e
+getModule :: [ModuleInfo] -> FilePath -> Maybe ModuleInfo
+getModule ms fp = listToMaybe $ filter (\(ModuleInfo fp' c) -> (fp==fp')) ms
 
-submitRuleError :: SubmitRule -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
+submitRuleError :: RuleTemplate -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
 submitRuleError sr pn gn e = do
    let errorMsg = showInterpreterError e
    inGameDo gn $ execGameEvent $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
    tracePN pn ("Error in submitted rule: " ++ errorMsg)
    modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
-checkRule :: SubmitRule -> PlayerNumber -> ServerHandle -> StateT Session IO ()
-checkRule sr@(SubmitRule _ _ code) pn sh = do
-   tracePN pn $ "check rule " ++ show sr
-   mrr <- liftIO $ interpretRule code sh
-   case mrr of
-      Right _ -> do
-         tracePN pn "proposed rule compiled OK"
-         modifyProfile pn (pLastRule .~ Just (sr, "Rule compiled OK. Now you can submit it!"))
-      Left e -> do
-         let errorMsg = showInterpreterError e
-         tracePN pn ("Error in submitted rule: " ++ errorMsg)
-         modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
+newRuleTemplate :: RuleTemplate -> StateT Session IO ()
+newRuleTemplate rt@(RuleTemplate _ _ _ author _ _ _) = do
+  liftIO $ putStrLn $ author ++ " inserted new template :" ++ show rt
+  (multi . mLibrary . mTemplates) %= (addRT rt)
+
+updateRuleTemplates :: [RuleTemplate] -> StateT Session IO ()
+updateRuleTemplates rts = do
+  liftIO $ putStrLn $ (_rAuthor $ head rts) ++ " has updated templates"
+  (multi . mLibrary . mTemplates) .= rts
+
+addRT :: RuleTemplate -> [RuleTemplate] -> [RuleTemplate]
+addRT rt rts = case (find (\rt' -> (_rName rt) == (_rName rt'))) rts of
+  (Just rt') -> replace rt' rt rts
+  Nothing -> rt:rts
+
+delRuleTemplate :: GameName -> RuleName -> PlayerNumber -> StateT Session IO ()
+delRuleTemplate gn rn pn = do
+  tracePN pn $ "del template " ++ show rn
+  (multi . mLibrary . mTemplates) %= filter (\rt -> _rName rt /= rn)
+
+updateModules :: [ModuleInfo] -> StateT Session IO ()
+updateModules ms = (multi . mLibrary . mModules) .= ms
+
+
 
 inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> FormField -> InputData -> GameName -> StateT Session IO ()
 inputResult pn en fa ft ir gn = inGameDo gn $ execGameEvent $ InputResult pn en fa ft ir
 
 -- | upload a rule file, given a player number, the full path of the file, the file name and the server handle
 inputUpload :: PlayerNumber -> FilePath -> FilePath -> ServerHandle -> StateT Session IO Bool
-inputUpload pn temp mod sh = do
-   sd <- use (multi . mSettings . saveDir)
-   m <- liftIO $ loadModule temp mod sh sd
-   tracePN pn $ " uploaded " ++ show mod
-   case m of
-      Nothing -> do
-         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
-         tracePN pn "upload success"
-         modifyProfile pn (pLastUpload .~ UploadSuccess)
-         return True
-      Just e -> do
-         let errorMsg = showInterpreterError e
-         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
-         tracePN pn $ "upload failed: \n" ++ show e
-         modifyProfile pn (pLastUpload .~ UploadFailure (temp, errorMsg))
-         return False
+inputUpload pn temp mod sh = undefined
+--do
+--   sd <- use (multi . mSettings . saveDir)
+--   m <- liftIO $ loadModule temp mod sh sd
+--   tracePN pn $ " uploaded " ++ show mod
+--   case m of
+--      Nothing -> do
+--         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
+--         tracePN pn "upload success"
+--         modifyProfile pn (pLastUpload .~ UploadSuccess)
+--         return True
+--      Just e -> do
+--         let errorMsg = showInterpreterError e
+--         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
+--         tracePN pn $ "upload failed: \n" ++ show e
+--         modifyProfile pn (pLastUpload .~ UploadFailure (temp, errorMsg))
+--         return False
 
 -- | update player settings
 playerSettings :: PlayerSettings -> PlayerNumber -> StateT Session IO ()
@@ -191,7 +215,7 @@ inAllGamesDo action = do
          (_, mylg) <- lift $ runStateT action (set (game . currentTime) t (_loggedGame gi))
          zoom multi $ modifyGame (gi {_loggedGame = mylg})
 
-inGameDo :: GameName -> StateT LoggedGame IO  () -> StateT Session IO ()
+inGameDo :: GameName -> StateT LoggedGame IO () -> StateT Session IO ()
 inGameDo gn action = zoom multi $ do
    (gs :: [GameInfo]) <- use gameInfos
    case find ((==gn) . getL gameNameLens) gs of
@@ -206,7 +230,8 @@ inGameDo gn action = zoom multi $ do
 updateSession :: TVar Session -> StateT Session IO () -> IO ()
 updateSession ts sm = do
    s <- atomically $ readTVar ts
-   ms <- evalWithWatchdog s (evalSession sm)
+   let delay = _watchdog $ _mSettings $ _multi s
+   ms <- evalWithWatchdog delay s (evalSession sm)
    case ms of
       Just s' -> do
          atomically $ writeTVar ts s'
@@ -219,5 +244,3 @@ evalSession sm s = do
    writeFile nullFileName $ show $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
    return s'
 
-getGameByName :: GameName -> Session -> Maybe GameInfo
-getGameByName gn s = find ((==gn) . getL (loggedGame . game . gameName)) (_gameInfos $ _multi s)

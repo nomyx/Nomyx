@@ -47,10 +47,6 @@ advanced = toResponse <$> do
 
 advancedPage :: LastUpload -> Bool -> Settings -> [ProfileData] -> RoutedNomyxServer Html
 advancedPage mlu isAdmin settings pfds = do
-   uploadLink <- showURL Upload
-   submitAdminPass <- showURL SubmitAdminPass
-   submitSettings <- showURL SubmitSettings
-   getSaveFile <- showURL SaveFilePage
    up  <- liftRouteT $ lift $ viewForm "user" uploadForm  --TODO add the file name (missing Reform feature)
    ap  <- liftRouteT $ lift $ viewForm "user" adminPassForm
    set <- liftRouteT $ lift $ viewForm "user" $ settingsForm (_sendMails settings)
@@ -62,7 +58,7 @@ advancedPage mlu isAdmin settings pfds = do
       hr
       p $ do
          pre $ fromString Help.getSaveFile
-         H.a "get save file" ! (href $ toValue getSaveFile)
+         H.a "get save file" ! (href $ toValue $ showRelURL SaveFilePage)
       H.br
       hr
       p $ do
@@ -70,7 +66,7 @@ advancedPage mlu isAdmin settings pfds = do
          H.a "example upload file" ! (href $ toValue uploadExample)
          H.br >> H.br
          "Upload new rules file:" >> H.br
-         blazeForm up uploadLink
+         blazeForm up $ showRelURL Upload
          case mlu of
             UploadFailure (_, error) -> do
                h5 "Error in submitted file: "
@@ -80,13 +76,13 @@ advancedPage mlu isAdmin settings pfds = do
       hr
       p $ do
          h5 "Enter admin password to get admin rights (necessary to create public games):"
-         blazeForm ap submitAdminPass
+         blazeForm ap $ showRelURL SubmitAdminPass
          when isAdmin $ h5 "You are admin"
       when isAdmin $ do
          hr
          p $ do
             h5 "Send mails:"
-            blazeForm set submitSettings
+            blazeForm set $ showRelURL SubmitSettings
             h5 $ fromString $ if _sendMails settings then "mails will be sent " else "mails will NOT be sent "
          hr
          p $ do
@@ -105,12 +101,12 @@ advancedPage mlu isAdmin settings pfds = do
 
 
 viewProfile :: ProfileData -> Html
-viewProfile (ProfileData pn (Types.PlayerSettings playerName mail _ mailNewRule _ _) lastRule lastUpload isAdmin) =
+viewProfile (ProfileData pn (Types.PlayerSettings playerName mail _ mailSubmitRule _ _) lastRule lastUpload isAdmin) =
    tr $ do
       td ! A.class_ "td" $ fromString $ show pn
       td ! A.class_ "td" $ fromString playerName
       td ! A.class_ "td" $ fromString $ show mail
-      td ! A.class_ "td" $ fromString $ show mailNewRule
+      td ! A.class_ "td" $ fromString $ show mailSubmitRule
       td ! A.class_ "td" $ fromString $ show lastRule
       td ! A.class_ "td" $ fromString $ show lastUpload
       td ! A.class_ "td" $ fromString $ show isAdmin
@@ -129,11 +125,8 @@ newSettings = toResponse <$> do
    case p of
       Right ps -> do
          webCommand $ globalSettings ps
-         link <- showURL Advanced
-         seeOther link "Redirecting..."
-      (Left errorForm) -> do
-         settingsLink <- showURL SubmitSettings
-         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
+         seeOther (showRelURL Advanced) "Redirecting..."
+      (Left errorForm) -> mainPage  "Admin settings" "Admin settings" (blazeForm errorForm $ showRelURL SubmitSettings) False True
 
 
 uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
@@ -144,12 +137,11 @@ newUpload = toResponse <$> do
     methodM POST
     pn <- fromJust <$> getPlayerNumber
     r <- liftRouteT $ lift $ eitherForm environment "user" uploadForm
-    link <- showURL Advanced
     s <- getSession
     case r of
        (Right (temp,name,_)) -> webCommand $ void $ S.inputUpload pn temp name (_sh s)
        (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
-    seeOther link "Redirecting..."
+    seeOther (showRelURL Advanced) "Redirecting..."
 
 
 newAdminPass :: RoutedNomyxServer Response
@@ -160,11 +152,8 @@ newAdminPass = toResponse <$> do
    case p of
       Right ps -> do
          webCommand $ adminPass ps pn
-         link <- showURL Advanced
-         seeOther link "Redirecting..."
-      (Left errorForm) -> do
-         settingsLink <- showURL SubmitAdminPass
-         mainPage  "Admin settings" "Admin settings" (blazeForm errorForm settingsLink) False True
+         seeOther (showRelURL Advanced) "Redirecting..."
+      (Left errorForm) -> mainPage  "Admin settings" "Admin settings" (blazeForm errorForm $ showRelURL SubmitAdminPass) False True
 
 saveFilePage :: RoutedNomyxServer Response
 saveFilePage = toResponse <$> do

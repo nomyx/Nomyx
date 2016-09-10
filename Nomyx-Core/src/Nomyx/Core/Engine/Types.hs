@@ -43,6 +43,9 @@ type Evaluate   a = ErrorT String (State EvalEnv ) a
 -- | Environment necessary for the evaluation of NomexNE
 type EvaluateNE a = Reader EvalEnv a
 
+-- | extract a rule from a code string and an environment
+type InterpretRule = RuleCode -> [ModuleInfo] -> IO Rule
+
 -- * Game
 
 type GameName = String
@@ -86,12 +89,14 @@ emptyGame name desc date gen = Game {
 
 -- | a list of possible events affecting a game
 data GameEvent = JoinGame          PlayerNumber PlayerName
-              | LeaveGame         PlayerNumber
-              | ProposeRuleEv     PlayerNumber SubmitRule
-              | InputResult       PlayerNumber EventNumber SignalAddress FormField InputData
-              | GLog              (Maybe PlayerNumber) String
-              | TimeEvent         UTCTime
-              | SystemAddRule     SubmitRule
+               | LeaveGame         PlayerNumber
+               | ProposeRuleEv     RuleEv PlayerNumber RuleTemplate [ModuleInfo]
+               | InputResult       PlayerNumber EventNumber SignalAddress FormField InputData
+               | GLog              (Maybe PlayerNumber) String
+               | TimeEvent         UTCTime
+                deriving (Show, Read, Eq, Ord)
+
+data RuleEv = Propose | Check | SystemAdd
                 deriving (Show, Read, Eq, Ord)
 
 data TimedEvent = TimedEvent UTCTime GameEvent deriving (Show, Read, Eq, Ord)
@@ -167,10 +172,6 @@ data Log = Log { _lPlayerNumber :: Maybe PlayerNumber,
                  _lMsg          :: String}
                  deriving (Show)
 
--- * Rules
-
-data SubmitRule = SubmitRule RuleName RuleDesc RuleCode deriving (Show, Read, Eq, Ord, Data, Typeable)
-
 makeLenses ''Game
 makeLenses ''GameDesc
 makeLenses ''Var
@@ -200,12 +201,34 @@ instance FromJSON Game where
       pure (mkStdGen 0)
    parseJSON _ = mzero
 
+instance ToJSON RuleTemplate where
+   toJSON (RuleTemplate n d rc a p cs ds) =
+      object ["name" .= n,
+              "desc" .= d,
+              "rule" .= rc,
+              "author" .= a,
+              "picture" .= p,
+              "category" .= cs,
+              "decls" .= ds]
+
+instance FromJSON RuleTemplate where
+   parseJSON (Object v) = RuleTemplate <$>
+      v .: "name" <*>
+      v .: "desc" <*>
+      v .: "rule" <*>
+      v .: "author" <*>
+      v .: "picture" <*>
+      v .: "category" <*>
+      v .: "decls"
+   parseJSON _ = mzero
+
 $(deriveJSON defaultOptions ''TimedEvent)
 $(deriveJSON defaultOptions ''GameEvent)
-$(deriveJSON defaultOptions ''SubmitRule)
+$(deriveJSON defaultOptions ''RuleEv)
 $(deriveJSON defaultOptions ''FormField)
 $(deriveJSON defaultOptions ''InputData)
 $(deriveJSON defaultOptions ''GameDesc)
 $(deriveJSON defaultOptions ''StdGen)
 $(deriveJSON defaultOptions ''SignalAddressElem)
 $(deriveJSON defaultOptions ''LoggedGame)
+$(deriveJSON defaultOptions ''ModuleInfo)

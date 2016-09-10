@@ -12,7 +12,6 @@ import           Language.Nomyx
 import           Nomyx.Core.Engine
 import           Nomyx.Web.Common            as NWC
 import qualified Nomyx.Web.Help              as Help
-import           System.Locale
 import           Text.Blaze.Html5            (Html, h4, p, table, td, thead, tr,
                                               (!))
 import           Text.Blaze.Html5.Attributes as A (class_, style)

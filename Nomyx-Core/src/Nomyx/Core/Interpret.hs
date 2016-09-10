@@ -8,6 +8,7 @@ import           Control.Exception                   as CE
 import           Control.Monad
 import           Data.Either.Unwrap
 import           Data.List
+import           Data.Maybe
 import           Language.Haskell.Interpreter
 import           Language.Haskell.Interpreter.Server
 import           Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
@@ -18,8 +19,11 @@ import           System.Directory                    (copyFile,
                                                       createDirectoryIfMissing,
                                                       doesFileExist, removeFile)
 import           System.FilePath                     (dropExtension, joinPath,
-                                                      takeFileName, (</>))
+                                                      takeFileName, dropFileName,
+                                                      splitDirectories, takeBaseName, (</>))
 import           System.IO.Error
+import           System.IO.Temp
+import           System.Directory
 
 exts :: [String]
 exts = ["Safe", "GADTs"] ++ map show namedExts
@@ -31,71 +35,68 @@ namedExts = [GADTs,
              DeriveDataTypeable]
 
 -- | the server handle
-startInterpreter :: FilePath -> IO ServerHandle
-startInterpreter saveDir = do
+startInterpreter :: IO ServerHandle
+startInterpreter = do
    sh <- start
-   liftIO $ createDirectoryIfMissing True $ saveDir </> uploadDir
-   ir <- runIn sh $ initializeInterpreter saveDir
+   --liftIO $ createDirectoryIfMissing True $ saveDir </> uploadDir
+   ir <- runIn sh $ initializeInterpreter []
    case ir of
-      Right r -> do
-         putStrLn "Interpreter Loaded"
-         return $ Just r
-      Left e -> error $ "sHandle: initialization error:\n" ++ show e
+      Right _ -> putStrLn "Interpreter Loaded"
+      Left e -> error $ "Interpreter initialization error:\n" ++ show e
    return sh
 
--- get all uploaded modules from the directory (may be empty)
-getUploadModules :: FilePath -> IO [FilePath]
-getUploadModules saveDir = do
-    files <- getUploadedModules saveDir `catch` (\(_::SomeException) -> return [])
-    return $ map (\f -> joinPath [saveDir, uploadDir, f]) files
-
 -- | initializes the interpreter by loading some modules.
-initializeInterpreter :: FilePath -> Interpreter ()
-initializeInterpreter saveDir = do
-   reset -- Make sure nothing is available
+initializeInterpreter :: [ModuleInfo] -> Interpreter ()
+initializeInterpreter mods = do
+   reset
+   -- Interpreter options
    set [installedModulesInScope := False,
         languageExtensions := map readExt exts]
+   -- GHC options
    unsafeSetGhcOption "-w"
    unsafeSetGhcOption "-fpackage-trust"
    forM_ (defaultPackages >>= words) $ \pkg -> unsafeSetGhcOption ("-trust " ++ pkg)
-   uploadedMods <- liftIO $ getUploadModules saveDir
-   liftIO $ putStrLn $ "Loading modules: " ++ (intercalate ", " uploadedMods)
-   loadModules uploadedMods
-   setTopLevelModules $ map (dropExtension . takeFileName) uploadedMods
+   -- Modules
+   when (not $ null mods) $ do
+      dir <- liftIO $ createTempDirectory "/tmp" "Nomyx"
+      modPaths <- liftIO $ mapM (copyModule dir) mods
+      let modNames = map (getModName . _modPath) mods
+      liftIO $ putStrLn $ "Loading modules: " ++ (intercalate ", " modPaths)
+      liftIO $ putStrLn $ "module names: " ++ (intercalate ", " modNames)
+      loadModules modPaths
+      setTopLevelModules modNames
+   -- Imports
    let importMods = qualImports ++ zip (unQualImports) (repeat Nothing)
    setImportsQ importMods
 
----- | reads maybe a Rule out of a string.
-interpretRule :: String -> ServerHandle -> IO (Either InterpreterError Rule)
-interpretRule s sh = (liftIO $ runIn sh $ interpret s (as :: Rule))
-   `catchIOError` (\(e::IOException) -> return $ Left $ NotAllowed $ "Caught exception: " ++ (show e))
+getModName :: FilePath -> String
+getModName fp = intercalate "." $ (filter (/= ".") $ splitDirectories $ dropFileName fp) ++ [takeBaseName fp]
 
-getRuleFunc :: ServerHandle -> RuleCode -> IO Rule
-getRuleFunc sh rc = do
-   res <- interpretRule rc sh
+---- | reads a Rule out of a string.
+interpretRule :: ServerHandle -> RuleCode -> [ModuleInfo] -> IO (Either InterpreterError Rule)
+interpretRule sh rc ms = do
+   res <- runIn sh $ initializeInterpreter ms
+   case res of
+      Left e -> return $ Left e
+      Right _ -> do
+         let runRule = liftIO $ runIn sh $ interpret rc (as :: Rule)
+         let handler (e::IOException) = return $ Left $ NotAllowed $ "Caught exception: " ++ (show e)
+         runRule `catchIOError` handler
+
+interRule :: ServerHandle -> RuleCode -> [ModuleInfo] -> IO Rule
+interRule sh rc ms = do
+   res <- interpretRule sh rc ms
    case res of
       Right rf -> return rf
       Left e -> error $ show e
 
--- | check an uploaded file and reload
-loadModule :: FilePath -> FilePath -> ServerHandle -> FilePath -> IO (Maybe InterpreterError)
-loadModule tempModName name sh saveDir = do
-   --copy the new module in the upload directory
-   let dest = saveDir </> uploadDir </> name
-   exist <- doesFileExist dest
-   if exist then return $ Just $ NotAllowed "Module already uploaded"
-   else do
-      copyFile tempModName dest
-      setMode dest
-      inter <- runIn sh $ initializeInterpreter saveDir
-      case inter of
-         Right _ -> return Nothing
-         Left e -> do
-            --suppress the faulty module
-            removeFile dest
-            final <- runIn sh $ initializeInterpreter saveDir
-            when (isLeft final) $ putStrLn "Error: reinitialize interpreter failed"
-            return $ Just e
+--TODO handle error cases
+copyModule :: FilePath -> ModuleInfo -> IO (FilePath)
+copyModule saveDir mod = do
+   let dest = saveDir </> (_modPath mod)
+   createDirectoryIfMissing True $ dropFileName dest
+   writeFile dest (_modContent mod)
+   return dest
 
 showInterpreterError :: InterpreterError -> String
 showInterpreterError (UnknownError s)  = "Unknown Error\n" ++ s

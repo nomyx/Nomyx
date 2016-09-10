@@ -1,36 +1,78 @@
+
+/* General */
+
+* {
+   font-family: verdana;
+}
+
 h3{
    color:#4D6A8A;
    font-size: 18;
    margin-top: 5pt;
 }
 
+h2{
+   color:#4D6A8A;
+   font-size: 18;
+   margin-top: 5pt;
+   text-align: center;
+}
+
+.table {
+   border:2px solid black;
+   border-collapse:collapse;
+   padding:6px;
+}
+
+thead {
+   font-weight:bold
+}
+
+.td {
+   border:1px solid black;
+   padding:6px;
+}
+
+/* Multi */
+
+#multi {
+   margin-left: auto;
+   margin-right: auto;
+   width: 75%;
+   top: 10px;
+   position: relative;
+}
+
+/* Home */
+
+.playasform {
+   font-size: large;
+   font-weight: bold;
+   padding-bottom:10px;
+}
+
+#playerName {
+   padding-right: 20pt;
+}
+
+/* Games */
+
 #gameList {
    position:absolute;
-   background-color:#F4F4F4;
-   border:1px solid black;
-   width:180px;
+   border-right:1px solid black;
+   width:160px;
    padding:10px;
-   top:60px;
    left:10px;
    overflow: auto;
 }
 
-#titleBar {
-   padding-top:7px;
-   padding-bottom:10px;
-}
-
-#titleBar > a:first-child {
-   font-weight:bold;
-}
-
 .game {
-   position:absolute;
-   background-color:#FFFFFF;
+   position:relative;
+   background-color:#FAF2E8;
+   border:1px solid black;
    height:90%;
-   top:57px;
-   left:218px;
-   right:10px;
+   left:215px;
+   width: 1000px;
    padding-right:23px;
    overflow: auto;
 }
@@ -43,27 +85,58 @@ h3{
    right:20px;
 }
 
-#IORule {
-   border:1px dotted black;
-   padding:10px;
-   padding-bottom:0px;
-   padding-top:0px;
-   margin-bottom:10px;
-   display: block;
-   max-height:450pt;
-   overflow-y:auto;
+/* Rules */
+
+.ruleList {
+   position:absolute;
+   border-right: 1px solid black;
+   height: 100%;
+   width: 250px;
+   padding: 6px;
+   overflow: auto;
 }
 
-.table {
-   border:2px solid black;
-   border-collapse:collapse;
-   padding:6px;
+.rule {
+   position:relative;
+   height: 100%;
+   left: 265px;
+   padding: 6px;
+   width: 75%;
+   text-align: center;
+   display: none;
 }
 
-.td {
-   border:1px solid black;
-   padding:6px;
+.commandrule {
+   text-align: right;
 }
+
+.viewrule {
+   display:none;
+}
+
+.editrule {
+   display:none;
+}
+
+#ruleName {
+   font-weight: bold;
+   margin-top: 15pt;
+}
+
+#proposedBy {
+   font-style: italic;
+   color: blue;
+}
+
+.ruleCode {
+    width:100%;
+}
+
+.ruleDescr {
+    width:50%;
+}
+
+/* Code */
 
 #codeDiv {
    padding:3px;
@@ -76,75 +149,6 @@ pre {
    white-space: -o-pre-wrap;    /* Opera 7 */
    word-wrap: break-word;       /* Internet Explorer 5.5+ */
 }
-
-thead {
-   font-weight:bold
-}
-
-#victory {
-   float:left;
-   margin-left:5%;
-   padding:10px;
-}
-
-.gameBox  {
-   position:absolute;
-   float:left;
-   background-color:#F4F4F4;
-   border:1px solid black;
-   padding:10px;
-   width:97%;
-   margin-bottom:5px;
-   margin-left:3px;
-}
-
-#showCodeLink {
-   text-align:right;
-}
-
-.button {
-   text-decoration: none;
-   background-color: #EEEEEE;
-   color: #333333;
-   padding: 2px 6px 2px 6px;
-   border-top: 1px solid #CCCCCC;
-   border-right: 1px solid #333333;
-   border-bottom: 1px solid #333333;
-   border-left: 1px solid #CCCCCC;
-   margin: 3px;
-   cursor: pointer;
-}
-
-.showHide {
-   position: absolute;
-   right: 15px;
-}
-
-#header {
-   background: #F4F4F4 url(/static/pictures/header-bg.jpg) repeat-x;
-   height:30pt;
-   opacity:0.7;
-   font:
-}
-
-#footer {
-   border-top:1px solid silver;
-   border-bottom:1px solid silver;
-   margin-top:10px;
-   margin-bottom:10px;
-   color:gray;
-   padding-top:10px;
-   padding-bottom:5px;
-   background-color:#F4F4F4;
-   bottom:0;
-   position:absolute;
-   width:100%;
-}
-
-input[type="file"]{
-   font: normal 11px Arial;
-}
-
 
 .modalDialog {
    position: fixed;
@@ -233,7 +237,7 @@ input[type="file"]{
    float:right;
    margin-left:20px;
 }
-    
+
 .modalWindow:target {
    opacity:1;
    pointer-events: auto;
@@ -246,11 +250,80 @@ input[type="file"]{
    -moz-border-radius: 5px;
    border-radius: 5px;
    background: #fff;
-   padding-left:20px; 
+   padding-left:20px;
    padding-right:10px;
    padding-top:5px;
    padding-bottom:10px;
    max-height: 70%;
+}
+
+/* Actions */
+
+#IORule {
+   border:1px dotted black;
+   padding:10px;
+   padding-bottom:0px;
+   padding-top:0px;
+   margin-bottom:10px;
+   display: block;
+   max-height:450pt;
+   overflow-y:auto;
+}
+
+#victory {
+   float:left;
+   margin-left:5%;
+   padding:10px;
+}
+
+
+#showCodeLink {
+   text-align:right;
+}
+
+.button {
+   text-decoration: none;
+   background-color: #EEEEEE;
+   color: #333333;
+   padding: 2px 6px 2px 6px;
+   border-top: 1px solid #CCCCCC;
+   border-right: 1px solid #333333;
+   border-bottom: 1px solid #333333;
+   border-left: 1px solid #CCCCCC;
+   margin: 3px;
+   cursor: pointer;
+   font-size: 22;
+}
+
+.buttonTD {
+   padding: 6px;
+}
+
+/* Document */
+
+#header {
+   background: #F4F4F4 url(/static/pictures/header-bg.jpg) repeat-x;
+   height:30pt;
+   opacity:0.7;
+   font:
+}
+
+#footer {
+   border-top:1px solid silver;
+   border-bottom:1px solid silver;
+   margin-top:10px;
+   margin-bottom:10px;
+   color:gray;
+   padding-top:10px;
+   padding-bottom:5px;
+   background-color:#F4F4F4;
+   bottom:0;
+   position:absolute;
+   width:100%;
+}
+
+input[type="file"]{
+   font: normal 11px Arial;
 }
 
 #InputForm {
@@ -270,33 +343,6 @@ pre {
    tab-size:         16;
 }
 
-.playasform {
-   font-size: large;
-   font-weight: bold;
-   padding-bottom:10px;
-}
-
-#ruleName {
-   font-weight: bold;
-   margin-top: 15pt;
-}
-
-#proposedBy {
-   font-style: italic;
-   color: blue;
-}
-
-.ruleCode {
-    width:100%;
-}
- 
-.ruleDescr {
-    width:50%;
-}
-
-#playerName {
-   padding-right: 20pt;
-}
 
 #headerTitle {
    color: white;

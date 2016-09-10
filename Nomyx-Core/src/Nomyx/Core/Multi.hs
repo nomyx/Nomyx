@@ -41,28 +41,18 @@ getTimeEvents now m = do
    let times = concatMap getGameTimes games
    return $ filter (\t -> t <= now && t > (-32) `addUTCTime` now) times
 
--- | the initial rule set for a game.
-rVoteUnanimity :: SubmitRule
-rVoteUnanimity = SubmitRule "Unanimity Vote"
-                            "A proposed rule will be activated if all players vote for it"
-                            [cr|do
-   onRuleProposed $ callVoteRule unanimity oneDay
-   displayVotes|]
-
-rVictory5Rules :: SubmitRule
-rVictory5Rules = SubmitRule "Victory 5 accepted rules"
-                            "Victory is achieved if you have 5 active rules"
-                            [cr|victoryXRules 5|]
-
-rVoteMajority :: SubmitRule
-rVoteMajority = SubmitRule "Majority Vote"
-                            "A proposed rule will be activated if a majority of players is reached, with a minimum of 2 players, and within oone day"
-                            [cr|onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDay|]
-
+rAutoActivate :: RuleTemplate
+rAutoActivate = RuleTemplate "AutoActivate"
+                             "Any proposed rule will be automatically activated, without any vote"
+                             [cr|autoActivate|]
+                             "Kau"
+                             Nothing
+                             []
+                             []
 
 initialGame :: ServerHandle -> StateT GameInfo IO ()
-initialGame sh = zoom loggedGame $ mapM_ addR [rVoteUnanimity, rVictory5Rules]
-   where addR r = execGameEvent' (Just $ getRuleFunc sh) (SystemAddRule r)
+initialGame sh = zoom loggedGame $ mapM_ addR [rAutoActivate]
+   where addR rt = execGameEvent' (Just $ Left $ interRule sh) (ProposeRuleEv SystemAdd 0 rt [])
 
 initialGameInfo :: GameName -> GameDesc -> Bool -> Maybe PlayerNumber -> UTCTime -> ServerHandle -> IO GameInfo
 initialGameInfo name desc isPub mpn date sh = do
@@ -76,7 +66,7 @@ initialGameInfo name desc isPub mpn date sh = do
    execStateT (initialGame sh) lg
 
 defaultMulti :: Settings -> Multi
-defaultMulti = Multi []
+defaultMulti s = Multi [] s (Library [rAutoActivate] [])
 
 -- | finds the corresponding game in the multistate and replaces it.
 modifyGame :: GameInfo -> StateT Multi IO ()

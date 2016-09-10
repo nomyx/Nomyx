@@ -26,6 +26,7 @@ import           Nomyx.Core.Test
 import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
 import           Nomyx.Web.MainPage
+import           Nomyx.Api.Server                    (serveApi, putSwaggerYaml)
 import           Paths_Nomyx                         as PN
 import           Paths_Nomyx_Language                as PNL
 import           Paths_Nomyx_Web                     as PNW
@@ -45,17 +46,14 @@ main :: IO Bool
 main = do
    args <- getArgs
    (flags, _) <- nomyxOpts args
-   if Version `elem` flags then do
-      putStrLn $ "Nomyx " ++ showVersion PN.version
-      return True
-   else if Help `elem` flags then do
-      putStrLn $ usageInfo header options
-      return True
+   if Version `elem` flags then putStrLn $ "Nomyx " ++ showVersion PN.version
+   else if Help `elem` flags then putStrLn $ usageInfo header options
+   else if API `elem` flags then putSwaggerYaml
    else do
       putStrLn "Welcome to Nomyx!"
       putStrLn "Type \"Nomyx --help\" for usage options"
       start flags
-      return True
+   return True
 
 start :: [Flag] -> IO ()
 start flags = do
@@ -77,10 +75,11 @@ start flags = do
    let webDir = fromMaybe defWebDir (findWebDir flags)
    -- source directory: Nomyx-Language files (used only for display in GUI, since this library is statically linked otherwise)
    let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
-   let settings = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir
+   let watchdog = fromMaybe 20 (read <$> findWatchdog flags)
+   let settings = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir watchdog
    let mLoad = findLoadTest flags
    when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\nweb dir = " ++ webDir ++ "\nsource dir = " ++ sourceDir
-   if Test `elem` flags then runTests saveDir mLoad
+   if Test `elem` flags then runTests saveDir mLoad watchdog
    else if DeleteSaveFile `elem` flags then cleanFile saveDir
    else mainLoop settings saveDir host port
 
@@ -89,7 +88,7 @@ mainLoop :: Settings -> FilePath -> HostName -> Port -> IO ()
 mainLoop settings saveDir host port = do
    serverCommandUsage
    --start the haskell interpreter
-   sh <- protectHandlers $ startInterpreter saveDir
+   sh <- protectHandlers $ startInterpreter
    --creating game structures
    multi <- Main.loadMulti settings sh
    --main loop
@@ -98,6 +97,8 @@ mainLoop settings saveDir host port = do
      --start the web server
      forkIO $ launchWebServer ts (Network host port)
      forkIO $ launchTimeEvents ts
+     --start the REST API
+     forkIO $ serveApi ts
      serverLoop ts
 
 loadMulti :: Settings -> ServerHandle -> IO Multi
@@ -116,11 +117,11 @@ errMsg set e = do
   return $ defaultMulti set
 
 
-runTests :: FilePath -> Maybe String -> IO ()
-runTests saveDir mTestName = do
-   sh <- protectHandlers $ startInterpreter saveDir
+runTests :: FilePath -> Maybe String -> Int -> IO ()
+runTests saveDir mTestName delay = do
+   sh <- protectHandlers $ startInterpreter
    putStrLn $ "\nNomyx Language Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") LT.tests
-   ts <- playTests saveDir sh mTestName
+   ts <- playTests saveDir sh mTestName delay
    putStrLn $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") ts
    let pass = allTests && all snd ts
    putStrLn $ "All Tests Pass: " ++ show pass
@@ -169,6 +170,8 @@ data Flag = Verbose
           | WebDir FilePath
           | SourceDir FilePath
           | TarFile FilePath
+          | API
+          | Watchdog String
        deriving (Show, Eq)
 
 -- | launch options description
@@ -188,6 +191,8 @@ options =
      , Option "f" ["dataDir"]   (ReqArg WebDir "WebDir")       "specify data directory (for profiles and website files)"
      , Option "s" ["sourceDir"] (ReqArg SourceDir "SourceDir") "specify source directory (for Nomyx-Language files)"
      , Option "T" ["tar"]       (ReqArg TarFile "TarFile")     "specify tar file (containing Nomyx.save and uploads)"
+     , Option ""  ["api"]       (NoArg API)                    "get swagger API file"
+     , Option ""  ["watchdog"]  (ReqArg Watchdog "5")          "time in seconds before killing the compilation thread"
      ]
 
 nomyxOpts :: [String] -> IO ([Flag], [String])
@@ -199,46 +204,16 @@ nomyxOpts argv =
 header :: String
 header = "Usage: Nomyx [OPTION...]"
 
-findPort :: [Flag] -> Maybe String
-findPort fs = headMay $ mapMaybe isPort fs where
-    isPort (Port a) = Just a
-    isPort _ = Nothing
-
-findHost :: [Flag] -> Maybe String
-findHost fs = headMay $ mapMaybe isHost fs where
-    isHost (HostName a) = Just a
-    isHost _ = Nothing
-
-findLoadTest :: [Flag] -> Maybe String
-findLoadTest fs = headMay $ mapMaybe isLoadTest fs where
-    isLoadTest (LoadTest a) = Just a
-    isLoadTest _ = Nothing
-
-findSaveDir :: [Flag] -> Maybe FilePath
-findSaveDir fs = headMay $ mapMaybe isSaveDir fs where
-    isSaveDir (SaveDir a) = Just a
-    isSaveDir _ = Nothing
-
-findAdminPass :: [Flag] -> Maybe String
-findAdminPass fs = headMay $ mapMaybe isAdminPass fs where
-    isAdminPass (AdminPass a) = Just a
-    isAdminPass _ = Nothing
-
-findWebDir :: [Flag] -> Maybe String
-findWebDir fs = headMay $ mapMaybe isWebDir fs where
-    isWebDir (WebDir a) = Just a
-    isWebDir _ = Nothing
-
-findSourceDir :: [Flag] -> Maybe String
-findSourceDir fs = headMay $ mapMaybe isSourceDir fs where
-    isSourceDir (SourceDir a) = Just a
-    isSourceDir _ = Nothing
-
-findTarFile :: [Flag] -> Maybe String
-findTarFile fs = headMay $ mapMaybe isTarFile fs where
-    isTarFile (TarFile a) = Just a
-    isTarFile _ = Nothing
-
+findPort, findHost, findLoadTest, findSaveDir, findWebDir, findSourceDir, findAdminPass, findTarFile, findWatchdog  :: [Flag] -> Maybe String
+findPort      fs = listToMaybe [a | Port      a <- fs]
+findHost      fs = listToMaybe [a | HostName  a <- fs]
+findLoadTest  fs = listToMaybe [a | LoadTest  a <- fs]
+findSaveDir   fs = listToMaybe [a | SaveDir   a <- fs]
+findWebDir    fs = listToMaybe [a | AdminPass a <- fs]
+findSourceDir fs = listToMaybe [a | WebDir    a <- fs]
+findAdminPass fs = listToMaybe [a | AdminPass a <- fs]
+findTarFile   fs = listToMaybe [a | TarFile   a <- fs]
+findWatchdog  fs = listToMaybe [a | Watchdog  a <- fs]
 
 triggerTimeEvent :: TVar Session -> UTCTime -> IO()
 triggerTimeEvent tm t = do

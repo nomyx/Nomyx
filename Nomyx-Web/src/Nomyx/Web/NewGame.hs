@@ -44,11 +44,10 @@ newGamePage = toResponse <$> do
    admin <- isAdmin
    gis <- getPublicGames
    let gameNames = map (_gameName . _game . _loggedGame) gis
-   newGameLink <- showURL SubmitNewGame
    mf <- liftRouteT $ lift $ viewForm "user" $ newGameForm admin gameNames
    mainPage "New game"
             "New game"
-            (blazeForm mf newGameLink)
+            (blazeForm mf $ showRelURL SubmitNewGame)
             False
             True
 
@@ -59,13 +58,11 @@ newGamePost = toResponse <$> do
    gis <- getPublicGames
    let gameNames = map (_gameName . _game . _loggedGame) gis
    r <- liftRouteT $ lift $ eitherForm environment "user" (newGameForm admin gameNames)
-   link <- showURL MainPage
-   newGameLink <- showURL SubmitNewGame
    pn <- fromJust <$> getPlayerNumber
    case r of
-      Left errorForm -> mainPage  "New game" "New game" (blazeForm errorForm newGameLink) False True
+      Left errorForm -> mainPage  "New game" "New game" (blazeForm errorForm $ showRelURL SubmitNewGame) False True
       Right (NewGameForm name desc isPublic mforkFrom) -> do
          case mforkFrom of
             Nothing       -> webCommand $ S.newGame name desc pn isPublic
             Just forkFrom -> webCommand $ S.forkGame forkFrom name desc False pn
-         seeOther link "Redirecting..."
+         seeOther (showRelURL MainPage) "Redirecting..."

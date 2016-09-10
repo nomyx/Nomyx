@@ -10,13 +10,14 @@ import Language.Nomyx.Rules
 import Language.Nomyx.Events
 import Language.Nomyx.Outputs
 import Language.Nomyx.Inputs
-import Language.Nomyx.Vote
 import Language.Nomyx.Messages
-import Language.Nomyx.Examples
 import Nomyx.Core.Engine.Evaluation
 import Nomyx.Core.Engine.EventEval
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
+import Nomyx.Library.Examples
+import Nomyx.Library.Vote
+import Nomyx.Library.Victory
 import Control.Monad.State
 import Data.Typeable
 import Data.Function hiding ((.))
@@ -25,6 +26,7 @@ import Control.Applicative
 import Control.Lens
 import Control.Shortcut
 import System.Random
+import Data.Time hiding (getCurrentTime)
 
 date1, date2, date3 :: UTCTime
 date1 = parse822Time "Tue, 02 Sep 1997 09:00:00 -0400"
@@ -46,13 +48,16 @@ testGame = Game { _gameName      = "test",
 
 testRule :: RuleInfo
 testRule = RuleInfo  { _rNumber       = 0,
-                       _rName         = "test",
-                       _rDescription  = "test",
                        _rProposedBy   = 0,
-                       _rRuleCode     = "",
                        _rRule         = return (),
                        _rStatus       = Pending,
-                       _rAssessedBy   = Nothing}
+                       _rAssessedBy   = Nothing,
+                       _rRuleTemplate = RuleTemplate {_rName = "test",
+                                                      _rDescription = "test",
+                                                      _rRuleCode = "",
+                                                      _rAuthor = "",
+                                                      _rPicture = Nothing,
+                                                      _rCategory = []}}
 
 execRuleEvent :: (Show e, Typeable e) => Nomex a -> Signal e -> e -> Game
 execRuleEvent r f d = execState (runSystemEval' $ evalNomex r >> triggerEvent f d) testGame
@@ -77,7 +82,10 @@ execRule r = execRuleGame r testGame
 
 addActivateRule :: Rule -> RuleNumber -> Evaluate ()
 addActivateRule rf rn = do
-   let rule = testRule {_rName = "testRule", _rRule = rf, _rNumber = rn, _rStatus = Pending}
+   let rule = testRule & (rRuleTemplate . rName) .~ "testRule"
+                       & rRule   .~ rf
+                       & rNumber .~ rn
+                       & rStatus .~ Pending
    evAddRule rule
    evActivateRule (_rNumber rule)
    return ()

@@ -21,7 +21,6 @@ import           Data.List
 import           Data.Maybe
 import           Language.Nomyx
 import           Safe
---import Happstack.Auth.Core.Profile (initialProfileState)
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Quotes
 import           Nomyx.Core.Types
@@ -45,8 +44,8 @@ askProfileData uid = do
 initialProfileData :: PlayerNumber -> PlayerSettings -> ProfileData
 initialProfileData uid ps = ProfileData uid ps (Just (exampleRule, "")) NoUpload False
 
-exampleRule :: SubmitRule
-exampleRule = SubmitRule "" "" [cr|
+exampleRule :: RuleTemplate
+exampleRule = RuleTemplate "" "" [cr|
 --This is an example new rule that you can enter.
 --If you submit this rule it will have to be voted on by other players (as described by rule 1).
 --A lot of other examples can be found in the left menu bar.
@@ -58,6 +57,10 @@ do
    --create a button for me, which will display the output when clicked
    void $ onInputButton_ "Click here:" displayMsg me
 |]
+   ""
+   Nothing
+   []
+   []
 
 
 -- | create the profile data, but only if it is missing

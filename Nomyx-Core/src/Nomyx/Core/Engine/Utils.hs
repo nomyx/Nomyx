@@ -16,11 +16,11 @@ import           Control.Lens           hiding (runIdentity)
 import           Control.Monad.Identity
 import           Control.Monad.State
 import           Data.Maybe             (fromJust)
-import           Data.Time
+import           Data.Time              (UTCTime, zonedTimeToUTC, parseTime, rfc822DateFormat)
+import           Data.Time.Format       (defaultTimeLocale)
 import           Data.Typeable          (Typeable, cast)
 import           Debug.Trace            (trace)
 import           Debug.Trace.Helpers    (traceM)
-import           System.Locale          (defaultTimeLocale, rfc822DateFormat)
 
 -- | an equality that tests also the types.
 (===) :: (Typeable a, Typeable b, Eq b) => a -> b -> Bool

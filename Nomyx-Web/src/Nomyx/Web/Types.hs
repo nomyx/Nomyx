@@ -19,6 +19,7 @@ import           Happstack.Server              as HS (Input, Response,
 import           Language.Nomyx
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Types              as T
+import           Nomyx.Auth
 import           Text.Blaze.Html5              hiding (base, map, output)
 import           Text.Reform                   (CommonFormError, ErrorInputType,
                                                 Form, FormError (..))
@@ -29,35 +30,48 @@ import           Web.Routes.TH                 (derivePathInfo)
 
 default (Integer, Double, Data.Text.Text)
 
-data PlayerCommand = Auth AuthenticateURL
-                   | Login
-                   | Logout
-                   | ResetPassword
-                   | ChangePassword
-                   | OpenIdRealm
-                   | PostAuth
-                   | MainPage
-                   | JoinGame  GameName
-                   | LeaveGame GameName
-                   | DelGame   GameName
-                   | DoInput   EventNumber SignalAddress FormField GameName
-                   | NewRule   GameName
-                   | NewGame
-                   | SubmitNewGame
-                   | Upload
-                   | Advanced
-                   | SubmitPlayAs GameName
-                   | SubmitAdminPass
-                   | SubmitSettings
-                   | SaveFilePage
-                   | NomyxJS
-                   deriving (Show)
+data GameTab = Home | Rules | Actions | Library | Details
+   deriving (Show)
+
+data PlayerCommand =
+  -- Authentication and login
+    Auth AuthenticateURL
+  | Login
+  | Logout
+  | ResetPassword
+  | ChangePassword
+  | OpenIdRealm
+  | PostAuth
+  -- Game menu
+  | Menu GameTab GameName
+  | MainPage
+  -- Game management
+  | JoinGame  GameName
+  | LeaveGame GameName
+  | DelGame   GameName
+  | NewGame
+  | SubmitNewGame
+  -- Game actions
+  | DoInput   EventNumber SignalAddress FormField GameName
+  | SubmitRule   GameName
+  -- Templates
+  | NewRuleTemplate GameName
+  | DelRuleTemplate GameName RuleName
+  -- File management
+  | Upload
+  --Settings
+  | Advanced
+  | SubmitPlayAs GameName
+  | SubmitAdminPass
+  | SubmitSettings
+  | SaveFilePage
+  -- Misc
+  | NomyxJS
+  deriving (Show)
 
 
 data WebState = WebState {_session           :: TVar Session,
-                          _authenticateState :: AcidState AuthenticateState,
-                          _routeAuthenticate :: AuthenticateURL -> RouteT AuthenticateURL (ServerPartT IO) Response}
-
+                          _authState         :: AuthState}
 
 type RoutedNomyxServer a = RouteT PlayerCommand (StateT WebState (ServerPartT IO)) a
 
@@ -71,12 +85,19 @@ data NomyxError = PlayerNameRequired
 
 type NomyxForm a = Form (ServerPartT IO) [HS.Input] NomyxError Html () a
 
+data RuleTemplateForm = RuleTemplateForm {name  :: String,               -- rule name
+                                          desc  :: String,               -- rule description
+                                          code  :: String,               -- rule code
+                                          decls :: (FilePath, FilePath)} -- list of declaration files (temp path, filename)
+                                          deriving (Show)
+
 instance PathInfo SignalAddressElem
 instance PathInfo SignalAddress
 instance PathInfo FormField
 instance PathInfo (Int, String)
 instance PathInfo [(Int, String)]
 
+$(derivePathInfo ''GameTab)
 $(derivePathInfo ''PlayerCommand)
 
 instance PathInfo Bool where

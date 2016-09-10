@@ -1,28 +1,31 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE EmptyDataDecls #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE CPP                       #-}
+{-# LANGUAGE DataKinds                 #-}
+{-# LANGUAGE DeriveDataTypeable        #-}
+{-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE EmptyDataDecls            #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE KindSignatures            #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE StandaloneDeriving        #-}
+{-# LANGUAGE TemplateHaskell           #-}
+{-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE RankNTypes             #-}
 
 -- | This module contains the type definitions necessary to build a Nomic rule.
 module Language.Nomyx.Expression where
 
-import Data.Typeable
-import Data.Time
-import GHC.Generics
-import Control.Applicative hiding (Const)
-import Control.Lens
-import Control.Monad.Error
-import Control.Shortcut
-import System.Random
+import           Control.Applicative hiding (Const)
+import           Control.Lens
+import           Control.Monad.Error
+import           Control.Shortcut
+import           Data.Data           (Data)
+import           Data.Time
+import           Data.Typeable
+import           GHC.Generics
+import           System.Random
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -34,7 +37,6 @@ type RuleCode = String
 type EventNumber = Int
 type EventName = String
 type VarName = String
-type Code = String
 type OutputNumber = Int
 type InputNumber = Int
 
@@ -220,6 +222,7 @@ instance MonadPlus Event where
 instance Shortcutable Event where
    shortcut = ShortcutEvents
 
+
 -- EventInfo
 
 data EventInfo = forall e. (Typeable e, Show e) =>
@@ -261,21 +264,42 @@ instance Ord EventInfo where
 type Rule = Nomex ()
 
 -- | An informationnal structure about a rule
-data RuleInfo = RuleInfo { _rNumber      :: RuleNumber,       -- number of the rule (must be unique)
-                           _rName        :: RuleName,         -- short name of the rule
-                           _rDescription :: String,           -- description of the rule
-                           _rProposedBy  :: PlayerNumber,     -- player proposing the rule
-                           _rRuleCode    :: Code,             -- code of the rule as a string
-                           _rRule        :: Rule,             -- function representing the rule (interpreted from rRuleCode)
-                           _rStatus      :: RuleStatus,       -- status of the rule
-                           _rAssessedBy  :: Maybe RuleNumber} -- which rule accepted or rejected this rule
+data RuleInfo = RuleInfo { _rNumber       :: RuleNumber,       -- number of the rule (must be unique)
+                           _rProposedBy   :: PlayerNumber,     -- player proposing the rule
+                           _rRule         :: Rule,             -- function representing the rule (interpreted from rRuleCode)
+                           _rStatus       :: RuleStatus,       -- status of the rule
+                           _rAssessedBy   :: Maybe RuleNumber, -- which rule accepted or rejected this rule
+                           _rModules      :: [Module],
+                           _rRuleTemplate :: RuleTemplate}
                            deriving (Typeable, Show)
+
+
+data RuleTemplate = RuleTemplate { _rName         :: RuleName,         -- short name of the rule
+                                   _rDescription  :: String,           -- description of the rule
+                                   _rRuleCode     :: RuleCode,         -- code of the rule as a string
+                                   _rAuthor       :: String,           -- the name of the original author
+                                   _rPicture      :: Maybe FilePath,   -- a file name for the illustration image
+                                   _rCategory     :: [String],         -- categories
+                                   _rDeclarations :: [FilePath]} -- addictional declarations (Haskell modules)
+                                   deriving (Typeable, Show, Read, Data, Generic)
+
+type Module = String
+
+data ModuleInfo = ModuleInfo {_modPath :: FilePath,  -- file name of the module
+                              _modContent :: Module} -- content of the module (or Nothing if module is present in library)
+                              deriving (Eq, Read, Show, Typeable, Data, Generic, Ord)
 
 instance Eq RuleInfo where
     (RuleInfo {_rNumber=r1}) == (RuleInfo {_rNumber=r2}) = r1 == r2
 
 instance Ord RuleInfo where
-     (RuleInfo {_rNumber=r1}) <= (RuleInfo {_rNumber=r2}) = r1 <= r2
+    (RuleInfo {_rNumber=r1}) <= (RuleInfo {_rNumber=r2}) = r1 <= r2
+
+instance Eq RuleTemplate where
+    (RuleTemplate {_rName=r1}) == (RuleTemplate {_rName=r2}) = r1 == r2
+
+instance Ord RuleTemplate where
+    (RuleTemplate {_rName=r1}) <= (RuleTemplate {_rName=r2}) = r1 <= r2
 
 -- | the status of a rule.
 data RuleStatus = Active      -- Active rules forms the current Constitution
@@ -297,7 +321,7 @@ instance Ord PlayerInfo where
 -- * Victory
 
 data VictoryInfo = VictoryInfo { _vRuleNumber :: RuleNumber,
-                                 _vCond :: NomexNE [PlayerNumber]}
+                                 _vCond       :: NomexNE [PlayerNumber]}
                                  deriving (Show, Typeable)
 
 -- * Miscellaneous
@@ -322,9 +346,11 @@ instance (Typeable a, Typeable b) => Show (a -> b) where
 
 
 makeLenses ''RuleInfo
+makeLenses ''RuleTemplate
 makeLenses ''PlayerInfo
 makeLenses ''EventInfo
 makeLenses ''SignalOccurence
+makeLenses ''ModuleInfo
 
 eventNumber :: Lens' EventInfo EventNumber
 eventNumber f (EventInfo e rn ev h evs env) = fmap (\e' -> (EventInfo e' rn ev h evs env)) (f e)

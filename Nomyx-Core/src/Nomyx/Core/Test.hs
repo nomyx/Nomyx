@@ -6,36 +6,37 @@
 -- | Test module
 module Nomyx.Core.Test where
 
-import Language.Haskell.Interpreter.Server (ServerHandle)
-import Language.Nomyx hiding (getCurrentTime)
-import Control.Applicative
-import Control.Monad.State
-import Control.Exception as E
-import Control.Arrow ((>>>))
-import Control.Lens
-import Language.Haskell.TH
-import Language.Haskell.TH.Syntax as THS hiding (lift)
-import System.IO.Unsafe
-import Data.List
-import Data.Maybe
-import Data.Acid
-import Data.Acid.Memory
-import Data.Time hiding (getCurrentTime)
-import Paths_Nomyx_Core as PNC
-import System.IO.Temp
-import System.FilePath ((</>))
-import System.Directory (createDirectoryIfMissing)
-import Nomyx.Core.Types
-import Nomyx.Core.Multi
-import Nomyx.Core.Session
-import Nomyx.Core.Utils
-import Nomyx.Core.Profile
-import Nomyx.Core.Quotes
-import Nomyx.Core.Engine
+import           Language.Haskell.Interpreter.Server (ServerHandle)
+import           Language.Nomyx hiding (getCurrentTime)
+import           Control.Applicative
+import           Control.Monad.State
+import           Control.Exception as E
+import           Control.Arrow ((>>>))
+import           Control.Lens
+import           Control.Concurrent.STM
+import           Language.Haskell.TH hiding (ModuleInfo)
+import           Language.Haskell.TH.Syntax as THS hiding (lift, Module, ModuleInfo)
+import           System.IO.Unsafe
+import           Data.List
+import           Data.Maybe
+import           Data.Acid
+import           Data.Acid.Memory
+import           Data.Time hiding (getCurrentTime)
+import           Paths_Nomyx_Core as PNC
+import           System.IO.Temp
+import           System.FilePath ((</>))
+import           System.Directory (createDirectoryIfMissing)
+import           Nomyx.Core.Types
+import           Nomyx.Core.Multi
+import           Nomyx.Core.Session
+import           Nomyx.Core.Utils
+import           Nomyx.Core.Profile
+import           Nomyx.Core.Quotes
+import           Nomyx.Core.Engine
 import qualified Nomyx.Core.Engine as G
 
-playTests :: FilePath -> ServerHandle -> Maybe String -> IO [(String, Bool)]
-playTests saveDir sh mTestName = do
+playTests :: FilePath -> ServerHandle -> Maybe String -> Int -> IO [(String, Bool)]
+playTests saveDir sh mTestName delay = do
    tests <- case mTestName of
       Just testName -> do
          let tsts = fatalTests ++ regularTests
@@ -44,8 +45,11 @@ playTests saveDir sh mTestName = do
    tp <- testProfiles
    dir <- createTempDirectory "/tmp" "Nomyx"
    createDirectoryIfMissing True $ dir </> uploadDir
-   let session = Session sh (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = saveDir, _webDir = "", _sourceDir = ""}) tp
+   let session = Session sh (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = saveDir, _webDir = "", _sourceDir = "", _watchdog = delay}) tp
    mapM (\(title, t, cond) -> (title,) <$> test title session t cond) tests
+
+defaultNetwork :: Network
+defaultNetwork = Network "" 0
 
 -- | test list.
 -- each test can be loaded individually in Nomyx with the command line:
@@ -57,17 +61,17 @@ regularTests = [("hello World",           gameHelloWorld,         condHelloWorld
          ("Partial Function 1",    gamePartialFunction1,   condPartialFunction),
          ("Partial Function 2",    gamePartialFunction2,   condPartialFunction),
          ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
-         ("Test file 1",           testFile1,              condNRules 3),
-         ("Test file 2",           testFile2,              condNRules 3),
+         ("Test file 1",           testFile1,              condNRules 2),
+         ("Test file 2",           testFile2,              condNRules 2),
 #if __GLASGOW_HASKELL__ >= 708
          --Data.Time is Safe only in recent versions
-         ("Test import Data.Time", testFileTime,           condNRules 3),
+         ("Test import Data.Time", testFileTime,           condNRules 2),
 #endif
-         ("load file twice",       testFileTwice,          condNRules 3),
-         ("load file twice 2",     testFileTwice',         condNRules 4),
-         ("load file unsafe",      testFileUnsafeIO,       condNRules 2)] ++
+         ("load file twice",       testFileTwice,          condNRules 1),
+         ("load file twice 2",     testFileTwice',         condNRules 3),
+         ("load file unsafe",      testFileUnsafeIO,       condNRules 1)] ++
          map (\i -> ("Loop" ++ show i,      loops !! (i-1),      condNoGame))   [1..(length loops)] ++
-         map (\i -> ("Forbidden" ++ show i, forbiddens !! (i-1), condNRules 2)) [1..(length forbiddens)]
+         map (\i -> ("Forbidden" ++ show i, forbiddens !! (i-1), condNRules 1)) [1..(length forbiddens)]
 
 -- Those tests should make the game die immediately because of security problem (it will be re-launched)
 fatalTests :: [(String, StateT Session IO (), Multi -> Bool)]
@@ -83,7 +87,8 @@ test title session tes cond = do
 --Loads a test
 loadTest ::  StateT Session IO () -> Session -> IO Multi
 loadTest tes s = do
-   ms <- evalWithWatchdog s (evalSession tes) --version with no watchdog: ms <- Just <$> execStateT tes s
+   let delay = _watchdog $ _mSettings $ _multi s
+   ms <- evalWithWatchdog delay s (evalSession tes) --version with no watchdog: ms <- Just <$> execStateT tes s
    case ms of
       Just s' -> return $ _multi s'
       Nothing -> do
@@ -105,33 +110,33 @@ printRule r = unsafePerformIO $ do
 
 onePlayerOneGame :: StateT Session IO ()
 onePlayerOneGame = do
-   newPlayer 1 PlayerSettings {_pPlayerName = "Player 1", _mail = Nothing, _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}
+   newPlayer 1 PlayerSettings {_pPlayerName = "Player 1", _mail = Nothing, _mailNewInput = False, _mailSubmitRule = False, _mailNewOutput = False, _mailConfirmed = False}
    newGame "test" (GameDesc "" "") 1 True
    joinGame "test" 1
 
 twoPlayersOneGame :: StateT Session IO ()
 twoPlayersOneGame = do
    onePlayerOneGame
-   newPlayer 2 PlayerSettings {_pPlayerName = "Player 2", _mail = Nothing, _mailNewInput = False, _mailNewRule = False, _mailNewOutput = False, _mailConfirmed = False}
+   newPlayer 2 PlayerSettings {_pPlayerName = "Player 2", _mail = Nothing, _mailNewInput = False, _mailSubmitRule = False, _mailNewOutput = False, _mailConfirmed = False}
    joinGame "test" 2
 
 submitR :: String -> StateT Session IO ()
 submitR r = do
    onePlayerOneGame
    sh <- use sh
-   submitRule (SubmitRule "" "" r) 1 "test" sh
+   submitRule (RuleTemplate "" "" r "" Nothing [] []) 1 "test" sh
    inputAllRadios 0
 
-testFile' :: FilePath -> FilePath -> String -> StateT Session IO Bool
+testFile' :: FilePath -> FilePath -> String -> StateT Session IO ()
 testFile' path name func = do
    sh <- use sh
    dataDir <- lift PNC.getDataDir
-   res <- inputUpload 1 (dataDir </> testDir </> path) name sh
-   submitRule (SubmitRule "" "" func) 1 "test" sh
+   cont <- liftIO $ readFile (dataDir </> testDir </> path)
+   (multi . mLibrary . mModules) .= [ModuleInfo name cont]
+   submitRule (RuleTemplate "" "" func "" Nothing [] [name]) 1 "test" sh
    inputAllRadios 0
-   return res
 
-testFile :: FilePath -> String -> StateT Session IO Bool
+testFile :: FilePath -> String -> StateT Session IO ()
 testFile name = testFile' name name
 
 -- * Tests
@@ -148,7 +153,7 @@ gameHelloWorld2Players :: StateT Session IO ()
 gameHelloWorld2Players = do
    twoPlayersOneGame
    sh <- use sh
-   submitRule (SubmitRule "" "" [cr|helloWorld|]) 1 "test" sh
+   submitRule (RuleTemplate "" "" [cr|helloWorld|] "" Nothing [] []) 1 "test" sh
    inputAllRadios 0
 
 condHelloWorld2Players :: Multi -> Bool
@@ -160,9 +165,9 @@ gameMoneyTransfer :: StateT Session IO ()
 gameMoneyTransfer = do
    sh <- use sh
    twoPlayersOneGame
-   submitRule (SubmitRule "" "" [cr|createBankAccounts|]) 1 "test" sh
-   submitRule (SubmitRule "" "" [cr|winXEcuOnRuleAccepted 100|]) 1 "test" sh
-   submitRule (SubmitRule "" "" [cr|moneyTransfer|]) 2 "test" sh
+   submitRule (RuleTemplate "" "" [cr|createBankAccounts|] "" Nothing [] []) 1 "test" sh
+   submitRule (RuleTemplate "" "" [cr|winXEcuOnRuleAccepted 100|] "" Nothing [] []) 1 "test" sh
+   submitRule (RuleTemplate "" "" [cr|moneyTransfer|] "" Nothing [] []) 2 "test" sh
    inputAllRadios 0
    inputAllTexts "50" 1
 
@@ -207,7 +212,7 @@ gamePartialFunction3 = do
 
 -- rule has been accepted and also next one
 condPartialFunction3 :: Multi -> Bool
-condPartialFunction3 m = (length $ _rules $ firstGame m) == 4
+condPartialFunction3 m = (length $ _rules $ firstGame m) == 3
 
 -- * Malicious codes
 
@@ -254,7 +259,7 @@ condNoGame m = null $ _gameInfos m
 testFile1 :: StateT Session IO ()
 testFile1 = do
    onePlayerOneGame
-   void $ testFile "SimpleModule.hs" "myRule"
+   testFile "SimpleModule.hs" "myRule"
 
 condNRules :: Int -> Multi -> Bool
 condNRules n m = (length $ _rules $ firstGame m) == n
@@ -263,35 +268,35 @@ condNRules n m = (length $ _rules $ firstGame m) == n
 testFile2 :: StateT Session IO ()
 testFile2 = do
    onePlayerOneGame
-   void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
+   testFile "SimpleModule.hs" "SimpleModule.myRule"
 
 
 --module that imports Data.Time (should be Safe in recent versions)
 testFileTime :: StateT Session IO ()
 testFileTime = do
    onePlayerOneGame
-   void $ testFile "TestTime.hs" "TestTime.myRule"
+   testFile "TestTime.hs" "TestTime.myRule"
 
 --loading two modules with the same name is forbidden
 testFileTwice :: StateT Session IO ()
 testFileTwice = do
    onePlayerOneGame
-   void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
-   void $ testFile' "more/SimpleModule.hs" "SimpleModule.hs" "SimpleModule.myRule2"
+   testFile "SimpleModule.hs" "SimpleModule.myRule"
+   testFile' "more/SimpleModule.hs" "SimpleModule.hs" "SimpleModule.myRule2"
 
 
 --but having the same function name in different modules is OK
 testFileTwice' :: StateT Session IO ()
 testFileTwice' = do
    onePlayerOneGame
-   void $ testFile "SimpleModule.hs" "SimpleModule.myRule"
-   void $ testFile "SimpleModule2.hs" "SimpleModule2.myRule"
+   testFile "SimpleModule.hs" "SimpleModule.myRule"
+   testFile "SimpleModule2.hs" "SimpleModule2.myRule"
 
 --security: no unsafe module imports
 testFileUnsafeIO :: StateT Session IO ()
 testFileUnsafeIO = do
    onePlayerOneGame
-   void $ testFile "UnsafeIO.hs" "UnsafeIO.myRule"
+   testFile "UnsafeIO.hs" "UnsafeIO.myRule"
 
 
 -- * Helpers

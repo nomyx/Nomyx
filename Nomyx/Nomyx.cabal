@@ -19,6 +19,7 @@ executable Nomyx
     build-depends: Nomyx-Core             == 0.7.6,
                    Nomyx-Language         == 0.7.6,
                    Nomyx-Web              == 0.7.6,
+                   Nomyx-Api              == 0.7.6,
                    base                   >= 4.6 && <5,
                    directory              == 1.2.*,
                    exceptions             >= 0.6 && < 0.9,

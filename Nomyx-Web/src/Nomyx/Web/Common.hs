@@ -15,10 +15,12 @@ import           Control.Lens
 import           Control.Monad.State
 import           Data.Acid.Advanced                  (query')
 import qualified Data.ByteString.Char8               as C
+import           Data.Char
 import           Data.Maybe
 import           Data.Monoid
 import           Data.String
-import           Data.Text                           (Text, append, unpack)
+import           Data.Text                           (Text, append, tail,
+                                                      unpack)
 import           Happstack.Authenticate.Core         (AuthenticateURL (..),
                                                       GetUserByUserId (..),
                                                       User, UserId (..),
@@ -26,15 +28,18 @@ import           Happstack.Authenticate.Core         (AuthenticateURL (..),
 import           Happstack.Server                    as HS
 import           Language.Haskell.HsColour.Colourise (defaultColourPrefs)
 import           Language.Haskell.HsColour.HTML      (hscolour)
-import           Language.Javascript.JMacro          (JStat(..), jLam,
-                                                      jVarTy, jhFromList,
-                                                      jmacro, toJExpr)
+import           Language.Javascript.JMacro          (JStat (..), jLam, jVarTy,
+                                                      jhFromList, jmacro,
+                                                      toJExpr)
 import           Language.Nomyx
+import           Network.HTTP.Types                  (urlEncode)
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Session
 import           Nomyx.Core.Types                    as T
 import           Nomyx.Web.Types
+import qualified Nomyx.Auth                          as Auth
+import           Numeric
 import           Prelude                             hiding (div)
 import           Safe
 import           Text.Blaze.Html.Renderer.Utf8       (renderHtml)
@@ -48,8 +53,10 @@ import           Text.Reform                         (ErrorInputType, Form,
 import           Text.Reform.Blaze.String            ()
 import qualified Text.Reform.Generalized             as G
 import           Text.Reform.Happstack               ()
+import           Web.Routes.Base
 import           Web.Routes.Happstack                ()
 import           Web.Routes.RouteT
+import           Web.Routes.PathInfo
 
 ruleFormAnchor, inputAnchor :: Text
 ruleFormAnchor = "RuleForm"
@@ -86,10 +93,9 @@ mainPage' title header footer body = do
 
 mainPage :: String -> Html -> Html -> Bool -> Bool -> RoutedNomyxServer Html
 mainPage title header body footer backLink = do
-   link <- showURL MainPage
    routeFn <- askRouteFn
-   ok $ if backLink then appTemplate' title header body footer (Just $ unpack link) routeFn
-                    else appTemplate' title header body footer Nothing routeFn
+   ok $ --if backLink then appTemplate' title header body footer (Just $ unpack $ showRelURL MainPage) routeFn
+                     appTemplate' title header body footer Nothing routeFn
 
 appTemplate' ::
        String -- ^ title
@@ -107,11 +113,11 @@ appTemplate' title headers body footer link routeFn = do
       --H.link ! rel "stylesheet" ! type_ "text/css" ! href "http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css"
       H.meta ! A.httpEquiv "Content-Type" ! content "text/html;charset=utf-8"
       H.meta ! A.name "keywords" ! A.content "Nomyx, game, rules, Haskell, auto-reference"
-      H.script ! A.type_ "text/JavaScript" ! A.src "/static/nomyx.js" $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src "http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js" $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src "http://ajax.googleapis.com/ajax/libs/angularjs/1.2.24/angular.min.js" $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src "http://ajax.googleapis.com/ajax/libs/angularjs/1.2.24/angular-route.min.js" $ ""
+      H.script ! A.type_ "text/JavaScript" ! A.src "/static/nomyx.js" $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src (textValue $ routeFn NomyxJS []) $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src (textValue $ routeFn (Auth Controllers) []) $ ""
    H.body ! onload "loadDivVisibility()"  ! customAttribute "ng-controller" "AuthenticationCtrl" ! customAttribute "ng-app" "NomyxApp" $ H.div ! A.id "container" $ do
@@ -123,18 +129,10 @@ appTemplate' title headers body footer link routeFn = do
 
 -- | return the player number (user ID) based on the session cookie.
 getPlayerNumber :: RoutedNomyxServer (Maybe PlayerNumber)
-getPlayerNumber = do
-   acidAuth <- use authenticateState
-   uid <- getUserId acidAuth
-   case uid of
-      Nothing -> return Nothing
-      (Just (UserId userID)) -> return $ Just $ fromInteger userID
+getPlayerNumber = liftRouteT $ zoom authState $ Auth.getPlayerNumber
 
 getUser :: RoutedNomyxServer (Maybe User)
-getUser = do
-  auth <- use authenticateState
-  userId <- getUserId auth
-  liftIO $ query' auth (GetUserByUserId $ fromJust userId)
+getUser = liftRouteT $ zoom authState $ Auth.getUser
 
 getProfile' :: PlayerNumber -> RoutedNomyxServer (Maybe ProfileData)
 getProfile' pn = do
@@ -177,13 +175,12 @@ getPublicGames = do
    s <- getSession
    return $ filter ((== True) . _isPublic) (_gameInfos $ _multi s)
 
-
 fieldRequired :: NomyxError -> String -> Either NomyxError String
 fieldRequired a []  = Left a
 fieldRequired _ str = Right str
 
-appendAnchor :: Text -> Text -> Text
-appendAnchor url a = url `append` "#" `append` a
+idEncode :: String -> String
+idEncode t = map (\c -> if c==' ' then '+'; else c) t
 
 displayCode :: String -> Html
 displayCode s = preEscapedToHtml $ hscolour defaultColourPrefs False 0 s
@@ -197,28 +194,21 @@ numberOfGamesOwned gis pn = length $ filter (maybe False (==pn) . _ownedBy) gis
 getFirstGame :: Session -> Maybe GameInfo
 getFirstGame = headMay . filter _isPublic ._gameInfos . _multi
 
-showHideTitle :: String -> Bool -> Bool -> Html -> Html -> Html
-showHideTitle id visible empty title rest = do
-   let id' = filter (/=' ') id
-   div $ table ! width "100%" $ tr $ do
-      td $ div title
-      td $ div $ a (if visible then "Click to hide" else "Click to show") ! A.id (fromString $ id' ++ "Show") ! A.class_ "button showHide" ! onclick (fromString $ printf "toggle_visibility('%sBody', '%sShow')" id' id')
-   div ! A.id (fromString $ id' ++ "Body") ! A.style (fromString $ "display:" ++ (if visible then "block;" else "none;")) $
-      if empty then toHtml "No Rules" else rest
-
 titleWithHelpIcon :: Html -> String -> Html
 titleWithHelpIcon myTitle help = table ! width "100%" $ tr $ do
    td ! A.style "text-align:left;" $ myTitle
    td ! A.style "text-align:right;" $ img ! src "/static/pictures/help.jpg" ! A.title (toValue help)
 
---mapping for the javascript function.
-setDivVisibilityAndSave :: String -> String -> String
-setDivVisibilityAndSave groupName elementName = printf "setDivVisibilityAndSave('%s', '%s')" groupName elementName
-
-defLink :: PlayerCommand -> Bool -> RoutedNomyxServer Text
-defLink a logged = if logged then showURL a else showURL Login
+defLink :: PlayerCommand -> Bool -> Text
+defLink a logged = if logged then showRelURL a else showRelURL Login
 
 trim = unwords . words
+
+showRelURL :: PlayerCommand -> Text
+showRelURL c = "/Nomyx" <> (toPathInfo c)
+
+showRelURLParams :: PlayerCommand -> [(Text, Maybe Text)] -> Text
+showRelURLParams c ps = "/Nomyx" <> (toPathInfoParams c ps)
 
 -- | app module for angulasjs
 --

@@ -1,55 +1,44 @@
-function toggle_visibility(id_events, id_show) 
+function toggle_visibility(id_events, id_show)
 {
    var events = document.getElementById(id_events);
    var show = document.getElementById(id_show);
-   if (show.innerHTML == 'Click to show') 
+   if (show.innerHTML == 'Click to show')
    {
-      events.style.display = 'block'; 
+      events.style.display = 'block';
       show.innerHTML = 'Click to hide';
    }
-   else   
+   else
    {
-      events.style.display = 'none'; 
+      events.style.display = 'none';
       show.innerHTML ='Click to show';
    }
 }
 
 //toggle visibility for overlapping divs
-//all elements with the class name will be pushed back, 
+//all elements with the class name will be pushed back,
 //while only the element with the id name is put on front
-function divBoxvisibility(idDiv, classDiv, idButton, classButton)
+function toggleVisibilityGroup(elementId, groupClass)
 {
-   //push back every divs
-   var boxes = document.getElementsByClassName(classDiv);
-   for (i = 0; i < boxes.length; i++) {
-      boxes[i].style.display = 'none';
+   var elems = document.getElementsByClassName(groupClass);
+   for (i = 0; i < elems.length; i++) {
+      elems[i].style.display = 'none';
    }
 
-   //pull front our div
-   var myBox = document.getElementById(idDiv);
-   myBox.style.display = 'inline';
+   var elem = document.getElementById(elementId);
+   elem.style.display = 'inline';
+}
 
-   //unbold the text in the buttons
-   var buttons = document.getElementsByClassName(classButton);
-   for (i = 0; i < buttons.length; i++) {
-      buttons[i].style.fontWeight = 'normal';
+function toggleBoldGroup(elementId, groupClass)
+{
+   var elems = document.getElementsByClassName(groupClass);
+   for (i = 0; i < elems.length; i++) {
+      elems[i].style.fontWeight = 'normal';
    }
 
-   //pull front our div
-   var myButton = document.getElementById(idButton);
-   myButton.style.fontWeight = 'bold';
-
+   var elem = document.getElementById(elementId);
+   elem.style.fontWeight = 'bold';
 }
 
-function setDivVisibility(groupName, elementName) {
-
-   var idDiv       = elementName + "Div";
-   var classDiv    = groupName   + "Div";
-   var idButton    = elementName + "Button";
-   var classButton = groupName   + "Button";
-
-   divBoxvisibility(idDiv, classDiv, idButton, classButton);
-}
 
 function setDivVisibilityAndSave(groupName, elementName) {
 
@@ -69,7 +58,7 @@ function loadDivVisibility() {
       group = cookies[i].split('-')[0];
       console.log("setting visibility: group = " + group + " element = " + element);
       setDivVisibility(group, element);
-      
+
    }
 }
 
@@ -78,7 +67,7 @@ function setCookie(cname, cvalue) {
     d.setTime(d.getTime() + (365*24*60*60*1000));
     var expires = "expires="+d.toUTCString();
     document.cookie = cname + "=" + encodeURIComponent(cvalue) + "; " + expires;
-} 
+}
 
 function getCookies(cname) {
 
@@ -93,4 +82,38 @@ function getCookies(cname) {
         }
     }
     return results;
-} 
+}
+
+function getQueryVariable(variable) {
+    var query = window.location.search.substring(1);
+    var vars = query.split('&');
+    for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split('=');
+        if (decodeURIComponent(pair[0]) == variable) {
+            return decodeURIComponent(pair[1]);
+        }
+    }
+    console.log('Query variable %s not found', variable);
+}
+
+$(document).ready(function () {
+    templateQuery();
+    ruleQuery();
+});
+
+function templateQuery() {
+    var ruleName = getQueryVariable("ruleName")
+    var isRuleEdit = getQueryVariable("edit")
+
+    $('[id="' + ruleName + '"]').css('display', 'block');
+    if (isRuleEdit) {
+       $('[id="' + ruleName + '"] .editRule').css('display', 'block');
+    } else {
+       $('[id="' + ruleName + '"] .viewRule').css('display', 'block');
+    }
+}
+
+function ruleQuery() {
+    var ruleNumber = getQueryVariable("ruleNumber");
+    $('[id="rule' + ruleNumber + '"]').css('display', 'block');
+}

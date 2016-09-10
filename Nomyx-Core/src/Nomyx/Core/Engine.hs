@@ -5,6 +5,7 @@
 module Nomyx.Core.Engine(
    -- * Game management
    GameEvent(..),
+   RuleEv(..),
    LoggedGame(..),
    GameName,
    Game(..),
@@ -22,8 +23,8 @@ module Nomyx.Core.Engine(
    Var(..),
 
    -- * Rules management
-   SubmitRule(..),
    activeRules, pendingRules, rejectedRules,
+   InterpretRule,
 
    -- * Events management
    events,
