@@ -13,3 +13,9 @@ cabal*
 .stack*
 .idea
 idea*
+Setup.lhs
+Setup.hs
+*.dyn_hi
+*.dyn_o
+
+
