@@ -11,3 +11,5 @@ cabal-dev
 .cabal*
 cabal*
 .stack*
+.idea
+idea*
