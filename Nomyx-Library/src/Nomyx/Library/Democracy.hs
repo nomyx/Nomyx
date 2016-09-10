@@ -2,6 +2,7 @@
 -- | This file gives a list of example rules that the players can submit.
 module Nomyx.Library.Democracy where
 
+import Prelude
 import Language.Nomyx
 import Nomyx.Library.Vote
 

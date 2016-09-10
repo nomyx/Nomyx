@@ -3,6 +3,7 @@
 -- | This file gives a list of example rules that the players can submit.
 module Nomyx.Library.Bank where
 
+import Prelude
 import Data.Time.Recurrence as X hiding (filter)
 import Data.List as X
 import Data.Maybe

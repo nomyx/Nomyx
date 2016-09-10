@@ -5,6 +5,7 @@
 -- | This file gives a list of example rules that the players can submit.
 module Nomyx.Library.Examples where
 
+import Prelude
 import Control.Monad as X
 import Language.Nomyx
 

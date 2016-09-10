@@ -18,13 +18,7 @@ import qualified Data.Map                  as M
 import           Data.Maybe
 import           Data.Time                 hiding (getCurrentTime)
 import           Data.Typeable
-import           Language.Nomyx.Events
-import           Language.Nomyx.Expression
-import           Language.Nomyx.Inputs
-import           Language.Nomyx.Messages
-import           Language.Nomyx.Outputs
-import           Language.Nomyx.Players
-import           Language.Nomyx.Rules
+import           Language.Nomyx
 import           Prelude                   hiding (foldr)
 
 -- | a vote assessing function (such as unanimity, majority...)
@@ -184,17 +178,11 @@ getBooleanResult (pn, SomeData sd) = case (cast sd) of
    Just a  -> (pn, a)
    Nothing -> error "incorrect vote field"
 
-#if MIN_VERSION_time(1,5,0)
-myDefaultTimeLocale = Data.Time.defaultTimeLocale
-#else
-myDefaultTimeLocale = System.Locale.defaultTimeLocale
-#endif
-
 showOnGoingVote :: [(PlayerNumber, Maybe Bool)] -> RuleNumber -> UTCTime -> NomexNE String
 showOnGoingVote [] rn _ = return $ "Nobody voted yet for rule #" ++ (show rn) ++ "."
 showOnGoingVote listVotes rn endTime = do
    list <- mapM showVote listVotes
-   let timeString = formatTime myDefaultTimeLocale "on %d/%m at %H:%M UTC" endTime
+   let timeString = formatTime defaultTimeLocale "on %d/%m at %H:%M UTC" endTime
    return $ "Votes for rule #" ++ (show rn) ++ ", finishing " ++ timeString ++ "\n" ++
             concatMap (\(name, vote) -> name ++ "\t" ++ vote ++ "\n") list
 
