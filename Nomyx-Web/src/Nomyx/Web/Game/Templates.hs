@@ -75,7 +75,7 @@ viewRuleTemplate gn mlr rt = do
        Nothing -> (rt, "")
        Just lr -> if ((_rName $ fst lr) == (_rName rt)) then lr else (rt, "")
   com <- commandRule gn rt
-  view <- viewrule gn rt
+  view <- viewrule gn toEdit
   edit <- viewRuleTemplateEdit toEdit gn
   ok $ div ! A.class_ "rule" ! A.id (toValue $ idEncode $ _rName rt) $ do
     com
@@ -91,8 +91,8 @@ commandRule gn rt = do
     p $ H.a "edit"   ! (A.href $ toValue $ "?ruleName=" ++ idrt ++ "&edit")
     p $ H.a "delete" ! (A.href $ toValue delLink)
 
-viewrule :: GameName -> RuleTemplate -> RoutedNomyxServer Html
-viewrule gn rt = do
+viewrule :: GameName -> LastRule -> RoutedNomyxServer Html
+viewrule gn (rt, err) = do
   lf  <- liftRouteT $ lift $ viewForm "user" (hiddenSubmitRuleTemplatForm (Just rt))
   ok $ div ! A.class_ "viewrule" $ do
     let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
@@ -102,6 +102,7 @@ viewrule gn rt = do
     h2 $ fromString $ "authored by " ++ (_rAuthor rt)
     viewRuleFunc rt
     viewDecls rt
+    div $ fromString err
     blazeForm lf $ showRelURL (SubmitRule gn)
 
 hiddenSubmitRuleTemplatForm :: (Maybe RuleTemplate) -> NomyxForm String
@@ -172,11 +173,11 @@ newRuleTemplate gn = toResponse <$> do
   ruleName <- case r of
      Right (RuleTemplateForm name desc code (tempName, fileName), Nothing) -> do
        content <- liftIO $ readFile tempName
-       webCommand $ S.newRuleTemplate (RuleTemplate name desc code "" Nothing [] [Right (Module fileName content)])
+       webCommand $ S.newRuleTemplate (RuleTemplate name desc code "" Nothing [] [fileName])
        return name
      Right (RuleTemplateForm name desc code (tempName, fileName), Just _)  -> do
        content <- liftIO $ readFile tempName
-       webCommand $ S.checkRule (RuleTemplate name desc code "" Nothing [] [Right (Module fileName content)]) pn undefined (_sh s)
+       webCommand $ S.checkRule (RuleTemplate name desc code "" Nothing [] [fileName]) pn undefined (_sh s)
        return name
      _ -> do
        liftIO $ putStrLn "cannot retrieve form data"
