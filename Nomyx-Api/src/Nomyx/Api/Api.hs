@@ -30,7 +30,7 @@ import Nomyx.Api.Model.Player
 import Nomyx.Api.Model.Error
 import Nomyx.Api.Model.NewPlayer
 import Nomyx.Api.Files
-import Nomyx.Core.Session
+import Nomyx.Core.Session hiding (getModules)
 import Nomyx.Core.Types
 import Nomyx.Core.Profile
 import           Control.Concurrent.STM
@@ -139,8 +139,8 @@ templatesPut tv (inputs, files) = do
    liftIO $ updateSession tv (updateModules ms)
    return ()
 
-getModules :: (String, FilePath, B.ByteString) -> Maybe Module
-getModules ("mod", fp, c) = Just $ Module fp $ B.unpack c
+getModules :: (String, FilePath, B.ByteString) -> Maybe ModuleInfo
+getModules ("mod", fp, c) = Just $ ModuleInfo fp $ B.unpack c
 getModules _ = Nothing
 
 getTemplates :: (String, FilePath, B.ByteString) -> Maybe [RuleTemplate]
@@ -164,7 +164,7 @@ instance ToSchema ProfileData
 instance ToSchema PlayerSettings
 instance ToSchema RuleTemplate
 instance ToSchema LastUpload
-instance ToSchema Module
+--instance ToSchema ModuleInfo
 --instance ToSchema RuleInfo
 --instance ToSchema RuleStatus
 --instance ToSchema Rule where
