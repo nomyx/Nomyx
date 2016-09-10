@@ -28,4 +28,4 @@ myCors :: Middleware
 myCors = cors (const $ Just customPolicy)
 
 putSwaggerYaml :: IO ()
-putSwaggerYaml = BL.putStrLn $ encode $ toSwagger nomyxApi
+putSwaggerYaml = undefined --BL.putStrLn $ encode $ toSwagger nomyxApi

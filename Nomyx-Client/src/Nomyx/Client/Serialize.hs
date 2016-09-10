@@ -20,15 +20,15 @@ readLibrary yamlFile modBaseDir = do
   s <- BL.readFile yamlFile
   case decodeEither s of
      Left e -> error $ "error decoding library: " ++ e
-     Right ts -> mapM  (getTemplate modBaseDir) ts
+     Right ts -> return ts
 
-getTemplate :: FilePath -> RuleTemplate -> IO RuleTemplate
-getTemplate basePath (RuleTemplate n d c a p cs ds) = do
-  ms <- mapM (readModule basePath) (lefts ds)
-  return $ RuleTemplate n d c a p cs (map Right ms)
+--getTemplate :: FilePath -> RuleTemplate -> IO RuleTemplate
+--getTemplate basePath (RuleTemplate n d c a p cs ds) = do
+--  ms <- mapM (readModule basePath) ds
+--  return $ RuleTemplate n d c a p cs (map Right ms)
 
-readModule :: FilePath -> FilePath -> IO Module
+readModule :: FilePath -> FilePath -> IO ModuleInfo
 readModule basePath mod = do
   let absPath = basePath </> mod
   content <- readFile absPath
-  return $ Module mod content
+  return $ ModuleInfo mod content
