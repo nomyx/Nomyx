@@ -61,17 +61,17 @@ regularTests = [("hello World",           gameHelloWorld,         condHelloWorld
          ("Partial Function 1",    gamePartialFunction1,   condPartialFunction),
          ("Partial Function 2",    gamePartialFunction2,   condPartialFunction),
          ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
-         ("Test file 1",           testFile1,              condNRules 3),
-         ("Test file 2",           testFile2,              condNRules 3),
+         ("Test file 1",           testFile1,              condNRules 2),
+         ("Test file 2",           testFile2,              condNRules 2),
 #if __GLASGOW_HASKELL__ >= 708
          --Data.Time is Safe only in recent versions
-         ("Test import Data.Time", testFileTime,           condNRules 3),
+         ("Test import Data.Time", testFileTime,           condNRules 2),
 #endif
-         ("load file twice",       testFileTwice,          condNRules 3),
-         ("load file twice 2",     testFileTwice',         condNRules 4),
-         ("load file unsafe",      testFileUnsafeIO,       condNRules 2)] ++
+         ("load file twice",       testFileTwice,          condNRules 1),
+         ("load file twice 2",     testFileTwice',         condNRules 3),
+         ("load file unsafe",      testFileUnsafeIO,       condNRules 1)] ++
          map (\i -> ("Loop" ++ show i,      loops !! (i-1),      condNoGame))   [1..(length loops)] ++
-         map (\i -> ("Forbidden" ++ show i, forbiddens !! (i-1), condNRules 2)) [1..(length forbiddens)]
+         map (\i -> ("Forbidden" ++ show i, forbiddens !! (i-1), condNRules 1)) [1..(length forbiddens)]
 
 -- Those tests should make the game die immediately because of security problem (it will be re-launched)
 fatalTests :: [(String, StateT Session IO (), Multi -> Bool)]
@@ -212,7 +212,7 @@ gamePartialFunction3 = do
 
 -- rule has been accepted and also next one
 condPartialFunction3 :: Multi -> Bool
-condPartialFunction3 m = (length $ _rules $ firstGame m) == 4
+condPartialFunction3 m = (length $ _rules $ firstGame m) == 3
 
 -- * Malicious codes
 
