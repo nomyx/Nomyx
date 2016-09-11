@@ -17,7 +17,7 @@
 {-# LANGUAGE FlexibleContexts          #-}
 
 -- | This module contains the type definitions necessary to build a Nomic rule.
-module Imprevu.Evaluation.Event where
+module Imprevu.Event where
 
 import           Control.Applicative hiding (Const)
 import           Control.Lens

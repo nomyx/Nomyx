@@ -17,7 +17,7 @@ module Imprevu.Inputs
     where
 
 import Imprevu.Events
-import Imprevu.Evaluation.Event
+import Imprevu.Event
 import Data.Typeable
 
 type ClientNumber = Int

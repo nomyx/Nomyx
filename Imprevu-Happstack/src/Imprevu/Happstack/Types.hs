@@ -8,7 +8,7 @@ module Imprevu.Happstack.Types where
 import Control.Concurrent.STM
 import Control.Monad.State
 import Happstack.Server            as HS (Input, ServerPartT)
-import Imprevu.Evaluation.Event
+import Imprevu.Event
 import Imprevu.Evaluation.EventEval
 import Imprevu.Evaluation.InputEval
 import Text.Blaze.Html5                  (Html)

@@ -34,12 +34,12 @@ library
                    stm,
                    validation,
                    semigroups
-    exposed-modules: Imprevu.Events
+    exposed-modules: Imprevu.Event
+                     Imprevu.Events
                      Imprevu.Inputs
                      Imprevu.Messages
                      Imprevu.Variables
                      Imprevu.SysMgt
-                     Imprevu.Evaluation.Event
                      Imprevu.Evaluation.EventEval
                      Imprevu.Evaluation.InputEval
                      Imprevu.Evaluation.TimeEval

@@ -21,7 +21,7 @@ import Imprevu.Events
 import Imprevu.Inputs
 import Imprevu.Variables
 import Imprevu.Messages
-import Imprevu.Evaluation.Event
+import Imprevu.Event
 import Imprevu.Evaluation.InputEval
 import Imprevu.Test.TestMgt
 import Prelude

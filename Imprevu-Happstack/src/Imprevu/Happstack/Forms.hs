@@ -11,7 +11,7 @@ import           Data.Monoid
 import           Data.String
 import           Data.Text                           (Text)
 import           Debug.Trace.Helpers                 (traceM)
-import           Imprevu.Evaluation.Event
+import           Imprevu.Event
 import           Imprevu.Evaluation.EventEval
 import           Imprevu.Evaluation.InputEval
 import           Imprevu.Happstack.Types

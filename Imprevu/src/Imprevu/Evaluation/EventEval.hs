@@ -18,7 +18,7 @@ import           Data.List
 import           Data.Maybe
 import           Data.Validation
 import           Data.Typeable
-import           Imprevu.Evaluation.Event
+import           Imprevu.Event
 import           Imprevu.Evaluation.Utils
 import           Prelude                     hiding (log, (.))
 import           Safe

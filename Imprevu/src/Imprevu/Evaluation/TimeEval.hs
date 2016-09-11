@@ -6,7 +6,7 @@
 module Imprevu.Evaluation.TimeEval where
 
 import Imprevu.Evaluation.EventEval
-import Imprevu.Evaluation.Event
+import Imprevu.Event
 import Data.Time
 import Data.Maybe
 import Control.Concurrent.STM
