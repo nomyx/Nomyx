@@ -38,16 +38,17 @@ library
                    safe               == 0.3.*,
                    time               >= 1.4 && < 1.6,
                    time-recurrence    == 0.9.*,
-                   monad-loops        == 0.4.*
+                   monad-loops        == 0.4.*,
+                   Imprevu
     exposed-modules: Language.Nomyx
                      Language.Nomyx.Expression
-                     Language.Nomyx.Variables
-                     Language.Nomyx.Events
-                     Language.Nomyx.Messages
                      Language.Nomyx.Inputs
                      Language.Nomyx.Outputs
                      Language.Nomyx.Players
                      Language.Nomyx.Rules
+                     Language.Nomyx.Messages
+                     Language.Nomyx.Events
+                     Language.Nomyx.Variables
                      Paths_Nomyx_Language
                      Control.Shortcut
     exposed: True
@@ -58,3 +59,4 @@ library
 source-repository head
   type:              git
   location:          https://github.com/cdupont/Nomyx.git
+

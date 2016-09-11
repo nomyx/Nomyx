@@ -30,8 +30,9 @@ module Language.Nomyx.Players (
    ) where
 
 import Language.Nomyx.Expression
-import Language.Nomyx.Events
-import Language.Nomyx.Variables
+import Imprevu.Event
+import Imprevu.Events
+import Imprevu.Variables
 import Language.Nomyx.Rules
 import Data.Typeable
 import Data.List
@@ -158,3 +159,7 @@ getProposerNumber = _rProposedBy <$> getSelfRule
 
 getProposerNumber_ :: Nomex PlayerNumber
 getProposerNumber_ = getProposerNumber
+
+-- | Build a event firing when a player arrives or leaves
+playerEvent :: Player -> Event PlayerInfo
+playerEvent p = SignalEvent $ Signal p

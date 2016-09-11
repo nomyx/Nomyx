@@ -26,6 +26,10 @@ import           Data.Time
 import           Data.Typeable
 import           GHC.Generics
 import           System.Random
+import           Imprevu.Event
+import           Imprevu.Variables
+import           Imprevu.SysMgt
+import           Imprevu.Events
 
 type PlayerNumber = Int
 type PlayerName = String
@@ -34,26 +38,13 @@ type RuleName = String
 type RuleDesc = String
 type RuleText = String
 type RuleCode = String
-type EventNumber = Int
-type EventName = String
-type VarName = String
+--type EventNumber = Int
+--type EventName = String
+--type VarName = String
 type OutputNumber = Int
 type InputNumber = Int
 
 -- * Nomyx Expression
-
---data Eff = Effect | NoEffect deriving (Typeable)
-
---type Effect = 'Effect
---type NoEffect = 'NoEffect
-
--- | A Nomex (Nomyx Expression) allows the players to write rules.
--- Within the rules, you can access and modify the state of the game.
---type Nomex = Exp Effect
-
--- | A NomexNE (Nomyx Expression No Effect) is a specialisation of the type that guarantees
--- that the instructions will have no effects.
---type NomexNE = Exp NoEffect
 
 data Nomex a  where
    --Variables management
@@ -64,7 +55,7 @@ data Nomex a  where
    --Events management
    OnEvent         :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
    DelEvent        :: EventNumber -> Nomex Bool
-   GetEvents       :: Nomex [EventInfo]
+   GetEvents       :: Nomex [EventInfoN]
    SendMessage     :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
    --Rules management
    ProposeRule     :: RuleInfo -> Nomex Bool
@@ -86,7 +77,7 @@ data Nomex a  where
    --Victory
    SetVictory      :: Nomex [PlayerNumber] -> Nomex ()
    --Mileacenous
-   CurrentTime     :: Nomex UTCTime
+   GetCurrentTime  :: Nomex UTCTime
    GetRandomNumber :: Random a => (a, a) -> Nomex a
    --Monadic bindings
    Return          :: a -> Nomex a
@@ -99,31 +90,6 @@ deriving instance Typeable Nomex
 
 instance Typeable a => Show (Nomex a) where
    show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
-
--- #if __GLASGOW_HASKELL__ >= 708
---deriving instance Typeable Exp
---deriving instance Typeable 'Effect
---deriving instance Typeable 'NoEffect
---
---instance Typeable a => Show (Exp NoEffect a) where
---   show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
---
---instance Typeable a => Show (Exp Effect a) where
---   show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
---
--- #else
---instance Typeable1 (Exp NoEffect) where
---    typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp NoEffect") []
---
---instance Typeable1 (Exp Effect) where
---    typeOf1 _ = mkTyConApp (mkTyCon3 "main" "Language.Nomyx.Expression" "Exp Effect") []
---
---instance Typeable a => Show (Exp NoEffect a) where
---   show e = "<" ++ (show $ typeOf e) ++ ">"
---
---instance Typeable a => Show (Exp Effect a) where
---   show e = "<" ++ (show $ typeOf e) ++ ">"
--- #endif
 
 instance Monad Nomex where
    return = Return
@@ -143,119 +109,145 @@ instance MonadError String Nomex where
    throwError = ThrowError
    catchError = CatchError
 
+
+--instance HasEvents  TestState where
+--  getEvents = eventInfos
+--  setEvents eis (TestState _ os vs) = (TestState eis os vs)
+
+instance EvMgt Nomex where
+   onEvent         = OnEvent
+   delEvent        = DelEvent
+   getEvents       = GetEvents
+   sendMessage     = SendMessage
+
+instance SysMgt Nomex where
+   getCurrentTime  = GetCurrentTime
+   getRandomNumber = GetRandomNumber
+
+instance VarMgt Nomex where
+   newVar       = NewVar
+   readVar      = ReadVar
+   writeVar     = WriteVar
+   delVar       = DelVar
+
+
+
+
 -- * Variables
 
 -- | a container for a variable name and type
-data V a = V {varName :: String} deriving Typeable
+--data V a = V {varName :: String} deriving Typeable
 
 -- * Events
 
+type EventInfoN = EventInfo Nomex
+
 -- | Composable events
-data Event a where
-   SumEvent       :: Event a -> Event a -> Event a                        -- The first event to fire will be returned
-   AppEvent       :: Event (a -> b) -> Event a -> Event b                 -- Both events should fire, and then the result is returned
-   PureEvent      :: a -> Event a                                         -- Create a fake event. The result is useable with no delay.
-   EmptyEvent     :: Event a                                              -- An event that is never fired.
-   BindEvent      :: Event a -> (a -> Event b) -> Event b                 -- A First event should fire, then a second event is constructed
-   ShortcutEvents :: [Event a] -> ([Maybe a] -> Bool) -> Event [Maybe a]  -- Return the intermediate results as soon as the function evaluates to True, dismissing the events that hasn't fired yet
-   SignalEvent    :: (Typeable a) => Signal a -> Event a                  -- Embed a single Signal as an Event
-   LiftEvent      :: Nomex a -> Event a                                 -- create an event containing the result of the NomexNE.
-   deriving Typeable
-
--- | Signals
-data Signal a where
-   Input   :: PlayerNumber -> String -> (InputForm a) -> Signal a  -- Fires when the user has complete the input form. Input forms are created automatically when the event is posted.
-   Player  :: Player    -> Signal PlayerInfo                       -- Fires on events related to players.
-   RuleEv  :: RuleEvent -> Signal RuleInfo                         -- Fires on events related to rules.
-   Time    :: UTCTime   -> Signal UTCTime                          -- Fires at the specified date.
-   Message :: Msg a     -> Signal a                                -- Fires if a rule sends a message.
-   Victory ::              Signal VictoryInfo                      -- Fires if the victory condition is changed.
-   deriving Typeable
-
--- | Type agnostic base signal
-data SomeSignal = forall a. (Typeable a) => SomeSignal (Signal a)
-
--- | Type agnostic result data
-data SomeData = forall e. (Typeable e, Show e) => SomeData e
-deriving instance Show SomeData
+--data Event a where
+--   SumEvent       :: Event a -> Event a -> Event a                        -- The first event to fire will be returned
+--   AppEvent       :: Event (a -> b) -> Event a -> Event b                 -- Both events should fire, and then the result is returned
+--   PureEvent      :: a -> Event a                                         -- Create a fake event. The result is useable with no delay.
+--   EmptyEvent     :: Event a                                              -- An event that is never fired.
+--   BindEvent      :: Event a -> (a -> Event b) -> Event b                 -- A First event should fire, then a second event is constructed
+--   ShortcutEvents :: [Event a] -> ([Maybe a] -> Bool) -> Event [Maybe a]  -- Return the intermediate results as soon as the function evaluates to True, dismissing the events that hasn't fired yet
+--   SignalEvent    :: (Typeable a) => Signal a -> Event a                  -- Embed a single Signal as an Event
+--   LiftEvent      :: Nomex a -> Event a                                 -- create an event containing the result of the NomexNE.
+--   deriving Typeable
+--
+---- | Signals
+--data Signal a where
+--   Input   :: PlayerNumber -> String -> (InputForm a) -> Signal a  -- Fires when the user has complete the input form. Input forms are created automatically when the event is posted.
+--   Player  :: Player    -> Signal PlayerInfo                       -- Fires on events related to players.
+--   RuleEv  :: RuleEvent -> Signal RuleInfo                         -- Fires on events related to rules.
+--   Time    :: UTCTime   -> Signal UTCTime                          -- Fires at the specified date.
+--   Message :: Msg a     -> Signal a                                -- Fires if a rule sends a message.
+--   Victory ::              Signal VictoryInfo                      -- Fires if the victory condition is changed.
+--   deriving Typeable
+--
+---- | Type agnostic base signal
+--data SomeSignal = forall a. (Typeable a) => SomeSignal (Signal a)
+--
+---- | Type agnostic result data
+--data SomeData = forall e. (Typeable e, Show e) => SomeData e
+--deriving instance Show SomeData
 
 -- | Events parameters
 data Player    = Arrive | Leave deriving (Typeable, Show, Eq)
 data RuleEvent = Proposed | Activated | Rejected | Added | Modified | Deleted deriving (Typeable, Show, Eq)
-data Msg m     = Msg String deriving (Typeable, Show)
+--data Msg m     = Msg String deriving (Typeable, Show)
 
 -- | Input forms
-data InputForm a where
-   Text     ::                                    InputForm String
-   TextArea ::                                    InputForm String
-   Button   ::                                    InputForm ()
-   Radio    :: (Show a, Eq a) => [(a, String)] -> InputForm a
-   Checkbox :: (Show a, Eq a) => [(a, String)] -> InputForm [a]
-   deriving Typeable
-
-deriving instance Show (InputForm a)
-deriving instance Show (Signal a)
-deriving instance Show SomeSignal
-deriving instance Eq (Signal e)
-deriving instance Eq (InputForm e)
-deriving instance Eq (Msg e)
-
-instance Functor Event where
-   fmap f a = pure f <*> a
-
-instance Applicative Event where
-   pure = PureEvent
-   (<*>) = AppEvent
-
-instance Alternative Event where
-   (<|>) = SumEvent
-   empty = EmptyEvent
-
-instance Monad Event where
-   (>>=) = BindEvent
-   return = PureEvent
-
-instance MonadPlus Event where
-   mplus = SumEvent
-   mzero = EmptyEvent
-
-instance Shortcutable Event where
-   shortcut = ShortcutEvents
-
-
--- EventInfo
-
-data EventInfo = forall e. (Typeable e, Show e) =>
-   EventInfo {_eventNumber :: EventNumber,
-              _ruleNumber  :: RuleNumber,
-              event        :: Event e,
-              handler      :: EventHandler e,
-              _evStatus    :: Status,
-              _env         :: [SignalOccurence]}
-
-
-data SignalAddressElem = SumR | SumL | AppR | AppL | BindR | BindL | Shortcut deriving (Show, Read, Ord, Eq, Generic)
-type SignalAddress = [SignalAddressElem]
-
-data SignalData = forall e. (Typeable e, Show e) =>
-   SignalData {signal     :: Signal e,
-               signalData :: e}
-
-data SignalOccurence = SignalOccurence {_signalOccData    :: SignalData,
-                                        _signalOccAddress :: SignalAddress}
-
-type EventHandler e = (EventNumber, e) -> Nomex ()
-
-deriving instance Show SignalData
-deriving instance Show SignalOccurence
-
-data Status = SActive | SDeleted deriving (Eq, Show)
-
-instance Eq EventInfo where
-   (EventInfo {_eventNumber=e1}) == (EventInfo {_eventNumber=e2}) = e1 == e2
-
-instance Ord EventInfo where
-   (EventInfo {_eventNumber=e1}) <= (EventInfo {_eventNumber=e2}) = e1 <= e2
+--data InputForm a where
+--   Text     ::                                    InputForm String
+--   TextArea ::                                    InputForm String
+--   Button   ::                                    InputForm ()
+--   Radio    :: (Show a, Eq a) => [(a, String)] -> InputForm a
+--   Checkbox :: (Show a, Eq a) => [(a, String)] -> InputForm [a]
+--   deriving Typeable
+--
+--deriving instance Show (InputForm a)
+--deriving instance Show (Signal a)
+--deriving instance Show SomeSignal
+--deriving instance Eq (Signal e)
+--deriving instance Eq (InputForm e)
+--deriving instance Eq (Msg e)
+--
+--instance Functor Event where
+--   fmap f a = pure f <*> a
+--
+--instance Applicative Event where
+--   pure = PureEvent
+--   (<*>) = AppEvent
+--
+--instance Alternative Event where
+--   (<|>) = SumEvent
+--   empty = EmptyEvent
+--
+--instance Monad Event where
+--   (>>=) = BindEvent
+--   return = PureEvent
+--
+--instance MonadPlus Event where
+--   mplus = SumEvent
+--   mzero = EmptyEvent
+--
+--instance Shortcutable Event where
+--   shortcut = ShortcutEvents
+--
+--
+---- EventInfo
+--
+--data EventInfo = forall e. (Typeable e, Show e) =>
+--   EventInfo {_eventNumber :: EventNumber,
+--              _ruleNumber  :: RuleNumber,
+--              event        :: Event e,
+--              handler      :: EventHandler e,
+--              _evStatus    :: Status,
+--              _env         :: [SignalOccurence]}
+--
+--
+--data SignalAddressElem = SumR | SumL | AppR | AppL | BindR | BindL | Shortcut deriving (Show, Read, Ord, Eq, Generic)
+--type SignalAddress = [SignalAddressElem]
+--
+--data SignalData = forall e. (Typeable e, Show e) =>
+--   SignalData {signal     :: Signal e,
+--               signalData :: e}
+--
+--data SignalOccurence = SignalOccurence {_signalOccData    :: SignalData,
+--                                        _signalOccAddress :: SignalAddress}
+--
+--type EventHandler e = (EventNumber, e) -> Nomex ()
+--
+--deriving instance Show SignalData
+--deriving instance Show SignalOccurence
+--
+--data Status = SActive | SDeleted deriving (Eq, Show)
+--
+--instance Eq EventInfo where
+--   (EventInfo {_eventNumber=e1}) == (EventInfo {_eventNumber=e2}) = e1 == e2
+--
+--instance Ord EventInfo where
+--   (EventInfo {_eventNumber=e1}) <= (EventInfo {_eventNumber=e2}) = e1 <= e2
 
 
 -- * Rule
@@ -328,15 +320,15 @@ data VictoryInfo = VictoryInfo { _vRuleNumber :: RuleNumber,
 
 -- | get a random number uniformly distributed in the closed interval [lo,hi]
 -- resets the number generator
-getRandomNumber :: Random a => (a, a) -> Nomex a
-getRandomNumber = GetRandomNumber
-
-partial :: String -> Nomex (Maybe a) -> Nomex a
-partial s nm = do
-   m <- nm
-   case m of
-      Just a -> return a
-      Nothing -> throwError s
+--getRandomNumber :: Random a => (a, a) -> Nomex a
+--getRandomNumber = GetRandomNumber
+--
+--partial :: String -> Nomex (Maybe a) -> Nomex a
+--partial s nm = do
+--   m <- nm
+--   case m of
+--      Just a -> return a
+--      Nothing -> throwError s
 
 concatMapM        :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs   =  liftM concat (mapM f xs)
@@ -348,18 +340,18 @@ instance (Typeable a, Typeable b) => Show (a -> b) where
 makeLenses ''RuleInfo
 makeLenses ''RuleTemplate
 makeLenses ''PlayerInfo
-makeLenses ''EventInfo
-makeLenses ''SignalOccurence
+--makeLenses ''EventInfo
+--makeLenses ''SignalOccurence
 makeLenses ''ModuleInfo
 
-eventNumber :: Lens' EventInfo EventNumber
-eventNumber f (EventInfo e rn ev h evs env) = fmap (\e' -> (EventInfo e' rn ev h evs env)) (f e)
+--eventNumber :: Lens' EventInfo EventNumber
+--eventNumber f (EventInfo e rn ev h evs env) = fmap (\e' -> (EventInfo e' rn ev h evs env)) (f e)
 
-ruleNumber :: Lens' EventInfo RuleNumber
-ruleNumber f (EventInfo e rn ev h evs env) = fmap (\rn' -> (EventInfo e rn' ev h evs env)) (f rn)
+--ruleNumber :: Lens' EventInfo RuleNumber
+--ruleNumber f (EventInfo e rn ev h evs env) = fmap (\rn' -> (EventInfo e rn' ev h evs env)) (f rn)
 
-evStatusNumber :: Lens' EventInfo Status
-evStatusNumber f (EventInfo e rn ev h evs env) = fmap (\evs' -> (EventInfo e rn ev h evs' env)) (f evs)
+--evStatusNumber :: Lens' EventInfo Status
+--evStatusNumber f (EventInfo e rn ev h evs env) = fmap (\evs' -> (EventInfo e rn ev h evs' env)) (f evs)
 
-env :: Lens' EventInfo [SignalOccurence]
-env f (EventInfo e rn ev h evs env) = fmap (\env' -> (EventInfo e rn ev h evs env')) (f env)
+--env :: Lens' EventInfo [SignalOccurence]
+--env f (EventInfo e rn ev h evs env) = fmap (\env' -> (EventInfo e rn ev h evs env')) (f env)

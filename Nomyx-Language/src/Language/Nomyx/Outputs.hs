@@ -15,7 +15,8 @@ module Language.Nomyx.Outputs (
    ) where
 
 import Language.Nomyx.Expression
-import Language.Nomyx.Variables
+import Imprevu.Variables
+import Imprevu.Events
 import Data.Typeable
 import Control.Monad.State
 import Control.Applicative

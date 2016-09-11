@@ -34,8 +34,9 @@ module Language.Nomyx.Rules (
 
 import Prelude hiding (foldr)
 import Language.Nomyx.Expression
-import Language.Nomyx.Events
-import Language.Nomyx.Variables
+import Imprevu.Event
+import Imprevu.Events
+import Imprevu.Variables
 import Language.Nomyx.Outputs
 import Control.Lens
 import Control.Monad
@@ -229,3 +230,7 @@ mapMaybeM f = liftM catMaybes . mapM f
 
 showRule :: Show a => a -> Nomex ()
 showRule x = void $ NewOutput Nothing (return $ show x)
+
+-- | Build a event firing when an action is made on a rule
+ruleEvent :: RuleEvent -> Event RuleInfo
+ruleEvent re = SignalEvent $ Signal re

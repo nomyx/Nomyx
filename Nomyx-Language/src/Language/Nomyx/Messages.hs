@@ -1,14 +1,17 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Language.Nomyx.Messages (
-  sendMessage, sendMessage_,
-  onMessage, onMessageOnce,
-  APICall(..), onAPICall, callAPI, callAPIBlocking,  
-  ) where
+module Language.Nomyx.Messages --(
+  --sendMessage, sendMessage_,
+  --onMessage, onMessageOnce,
+  --APICall(..), onAPICall, callAPI, callAPIBlocking,
+   where
 
 import Language.Nomyx.Expression
-import Language.Nomyx.Events
-import Language.Nomyx.Variables
+import Imprevu.Variables
+import Imprevu.Event
+import Imprevu.Events
+import Imprevu.Messages (APICall)
+import qualified Imprevu.Messages as Imp
 import Data.Typeable
 import Control.Monad.Loops (untilJust)
 import Control.Monad
@@ -22,49 +25,30 @@ sendMessage = SendMessage
 
 -- | send an empty message
 sendMessage_ :: String -> Nomex ()
-sendMessage_ m = SendMessage (Msg m) ()
+sendMessage_ = Imp.sendMessage_
 
 -- | subscribe on a message
-onMessage :: (Typeable m, Show m) => Msg m -> (m -> Nomex ()) -> Nomex EventNumber
-onMessage name = onEvent_ (messageEvent name)
+onMessage :: (Typeable m, Show m, Eq m) => Msg m -> (m -> Nomex ()) -> Nomex EventNumber
+onMessage = Imp.onMessage
 
 -- | subscribe on a message, delete it on the first call
-onMessageOnce :: (Typeable m, Show m) => Msg m -> (m -> Nomex ()) -> Nomex EventNumber
-onMessageOnce name = onEventOnce (messageEvent name)
+onMessageOnce :: (Typeable m, Show m, Eq m) => Msg m -> (m -> Nomex ()) -> Nomex EventNumber
+onMessageOnce = Imp.onMessageOnce
 
 -- * API calls
 -- Nomyx Rule can register an API function with 'onAPICall' to provide services to other rules.
 -- other Rules are then able to call 'callAPI' or 'callAPIBlocking' to access the services.
 -- API calls between Rules are build using message passing.
 
--- | types of API calls
-data APICall a r = APICall String
-
 -- version with one parameters
-onAPICall :: (Typeable a, Show a, Typeable r, Show r) => APICall a r -> (a -> Nomex r) -> Nomex EventNumber
-onAPICall (APICall name) action = onMessage (Msg name) (\(msg, a) -> action a >>= sendMessage msg)
+onAPICall :: (Typeable a, Show a, Eq a, Typeable r, Show r, Eq r) => APICall a r -> (a -> Nomex r) -> Nomex EventNumber
+onAPICall = Imp.onAPICall
 
 -- | version with one parameters
-callAPI :: (Typeable a, Show a, Typeable r, Show r) => APICall a r -> a -> (r -> Nomex ()) -> Nomex ()
-callAPI (APICall name) a callback = do
-   msgTemp <- createTempMsg callback
-   sendMessage (Msg name) (msgTemp, a)
+callAPI :: (Typeable a, Show a, Eq a, Typeable r, Show r, Eq r) => APICall a r -> a -> (r -> Nomex ()) -> Nomex ()
+callAPI = Imp.callAPI
 
 -- | call an API function and wait for the result.
-callAPIBlocking :: (Typeable a, Show a, Typeable r, Show r) => APICall a r -> a -> Nomex r
-callAPIBlocking apiName param = do
-  v <- getTempVar Nothing
-  callAPI apiName param (\r -> void $ writeVar v (Just r))
-  r <- untilJust $ readVar_ v
-  delVar v
-  return r
+callAPIBlocking :: (Typeable a, Show a, Eq a, Typeable r, Show r, Eq r) => APICall a r -> a -> Nomex r
+callAPIBlocking = Imp.callAPIBlocking
 
--- * Internals
-
--- | creates a temporary message with a random name
-createTempMsg :: (Typeable m, Show m) => (m -> Nomex ()) -> Nomex (Msg m)
-createTempMsg callback = do
-  r <- getRandomNumber (0, 100000::Int)
-  let msg = Msg ("APIcallback" ++ (show r))
-  onMessageOnce msg callback
-  return msg

@@ -6,7 +6,6 @@
 --    void $ onInputButton_ "Click here:" (const $ outputAll_ "Bravo!") 1
 
 module Language.Nomyx.Inputs (
-   InputForm(..),
    inputRadio, inputText, inputCheckbox, inputButton, inputTextarea,
    onInputRadio,    onInputRadio_,    onInputRadioOnce, inputRadio',
    onInputText,     onInputText_,     onInputTextOnce,
@@ -16,7 +15,9 @@ module Language.Nomyx.Inputs (
    ) where
 
 import Language.Nomyx.Expression
-import Language.Nomyx.Events
+--import Language.Nomyx.Events
+import qualified Imprevu.Inputs as Imp
+import Imprevu.Event
 import Data.Typeable
 import Control.Applicative
 
@@ -26,103 +27,86 @@ import Control.Applicative
 
 -- | event based on a radio input choice
 inputRadio :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Event c
-inputRadio pn title cs = signalEvent $ inputRadioSignal pn title cs
+inputRadio = Imp.inputRadio
 
 inputRadio' :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [c] -> Event c
-inputRadio' pn title cs = inputRadio pn title (zip cs (show <$> cs))
+inputRadio' = Imp.inputRadio'
 
 -- | triggers a choice input to the user. The result will be sent to the callback
 onInputRadio :: (Typeable a, Eq a,  Show a) => String -> [a] -> (EventNumber -> a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputRadio title choices handler pn = onEvent (inputRadio' pn title choices) (\(en, a) -> handler en a)
+onInputRadio = Imp.onInputRadio
 
 -- | the same, disregard the event number
 onInputRadio_ :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputRadio_ title choices handler pn = onEvent_ (inputRadio' pn title choices) handler
+onInputRadio_ = Imp.onInputRadio_
 
 -- | the same, suppress the event after first trigger
 onInputRadioOnce :: (Typeable a, Eq a, Show a) => String -> [a] -> (a -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputRadioOnce title choices handler pn = onEventOnce (inputRadio' pn title choices) handler
+onInputRadioOnce = Imp.onInputRadioOnce
 
 -- ** Text inputs
 
 -- | event based on a text input
 inputText :: PlayerNumber -> String -> Event String
-inputText pn title = signalEvent $ inputTextSignal pn title
+inputText = Imp.inputText
 
 -- | triggers a string input to the user. The result will be sent to the callback
 onInputText :: String -> (EventNumber -> String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputText title handler pn = onEvent (inputText pn title) (\(en, a) -> handler en a)
+onInputText = Imp.onInputText
 
 -- | asks the player pn to answer a question, and feed the callback with this data.
 onInputText_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputText_ title handler pn = onEvent_ (inputText pn title) handler
+onInputText_ = Imp.onInputText_
 
 -- | asks the player pn to answer a question, and feed the callback with this data.
 onInputTextOnce :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputTextOnce title handler pn = onEventOnce (inputText pn title) handler
+onInputTextOnce = Imp.onInputTextOnce
 
 
 -- ** Checkbox inputs
 
 -- | event based on a checkbox input
 inputCheckbox :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Event [c]
-inputCheckbox pn title cs = signalEvent $ inputCheckboxSignal pn title cs
+inputCheckbox = Imp.inputCheckbox
 
 onInputCheckbox :: (Typeable a, Eq a,  Show a) => String -> [(a, String)] -> (EventNumber -> [a] -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputCheckbox title choices handler pn = onEvent (inputCheckbox pn title choices) (\(en, a) -> handler en a)
+onInputCheckbox = Imp.onInputCheckbox
 
 onInputCheckbox_ :: (Typeable a, Eq a,  Show a) => String -> [(a, String)] -> ([a] -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputCheckbox_ title choices handler pn = onEvent_ (inputCheckbox pn title choices) handler
+onInputCheckbox_ = Imp.onInputCheckbox_
 
 onInputCheckboxOnce :: (Typeable a, Eq a,  Show a) => String -> [(a, String)] -> ([a] -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn title choices) handler
+onInputCheckboxOnce = Imp.onInputCheckboxOnce
 
 -- ** Button inputs
 
 -- | event based on a button
 inputButton :: PlayerNumber -> String -> Event ()
-inputButton pn title = signalEvent $ inputButtonSignal pn title
+inputButton = Imp.inputButton
 
 onInputButton :: String -> (EventNumber -> () -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputButton title handler pn = onEvent (inputButton pn title) (\(en, ()) -> handler en ())
+onInputButton = Imp.onInputButton
 
 onInputButton_ :: String -> (() -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputButton_ title handler pn = onEvent_ (inputButton pn title) handler
+onInputButton_ = Imp.onInputButton_
 
 onInputButtonOnce :: String -> (() -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputButtonOnce title handler pn = onEventOnce (inputButton pn title) handler
+onInputButtonOnce = Imp.onInputButtonOnce
 
 
 -- ** Textarea inputs
 
 -- | event based on a text area
 inputTextarea :: PlayerNumber -> String -> Event String
-inputTextarea pn title = signalEvent $ inputTextareaSignal pn title
+inputTextarea = Imp.inputTextarea
 
 onInputTextarea :: String -> (EventNumber -> String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputTextarea title handler pn = onEvent (inputTextarea pn title) (\(en, a) -> handler en a)
+onInputTextarea = Imp.onInputTextarea
 
 onInputTextarea_ :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputTextarea_ title handler pn = onEvent_ (inputTextarea pn title) handler
+onInputTextarea_ = Imp.onInputTextarea_
 
 onInputTextareaOnce :: String -> (String -> Nomex ()) -> PlayerNumber -> Nomex EventNumber
-onInputTextareaOnce title handler pn = onEventOnce (inputTextarea pn title) handler
+onInputTextareaOnce = Imp.onInputTextareaOnce
 
 
-
--- ** Internals
-
-inputRadioSignal :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Signal c
-inputRadioSignal pn title cs = inputFormSignal pn title (Radio cs)
-
-inputTextSignal :: PlayerNumber -> String -> Signal String
-inputTextSignal pn title = inputFormSignal pn title Text
-
-inputCheckboxSignal :: (Eq c, Show c, Typeable c) => PlayerNumber -> String -> [(c, String)] -> Signal [c]
-inputCheckboxSignal pn title cs = inputFormSignal pn title (Checkbox cs)
-
-inputButtonSignal :: PlayerNumber -> String -> Signal ()
-inputButtonSignal pn title = inputFormSignal pn title Button
-
-inputTextareaSignal :: PlayerNumber -> String -> Signal String
-inputTextareaSignal pn title = inputFormSignal pn title TextArea

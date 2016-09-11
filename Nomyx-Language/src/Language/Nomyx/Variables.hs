@@ -19,7 +19,10 @@ module Language.Nomyx.Variables (
 
 
 import Language.Nomyx.Expression
-import Language.Nomyx.Events
+import Imprevu.Event
+import Imprevu.Events
+import Imprevu.Variables (V, VarName, getTempVar)
+import qualified Imprevu.Variables as Imp
 import Data.Typeable
 import Control.Monad.State
 import Control.Applicative
@@ -32,35 +35,30 @@ import Control.Monad.Loops
 -- * Variables
 -- | variable creation
 newVar :: (Typeable a, Show a) => VarName -> a -> Nomex (Maybe (V a))
-newVar = NewVar
+newVar = Imp.newVar
 
 newVar_ :: (Typeable a, Show a) => VarName -> a -> Nomex (V a)
-newVar_ s a = partial "newVar_: Variable existing" (newVar s a)
+newVar_ = Imp.newVar_
 
 newVar' :: (Typeable a, Show a) => V a -> a -> Nomex Bool
-newVar' v a = maybe False (const True) <$> (newVar (varName v) a)
+newVar' = Imp.newVar'
 
 -- | variable reading
 readVar :: (Typeable a, Show a) => V a -> Nomex (Maybe a)
-readVar = ReadVar
+readVar = Imp.readVar
 
 readVar_ :: (Typeable a, Show a) => V a -> Nomex a
-readVar_ v@(V a) = partial ("readVar_: Variable \"" ++ a ++ "\" with type \"" ++ (show $ typeOf v) ++ "\" not existing") (readVar v)
+readVar_ = Imp.readVar_
 
 -- | variable writing
 writeVar :: (Typeable a, Show a) => V a -> a -> Nomex Bool
-writeVar = WriteVar
+writeVar = Imp.writeVar
 
 -- | modify a variable using the provided function
 modifyVar :: (Typeable a, Show a) => V a -> (a -> a) -> Nomex Bool
-modifyVar v f = writeVar v . f =<< readVar_ v
+modifyVar = Imp.modifyVar
 
 -- | delete variable
 delVar :: V a -> Nomex Bool
-delVar = DelVar
+delVar = Imp.delVar
 
--- | get temporary variable with random name
-getTempVar :: (Typeable a, Show a) => a -> Nomex (V a)
-getTempVar a = untilJust $ do
-    r <- getRandomNumber (0, 1000000 :: Int)
-    newVar ("tempVar" ++ (show r)) a
