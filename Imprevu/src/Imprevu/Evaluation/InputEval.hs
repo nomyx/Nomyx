@@ -86,7 +86,7 @@ triggerInputSignal _ _ _ _ = return ()
 findField :: InputView -> SignalAddress -> EventInfo n -> Evaluate n s (Maybe SomeSignal)
 findField sv sa (EventInfo _ e _ _ envi) = findField' sa e envi sv
 
-findField' :: SignalAddress -> Event e -> [SignalOccurence] -> InputView -> Evaluate n s (Maybe SomeSignal)
+findField' :: SignalAddress -> Event n e -> [SignalOccurence] -> InputView -> Evaluate n s (Maybe SomeSignal)
 findField' []         (SignalEvent f)    _   ff = return $ do
    --ff' <- getFormField f
    --guard (ff' == ff)

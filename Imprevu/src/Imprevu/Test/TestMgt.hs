@@ -71,7 +71,7 @@ instance VarMgt TestM where
 eventsEval :: Evaluate TestM TestState () -> TestM ()
 eventsEval eval = do
    s <- get
-   let (EvalEnv s' _ _) = runIdentity $ flip execStateT (EvalEnv s (void . evalEvents) undefined) $ do
+   let (EvalEnv s' _ _) = runIdentity $ flip execStateT (EvalEnv s evalEvents undefined) $ do
        res <- runExceptT eval
        case res of
          Right a -> return a
@@ -85,7 +85,7 @@ evalEvents (TestM tio) = do
    put (EvalEnv s' f g)
    return a
 
-evOnEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> TestM ()) -> TestM EventNumber
+evOnEvent :: (Typeable e, Show e) => Event TestM e -> ((EventNumber, e) -> TestM ()) -> TestM EventNumber
 evOnEvent ev h = do
    (TestState evs os vs) <- get
    let en = getFreeNumber (map _eventNumber evs)
@@ -108,7 +108,7 @@ defaultEvalEnv :: EvalEnv TestM TestState
 defaultEvalEnv = defaultEvalEnv' (TestState [] [] (Var "" ""))
 
 defaultEvalEnv' :: TestState -> EvalEnv TestM TestState
-defaultEvalEnv' ts = EvalEnv ts (void . evalEvents) undefined
+defaultEvalEnv' ts = EvalEnv ts evalEvents undefined
 
 execEvent :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestM () -> Signal s e -> e -> [String]
 execEvent r f d = execEvents r [(f,d)]

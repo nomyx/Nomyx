@@ -31,7 +31,7 @@ class HasEvents n s where
 
 -- | Environment necessary for the evaluation of events
 data EvalEnv n s = EvalEnv { _evalEnv      :: s,
-                             evalFunc     :: forall a. (Show a) => n a -> Evaluate n s (),       -- evaluation function
+                             evalFunc     :: forall a. n a -> Evaluate n s a,       -- evaluation function
                              errorHandler :: EventNumber -> String -> Evaluate n s ()}    -- error function
 
 -- | Environment necessary for the evaluation of Nome
@@ -113,19 +113,19 @@ getRemainingSignals ei env = join $ maybeToList $ evalState (runEvalError' (getR
 
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some signals results are pending, return that list instead.
-getEventResult :: Event a -> [SignalOccurence] -> Evaluate n s (AccValidation [(SignalAddress, SomeSignal)] a)
+getEventResult :: Event n a -> [SignalOccurence] -> Evaluate n s (AccValidation [(SignalAddress, SomeSignal)] a)
 getEventResult e frs = getEventResult' e frs []
 
 -- compute the result of an event given an environment. The third argument is used to know where we are in the event tree.
-getEventResult' :: Event a -> [SignalOccurence] -> SignalAddress -> Evaluate n s (AccValidation [(SignalAddress, SomeSignal)] a)
+getEventResult' :: Event n a -> [SignalOccurence] -> SignalAddress -> Evaluate n s (AccValidation [(SignalAddress, SomeSignal)] a)
 getEventResult' (PureEvent a)   _   _  = return $ AccSuccess a
 getEventResult'  EmptyEvent     _   _  = return $ AccFailure []
 getEventResult' (SumEvent a b)  ers fa = liftM2 (<|>) (getEventResult' a ers (fa ++ [SumL])) (getEventResult' b ers (fa ++ [SumR]))
 getEventResult' (AppEvent f b)  ers fa = liftM2 (<*>) (getEventResult' f ers (fa ++ [AppL])) (getEventResult' b ers (fa ++ [AppR]))
---getEventResult' (LiftEvent a)   _   _  = do
---   evalNomexNE <- asks evalNomexNEFunc
---   r <- evalNomexNE a
---   return $ Done r
+getEventResult' (LiftEvent a)   _   _  = do
+   eval <- gets evalFunc
+   r <- eval a
+   return $ AccSuccess r
 getEventResult' (BindEvent a f) ers fa = do
    er <- getEventResult' a ers (fa ++ [BindL])
    case er of

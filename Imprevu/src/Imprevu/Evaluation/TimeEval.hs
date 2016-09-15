@@ -17,7 +17,7 @@ import Control.Lens
 
 type Time = Signal UTCTime UTCTime
 
-data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. (Show a) => n a -> Evaluate n s (),     -- evaluation function
+data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. n a -> Evaluate n s a,     -- evaluation function
                                _errorHandler :: EventNumber -> String -> Evaluate n s ()}    -- error function
 
 launchTimeEvents :: (HasEvents n s, Monad n) => TVar s -> EvalFunc n s -> IO ()

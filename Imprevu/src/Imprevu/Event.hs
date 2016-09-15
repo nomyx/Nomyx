@@ -29,36 +29,37 @@ import           GHC.Generics
 -- * Event
 
 -- | Composable events
-data Event a where
-   SumEvent       :: Event a -> Event a -> Event a                        -- The first event to fire will be returned
-   AppEvent       :: Event (a -> b) -> Event a -> Event b                 -- Both events should fire, and then the result is returned
-   PureEvent      :: a -> Event a                                         -- Create a fake event. The result is useable with no delay.
-   EmptyEvent     :: Event a                                              -- An event that is never fired.
-   BindEvent      :: Event a -> (a -> Event b) -> Event b                 -- A First event should fire, then a second event is constructed
-   ShortcutEvents :: [Event a] -> ([Maybe a] -> Bool) -> Event [Maybe a]  -- Return the intermediate results as soon as the function evaluates to True, dismissing the events that hasn't fired yet
-   SignalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e) => Signal s e -> Event e                                  -- Embed a single Signal as an Event
+data Event n a where
+   SumEvent       :: Event n a -> Event n a -> Event n a                        -- The first event to fire will be returned
+   AppEvent       :: Event n (a -> b) -> Event n a -> Event n b                 -- Both events should fire, and then the result is returned
+   PureEvent      :: a -> Event n a                                         -- Create a fake event. The result is useable with no delay.
+   EmptyEvent     :: Event n a                                              -- An event that is never fired.
+   BindEvent      :: Event n a -> (a -> Event n b) -> Event n b                 -- A First event should fire, then a second event is constructed
+   ShortcutEvents :: [Event n a] -> ([Maybe a] -> Bool) -> Event n [Maybe a]  -- Return the intermediate results as soon as the function evaluates to True, dismissing the events that hasn't fired yet
+   SignalEvent    :: (Eq s, Typeable s, Show s, Typeable a, Show a) => Signal s a -> Event n a                                  -- Embed a single Signal as an Event
+   LiftEvent      :: n a -> Event n a                                       -- create an event containing the result of the monad evaluation
    deriving Typeable
 
-instance Functor (Event) where
+instance Functor (Event n) where
    fmap f a = pure f <*> a
 
-instance Applicative (Event) where
+instance Applicative (Event n) where
    pure = PureEvent
    (<*>) = AppEvent
 
-instance Alternative (Event) where
+instance Alternative (Event n) where
    (<|>) = SumEvent
    empty = EmptyEvent
 
-instance Monad (Event) where
+instance Monad (Event n) where
    (>>=) = BindEvent
    return = PureEvent
 
-instance MonadPlus (Event) where
+instance MonadPlus (Event n) where
    mplus = SumEvent
    mzero = EmptyEvent
 
-instance Shortcutable (Event) where
+instance Shortcutable (Event n) where
    shortcut = ShortcutEvents
 
 data Signal s a where
@@ -100,7 +101,7 @@ type EventName = String
 -- EventInfo holds all infos on a active event
 data EventInfo n = forall a. (Typeable a, Show a) =>
    EventInfo {_eventNumber :: EventNumber,
-              event        :: Event a,
+              event        :: Event n a,
               handler      :: (EventNumber, a) -> n (),
               _evStatus    :: Status,
               _env         :: [SignalOccurence]}
