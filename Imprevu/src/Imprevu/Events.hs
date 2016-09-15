@@ -28,7 +28,7 @@ import Safe
 
 class (Typeable n, Applicative n, Monad n) => EvMgt n where
    --Events management
-   onEvent         :: (Typeable a, Show a) => Event n a -> ((EventNumber, a) -> n ()) -> n EventNumber
+   onEvent         :: (Typeable a, Show a) => EventM n a -> ((EventNumber, a) -> n ()) -> n EventNumber
    delEvent        :: EventNumber -> n Bool
    getEvents       :: n [EventInfo n]
    sendMessage     :: (Typeable a, Show a, Eq a) => Msg a -> a -> n ()
@@ -45,11 +45,11 @@ partial s nm = do
 -- * Events
 
 -- | register a callback on an event, disregard the event number
-onEvent_ :: (Typeable a, Show a, EvMgt n) => Event n a -> (a -> n ()) -> n EventNumber
+onEvent_ :: (Typeable a, Show a, EvMgt n) => EventM n a -> (a -> n ()) -> n EventNumber
 onEvent_ e h = onEvent e (\(_, d) -> h d)
 
 -- | set an handler for an event that will be triggered only once
-onEventOnce :: (Typeable a, Show a, EvMgt n) => Event n a -> (a -> n ()) -> n EventNumber
+onEventOnce :: (Typeable a, Show a, EvMgt n) => EventM n a -> (a -> n ()) -> n EventNumber
 onEventOnce e h = do
     let handler (en, ed) = delEvent en >> h ed
     onEvent e handler
@@ -110,16 +110,16 @@ executeAndScheduleNext' f sched now = do
 -- * Individual events
 
 -- | Build an event firing at a specific time
-timeEvent :: UTCTime -> Event n UTCTime
+timeEvent :: UTCTime -> EventM n UTCTime
 timeEvent t = SignalEvent $ Signal t
 
 -- | Build a message event, that can be intercepted by another rule
 -- this is useful for message-passing style of communication
-messageEvent :: (Typeable a, Show a, Eq a) => Msg a -> Event n a
+messageEvent :: (Typeable a, Show a, Eq a) => Msg a -> EventM n a
 messageEvent m = SignalEvent m
 
 -- | Build a event firing immediatly, yelding the value of the Nomex
---liftEvent :: Nomex a -> Event a
+--liftEvent :: Nomex a -> EventM a
 --liftEvent = LiftEvent
 
 -- | duration
@@ -131,12 +131,12 @@ oneMinute = 60
 
 -- * internals
 
- -- Embed a single Signal as an Event
-signalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e, Eq e) => s -> Event n e
+ -- Embed a single Signal as an EventM
+signalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e, Eq e) => s -> EventM n e
 signalEvent = SignalEvent . Signal
 
--- Embed a single Signal as an Event
-inputEvent    :: (Typeable e, Show e, Eq e) => Input e -> Event n e
+-- Embed a single Signal as an EventM
+inputEvent    :: (Typeable e, Show e, Eq e) => Input e -> EventM n e
 inputEvent = SignalEvent . InputS
 
 displayEvent :: [EventInfo n] -> EventInfo n -> String

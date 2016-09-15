@@ -28,10 +28,10 @@ type ClientNumber = Int
 -- ** Radio inputs
 
 -- | event based on a radio input choice
-inputRadio :: (Eq c, Show c, Typeable c) => ClientNumber -> String -> [(c, String)] -> Event n c
+inputRadio :: (Eq c, Show c, Typeable c) => ClientNumber -> String -> [(c, String)] -> EventM n c
 inputRadio pn title cs = inputEvent $ Radio title cs
 
-inputRadio' :: (Eq c, Show c, Typeable c) => ClientNumber -> String -> [c] -> Event n c
+inputRadio' :: (Eq c, Show c, Typeable c) => ClientNumber -> String -> [c] -> EventM n c
 inputRadio' pn title cs = inputEvent $ Radio title (zip cs (show <$> cs))
 
 -- | triggers a choice input to the user. The result will be sent to the callback
@@ -49,7 +49,7 @@ onInputRadioOnce title choices handler pn = onEventOnce (inputRadio' pn title ch
 -- ** Text inputs
 
 -- | event based on a text input
-inputText :: ClientNumber -> String -> Event n String
+inputText :: ClientNumber -> String -> EventM n String
 inputText pn title = inputEvent $ inputTextSignal pn title
 
 -- | triggers a string input to the user. The result will be sent to the callback
@@ -68,7 +68,7 @@ onInputTextOnce title handler pn = onEventOnce (inputText pn title) handler
 -- ** Checkbox inputs
 
 -- | event based on a checkbox input
-inputCheckbox :: (Eq c, Show c, Typeable c) => ClientNumber -> String -> [(c, String)] -> Event n [c]
+inputCheckbox :: (Eq c, Show c, Typeable c) => ClientNumber -> String -> [(c, String)] -> EventM n [c]
 inputCheckbox pn title cs = inputEvent $ inputCheckboxSignal pn title cs
 
 onInputCheckbox :: (Typeable a, Eq a,  Show a, EvMgt n) => String -> [(a, String)] -> (EventNumber -> [a] -> n ()) -> ClientNumber -> n EventNumber
@@ -83,7 +83,7 @@ onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn tit
 -- ** Button inputs
 
 -- | event based on a button
-inputButton :: ClientNumber -> String -> Event n ()
+inputButton :: ClientNumber -> String -> EventM n ()
 inputButton pn title = inputEvent $ inputButtonSignal pn title
 
 onInputButton :: (EvMgt n) => String -> (EventNumber -> () -> n ()) -> ClientNumber -> n EventNumber
@@ -99,7 +99,7 @@ onInputButtonOnce title handler pn = onEventOnce (inputButton pn title) handler
 -- ** Textarea inputs
 
 -- | event based on a text area
-inputTextarea :: ClientNumber -> String -> Event n String
+inputTextarea :: ClientNumber -> String -> EventM n String
 inputTextarea pn title = inputEvent $ inputTextareaSignal pn title
 
 onInputTextarea :: (EvMgt n) => String -> (EventNumber -> String -> n ()) -> ClientNumber -> n EventNumber

@@ -100,7 +100,7 @@ testUserInputWrite :: TestM ()
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (messageEvent (Signal "voted" :: Msg ())) h2
-    void $ onEvent_ (signalEvent $ Radio "Vote for" [(Me, "Me"), (You, "You")] :: Event TestM Choice2) h1 where
+    void $ onEvent_ (signalEvent $ Radio "Vote for" [(Me, "Me"), (You, "You")] :: EventM TestM Choice2) h1 where
         h1 a = do
             writeVar (V "vote") (Just a)
             sendMessage (Signal "voted") ()
@@ -173,7 +173,7 @@ testShorcutEventEx = "coco1" `elem` g where
    g = execInputs testShorcutEvent 1 [([Shortcut], (TextField "a"), TextData "coco1")]
 
 -- | Build a event firing when a player arrives or leaves
-playerEvent :: Player -> Event TestM PlayerInfo
+playerEvent :: Player -> EventM TestM PlayerInfo
 playerEvent p = SignalEvent $ Signal p
 
 data Player    = Arrive | Leave deriving (Typeable, Show, Eq)
@@ -186,7 +186,7 @@ data PlayerInfo = PlayerInfo { _playerNumber :: Int}
 testDoubleEvent :: TestM ()
 testDoubleEvent = do
    let displayMsg a = putStrLn' $ show $ _playerNumber a
-   let e :: Event TestM PlayerInfo
+   let e :: EventM TestM PlayerInfo
        e = do
        playerEvent Arrive
        playerEvent Arrive

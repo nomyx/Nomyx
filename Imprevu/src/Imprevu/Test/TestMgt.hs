@@ -85,7 +85,7 @@ evalEvents (TestM tio) = do
    put (EvalEnv s' f g)
    return a
 
-evOnEvent :: (Typeable e, Show e) => Event TestM e -> ((EventNumber, e) -> TestM ()) -> TestM EventNumber
+evOnEvent :: (Typeable e, Show e) => EventM TestM e -> ((EventNumber, e) -> TestM ()) -> TestM EventNumber
 evOnEvent ev h = do
    (TestState evs os vs) <- get
    let en = getFreeNumber (map _eventNumber evs)
