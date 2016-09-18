@@ -30,7 +30,7 @@ import           Web.Routes.PathInfo
 default (Integer, Double, Data.Text.Text)
 
 
-viewInput :: (HasEvents n s) => ClientNumber -> EventInfo n -> RoutedServer n s (Maybe Html)
+viewInput :: (HasEvents n s) => ClientNumber -> EventInfoN n -> RoutedServer n s (Maybe Html)
 viewInput cn ei@(EventInfo en _ _ SActive _) = do
    (WebState tvs _ f g) <- get
    s <- liftIO $ atomically $ readTVar tvs

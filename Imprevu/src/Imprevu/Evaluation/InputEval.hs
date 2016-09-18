@@ -67,14 +67,14 @@ actSignal _ _ = error "actSignal"
 -- * Input triggers
 
 -- trigger the input form with the input data
-triggerInput :: (HasEvents n s) => InputView -> InputDataView -> SignalAddress -> EventNumber -> Evaluate n s ()
+triggerInput :: (HasEvents n s) => InputView -> InputDataView -> SignalAddress -> EventNumber -> EvaluateN n s ()
 triggerInput sv dv sa en = do
    evs <- use events
    let mei = find (\a -> a ^. eventNumber == en) evs
    mapM_ (triggerInputSignal sv dv sa) mei
 
 -- trigger the input signal with the input data
-triggerInputSignal :: forall n s. (HasEvents n s) => InputView -> InputDataView -> SignalAddress -> EventInfoN n -> Evaluate n s ()
+triggerInputSignal :: forall n s. (HasEvents n s) => InputView -> InputDataView -> SignalAddress -> EventInfoN n -> EvaluateN n s ()
 triggerInputSignal sv dv sa ei@(EventInfo _ _ _ SActive _) = do
     mss <- findField sv sa ei
     case mss of
@@ -83,10 +83,10 @@ triggerInputSignal sv dv sa ei@(EventInfo _ _ _ SActive _) = do
 triggerInputSignal _ _ _ _ = return ()
 
 -- | Get the form field at a certain address
-findField :: InputView -> SignalAddress -> EventInfoN n -> Evaluate n s (Maybe SomeSignal)
+findField :: InputView -> SignalAddress -> EventInfoN n -> EvaluateN n s (Maybe SomeSignal)
 findField sv sa (EventInfo _ e _ _ envi) = findField' sa e envi sv
 
-findField' :: SignalAddress -> EventM n e -> [SignalOccurence] -> InputView -> Evaluate n s (Maybe SomeSignal)
+findField' :: SignalAddress -> EventM n e -> [SignalOccurence] -> InputView -> EvaluateN n s (Maybe SomeSignal)
 findField' []         (SignalEvent f)    _   ff = return $ do
    --ff' <- getFormField f
    --guard (ff' == ff)

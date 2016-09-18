@@ -17,8 +17,8 @@ import Control.Lens
 
 type Time = Signal UTCTime UTCTime
 
-data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. n a -> Evaluate n s a,     -- evaluation function
-                               _errorHandler :: EventNumber -> String -> Evaluate n s ()}    -- error function
+data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. n a -> EvaluateN n s a,     -- evaluation function
+                               _errorHandler :: EventNumber -> String -> EvaluateN n s ()}    -- error function
 
 launchTimeEvents :: (HasEvents n s, Monad n) => TVar s -> EvalFunc n s -> IO ()
 launchTimeEvents tv ef = do
@@ -41,13 +41,13 @@ triggerTimeEvent tv ef t = do
     --save m'
 
 -- | get all events that has not been triggered yet
-getTimeEvents :: (HasEvents n s) => UTCTime -> Evaluate n s [UTCTime]
+getTimeEvents :: (HasEvents n s) => UTCTime -> EvaluateN n s [UTCTime]
 getTimeEvents now = do
    eis <- use events
    times <- mapM getTimes eis
    return $ filter (\t -> t <= now && t > (-32) `addUTCTime` now) (join times)
 
-getTimes :: EventInfoN n -> Evaluate n s [UTCTime]
+getTimes :: EventInfoN n -> EvaluateN n s [UTCTime]
 getTimes ei = do
   rss <- getRemainingSignals' ei
   return $ mapMaybe getTime (map snd rss)

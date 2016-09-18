@@ -68,7 +68,7 @@ instance VarMgt TestM where
    writeVar (V v) a = modify (\(TestState eis os _) -> (TestState eis os (Var v a))) >> return True
    delVar        _  = return True
 
-eventsEval :: Evaluate TestM TestState () -> TestM ()
+eventsEval :: EvaluateN TestM TestState () -> TestM ()
 eventsEval eval = do
    s <- get
    let (EvalEnv s' _ _) = runIdentity $ flip execStateT (EvalEnv s evalEvents undefined) $ do
@@ -78,7 +78,7 @@ eventsEval eval = do
          Left _ -> error $ show "error occured"
    put s'
 
-evalEvents :: TestM a -> Evaluate TestM TestState a
+evalEvents :: TestM a -> EvaluateN TestM TestState a
 evalEvents (TestM tio) = do
    (EvalEnv s f g) <- get
    let (a, s') = unsafePerformIO $ runStateT tio s
@@ -104,10 +104,10 @@ evDelEvent en = do
          SDeleted -> return False
 
 
-defaultEvalEnv :: EvalEnv TestM TestState
+defaultEvalEnv :: EvalEnvN TestM TestState
 defaultEvalEnv = defaultEvalEnv' (TestState [] [] (Var "" ""))
 
-defaultEvalEnv' :: TestState -> EvalEnv TestM TestState
+defaultEvalEnv' :: TestState -> EvalEnvN TestM TestState
 defaultEvalEnv' ts = EvalEnv ts evalEvents undefined
 
 execEvent :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestM () -> Signal s e -> e -> [String]

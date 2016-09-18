@@ -30,29 +30,29 @@ class HasEvents n s where
    setEvents :: [EventInfoN n] -> s -> s
 
 -- | Environment necessary for the evaluation of events
-data EvalEnv n s = EvalEnv { _evalEnv     :: s,
-                             evalFunc     :: forall a. n a -> Evaluate n s a,           -- evaluation function
-                             errorHandler :: EventNumber -> String -> Evaluate n s ()}  -- error function
+data EvalEnvN n s = EvalEnv { _evalEnv     :: s,
+                             evalFunc     :: forall a. n a -> EvaluateN n s a,           -- evaluation function
+                             errorHandler :: EventNumber -> String -> EvaluateN n s ()}  -- error function
 
 -- | Environment necessary for the evaluation of Nome
-type Evaluate n s a = ExceptT String (State (EvalEnv n s)) a
+type EvaluateN n s a = ExceptT String (State (EvalEnvN n s)) a
 
-makeLenses ''EvalEnv
+makeLenses ''EvalEnvN
 
-events :: (HasEvents n s) => Lens' (EvalEnv n s) [EventInfoN n]
+events :: (HasEvents n s) => Lens' (EvalEnvN n s) [EventInfoN n]
 events f (EvalEnv s g h) = fmap (\s' -> (EvalEnv (setEvents s' s) g h)) (f (getEvents s))
 
 
 -- * Event triggers
 
 -- trigger an event with an event result
-triggerEvent :: (HasEvents n s, Show a, Typeable a, Show e, Typeable e, Eq a, Eq e) => Signal a e -> e -> Evaluate n s ()
+triggerEvent :: (HasEvents n s, Show a, Typeable a, Show e, Typeable e, Eq a, Eq e) => Signal a e -> e -> EvaluateN n s ()
 triggerEvent e dat = do
    (EvalEnv s _ _) <- get
    triggerEvent' (SignalData e dat) Nothing (getEvents s)
 
 -- trigger some specific signal
-triggerEvent' :: (HasEvents n s) => SignalData -> Maybe SignalAddress -> [EventInfoN n] -> Evaluate n s ()
+triggerEvent' :: (HasEvents n s) => SignalData -> Maybe SignalAddress -> [EventInfoN n] -> EvaluateN n s ()
 triggerEvent' sd msa evs = do
    let evs' = evs -- sortBy (compare `on` _ruleNumber) evs
    eids <- mapM (getUpdatedEventInfo sd msa) evs'           -- get all the EventInfoNs updated with the field
@@ -61,7 +61,7 @@ triggerEvent' sd msa evs = do
    void $ mapM triggerIfComplete eids                           -- trigger the handlers for completed events
 
 -- if the event is complete, trigger its handler
-triggerIfComplete :: (EventInfoN n, Maybe SomeData) -> Evaluate n s ()
+triggerIfComplete :: (EventInfoN n, Maybe SomeData) -> EvaluateN n s ()
 triggerIfComplete (EventInfo en _ h SActive _, Just (SomeData val)) = case cast val of
    Just a -> do
       traceM $ "triggerIfComplete" ++ (show a)
@@ -74,7 +74,7 @@ triggerIfComplete _ = return ()
 
 -- get update the EventInfoN updated with the signal data.
 -- get the event result if all signals are completed
-getUpdatedEventInfo :: SignalData -> Maybe SignalAddress -> EventInfoN n -> Evaluate n s (EventInfoN n, Maybe SomeData)
+getUpdatedEventInfo :: SignalData -> Maybe SignalAddress -> EventInfoN n -> EvaluateN n s (EventInfoN n, Maybe SomeData)
 getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ ev _ _ envi) = do
    trs <- getEventResult ev envi
    traceM $ "getUpdatedEventInfo trs=" ++ (show trs) ++ " envi=" ++ (show envi) ++ " sig=" ++ (show sig) ++ " addr=" ++ (show addr)
@@ -100,24 +100,24 @@ getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ ev _ _ envi) = do
 -- * Evaluations
 
 --get the signals left to be completed in an event
-getRemainingSignals' :: EventInfoN n -> Evaluate n s [(SignalAddress, SomeSignal)]
+getRemainingSignals' :: EventInfoN n -> EvaluateN n s [(SignalAddress, SomeSignal)]
 getRemainingSignals' (EventInfo _ e _ _ envi) = do
    tr <- getEventResult e envi
    return $ case tr of
       AccSuccess _ -> []
       AccFailure a -> a
 
-getRemainingSignals :: EventInfoN n -> EvalEnv n s -> [(SignalAddress, SomeSignal)]
+getRemainingSignals :: EventInfoN n -> EvalEnvN n s -> [(SignalAddress, SomeSignal)]
 getRemainingSignals ei env = join $ maybeToList $ evalState (runEvalError' (getRemainingSignals' ei)) env
 
 
 -- compute the result of an event given an environment.
 -- in the case the event cannot be computed because some signals results are pending, return that list instead.
-getEventResult :: EventM n a -> [SignalOccurence] -> Evaluate n s (AccValidation [(SignalAddress, SomeSignal)] a)
+getEventResult :: EventM n a -> [SignalOccurence] -> EvaluateN n s (AccValidation [(SignalAddress, SomeSignal)] a)
 getEventResult e frs = getEventResult' e frs []
 
 -- compute the result of an event given an environment. The third argument is used to know where we are in the event tree.
-getEventResult' :: EventM n a -> [SignalOccurence] -> SignalAddress -> Evaluate n s (AccValidation [(SignalAddress, SomeSignal)] a)
+getEventResult' :: EventM n a -> [SignalOccurence] -> SignalAddress -> EvaluateN n s (AccValidation [(SignalAddress, SomeSignal)] a)
 getEventResult' (PureEvent a)   _   _  = return $ AccSuccess a
 getEventResult'  EmptyEvent     _   _  = return $ AccFailure []
 getEventResult' (SumEvent a b)  ers fa = liftM2 (<|>) (getEventResult' a ers (fa ++ [SumL])) (getEventResult' b ers (fa ++ [SumR]))
@@ -143,7 +143,7 @@ getEventResult' (ShortcutEvents es f) ers fa = do
      else AccFailure $ join $ lefts $ toEither <$> ers'                  -- otherwise, return the list of remaining fields to complete from each event
 
 
-runEvalError' :: Evaluate n s a -> State (EvalEnv n s) (Maybe a)
+runEvalError' :: EvaluateN n s a -> State (EvalEnvN n s) (Maybe a)
 runEvalError' egs = do
    e <- runExceptT egs
    case e of
@@ -152,7 +152,7 @@ runEvalError' egs = do
          --tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
          --void $ runErrorT $ log mpn "Error: "
 
-runEvaluate :: Evaluate n s a -> EvalEnv n s -> Maybe a
+runEvaluate :: EvaluateN n s a -> EvalEnvN n s -> Maybe a
 runEvaluate ev ee = evalState (runEvalError' ev) ee
 
 -- find a signal occurence in an environment
@@ -166,7 +166,7 @@ getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
   if (sa' == sa) && (s === s') then Just res' else Nothing
 
 
-execSignals :: (Show a, Show e, Typeable e, Eq e, Show d, Typeable d, Eq d, HasEvents n s) => n a -> [(Signal e d, d)] -> EvalEnv n s -> s
+execSignals :: (Show a, Show e, Typeable e, Eq e, Show d, Typeable d, Eq d, HasEvents n s) => n a -> [(Signal e d, d)] -> EvalEnvN n s -> s
 execSignals r sds evalEnv = _evalEnv $ runIdentity $ flip execStateT evalEnv $ do
    res <- runExceptT $ do
       evalFunc evalEnv r
