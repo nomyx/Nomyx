@@ -95,38 +95,40 @@ data SomeData = forall e. (Typeable e, Show e) => SomeData e
 
 deriving instance Show SomeData
 
--- * EventInfo
+
+
+-- * EventInfoN
 
 type EventNumber = Int
 type EventName = String
 
--- EventInfo holds all infos on a active event
-data EventInfo n = forall a. (Typeable a, Show a) =>
+-- EventInfoN holds all infos on a active event
+data EventInfoN n = forall a. (Typeable a, Show a) =>
    EventInfo {_eventNumber :: EventNumber,
               event        :: EventM n a,
               handler      :: (EventNumber, a) -> n (),
               _evStatus    :: Status,
               _env         :: [SignalOccurence]}
 
-instance Eq (EventInfo n) where
+instance Eq (EventInfoN n) where
    (EventInfo {_eventNumber=e1}) == (EventInfo {_eventNumber=e2}) = e1 == e2
 
-instance Ord (EventInfo n) where
+instance Ord (EventInfoN n) where
    (EventInfo {_eventNumber=e1}) <= (EventInfo {_eventNumber=e2}) = e1 <= e2
 
-instance Show (EventInfo n) where
+instance Show (EventInfoN n) where
    show (EventInfo en _ _ s envi) =
       "event num: " ++ (show en) ++
       ", envs: " ++ (show envi) ++
       ", status: " ++ (show s)
 
-eventNumber :: Lens' (EventInfo n) EventNumber
+eventNumber :: Lens' (EventInfoN n) EventNumber
 eventNumber f (EventInfo e ev h evs env) = fmap (\e' -> (EventInfo e' ev h evs env)) (f e)
 
-evStatusNumber :: Lens' (EventInfo n) Status
+evStatusNumber :: Lens' (EventInfoN n) Status
 evStatusNumber f (EventInfo e ev h evs env) = fmap (\evs' -> (EventInfo e ev h evs' env)) (f evs)
 
-env :: Lens' (EventInfo n) [SignalOccurence]
+env :: Lens' (EventInfoN n) [SignalOccurence]
 env f (EventInfo e ev h evs env) = fmap (\env' -> (EventInfo e ev h evs env')) (f env)
 
 -- status of an event

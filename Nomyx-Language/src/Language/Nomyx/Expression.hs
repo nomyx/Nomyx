@@ -58,7 +58,7 @@ data Nomex a  where
    --Events management
    OnEvent         :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Nomex EventNumber
    DelEvent        :: EventNumber -> Nomex Bool
-   GetEvents       :: Nomex [EventInfoN]
+   GetEvents       :: Nomex [EventInfo]
    SendMessage     :: (Typeable a, Show a) => Msg a -> a -> Nomex ()
    --Rules management
    ProposeRule     :: RuleInfo -> Nomex Bool
@@ -139,7 +139,7 @@ instance Shortcutable (EventM Nomex) where
 
 -- * Events
 type Event a = EventM Nomex a
-type EventInfoN = EventInfo Nomex
+type EventInfo = EventInfoN Nomex
 
 -- | Composable events
 --data Event a where

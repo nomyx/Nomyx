@@ -74,7 +74,7 @@ triggerInput sv dv sa en = do
    mapM_ (triggerInputSignal sv dv sa) mei
 
 -- trigger the input signal with the input data
-triggerInputSignal :: forall n s. (HasEvents n s) => InputView -> InputDataView -> SignalAddress -> EventInfo n -> Evaluate n s ()
+triggerInputSignal :: forall n s. (HasEvents n s) => InputView -> InputDataView -> SignalAddress -> EventInfoN n -> Evaluate n s ()
 triggerInputSignal sv dv sa ei@(EventInfo _ _ _ SActive _) = do
     mss <- findField sv sa ei
     case mss of
@@ -83,7 +83,7 @@ triggerInputSignal sv dv sa ei@(EventInfo _ _ _ SActive _) = do
 triggerInputSignal _ _ _ _ = return ()
 
 -- | Get the form field at a certain address
-findField :: InputView -> SignalAddress -> EventInfo n -> Evaluate n s (Maybe SomeSignal)
+findField :: InputView -> SignalAddress -> EventInfoN n -> Evaluate n s (Maybe SomeSignal)
 findField sv sa (EventInfo _ e _ _ envi) = findField' sa e envi sv
 
 findField' :: SignalAddress -> EventM n e -> [SignalOccurence] -> InputView -> Evaluate n s (Maybe SomeSignal)

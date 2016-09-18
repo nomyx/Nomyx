@@ -26,8 +26,8 @@ import           Debug.Trace.Helpers    (traceM)
 
 
 class HasEvents n s where
-   getEvents :: s -> [EventInfo n]
-   setEvents :: [EventInfo n] -> s -> s
+   getEvents :: s -> [EventInfoN n]
+   setEvents :: [EventInfoN n] -> s -> s
 
 -- | Environment necessary for the evaluation of events
 data EvalEnv n s = EvalEnv { _evalEnv     :: s,
@@ -39,7 +39,7 @@ type Evaluate n s a = ExceptT String (State (EvalEnv n s)) a
 
 makeLenses ''EvalEnv
 
-events :: (HasEvents n s) => Lens' (EvalEnv n s) [EventInfo n]
+events :: (HasEvents n s) => Lens' (EvalEnv n s) [EventInfoN n]
 events f (EvalEnv s g h) = fmap (\s' -> (EvalEnv (setEvents s' s) g h)) (f (getEvents s))
 
 
@@ -52,16 +52,16 @@ triggerEvent e dat = do
    triggerEvent' (SignalData e dat) Nothing (getEvents s)
 
 -- trigger some specific signal
-triggerEvent' :: (HasEvents n s) => SignalData -> Maybe SignalAddress -> [EventInfo n] -> Evaluate n s ()
+triggerEvent' :: (HasEvents n s) => SignalData -> Maybe SignalAddress -> [EventInfoN n] -> Evaluate n s ()
 triggerEvent' sd msa evs = do
    let evs' = evs -- sortBy (compare `on` _ruleNumber) evs
-   eids <- mapM (getUpdatedEventInfo sd msa) evs'           -- get all the EventInfos updated with the field
+   eids <- mapM (getUpdatedEventInfo sd msa) evs'           -- get all the EventInfoNs updated with the field
    traceM $ "triggerEvent' eids=" ++ (show eids) ++ " sd=" ++ (show sd) ++ " msa=" ++ (show msa) ++ " evs=" ++ (show evs)
    events %= union (map fst eids)                           -- store them
    void $ mapM triggerIfComplete eids                           -- trigger the handlers for completed events
 
 -- if the event is complete, trigger its handler
-triggerIfComplete :: (EventInfo n, Maybe SomeData) -> Evaluate n s ()
+triggerIfComplete :: (EventInfoN n, Maybe SomeData) -> Evaluate n s ()
 triggerIfComplete (EventInfo en _ h SActive _, Just (SomeData val)) = case cast val of
    Just a -> do
       traceM $ "triggerIfComplete" ++ (show a)
@@ -72,9 +72,9 @@ triggerIfComplete (EventInfo en _ h SActive _, Just (SomeData val)) = case cast 
 triggerIfComplete _ = return ()
 
 
--- get update the EventInfo updated with the signal data.
+-- get update the EventInfoN updated with the signal data.
 -- get the event result if all signals are completed
-getUpdatedEventInfo :: SignalData -> Maybe SignalAddress -> EventInfo n -> Evaluate n s (EventInfo n, Maybe SomeData)
+getUpdatedEventInfo :: SignalData -> Maybe SignalAddress -> EventInfoN n -> Evaluate n s (EventInfoN n, Maybe SomeData)
 getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ ev _ _ envi) = do
    trs <- getEventResult ev envi
    traceM $ "getUpdatedEventInfo trs=" ++ (show trs) ++ " envi=" ++ (show envi) ++ " sig=" ++ (show sig) ++ " addr=" ++ (show addr)
@@ -100,14 +100,14 @@ getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ ev _ _ envi) = do
 -- * Evaluations
 
 --get the signals left to be completed in an event
-getRemainingSignals' :: EventInfo n -> Evaluate n s [(SignalAddress, SomeSignal)]
+getRemainingSignals' :: EventInfoN n -> Evaluate n s [(SignalAddress, SomeSignal)]
 getRemainingSignals' (EventInfo _ e _ _ envi) = do
    tr <- getEventResult e envi
    return $ case tr of
       AccSuccess _ -> []
       AccFailure a -> a
 
-getRemainingSignals :: EventInfo n -> EvalEnv n s -> [(SignalAddress, SomeSignal)]
+getRemainingSignals :: EventInfoN n -> EvalEnv n s -> [(SignalAddress, SomeSignal)]
 getRemainingSignals ei env = join $ maybeToList $ evalState (runEvalError' (getRemainingSignals' ei)) env
 
 

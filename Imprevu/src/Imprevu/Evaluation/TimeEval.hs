@@ -47,7 +47,7 @@ getTimeEvents now = do
    times <- mapM getTimes eis
    return $ filter (\t -> t <= now && t > (-32) `addUTCTime` now) (join times)
 
-getTimes :: EventInfo n -> Evaluate n s [UTCTime]
+getTimes :: EventInfoN n -> Evaluate n s [UTCTime]
 getTimes ei = do
   rss <- getRemainingSignals' ei
   return $ mapMaybe getTime (map snd rss)

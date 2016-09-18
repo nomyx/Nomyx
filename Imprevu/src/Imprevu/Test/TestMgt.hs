@@ -29,7 +29,7 @@ import System.IO.Unsafe
 import System.Random
 import Prelude
 
-data TestState = TestState {eventInfos :: [EventInfo TestM],
+data TestState = TestState {eventInfos :: [EventInfoN TestM],
                             outputs    :: [String],
                             variable  :: Var}
                             deriving Show

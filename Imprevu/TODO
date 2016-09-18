@@ -4,3 +4,4 @@
 - HasEvents class necessary?
 
 - In Happstack: factorize tests, servers
+- getIntermediateResults seems to leak some internals

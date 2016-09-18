@@ -31,7 +31,7 @@ class (Typeable n, Applicative n, Monad n) => EvMgt n where
    --Events management
    onEvent         :: (Typeable a, Show a) => EventM n a -> ((EventNumber, a) -> n ()) -> n EventNumber
    delEvent        :: EventNumber -> n Bool
-   getEvents       :: n [EventInfo n]
+   getEvents       :: n [EventInfoN n]
    sendMessage     :: (Typeable a, Show a, Eq a) => Msg a -> a -> n ()
 
 type Msg m = Signal String m
@@ -56,7 +56,7 @@ onEventOnce e h = do
     onEvent e handler
 
 
-getEvent :: (EvMgt n) => EventNumber -> n (Maybe (EventInfo n))
+getEvent :: (EvMgt n) => EventNumber -> n (Maybe (EventInfoN n))
 getEvent en = find (\(EventInfo en2 _ _ evst _) -> en == en2 && evst == SActive) <$> getEvents
 
 getIntermediateResults :: (EvMgt n) => EventNumber -> n (Maybe [(ClientNumber, SomeData)])
@@ -133,7 +133,7 @@ signalEvent = SignalEvent . Signal
 inputEvent    :: (Typeable e, Show e, Eq e) => Input e -> ClientNumber -> EventM n e
 inputEvent i cn = SignalEvent $ InputS i cn
 
-displayEvent :: [EventInfo n] -> EventInfo n -> String
+displayEvent :: [EventInfoN n] -> EventInfoN n -> String
 displayEvent eis ei@(EventInfo en _ _ s envi) =
    "event num: " ++ (show en) ++
    --", remaining signals: " ++ (show $ getRemainingSignals ei eis) ++ --TODO: display also event result?

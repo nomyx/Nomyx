@@ -48,7 +48,7 @@ onEventOnce = Imp.onEventOnce
 delEvent :: EventNumber -> Nomex Bool
 delEvent = Imp.delEvent
 
-getEvents :: Nomex [EventInfoN]
+getEvents :: Nomex [EventInfo]
 getEvents = Imp.getEvents
 
 --getEvent :: EventNumber -> Nomex (Maybe EventInfoN)
