@@ -29,7 +29,8 @@ module Language.Nomyx.Rules (
    eraseAllRules,
    getSelfRuleNumber, getSelfRule,
    onRuleProposed,
-   showRule
+   showRule,
+   ruleEvent
    ) where
 
 import Prelude hiding (foldr)

@@ -6,13 +6,16 @@ module Language.Nomyx.Events (
    onEvent, onEvent_, onEventOnce,
    delEvent,
    --getEvents, getEvent,
-   --getIntermediateResults,
+   getIntermediateResults,
    schedule, schedule_, schedule', --schedule'_,
    getCurrentTime,
-   --oneWeek, oneDay, oneHour, oneMinute,
+   oneWeek, oneDay, oneHour, oneMinute,
    --timeEvent, messageEvent, victoryEvent, playerEvent, ruleEvent,
    --signalEvent, inputFormSignal,
-   --liftEvent
+   liftEvent,
+   victoryEvent, timeEvent,
+   Imprevu.Event.EventNumber,
+   SomeData
    ) where
 
 import Language.Nomyx.Expression
@@ -48,19 +51,13 @@ delEvent = Imp.delEvent
 getEvents :: Nomex [EventInfoN]
 getEvents = Imp.getEvents
 
-getEvent :: EventNumber -> Nomex (Maybe EventInfoN)
-getEvent en = find (\(EventInfo en2 _ _ evst _) -> en == en2 && evst == SActive) <$> getEvents
+--getEvent :: EventNumber -> Nomex (Maybe EventInfoN)
+--getEvent en = find (\(EventInfo en2 _ _ evst _) -> en == en2 && evst == SActive) <$> getEvents
 
 getIntermediateResults :: EventNumber -> Nomex (Maybe [(PlayerNumber, SomeData)])
-getIntermediateResults en = do
-   mev <- getEvent en
-   case mev of
-      Just ev -> return $ Just $ mapMaybe getInputResult (_env ev)
-      Nothing -> return Nothing
+getIntermediateResults = Imp.getIntermediateResults
 
-getInputResult :: SignalOccurence -> Maybe (PlayerNumber, SomeData)
-getInputResult (SignalOccurence (SignalData (InputS _) r) _) = undefined --Just (pn, SomeData r)
-getInputResult _ = Nothing
+--getIntermediateResults :: (EvMgt n) => EventNumber -> n (Maybe [(ClientNumber, SomeData)])
 
 -- | on the provided schedule, the supplied function will be called
 schedule :: Schedule Freq -> (UTCTime -> Nomex ()) -> Nomex ()
@@ -83,14 +80,15 @@ getCurrentTime = GetCurrentTime
 -- * Individual events
 
 -- | Build an event firing at a specific time
---timeEvent :: UTCTime -> Event UTCTime
---timeEvent = SignalEvent . Time
+timeEvent :: UTCTime -> Event UTCTime
+timeEvent = Imp.timeEvent
+
+data Victory = Victory
+  deriving (Eq, Show)
 
 -- | Build a event firing when the victory condition is changed
---victoryEvent :: Event VictoryInfo
---victoryEvent = SignalEvent Victory
-
-
+victoryEvent :: Event VictoryInfo
+victoryEvent = SignalEvent $ Signal Victory
 
 -- | Build a message event, that can be intercepted by another rule
 -- this is useful for message-passing style of communication
@@ -98,15 +96,15 @@ getCurrentTime = GetCurrentTime
 --messageEvent = SignalEvent . Message
 
 -- | Build a event firing immediatly, yelding the value of the NomexNE
---liftEvent :: Nomex a -> Event a
---liftEvent = LiftEvent
+liftEvent :: Nomex a -> Event a
+liftEvent = Imp.liftEvent
 
 -- | duration
---oneWeek, oneDay, oneHour, oneMinute :: NominalDiffTime
---oneWeek = 7 * oneDay
---oneDay = 24 * oneHour
---oneHour = 60 * oneMinute
---oneMinute = 60
+oneWeek, oneDay, oneHour, oneMinute :: NominalDiffTime
+oneWeek = 7 * oneDay
+oneDay = 24 * oneHour
+oneHour = 60 * oneMinute
+oneMinute = 60
 
 
 

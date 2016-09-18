@@ -1,15 +1,16 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Language.Nomyx.Messages --(
-  --sendMessage, sendMessage_,
-  --onMessage, onMessageOnce,
-  --APICall(..), onAPICall, callAPI, callAPIBlocking,
+module Language.Nomyx.Messages (
+  sendMessage, sendMessage_,
+  onMessage, onMessageOnce,
+  APICall(..), onAPICall, callAPI, callAPIBlocking,
+  Msg(..))
    where
 
 import Language.Nomyx.Expression
 import Imprevu.Variables
 import Imprevu.Event
-import Imprevu.Events
+import Imprevu.Events hiding (sendMessage)
 import Imprevu.Messages (APICall)
 import qualified Imprevu.Messages as Imp
 import Data.Typeable

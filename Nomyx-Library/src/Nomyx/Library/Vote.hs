@@ -45,10 +45,10 @@ data VoteEnd = VoteEnd { veRule       :: RuleInfo,
                          deriving (Show, Eq, Ord, Typeable)
 
 voteBegin :: Msg VoteBegin
-voteBegin = Msg "VoteBegin"
+voteBegin = Signal "VoteBegin"
 
 voteEnd :: Msg VoteEnd
-voteEnd = Msg "VoteEnd"
+voteEnd = Signal "VoteEnd"
 
 -- | vote at unanimity every incoming rule
 unanimityVote :: Nomex ()

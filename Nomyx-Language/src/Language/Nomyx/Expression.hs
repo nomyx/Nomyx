@@ -15,7 +15,10 @@
 {-# LANGUAGE RankNTypes             #-}
 
 -- | This module contains the type definitions necessary to build a Nomic rule.
-module Language.Nomyx.Expression where
+module Language.Nomyx.Expression (
+  module Language.Nomyx.Expression,
+  module Imprevu.Event)
+  where
 
 import           Control.Applicative hiding (Const)
 import           Control.Lens
@@ -109,11 +112,6 @@ instance MonadError String Nomex where
    throwError = ThrowError
    catchError = CatchError
 
-
---instance HasEvents  TestState where
---  getEvents = eventInfos
---  setEvents eis (TestState _ os vs) = (TestState eis os vs)
-
 instance EvMgt Nomex where
    onEvent         = OnEvent
    delEvent        = DelEvent
@@ -130,7 +128,8 @@ instance VarMgt Nomex where
    writeVar     = WriteVar
    delVar       = DelVar
 
-
+instance Shortcutable (EventM Nomex) where
+   shortcut = Imprevu.Event.ShortcutEvents
 
 
 -- * Variables
@@ -139,7 +138,7 @@ instance VarMgt Nomex where
 --data V a = V {varName :: String} deriving Typeable
 
 -- * Events
-
+type Event a = EventM Nomex a
 type EventInfoN = EventInfo Nomex
 
 -- | Composable events
