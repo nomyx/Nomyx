@@ -78,7 +78,7 @@ triggerInputSignal :: forall n s. (HasEvents n s) => InputView -> InputDataView 
 triggerInputSignal sv dv sa ei@(EventInfo _ _ _ SActive _) = do
     mss <- findField sv sa ei
     case mss of
-       Just (SomeSignal (InputS e')) -> triggerEvent' (SignalData (InputS e') (actSignal e' dv))  (Just sa) [ei]
+       Just (SomeSignal inp@(InputS e' _)) -> triggerEvent' (SignalData inp (actSignal e' dv))  (Just sa) [ei]
        _ -> error $ "Input not found"
 triggerInputSignal _ _ _ _ = return ()
 

@@ -20,7 +20,6 @@ import Imprevu.Events
 import Imprevu.Event
 import Data.Typeable
 
-type ClientNumber = Int
 
 
 -- * Inputs
@@ -29,10 +28,10 @@ type ClientNumber = Int
 
 -- | event based on a radio input choice
 inputRadio :: (Eq c, Show c, Typeable c) => ClientNumber -> String -> [(c, String)] -> EventM n c
-inputRadio pn title cs = inputEvent $ Radio title cs
+inputRadio cn title cs = inputEvent (Radio title cs) cn
 
 inputRadio' :: (Eq c, Show c, Typeable c) => ClientNumber -> String -> [c] -> EventM n c
-inputRadio' pn title cs = inputEvent $ Radio title (zip cs (show <$> cs))
+inputRadio' cn title cs = inputEvent (Radio title (zip cs (show <$> cs))) cn
 
 -- | triggers a choice input to the user. The result will be sent to the callback
 onInputRadio :: (Typeable a, Eq a,  Show a, EvMgt n) => String -> [a] -> (EventNumber -> a -> n ()) -> ClientNumber -> n EventNumber
@@ -50,7 +49,7 @@ onInputRadioOnce title choices handler pn = onEventOnce (inputRadio' pn title ch
 
 -- | event based on a text input
 inputText :: ClientNumber -> String -> EventM n String
-inputText pn title = inputEvent $ inputTextSignal pn title
+inputText cn title = inputEvent (inputTextSignal title) cn
 
 -- | triggers a string input to the user. The result will be sent to the callback
 onInputText :: (EvMgt n) => String -> (EventNumber -> String -> n ()) -> ClientNumber -> n EventNumber
@@ -69,7 +68,7 @@ onInputTextOnce title handler pn = onEventOnce (inputText pn title) handler
 
 -- | event based on a checkbox input
 inputCheckbox :: (Eq c, Show c, Typeable c) => ClientNumber -> String -> [(c, String)] -> EventM n [c]
-inputCheckbox pn title cs = inputEvent $ inputCheckboxSignal pn title cs
+inputCheckbox cn title cs = inputEvent (inputCheckboxSignal title cs) cn
 
 onInputCheckbox :: (Typeable a, Eq a,  Show a, EvMgt n) => String -> [(a, String)] -> (EventNumber -> [a] -> n ()) -> ClientNumber -> n EventNumber
 onInputCheckbox title choices handler pn = onEvent (inputCheckbox pn title choices) (\(en, a) -> handler en a)
@@ -84,7 +83,7 @@ onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn tit
 
 -- | event based on a button
 inputButton :: ClientNumber -> String -> EventM n ()
-inputButton pn title = inputEvent $ inputButtonSignal pn title
+inputButton cn title = inputEvent (inputButtonSignal title) cn
 
 onInputButton :: (EvMgt n) => String -> (EventNumber -> () -> n ()) -> ClientNumber -> n EventNumber
 onInputButton title handler pn = onEvent (inputButton pn title) (\(en, ()) -> handler en ())
@@ -100,7 +99,7 @@ onInputButtonOnce title handler pn = onEventOnce (inputButton pn title) handler
 
 -- | event based on a text area
 inputTextarea :: ClientNumber -> String -> EventM n String
-inputTextarea pn title = inputEvent $ inputTextareaSignal pn title
+inputTextarea cn title = inputEvent (inputTextareaSignal title) cn
 
 onInputTextarea :: (EvMgt n) => String -> (EventNumber -> String -> n ()) -> ClientNumber -> n EventNumber
 onInputTextarea title handler pn = onEvent (inputTextarea pn title) (\(en, a) -> handler en a)
@@ -114,18 +113,18 @@ onInputTextareaOnce title handler pn = onEventOnce (inputTextarea pn title) hand
 
 -- ** Internals
 
-inputRadioSignal :: (Eq c, Show c, Typeable c) => ClientNumber -> String -> [(c, String)] -> Input c
-inputRadioSignal pn title cs = Radio title cs
+inputRadioSignal :: (Eq c, Show c, Typeable c) => String -> [(c, String)] -> Input c
+inputRadioSignal title cs = Radio title cs
 
-inputTextSignal :: ClientNumber -> String -> Input String
-inputTextSignal pn title = Text title
+inputTextSignal :: String -> Input String
+inputTextSignal title = Text title
 
-inputCheckboxSignal :: (Eq c, Show c, Typeable c) => ClientNumber -> String -> [(c, String)] -> Input [c]
-inputCheckboxSignal pn title cs = Checkbox title cs
+inputCheckboxSignal :: (Eq c, Show c, Typeable c) => String -> [(c, String)] -> Input [c]
+inputCheckboxSignal title cs = Checkbox title cs
 
-inputButtonSignal :: ClientNumber -> String -> Input ()
-inputButtonSignal pn title = Button title
+inputButtonSignal :: String -> Input ()
+inputButtonSignal title = Button title
 
-inputTextareaSignal :: ClientNumber -> String -> Input String
-inputTextareaSignal pn title = TextArea title
+inputTextareaSignal :: String -> Input String
+inputTextareaSignal title = TextArea title
 

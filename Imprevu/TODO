@@ -3,3 +3,4 @@
 - Better names for TestState, TestIO
 - HasEvents class necessary?
 
+- In Happstack: factorize tests, servers

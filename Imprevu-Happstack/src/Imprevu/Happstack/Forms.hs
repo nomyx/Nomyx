@@ -30,20 +30,21 @@ import           Web.Routes.PathInfo
 default (Integer, Double, Data.Text.Text)
 
 
-viewInput :: (HasEvents n s) => EventInfo n -> RoutedServer n s (Maybe Html)
-viewInput ei@(EventInfo en _ _ SActive _) = do
+viewInput :: (HasEvents n s) => ClientNumber -> EventInfo n -> RoutedServer n s (Maybe Html)
+viewInput cn ei@(EventInfo en _ _ SActive _) = do
    (WebState tvs _ f g) <- get
    s <- liftIO $ atomically $ readTVar tvs
-   ds <- mapMaybeM (viewInput' en) (getRemainingSignals ei (EvalEnv s f g))
+   ds <- mapMaybeM (viewInput' en cn) (getRemainingSignals ei (EvalEnv s f g))
    traceM $ "viewInput " ++ (show $ length ds)
    return $ if null ds
       then Nothing
       else Just $ sequence_ ds
-viewInput _ = return Nothing
+viewInput _ _ = return Nothing
 
 --TODO filter with ClientNumber
-viewInput' :: EventNumber -> (SignalAddress, SomeSignal) -> RoutedServer n s (Maybe Html)
-viewInput' en (sa, (SomeSignal (InputS s))) = do
+viewInput' :: EventNumber -> ClientNumber -> (SignalAddress, SomeSignal) -> RoutedServer n s (Maybe Html)
+viewInput' en me (sa, (SomeSignal (InputS s cn)))
+  | me == cn = do
      traceM $ "viewInput' " ++ (show s)
      let iv = viewSignal s
      lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm' iv
@@ -52,7 +53,7 @@ viewInput' en (sa, (SomeSignal (InputS s))) = do
           --fromString title
           fromString " "
           blazeForm lf link ! A.id "InputForm"
-viewInput' _ _ = return Nothing
+viewInput' _ _ _ = return Nothing
 
 inputForm' :: InputView -> ImpForm InputDataView
 inputForm' (RadioField s choices)    = RadioData    <$> RB.label s ++> (RB.inputRadio choices (== 0)) <++ RB.label (" " :: String)

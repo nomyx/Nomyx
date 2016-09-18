@@ -22,7 +22,7 @@ data InputResult = InputResult EventNumber SignalAddress InputView InputDataView
 
 data WebState n s = WebState {session      :: TVar s,
                               updateSession :: TVar s -> InputResult -> IO (),
-                              evalFunc     :: forall a. (Show a) => n a -> Evaluate n s (),       -- evaluation function
+                              evalFunc     :: forall a. n a -> Evaluate n s a,       -- evaluation function
                               errorHandler :: EventNumber -> String -> Evaluate n s ()}    -- error function
                               --getEvents :: TVar s -> IO [EventInfo n]}
 

@@ -37,7 +37,7 @@ testSingleInput = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, S
 
 testSingleInputEx :: Bool
 testSingleInputEx = "voted for Holland" `elem` g where
-   g = execEvent testSingleInput (InputS (Radio "Vote for Holland or Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) Holland
+   g = execEvent testSingleInput (InputS (Radio "Vote for Holland or Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) 1) Holland
 
 testMultipleInputs :: TestM ()
 testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
@@ -45,7 +45,7 @@ testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Ho
 
 testMultipleInputsEx :: Bool
 testMultipleInputsEx = "voted for [Holland,Sarkozy]" `elem` g where
-   g = execEvent testMultipleInputs (InputS (Checkbox "Vote for Holland and Sarkozy"  [(Holland, "Holland"), (Sarkozy, "Sarkozy")])) [Holland, Sarkozy]
+   g = execEvent testMultipleInputs (InputS (Checkbox "Vote for Holland and Sarkozy"  [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) 1) [Holland, Sarkozy]
 
 testInputString :: TestM ()
 testInputString = void $ onInputText_ "Enter a number:" h 1 where
@@ -53,7 +53,7 @@ testInputString = void $ onInputText_ "Enter a number:" h 1 where
 
 testInputStringEx :: Bool
 testInputStringEx = "You entered: 1" `elem` g where
-   g = execEvent testInputString (InputS $ Text "Enter a number:") "1"
+   g = execEvent testInputString (InputS (Text "Enter a number:") 1) "1"
 
 -- Test message
 testSendMessage :: TestM ()

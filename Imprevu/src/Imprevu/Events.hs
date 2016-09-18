@@ -19,11 +19,12 @@ module Imprevu.Events
 
 import Imprevu.Event
 import Imprevu.SysMgt
-import Data.Typeable
 import Control.Monad.Error
+import Data.Typeable
 import Data.Time hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
 import Data.List
+import Data.Maybe
 import Safe
 
 class (Typeable n, Applicative n, Monad n) => EvMgt n where
@@ -55,19 +56,19 @@ onEventOnce e h = do
     onEvent e handler
 
 
---getEvent :: EventNumber -> Nomex (Maybe EventInfo)
---getEvent en = find (\(EventInfo en2 _ _ evst _) -> en == en2 && evst == SActive) <$> getEvents
---
---getIntermediateResults :: EventNumber -> Nomex (Maybe [SomeData])
---getIntermediateResults en = do
---   mev <- getEvent en
---   case mev of
---      Just ev -> return $ Just $ mapMaybe getInputResult (_env ev)
---      Nothing -> return Nothing
+getEvent :: (EvMgt n) => EventNumber -> n (Maybe (EventInfo n))
+getEvent en = find (\(EventInfo en2 _ _ evst _) -> en == en2 && evst == SActive) <$> getEvents
 
---getInputResult :: SignalOccurence -> Maybe SomeData
---getInputResult (SignalOccurence (SignalData (Input _ _) r) _) = Just (SomeData r)
---getInputResult _ = Nothing
+getIntermediateResults :: (EvMgt n) => EventNumber -> n (Maybe [(ClientNumber, SomeData)])
+getIntermediateResults en = do
+   mev <- getEvent en
+   case mev of
+      Just ev -> return $ Just $ mapMaybe getInputResult (_env ev)
+      Nothing -> return Nothing
+
+getInputResult :: SignalOccurence -> Maybe (ClientNumber, SomeData)
+getInputResult (SignalOccurence (SignalData (InputS _ cn) r) _) = Just (cn, SomeData r)
+getInputResult _ = Nothing
 
 -- | on the provided schedule, the supplied function will be called
 schedule :: (EvMgt n, SysMgt n) => Schedule Freq -> (UTCTime -> n ()) -> n ()
@@ -119,15 +120,8 @@ messageEvent :: (Typeable a, Show a, Eq a) => Msg a -> EventM n a
 messageEvent m = SignalEvent m
 
 -- | Build a event firing immediatly, yelding the value of the Nomex
---liftEvent :: Nomex a -> EventM a
---liftEvent = LiftEvent
-
--- | duration
-oneWeek, oneDay, oneHour, oneMinute :: NominalDiffTime
-oneWeek = 7 * oneDay
-oneDay = 24 * oneHour
-oneHour = 60 * oneMinute
-oneMinute = 60
+liftEvent :: n a -> EventM n a
+liftEvent = LiftEvent
 
 -- * internals
 
@@ -136,8 +130,8 @@ signalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e, Eq e) => s -> E
 signalEvent = SignalEvent . Signal
 
 -- Embed a single Signal as an EventM
-inputEvent    :: (Typeable e, Show e, Eq e) => Input e -> EventM n e
-inputEvent = SignalEvent . InputS
+inputEvent    :: (Typeable e, Show e, Eq e) => Input e -> ClientNumber -> EventM n e
+inputEvent i cn = SignalEvent $ InputS i cn
 
 displayEvent :: [EventInfo n] -> EventInfo n -> String
 displayEvent eis ei@(EventInfo en _ _ s envi) =

@@ -62,9 +62,11 @@ instance MonadPlus (EventM n) where
 instance Shortcutable (EventM n) where
    shortcut = ShortcutEvents
 
+type ClientNumber = Int
+
 data Signal s a where
   Signal :: s -> Signal s a
-  InputS :: Input a -> Signal () a
+  InputS :: Input a -> ClientNumber -> Signal () a
 
 deriving instance (Show s, Show a) => Show (Signal s a)
 deriving instance (Eq s) => Eq (Signal s a)

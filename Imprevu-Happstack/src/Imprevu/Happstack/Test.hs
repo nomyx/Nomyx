@@ -38,8 +38,8 @@ launchWebServer :: TVar TestState -> IO ()
 launchWebServer tv = do
    putStrLn $ "Starting web server..."
    let conf = nullConf {HS.port = 8080}
-   let ws = WebState tv updateSessionTest (void . evalEvents) undefined
-   forkIO $ launchTimeEvents tv (EvalFunc (void . evalEvents) undefined)
+   let ws = WebState tv updateSessionTest evalEvents undefined
+   forkIO $ launchTimeEvents tv (EvalFunc evalEvents undefined)
    simpleHTTP conf $ server ws
 
 --serving Nomyx web page as well as data from this package and the language library package
@@ -55,7 +55,7 @@ updateSessionTest tvs (InputResult en sa ff ida) = do
    putStrLn $ show s
    putStrLn  $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show sa ++ ", Form " ++ show ff ++ ", choice " ++ show ida
    let ev = runEvalError' $ triggerInput ff ida sa en
-   let (EvalEnv s' _ _) = execState ev (EvalEnv s (void . evalEvents) undefined)
+   let (EvalEnv s' _ _) = execState ev (EvalEnv s evalEvents undefined)
    atomically $ writeTVar tvs s'
 
 routedCommands :: Command -> TestServer Response
@@ -66,7 +66,7 @@ mainPage :: TestServer Response
 mainPage = do
    (WebState tts _ _ _) <- get
    (TestState eis os _) <- liftIO $ atomically $ readTVar tts
-   m <- mapM viewInput eis
+   m <- mapM (viewInput 1) eis
    return $ toResponse $ do
      sequence_ $ catMaybes m
      toHtml $ show os
