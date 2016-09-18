@@ -7,6 +7,8 @@ packages:
   extra-dep: true
 - location: ../Imprevu
   extra-dep: true
+- location: ../shortcut
+  extra-dep: true
 extra-deps:
 - DebugTraceHelpers-0.12
 - Nomyx-Language-0.7.6

@@ -33,7 +33,8 @@ library
                    aeson,
                    stm,
                    validation,
-                   semigroups
+                   semigroups,
+                   shortcut
     exposed-modules: Imprevu.Event
                      Imprevu.Events
                      Imprevu.Inputs
@@ -46,7 +47,6 @@ library
                      Imprevu.Evaluation.Utils
                      Imprevu.Test.TestMgt
                      Imprevu.Test.Test
-                     Control.Shortcut
     exposed: True
     buildable: True
     hs-source-dirs: src

@@ -39,7 +39,8 @@ library
                    time               >= 1.4 && < 1.6,
                    time-recurrence    == 0.9.*,
                    monad-loops        == 0.4.*,
-                   Imprevu
+                   Imprevu,
+                   shortcut
     exposed-modules: Language.Nomyx
                      Language.Nomyx.Expression
                      Language.Nomyx.Inputs
@@ -50,7 +51,6 @@ library
                      Language.Nomyx.Events
                      Language.Nomyx.Variables
                      Paths_Nomyx_Language
-                     Control.Shortcut
     exposed: True
     buildable: True
     hs-source-dirs: src
