@@ -15,7 +15,8 @@ module Language.Nomyx.Events (
    liftEvent,
    victoryEvent, timeEvent,
    Imprevu.Event.EventNumber,
-   SomeData
+   SomeData,
+   Victory(..)
    ) where
 
 import Language.Nomyx.Expression

@@ -16,26 +16,27 @@ import           Control.Monad.State
 import           Data.List
 import           Data.Maybe
 import           Data.Typeable
+import           Imprevu.Evaluation.EventEval
 import           Language.Nomyx.Expression
 import           Nomyx.Core.Engine.Types
 import           Nomyx.Core.Engine.Utils
 import           Prelude                   hiding (log, (.))
 import           Safe
 
--- find a signal occurence in an environment
-lookupSignal :: Typeable a => Signal a -> SignalAddress -> [SignalOccurence] -> Maybe a
-lookupSignal s sa envi = headMay $ mapMaybe (getSignalData s sa) envi
-
---get the signal data from the signal occurence
-getSignalData :: Typeable a => Signal a -> SignalAddress -> SignalOccurence -> Maybe a
-getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
-   ((s'', res') :: (Signal a, a)) <- cast (s', res)
-   if (s'' == s) && (sa' == sa) then Just res' else Nothing
+---- find a signal occurence in an environment
+--lookupSignal :: Typeable a => Signal a -> SignalAddress -> [SignalOccurence] -> Maybe a
+--lookupSignal s sa envi = headMay $ mapMaybe (getSignalData s sa) envi
+--
+----get the signal data from the signal occurence
+--getSignalData :: Typeable a => Signal a -> SignalAddress -> SignalOccurence -> Maybe a
+--getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
+--   ((s'', res') :: (Signal a, a)) <- cast (s', res)
+--   if (s'' == s) && (sa' == sa) then Just res' else Nothing
 
 
 errorHandler :: EventNumber -> String -> Evaluate ()
 errorHandler en s = do
-   rn <- use eRuleNumber
+   rn <- use (evalEnv . eRuleNumber)
    logAll $ "Error in rule " ++ show rn ++ " (triggered by event " ++ show en ++ "): " ++ s
 
 logPlayer :: PlayerNumber -> String -> Evaluate ()
@@ -55,28 +56,28 @@ log mpn s = focusGame $ do
 
 
 focusGame :: State Game a -> Evaluate a
-focusGame = lift . zoom eGame
+focusGame = lift . zoom (evalEnv . eGame)
 
 accessGame :: Lens' Game a -> Evaluate (a, RuleNumber)
 accessGame l = do
-   a <- use (eGame . l)
-   rn <- use eRuleNumber
+   a <- use (evalEnv . eGame . l)
+   rn <- use (evalEnv . eRuleNumber)
    return (a, rn)
 
 putGame :: Lens' Game a -> a -> Evaluate ()
 putGame l a = do
    ruleActive <- evalRuleActive
-   when ruleActive $ void $ (eGame . l) .= a
+   when ruleActive $ void $ (evalEnv . eGame . l) .= a
 
 modifyGame :: Lens' Game a -> (a -> a) -> Evaluate ()
 modifyGame l f = do
    ruleActive <- evalRuleActive
-   when ruleActive $ void $ (eGame . l) %= f
+   when ruleActive $ void $ (evalEnv . eGame . l) %= f
 
 evalRuleActive :: Evaluate Bool
 evalRuleActive = do
-   rn <- use eRuleNumber
-   rs <- use (eGame . rules)
+   rn <- use (evalEnv . eRuleNumber)
+   rs <- use (evalEnv . eGame . rules)
    return $ (rn == 0) ||
       case find (\r -> _rNumber r == rn) rs of
          Just r -> _rStatus r == Active
@@ -86,18 +87,18 @@ evalRuleActive = do
 --replace temporarily the rule number used for evaluation
 withRN :: RuleNumber -> Evaluate a -> Evaluate a
 withRN rn eval = do
-   oldRn <- gets _eRuleNumber
-   eRuleNumber .= rn
+   oldRn <- use (evalEnv . eRuleNumber)
+   evalEnv . eRuleNumber .= rn
    a <- eval
-   eRuleNumber .= oldRn
+   evalEnv . eRuleNumber .= oldRn
    return a
 
-instance Eq SomeSignal where
-  (SomeSignal e1) == (SomeSignal e2) = e1 === e2
+--instance Eq SomeSignal where
+--  (SomeSignal e1) == (SomeSignal e2) = e1 === e2
 
-instance Show EventInfo where
-   show (EventInfo en rn _ _ s envi) =
-      "event num: " ++ (show en) ++
-      ", rule num: " ++ (show rn) ++
-      ", envs: " ++ (show envi) ++
-      ", status: " ++ (show s)
+--instance Show EventInfo where
+--   show (EventInfo en rn _ _ s envi) =
+--      "event num: " ++ (show en) ++
+--      ", rule num: " ++ (show rn) ++
+--      ", envs: " ++ (show envi) ++
+--      ", status: " ++ (show s)

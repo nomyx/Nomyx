@@ -102,7 +102,7 @@ deriving instance Show SomeData
 type EventNumber = Int
 type EventName = String
 
--- EventInfoN holds all infos on a active event
+-- EventInfoN holds all infos on an active event
 data EventInfoN n = forall a. (Typeable a, Show a) =>
    EventInfo {_eventNumber :: EventNumber,
               event        :: EventM n a,
@@ -125,8 +125,8 @@ instance Show (EventInfoN n) where
 eventNumber :: Lens' (EventInfoN n) EventNumber
 eventNumber f (EventInfo e ev h evs env) = fmap (\e' -> (EventInfo e' ev h evs env)) (f e)
 
-evStatusNumber :: Lens' (EventInfoN n) Status
-evStatusNumber f (EventInfo e ev h evs env) = fmap (\evs' -> (EventInfo e ev h evs' env)) (f evs)
+evStatus :: Lens' (EventInfoN n) Status
+evStatus f (EventInfo e ev h evs env) = fmap (\evs' -> (EventInfo e ev h evs' env)) (f evs)
 
 env :: Lens' (EventInfoN n) [SignalOccurence]
 env f (EventInfo e ev h evs env) = fmap (\env' -> (EventInfo e ev h evs env')) (f env)

@@ -46,7 +46,7 @@ events f (EvalEnv s g h) = fmap (\s' -> (EvalEnv (setEvents s' s) g h)) (f (getE
 -- * Event triggers
 
 -- trigger an event with an event result
-triggerEvent :: (HasEvents n s, Show a, Typeable a, Show e, Typeable e, Eq a, Eq e) => Signal a e -> e -> EvaluateN n s ()
+triggerEvent :: (HasEvents n s, Show a, Typeable a, Show e, Typeable e, Eq a) => Signal a e -> e -> EvaluateN n s ()
 triggerEvent e dat = do
    (EvalEnv s _ _) <- get
    triggerEvent' (SignalData e dat) Nothing (getEvents s)

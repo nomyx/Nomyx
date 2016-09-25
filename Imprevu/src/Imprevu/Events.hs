@@ -55,7 +55,6 @@ onEventOnce e h = do
     let handler (en, ed) = delEvent en >> h ed
     onEvent e handler
 
-
 getEvent :: (EvMgt n) => EventNumber -> n (Maybe (EventInfoN n))
 getEvent en = find (\(EventInfo en2 _ _ evst _) -> en == en2 && evst == SActive) <$> getEvents
 

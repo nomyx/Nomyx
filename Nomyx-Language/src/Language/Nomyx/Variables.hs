@@ -14,7 +14,8 @@ module Language.Nomyx.Variables (
    writeVar,
    modifyVar,
    delVar,
-   getTempVar
+   getTempVar,
+   VarName,
    ) where
 
 

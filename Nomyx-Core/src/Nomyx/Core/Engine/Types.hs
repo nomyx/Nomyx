@@ -7,6 +7,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 -- | Types for the engine
 module Nomyx.Core.Engine.Types where
@@ -26,19 +27,26 @@ import System.Random
 import Data.Aeson.TH (deriveJSON, defaultOptions)
 import Data.Aeson
 import Data.Time.Clock.POSIX
+import Imprevu.Evaluation.EventEval hiding (events)
+import Imprevu.Evaluation.InputEval
 
 -- * Evaluation
 
 -- | Environment necessary for the evaluation of any nomyx expressions or events
 --TODO: should the first field be a "Maybe RuleNumber"?
 --Indeed an evaluation is not always performed by a rule but also by the system (in which case we currently use rule number 0)
-data EvalEnv = EvalEnv { _eRuleNumber :: RuleNumber,                             -- number of the rule requesting the evaluation
-                         _eGame :: Game,                                         -- game to be read/modified
-                         evalNomexFunc :: forall a. Nomex a -> Evaluate a}       -- evaluation function
-                        -- evalNomexNEFunc :: forall b. NomexNE b -> EvaluateNE b} -- evaluation function without effect
+--data EvalEnv = EvalEnv { _eRuleNumber :: RuleNumber,
+--                         _eGame :: Game,
+--                         evalNomexFunc :: forall a. Nomex a -> Evaluate a}       -- evaluation function
+--                        -- evalNomexNEFunc :: forall b. NomexNE b -> EvaluateNE b} -- evaluation function without effect
+
+data EvalState = EvalState { _eGame :: Game,             -- game to be read/modified
+                             _eRuleNumber :: RuleNumber} -- number of the rule requesting the evaluation
+
+type EvalEnv = EvalEnvN Nomex EvalState
 
 -- | Environment necessary for the evaluation of Nomex
-type Evaluate   a = ErrorT String (State EvalEnv ) a
+type Evaluate a = EvaluateN Nomex EvalState a
 
 -- | Environment necessary for the evaluation of NomexNE
 --type EvaluateNE a = Reader EvalEnv a
@@ -46,9 +54,14 @@ type Evaluate   a = ErrorT String (State EvalEnv ) a
 -- | extract a rule from a code string and an environment
 type InterpretRule = RuleCode -> [ModuleInfo] -> IO Rule
 
+--class HasEvents n s where
+--   getEvents :: s -> [EventInfoN n]
+--   setEvents :: [EventInfoN n] -> s -> s
+
 -- * Game
 
 type GameName = String
+
 
 -- | The state of the game:
 data Game = Game { _gameName    :: GameName,
@@ -56,7 +69,7 @@ data Game = Game { _gameName    :: GameName,
                    _rules       :: [RuleInfo],
                    _players     :: [PlayerInfo],
                    _variables   :: [Var],
-                   _events      :: [EventInfo],
+                   _events      :: [RuleEventInfo],
                    _outputs     :: [Output],
                    _victory     :: Maybe VictoryInfo,
                    _logs        :: [Log],
@@ -91,7 +104,7 @@ emptyGame name desc date gen = Game {
 data GameEvent = JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     RuleEv PlayerNumber RuleTemplate [ModuleInfo]
-               | InputResult       PlayerNumber EventNumber SignalAddress FormField InputData
+               | InputResult       PlayerNumber EventNumber SignalAddress InputView InputDataView
                | GLog              (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
                 deriving (Show, Read, Eq, Ord)
@@ -133,22 +146,24 @@ instance Show Var where
 
 -- * Events
 
+data RuleEventInfo = RuleEventInfo { _erRuleNumber :: RuleNumber,  -- the rule that created the event
+                                     _erEventInfo :: EventInfo}    -- event informations
 -- a form field
-data FormField = RadioField    PlayerNumber String [(Int, String)]
-               | TextField     PlayerNumber String
-               | TextAreaField PlayerNumber String
-               | ButtonField   PlayerNumber String
-               | CheckboxField PlayerNumber String [(Int, String)]
-                 deriving (Show, Read, Ord, Eq, Generic)
-
--- data sent back by the form fields
-data InputData = RadioData    Int
-               | CheckboxData [Int]
-               | TextData     String
-               | TextAreaData String
-               | ButtonData
-                 deriving (Show, Read, Eq, Ord)
-
+--data FormField = RadioField    PlayerNumber String [(Int, String)]
+--               | TextField     PlayerNumber String
+--               | TextAreaField PlayerNumber String
+--               | ButtonField   PlayerNumber String
+--               | CheckboxField PlayerNumber String [(Int, String)]
+--                 deriving (Show, Read, Ord, Eq, Generic)
+--
+---- data sent back by the form fields
+--data InputData = RadioData    Int
+--               | CheckboxData [Int]
+--               | TextData     String
+--               | TextAreaData String
+--               | ButtonData
+--                 deriving (Show, Read, Eq, Ord)
+--
 
 -- * Outputs
 
@@ -176,8 +191,9 @@ makeLenses ''Game
 makeLenses ''GameDesc
 makeLenses ''Var
 makeLenses ''Output
-makeLenses ''EvalEnv
+makeLenses ''EvalState
 makeLenses ''LoggedGame
+makeLenses ''RuleEventInfo
 
 time0 = posixSecondsToUTCTime 0
 
@@ -222,11 +238,18 @@ instance FromJSON RuleTemplate where
       v .: "decls"
    parseJSON _ = mzero
 
+instance HasEvents Nomex EvalState where
+   getEvents s = map _erEventInfo (_events $ _eGame s)
+   setEvents eis s = undefined -- (eGame . events) .~ eis $ s
+
+
 $(deriveJSON defaultOptions ''TimedEvent)
 $(deriveJSON defaultOptions ''GameEvent)
+$(deriveJSON defaultOptions ''InputView)
+$(deriveJSON defaultOptions ''InputDataView)
 $(deriveJSON defaultOptions ''RuleEv)
-$(deriveJSON defaultOptions ''FormField)
-$(deriveJSON defaultOptions ''InputData)
+-- $(deriveJSON defaultOptions ''FormField)
+-- $(deriveJSON defaultOptions ''InputData)
 $(deriveJSON defaultOptions ''GameDesc)
 $(deriveJSON defaultOptions ''StdGen)
 $(deriveJSON defaultOptions ''SignalAddressElem)

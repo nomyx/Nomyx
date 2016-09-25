@@ -128,8 +128,8 @@ instance VarMgt Nomex where
    writeVar     = WriteVar
    delVar       = DelVar
 
-instance Shortcutable (EventM Nomex) where
-   shortcut = Imprevu.Event.ShortcutEvents
+--instance Shortcutable (EventM Nomex) where
+--   shortcut = Imprevu.Event.ShortcutEvents
 
 
 -- * Variables
