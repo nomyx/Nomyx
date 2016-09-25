@@ -12,6 +12,8 @@ import Nomyx.Core.Engine.Evaluation
 import Nomyx.Core.Engine.EventEval
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
+import Imprevu.Evaluation.EventEval
+import Imprevu.Evaluation.InputEval
 import Control.Lens
 import Control.Category ((>>>))
 import Control.Exception as E
@@ -70,7 +72,7 @@ joinGame name pn = do
          tracePN pn $ "Joining game: " ++ _gameName g
          let player = PlayerInfo { _playerNumber = pn, _playerName = name, _playAs = Nothing}
          players %= (player : )
-         runSystemEval pn $ triggerEvent (Player Arrive) player
+         runSystemEval pn $ triggerEvent (Signal Arrive) player
 
 
 -- | leave the game.
@@ -101,20 +103,20 @@ logGame s mpn = do
    void $ logs %= (Log mpn time s : )
 
 -- | the user has provided an input result
-inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> FormField -> InputData -> State Game ()
+inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> InputView -> InputDataView -> State Game ()
 inputResult pn en sa ff ide = do
    tracePN pn $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show sa ++ ", Form " ++ show ff ++ ", choice " ++ show ide
    runSystemEval pn $ triggerInput ff ide sa en
 
-getGameTimes :: Game -> [UTCTime]
-getGameTimes g = concatMap (\ei -> getTimes ei g) (_events g)
+--getGameTimes :: Game -> [UTCTime]
+--getGameTimes g = concatMap (\ei -> getTimes ei g) (map _erEventInfo $ _events g)
 
-getTimes :: EventInfo -> Game -> [UTCTime]
-getTimes ei g = mapMaybe getTime (map snd $ getRemainingSignals ei g)
-
-getTime :: SomeSignal -> Maybe UTCTime
-getTime (SomeSignal (Time t)) = Just t
-getTime _                    = Nothing
+--getTimes :: EventInfo -> Game -> [UTCTime]
+--getTimes ei g = mapMaybe getTime (map snd $ getRemainingSignals ei g)
+--
+--getTime :: SomeSignal -> Maybe UTCTime
+--getTime (SomeSignal t) = Just t
+--getTime _                    = Nothing
 
 -- | A helper function to run the game state.
 -- It additionally sets the current time.
@@ -163,4 +165,4 @@ stateCatch :: Exception e => StateT Game IO a -> (e -> StateT Game IO a) -> Stat
 stateCatch m h = StateT $ \s -> runStateT m s `E.catch` \e -> runStateT (h e) s
 
 getEventInfo :: EventNumber -> LoggedGame -> EventInfo
-getEventInfo en g = fromJust $ find ((== en) . getL eventNumber) (_events $ _game g)
+getEventInfo en g = _erEventInfo $ fromJust $ find ((== en) . getL (erEventInfo . eventNumber)) (_events $ _game g)

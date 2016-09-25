@@ -325,12 +325,12 @@ runEvalError rn mpn eva = undefined
 --      Left e' -> do
 --         tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
 --         void $ runErrorT $ log mpn "Error: "
---
---runSystemEval :: PlayerNumber -> Evaluate a -> State Game ()
---runSystemEval pn = runEvalError 0 (Just pn)
---
---runSystemEval' :: Evaluate a -> State Game ()
---runSystemEval' = runEvalError 0 Nothing
+
+runSystemEval :: PlayerNumber -> Evaluate a -> State Game ()
+runSystemEval pn = runEvalError 0 (Just pn)
+
+runSystemEval' :: Evaluate a -> State Game ()
+runSystemEval' = runEvalError 0 Nothing
 
 --get the signals left to be completed in an event
 --getRemainingSignals :: EventInfo -> Game -> [(SignalAddress, SomeSignal)]

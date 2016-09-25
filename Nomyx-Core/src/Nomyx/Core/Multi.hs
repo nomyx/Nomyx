@@ -35,11 +35,11 @@ trig t g = do
    evaluate g'
 
 -- | get all events that has not been triggered yet
-getTimeEvents :: UTCTime -> Multi -> IO [UTCTime]
-getTimeEvents now m = do
-   let games = map (_game . _loggedGame) (_gameInfos m)
-   let times = concatMap getGameTimes games
-   return $ filter (\t -> t <= now && t > (-32) `addUTCTime` now) times
+--getTimeEvents :: UTCTime -> Multi -> IO [UTCTime]
+--getTimeEvents now m = do
+--   let games = map (_game . _loggedGame) (_gameInfos m)
+--   let times = concatMap getGameTimes games
+--   return $ filter (\t -> t <= now && t > (-32) `addUTCTime` now) times
 
 rAutoActivate :: RuleTemplate
 rAutoActivate = RuleTemplate "AutoActivate"
