@@ -28,13 +28,13 @@ module Nomyx.Core.Engine(
 
    -- * Events management
    events,
-   getRemainingSignals,
+--   getRemainingSignals,
    getEventInfo,
-   getFormField,
+--   getFormField,
 
    -- * Inputs management
-   FormField(..),
-   InputData(..),
+--   FormField(..),
+--   InputData(..),
 
    -- * Outputs management
    Output(..),
@@ -43,8 +43,8 @@ module Nomyx.Core.Engine(
    isOutput,
 
    -- * Time
-   getTimes,
-   getGameTimes,
+--   getTimes,
+--   getGameTimes,
    currentTime,
 
    -- * Misc

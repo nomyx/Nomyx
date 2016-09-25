@@ -353,8 +353,8 @@ runSystemEval' = runEvalError 0 Nothing
 --runEvaluateNE :: Game -> RuleNumber -> Evaluate a -> a
 --runEvaluateNE g rn ev = runReader ev (EvalEnv rn g evalNomex)
 
---runEvaluate :: Game -> RuleNumber -> State EvalEnv a -> a
---runEvaluate g rn ev = evalState ev (EvalEnv rn g evalNomex)
+runEvaluate :: Game -> RuleNumber -> State EvalEnv a -> a
+runEvaluate g rn ev = undefined --evalState ev (EvalEnv rn g evalNomex)
 
 runEvaluate' :: Game -> RuleNumber -> Evaluate a -> a
 runEvaluate' g rn ev = undefined --evalState (runEvalError'' Nothing ev) (EvalEnv rn g evalNomex)

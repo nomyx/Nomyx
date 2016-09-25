@@ -34,6 +34,8 @@ import           Nomyx.Core.Profile
 import           Nomyx.Core.Quotes
 import           Nomyx.Core.Engine
 import qualified Nomyx.Core.Engine as G
+import           Imprevu.Evaluation.InputEval
+
 
 playTests :: FilePath -> ServerHandle -> Maybe String -> Int -> IO [(String, Bool)]
 playTests saveDir sh mTestName delay = do
@@ -311,14 +313,14 @@ inputAllRadios :: Int -> StateT Session IO ()
 inputAllRadios choice = do
    s <- get
    let evs = runEvaluate (firstGame $ _multi s) 0 getChoiceEvents
-   mapM_ (\(en, fa, pn, t) -> inputResult pn en fa (RadioField pn t [(0,"For"),(1,"Against")]) (RadioData choice) "test") evs
+   mapM_ (\(en, fa, pn, t) -> inputResult pn en fa (RadioField t [(0,"For"),(1,"Against")]) (RadioData choice) "test") evs
 
 -- input text for all text fields
 inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
 inputAllTexts a pn = do
    s <- get
    let evs = evalState getTextEvents (firstGame $ _multi s)
-   mapM_ (\(en, fa) -> inputResult pn en fa (TextField 1 "") (TextData a) "test") evs
+   mapM_ (\(en, fa) -> inputResult pn en fa (TextField "") (TextData a) "test") evs
 
 firstGame :: Multi -> Game
 firstGame = G._game . _loggedGame . head . _gameInfos

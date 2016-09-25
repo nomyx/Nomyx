@@ -25,6 +25,7 @@ import           Nomyx.Core.Serialize
 import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
 import           System.IO.PlafCompat
+import           Imprevu.Evaluation.InputEval
 
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
@@ -149,9 +150,7 @@ delRuleTemplate gn rn pn = do
 updateModules :: [ModuleInfo] -> StateT Session IO ()
 updateModules ms = (multi . mLibrary . mModules) .= ms
 
-
-
-inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> FormField -> InputData -> GameName -> StateT Session IO ()
+inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> InputView -> InputDataView -> GameName -> StateT Session IO ()
 inputResult pn en fa ft ir gn = inGameDo gn $ execGameEvent $ InputResult pn en fa ft ir
 
 -- | upload a rule file, given a player number, the full path of the file, the file name and the server handle
