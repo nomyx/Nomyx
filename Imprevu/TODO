@@ -4,4 +4,7 @@
 - HasEvents class necessary?
 
 - In Happstack: factorize tests, servers
-- getIntermediateResults seems to leak some internals
+- getIntermediateResults seems to leak some internals. Anyway do we really need it?
+- fix export lists: should we expect from users to look into Imprevu?
+
+- better names/structure for EventInfoN/R/Evaluate
