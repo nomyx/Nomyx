@@ -23,16 +23,24 @@ import Web.Routes.Happstack
 import Web.Routes.PathInfo
 import Web.Routes.RouteT           (runRouteT)
 import Web.Routes.Site
+import Imprevu.Events
+import Imprevu.Inputs
+import Control.Applicative
 
 type TestServer a = RoutedServer TestM TestState a
-type TestWebState = WebState TestM TestState
+type TestWebState = WebStateN TestM TestState
 
 
 start :: IO ()
 start = do
-  let ts = execSignals (testSingleInput >> testMultipleInputs) [] defaultEvalEnv
+  --let ts = execSignals (testSingleInput >> testMultipleInputs) [] defaultEvalEnv
+  let ts = execSignals testSome [] defaultEvalEnv
   tv <- atomically $ newTVar ts
   launchWebServer tv
+
+testSome :: TestM ()
+testSome = void $ onEvent_ (some $ inputText 1 "Enter text") f where
+   f a = putStrLn' $ show a
 
 launchWebServer :: TVar TestState -> IO ()
 launchWebServer tv = do

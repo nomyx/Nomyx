@@ -7,6 +7,7 @@ module Imprevu.Happstack.Types where
 
 import Control.Concurrent.STM
 import Control.Monad.State
+import Control.Lens
 import Happstack.Server            as HS (Input, ServerPartT)
 import Imprevu.Event
 import Imprevu.Evaluation.EventEval
@@ -20,13 +21,12 @@ import Web.Routes.TH
 
 data InputResult = InputResult EventNumber SignalAddress InputView InputDataView
 
-data WebState n s = WebState {session      :: TVar s,
-                              updateSession :: TVar s -> InputResult -> IO (),
-                              evalFunc     :: forall a. n a -> EvaluateN n s a,       -- evaluation function
-                              errorHandler :: EventNumber -> String -> EvaluateN n s ()}    -- error function
-                              --getEvents :: TVar s -> IO [EventInfo n]}
+data WebStateN n s = WebState {_webState     :: TVar s,
+                               updateSession :: TVar s -> InputResult -> IO (),
+                               evalFunc      :: forall a. n a -> EvaluateN n s a,       -- evaluation function
+                               errorHandler  :: EventNumber -> String -> EvaluateN n s ()}    -- error function
 
-type RoutedServer n s a = RouteT Command (StateT (WebState n s) (ServerPartT IO)) a
+type RoutedServer n s a = RouteT Command (StateT (WebStateN n s) (ServerPartT IO)) a
 
 data Command =
     Main
@@ -34,13 +34,14 @@ data Command =
     deriving (Show)
 
 
+type ImpForm a = Form (ServerPartT IO) [HS.Input] ImpFormError Html () a
+
 data ImpFormError = ImpFormError (CommonFormError [HS.Input])
 
 instance FormError ImpFormError where
     type ErrorInputType ImpFormError = [HS.Input]
     commonFormError = ImpFormError
 
-type ImpForm a = Form (ServerPartT IO) [HS.Input] ImpFormError Html () a
 
 instance PathInfo SignalAddressElem
 instance PathInfo SignalAddress
@@ -48,3 +49,5 @@ instance PathInfo InputView
 instance PathInfo (Int, String)
 instance PathInfo [(Int, String)]
 $(derivePathInfo ''Command)
+
+makeLenses ''WebStateN
