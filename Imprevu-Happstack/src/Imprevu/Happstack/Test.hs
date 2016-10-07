@@ -1,4 +1,3 @@
-
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
@@ -10,6 +9,7 @@ import Control.Concurrent
 import Control.Monad
 import Control.Monad.State
 import Data.Maybe
+import Data.Text
 import Happstack.Server            as HS
 import Imprevu.Happstack.Forms
 import Imprevu.Happstack.Types
@@ -19,22 +19,17 @@ import Imprevu.Evaluation.TimeEval
 import Imprevu.Test.Test
 import Imprevu.Test.TestMgt
 import Text.Blaze.Html5            (toHtml)
-import Web.Routes.Happstack
-import Web.Routes.PathInfo
-import Web.Routes.RouteT           (runRouteT)
-import Web.Routes.Site
 import Imprevu.Events
 import Imprevu.Inputs
 import Control.Applicative
 
-type TestServer a = RoutedServer TestM TestState a
-type TestWebState = WebStateN TestM TestState
+type WebState = WebStateN TestM TestState
 
 
 start :: IO ()
 start = do
-  --let ts = execSignals (testSingleInput >> testMultipleInputs) [] defaultEvalEnv
-  let ts = execSignals testSome [] defaultEvalEnv
+  let ts = execSignals (testSingleInput >> testMultipleInputs) [] defaultEvalEnv
+  --let ts = execSignals testSome [] defaultEvalEnv
   tv <- atomically $ newTVar ts
   launchWebServer tv
 
@@ -51,11 +46,16 @@ launchWebServer tv = do
    simpleHTTP conf $ server ws
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: TestWebState -> ServerPartT IO Response
-server ws = mconcat [
-    do decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
-       html <- implSite ("http://127.0.0.1") "/Test" (site ws)
-       return $ toResponse html]
+server :: WebState -> ServerPartT IO Response
+server ws = do
+  decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
+  msum [dirs "test/main" (mainPage ws),
+                  dirs "test/do-input" $
+                      path $ \en ->
+                      path $ \sa ->
+                      path $ \iv ->
+                      newInput en sa iv ws "/test/main"
+                 ]
 
 updateSessionTest :: TVar TestState -> InputResult -> IO ()
 updateSessionTest tvs (InputResult en sa ff ida) = do
@@ -66,18 +66,11 @@ updateSessionTest tvs (InputResult en sa ff ida) = do
    let (EvalEnv s' _ _) = execState ev (EvalEnv s evalEvents undefined)
    atomically $ writeTVar tvs s'
 
-routedCommands :: Command -> TestServer Response
-routedCommands Main               = mainPage
-routedCommands (DoInput en fa ft) = newInput en fa ft
-
-mainPage :: TestServer Response
-mainPage = do
-   (WebState tts _ _ _) <- get
+mainPage :: WebState -> ServerPartT IO Response
+mainPage ws@(WebState tts _ _ _) = do
    (TestState eis os _) <- liftIO $ atomically $ readTVar tts
-   m <- mapM (viewInput 1) eis
+   let link en sa iv = pack $ "/test/do-input/" ++ (show en) ++ "/" ++ (show sa) ++ "/" ++ (show iv)
+   m <- mapM (viewInput 1 ws link) eis
    return $ toResponse $ do
      sequence_ $ catMaybes m
      toHtml $ show os
-
-site :: TestWebState -> Site Command (ServerPartT IO Response)
-site ws = setDefault Main $ mkSitePI $ (\a b -> evalStateT (runRouteT routedCommands a b) ws)
