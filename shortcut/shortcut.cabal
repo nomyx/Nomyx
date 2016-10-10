@@ -1,0 +1,28 @@
+name: shortcut
+version: 0.1
+cabal-version: >=1.8
+build-type: Simple
+license: BSD3
+license-file: LICENSE
+copyright: 2016 Corentin Dupont
+maintainer: Corentin Dupont
+stability: Experimental
+description: A class for interruptable computations
+category: Language
+Homepage: http://www.nomyx.net
+author: Corentin Dupont
+data-files:
+data-dir: ""
+extra-source-files: AUTHORS README
+
+library
+    build-depends: base               >= 4.6 && < 5
+    exposed-modules: Control.Shortcut
+    exposed: True
+    buildable: True
+    hs-source-dirs: src
+    ghc-options: -W
+
+source-repository head
+  type:              git
+  location:          https://github.com/cdupont/Nomyx.git
