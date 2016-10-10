@@ -10,3 +10,14 @@
 - Clean Tests
 - rename "events"
 - rename "RadioField" etc.
+- Simplify "RuleEventInfo" ?
+
+- Create master module "Imprevu.Happstack"
+- same for Imprevu
+- simplify EvalEnvN, EvalFunc, WebState
+
+
+Web:
+- check Webstate/websession
+
+
