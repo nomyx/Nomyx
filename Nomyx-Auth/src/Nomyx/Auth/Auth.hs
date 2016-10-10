@@ -52,17 +52,15 @@ launchAuth sd = do
    return $ AuthState authenticateState routeAuthenticate
 
 -- | return the player number (user ID) based on the session cookie.
-getPlayerNumber :: (StateT AuthState (ServerPartT IO)) (Maybe PlayerNumber)
-getPlayerNumber = do
-   acidAuth <- use authenticateState
-   uid <- getUserId acidAuth
+getPlayerNumber :: AuthState -> ServerPartT IO (Maybe PlayerNumber)
+getPlayerNumber (AuthState auth _) = do
+   uid <- getUserId auth
    case uid of
       Nothing -> return Nothing
       (Just (UserId userID)) -> return $ Just $ fromInteger userID
 
-getUser ::  (StateT AuthState (ServerPartT IO)) (Maybe User)
-getUser = do
-  auth <- use authenticateState
+getUser :: AuthState -> ServerPartT IO (Maybe User)
+getUser (AuthState auth _) = do
   userId <- getUserId auth
   liftIO $ query' auth (GetUserByUserId $ fromJust userId)
 

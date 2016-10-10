@@ -9,6 +9,12 @@ packages:
   extra-dep: true
 - location: ../Nomyx-Auth
   extra-dep: true
+- location: ../Imprevu
+  extra-dep: true
+- location: ../Imprevu-Happstack
+  extra-dep: true
+- location: ../shortcut
+  extra-dep: true
 - ../../Haskell/hint-server
 extra-deps:
 - Nomyx-Core-0.7.6
@@ -20,4 +26,5 @@ extra-deps:
 - eprocess-1.7.2
 - web-routes-regular-0.19.0.1
 - regular-0.3.4.4
+- zoom-refs-0.0.0.1
 resolver: lts-5.11

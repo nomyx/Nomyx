@@ -15,7 +15,7 @@ The web site: www.nomyx.net
 Installation
 ============
 
-You need a [Haskell platform](www.haskell.org/platform) running on your system. 
+You need a [Haskell platform](www.haskell.org/platform) running on your system.
 To install from the Hackage release, follow this procedure:
 
     cabal install Nomyx-Language --enable-documentation --haddock-hyperlink-source
@@ -43,15 +43,14 @@ Launch with the command:
 
 and follow the instructions. You may connect using a web browser to the provided address.
 In a sandbox, run with:
-   
     $ cabal exec Nomyx
 
 
 
 Troubleshooting
 ===============
-See the [issues](https://github.com/cdupont/Nomyx/issues) for known bugs.    
-Tested on Haskell-Platform 2012.1.0.0 and ghc 7.6.3    
+See the [issues](https://github.com/cdupont/Nomyx/issues) for known bugs.
+Tested on Haskell-Platform 2012.1.0.0 and ghc 7.6.3
 Run tests with:
 
     $ Nomyx/tests.sh

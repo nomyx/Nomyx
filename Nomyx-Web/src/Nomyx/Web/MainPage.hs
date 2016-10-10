@@ -52,6 +52,9 @@ import           Web.Routes.Happstack
 import           Web.Routes.PathInfo
 import           Web.Routes.RouteT                     (runRouteT)
 import           Web.Routes.Site
+import           Imprevu.Happstack.Forms
+import           Imprevu.Happstack.Types
+
 
 default (Integer, Double, T.Text)
 
@@ -177,7 +180,7 @@ nomyxPage mgn tab = do
             False
             (H.div ! A.id "multi" $ m)
 
-nomyxSite :: WebState -> Site PlayerCommand (ServerPartT IO Response)
+nomyxSite :: WebSession -> Site PlayerCommand (ServerPartT IO Response)
 nomyxSite ws = setDefault MainPage $ mkSitePI $ (\a b -> evalStateT (runRouteT (catchRouteError . routedNomyxCommands) a b) ws)
 
 routedNomyxCommands :: PlayerCommand -> RoutedNomyxServer Response
@@ -199,7 +202,7 @@ routedNomyxCommands (DelGame game)       = delGame           game
 routedNomyxCommands NewGame              = newGamePage
 routedNomyxCommands SubmitNewGame        = newGamePost
 -- Game actions
-routedNomyxCommands (DoInput en fa ft g) = newInput en fa ft g
+routedNomyxCommands (DoInput en fa ft g) = newInput' en fa ft g
 routedNomyxCommands (SubmitRule game)    = submitRuleTemplatePost game
 -- Templates
 routedNomyxCommands (NewRuleTemplate game) = newRuleTemplate game
@@ -222,11 +225,12 @@ launchWebServer ts net = do
    let set = _mSettings $ _multi s
    let conf = nullConf {HS.port = T._port net}
    docdir <- liftIO getDocDir
-   ws <- Auth.launchAuth (_saveDir set)
-   simpleHTTP conf $ server (WebState ts ws) set net docdir
+   auth<- Auth.launchAuth (_saveDir set)
+   let wst = WebState ts undefined undefined undefined
+   simpleHTTP conf $ server (WebSession wst auth) set net docdir
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: WebState -> Settings -> Network -> String -> ServerPartT IO Response
+server :: WebSession -> Settings -> Network -> String -> ServerPartT IO Response
 server ws set net docdir = mconcat [
     serveDirectory EnableBrowsing [] (_saveDir set),
     serveDirectory EnableBrowsing [] docdir,

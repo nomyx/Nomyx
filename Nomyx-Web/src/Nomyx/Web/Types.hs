@@ -27,6 +27,8 @@ import           Text.Reform.Blaze.String      ()
 import           Web.Routes.PathInfo
 import           Web.Routes.RouteT
 import           Web.Routes.TH                 (derivePathInfo)
+import           Imprevu.Happstack.Types
+import           Imprevu.Evaluation.InputEval
 
 default (Integer, Double, Data.Text.Text)
 
@@ -52,7 +54,7 @@ data PlayerCommand =
   | NewGame
   | SubmitNewGame
   -- Game actions
-  | DoInput   EventNumber SignalAddress FormField GameName
+  | DoInput   EventNumber SignalAddress InputView GameName
   | SubmitRule   GameName
   -- Templates
   | NewRuleTemplate GameName
@@ -69,11 +71,10 @@ data PlayerCommand =
   | NomyxJS
   deriving (Show)
 
+data WebSession = WebSession {_webSession        :: WebStateN Nomex Session,
+                              _authState         :: AuthState}
 
-data WebState = WebState {_session           :: TVar Session,
-                          _authState         :: AuthState}
-
-type RoutedNomyxServer a = RouteT PlayerCommand (StateT WebState (ServerPartT IO)) a
+type RoutedNomyxServer a = RouteT PlayerCommand (StateT WebSession (ServerPartT IO)) a
 
 data NomyxError = PlayerNameRequired
                 | GameNameRequired
@@ -93,7 +94,7 @@ data RuleTemplateForm = RuleTemplateForm {name  :: String,               -- rule
 
 instance PathInfo SignalAddressElem
 instance PathInfo SignalAddress
-instance PathInfo FormField
+instance PathInfo InputView
 instance PathInfo (Int, String)
 instance PathInfo [(Int, String)]
 
@@ -119,4 +120,4 @@ instance ToMarkup NomyxError where
     toMarkup (FieldTooLong l)   = fromString $ "Field max length: " ++ show l
     toMarkup (NomyxCFE e)       = fromString $ show e
 
-makeLenses ''WebState
+makeLenses ''WebSession

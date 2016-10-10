@@ -148,6 +148,11 @@ instance Show Var where
 
 data RuleEventInfo = RuleEventInfo { _erRuleNumber :: RuleNumber,  -- the rule that created the event
                                      _erEventInfo :: EventInfo}    -- event informations
+                                     deriving (Eq)
+
+instance Ord RuleEventInfo where
+     (RuleEventInfo rn1 _) <= (RuleEventInfo rn2 _) = rn1 <= rn2
+
 -- a form field
 --data FormField = RadioField    PlayerNumber String [(Int, String)]
 --               | TextField     PlayerNumber String

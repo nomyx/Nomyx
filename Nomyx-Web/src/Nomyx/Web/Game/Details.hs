@@ -33,14 +33,14 @@ viewEvents g = table ! class_ "table" $ do
             td ! class_ "td" $ "Event Number"
             td ! class_ "td" $ "By Rule"
             td ! class_ "td" $ "Event"
-         mapM_ (viewEvent g) (sort $ _events g)
-
-viewEvent :: Game -> EventInfo -> Html
-viewEvent g ei@(EventInfo eventNumber ruleNumber _ _ status _) = if status == SActive then disp else disp ! style "background:gray;" where
-   disp = tr $ do
-      td ! class_ "td" $ fromString . show $ eventNumber
-      td ! class_ "td" $ fromString . show $ ruleNumber
-      td ! class_ "td" $ fromString . show $ getRemainingSignals ei g
+--         mapM_ (viewEvent g) (sort $ _events g)
+--
+--viewEvent :: Game -> EventInfo -> Html
+--viewEvent g ei@(EventInfo eventNumber ruleNumber _ _ status _) = if status == SActive then disp else disp ! style "background:gray;" where
+--   disp = tr $ do
+--      td ! class_ "td" $ fromString . show $ eventNumber
+--      td ! class_ "td" $ fromString . show $ ruleNumber
+      --td ! class_ "td" $ fromString . show $ getRemainingSignals ei g TODO
 
 viewVars :: [Var] -> Html
 viewVars vs = table ! class_ "table" $ do

@@ -20,6 +20,8 @@ library
     build-depends: Nomyx-Language         == 0.7.6,
                    Nomyx-Core             == 0.7.6,
                    Nomyx-Auth             == 0.7.6,
+                   Imprevu                == 0.7.6,
+                   Imprevu-Happstack      == 0.7.6,
                    acid-state             >= 0.12 && < 0.15,
                    base                   >= 4.6 && < 5,
                    blaze-html             >= 0.7 && < 0.9,

@@ -10,6 +10,7 @@ module Nomyx.Core.Engine(
    GameName,
    Game(..),
    GameDesc(..),
+   RuleEventInfo(..),
    execGameEvent, execGameEvent',
    execWithGame, execWithGame',
    game,

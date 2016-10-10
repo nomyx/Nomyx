@@ -57,6 +57,8 @@ import           Web.Routes.Base
 import           Web.Routes.Happstack                ()
 import           Web.Routes.RouteT
 import           Web.Routes.PathInfo
+import           Imprevu.Happstack.Types hiding (updateSession)
+
 
 ruleFormAnchor, inputAnchor :: Text
 ruleFormAnchor = "RuleForm"
@@ -129,27 +131,31 @@ appTemplate' title headers body footer link routeFn = do
 
 -- | return the player number (user ID) based on the session cookie.
 getPlayerNumber :: RoutedNomyxServer (Maybe PlayerNumber)
-getPlayerNumber = liftRouteT $ zoom authState $ Auth.getPlayerNumber
+getPlayerNumber = do
+  auth <- use authState
+  liftRouteT $ lift $ Auth.getPlayerNumber auth
 
 getUser :: RoutedNomyxServer (Maybe User)
-getUser = liftRouteT $ zoom authState $ Auth.getUser
+getUser = do
+  auth <- use authState
+  liftRouteT $ lift $ Auth.getUser auth
 
 getProfile' :: PlayerNumber -> RoutedNomyxServer (Maybe ProfileData)
 getProfile' pn = do
-  ts <- use session
-  s <- liftIO $ atomically $ readTVar ts
+  s <- getSession
   getProfile s pn
 
 getSession :: RoutedNomyxServer Session
 getSession = do
-  ts <- use session
+  ts <- use (webSession . webState)
   liftIO $ atomically $ readTVar ts
 
 --update the session using the command and saves it
 webCommand :: StateT Session IO () -> RoutedNomyxServer ()
 webCommand ss = do
-  ts <- use session
+  ts <- use (webSession . webState)
   liftIO $ updateSession ts ss
+
 
 isAdmin :: RoutedNomyxServer Bool
 isAdmin = do

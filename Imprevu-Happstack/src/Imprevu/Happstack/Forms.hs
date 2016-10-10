@@ -27,7 +27,7 @@ default (Integer, Double, Data.Text.Text)
 
 type BackLink = EventNumber -> SignalAddress -> InputView -> Text
 
-viewInput :: (HasEvents n s) => ClientNumber -> WebStateN n s -> BackLink -> EventInfoN n -> ServerPartT IO (Maybe Html)
+viewInput :: ClientNumber -> WebStateN n s -> BackLink -> EventInfoN n -> ServerPartT IO (Maybe Html)
 viewInput cn (WebState tvs _ f g) bl ei@(EventInfo en _ _ SActive _) = do
    s <- liftIO $ atomically $ readTVar tvs
    ds <- mapMaybeM (viewInput' en cn bl) (getRemainingSignals ei (EvalEnv s f g))
@@ -69,9 +69,6 @@ newInput en sa ff (WebState tv updateSession _ _) bl = toResponse <$> do
       (Right c) -> liftIO $ updateSession tv $ InputResult en sa ff c
       (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
    seeOther bl "Redirecting..."
-
---showRelURL :: Command -> Text
---showRelURL c = "/Test" <> (toPathInfo c)
 
 -- | Create a group of radio elements without BR between elements
 reformInputRadio' :: (Functor m, Monad m, FormError error, ErrorInputType error ~ input, FormInput input, ToMarkup lbl) =>

@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Main (main) where
 
@@ -15,7 +16,9 @@ import           Data.Time.Clock
 import           Data.Version                        (showVersion)
 import           Language.Haskell.Interpreter.Server hiding (start)
 import           Network.BSD
+import           Language.Nomyx
 import           Nomyx.Core.Engine
+import           Nomyx.Core.Engine.Evaluation
 import           Nomyx.Core.Engine.Test              as LT
 import           Nomyx.Core.Interpret
 import           Nomyx.Core.Multi                    as Multi
@@ -40,6 +43,8 @@ import           System.Directory                    (canonicalizePath,
 import           System.Environment
 import           System.Exit
 import           System.FilePath                     ((</>))
+import           Imprevu.Evaluation.TimeEval
+import           Imprevu.Evaluation.EventEval
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -96,10 +101,24 @@ mainLoop settings saveDir host port = do
      ts <- atomically $ newTVar (Session sh multi acid)
      --start the web server
      forkIO $ launchWebServer ts (Network host port)
-     forkIO $ launchTimeEvents ts
+     forkIO $ launchTimeEvents ts (EvalFunc evalNomex' undefined)
      --start the REST API
      forkIO $ serveApi ts
      serverLoop ts
+
+--data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. n a -> EvaluateN n s a,     -- evaluation function
+--                               _errorHandler :: EventNumber -> String -> EvaluateN n s ()}    -- error function
+--evalNomex :: Nomex a -> Evaluate a
+--
+--launchTimeEvents :: (HasEvents n s, Monad n) => TVar s -> EvalFunc n s -> IO ()
+--
+--type Evaluate a = EvaluateN Nomex EvalState a
+--
+--data EvalState = EvalState { _eGame :: Game,             -- game to be read/modified
+--                             _eRuleNumber :: RuleNumber} -- number of the rule requesting the evaluation
+
+evalNomex' :: Nomex a ->  EvaluateN Nomex Session a
+evalNomex' exp = undefined
 
 loadMulti :: Settings -> ServerHandle -> IO Multi
 loadMulti set sh = do
@@ -215,21 +234,25 @@ findAdminPass fs = listToMaybe [a | AdminPass a <- fs]
 findTarFile   fs = listToMaybe [a | TarFile   a <- fs]
 findWatchdog  fs = listToMaybe [a | Watchdog  a <- fs]
 
-triggerTimeEvent :: TVar Session -> UTCTime -> IO()
-triggerTimeEvent tm t = do
-    (Session sh m a) <- atomically $ readTVar tm
-    m' <- execWithMulti t (Multi.triggerTimeEvent t) m
-    atomically $ writeTVar tm (Session sh m' a)
-    save m'
+--triggerTimeEvent :: TVar Session -> UTCTime -> IO()
+--triggerTimeEvent tm t = do
+--    (Session sh m a) <- atomically $ readTVar tm
+--    m' <- execWithMulti t (Multi.triggerTimeEvent t) m
+--    atomically $ writeTVar tm (Session sh m' a)
+--    save m'
 
-launchTimeEvents :: TVar Session -> IO()
-launchTimeEvents tm = do
-    now <- getCurrentTime
-    --putStrLn $ "tick " ++ (show now)
-    (Session _ m _) <- atomically $ readTVar tm
-    timeEvents <- getTimeEvents now m
-    unless (null timeEvents) $ putStrLn "found time event(s)"
-    mapM_ (Main.triggerTimeEvent tm) timeEvents
-    --sleep 30 second roughly
-    threadDelay 30000000
-    launchTimeEvents tm
+--launchTimeEvents :: TVar Session -> IO()
+--launchTimeEvents tm = do
+--    now <- getCurrentTime
+--    --putStrLn $ "tick " ++ (show now)
+--    (Session _ m _) <- atomically $ readTVar tm
+--    timeEvents <- getTimeEvents now m
+--    unless (null timeEvents) $ putStrLn "found time event(s)"
+--    mapM_ (Main.triggerTimeEvent tm) timeEvents
+--    --sleep 30 second roughly
+--    threadDelay 30000000
+--    launchTimeEvents tm
+--
+instance HasEvents Nomex Session where
+  getEvents s = undefined --_erEventInfo $ _events $ _game $ _loggedGame $ _gameInfos $ _multi s
+  setEvents ei s = undefined
