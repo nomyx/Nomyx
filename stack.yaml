@@ -8,6 +8,8 @@ packages:
 - location: Nomyx-Auth
 - location: Nomyx-Client
 - location: Imprevu
+- location: Imprevu-Happstack
+- location: shortcut
 extra-deps:
 - Nomyx-Core-0.7.6
 - Nomyx-Language-0.7.6
