@@ -16,6 +16,7 @@
 - same for Imprevu
 - simplify EvalEnvN, EvalFunc, WebState
 
+- factorize runEvalError/runEvaluate
 
 Web:
 - check Webstate/websession
