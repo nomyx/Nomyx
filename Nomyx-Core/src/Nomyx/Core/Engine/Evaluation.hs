@@ -16,7 +16,7 @@ import           Data.Maybe
 import           Data.Time
 import           Data.Todo
 import           Data.Typeable
-import           Imprevu.Evaluation.EventEval hiding (events)
+import           Imprevu.Evaluation.EventEval as Imp hiding (events)
 import           Imprevu.Event
 import           Language.Nomyx
 import           Nomyx.Core.Engine.EvalUtils
@@ -312,8 +312,10 @@ delVictoryRule rn = do
 --and the player number to whom display errors (set to Nothing for all players)
 --TODO: clean
 runEvalError :: RuleNumber -> Maybe PlayerNumber -> Evaluate a -> State Game ()
-runEvalError rn mpn eva = undefined
---modify (\g -> _eGame $ execState (runEvalError' mpn egs) (EvalEnv rn g evalNomex))
+runEvalError rn mpn eva = do --error "runEvalError
+  g <- get
+  let (EvalEnv (EvalState g' _) _ _) = execState (Imp.runEvalError' eva) (EvalEnv (EvalState g rn) evalNomex undefined)
+  put g'
 
 --runEvalError' :: EvaluateN n s a -> State (EvalEnvN n s) (Maybe a)
 
@@ -354,10 +356,10 @@ runSystemEval' = runEvalError 0 Nothing
 --runEvaluateNE g rn ev = runReader ev (EvalEnv rn g evalNomex)
 
 runEvaluate :: Game -> RuleNumber -> State EvalEnv a -> a
-runEvaluate g rn ev = undefined --evalState ev (EvalEnv rn g evalNomex)
+runEvaluate g rn ev = error "runEvaluate" --evalState ev (EvalEnv rn g evalNomex)
 
 runEvaluate' :: Game -> RuleNumber -> Evaluate a -> a
-runEvaluate' g rn ev = undefined --evalState (runEvalError'' Nothing ev) (EvalEnv rn g evalNomex)
+runEvaluate' g rn ev = error "runEvaluateb" --evalState (runEvalError'' Nothing ev) (EvalEnv rn g evalNomex)
 
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
@@ -367,11 +369,18 @@ instance Show Game where
       "\n\n Rules = "       ++ (intercalate "\n " $ map show rs) ++
       "\n\n Players = "     ++ show ps ++
       "\n\n Variables = "   ++ show vs ++
-  --    "\n\n Events = "      ++ (intercalate "\n " $ map (displayEvent g) es) ++ "\n" ++
+      "\n\n Events = "      ++ (intercalate "\n " $ map (displayEvent undefined) es) ++ "\n" ++
       "\n\n Outputs = "     ++ (intercalate "\n " $ map (displayOutput g) os) ++ "\n" ++
       "\n\n Victory = "     ++ show (getVictorious g) ++
       "\n\n currentTime = " ++ show t ++ "\n" ++
       "\n\n logs = " ++ show l ++ "\n"
+
+displayEvent :: [EventInfoN n] -> RuleEventInfo -> String
+displayEvent eis (RuleEventInfo _ ei@(EventInfo en _ _ s envi)) =
+   "event num: " ++ (show en) ++
+   --", remaining signals: " ++ (show $ getRemainingSignals ei eis) ++ --TODO: display also event result?
+   ", envs: " ++ (show envi) ++
+   ", status: " ++ (show s)
 
 deriving instance Show LoggedGame
 

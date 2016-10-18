@@ -64,7 +64,7 @@ triggerEvent' sd msa evs = do
 triggerIfComplete :: (EventInfoN n, Maybe SomeData) -> EvaluateN n s ()
 triggerIfComplete (EventInfo en _ h SActive _, Just (SomeData val)) = case cast val of
    Just a -> do
-      traceM $ "triggerIfComplete" ++ (show a)
+      traceM $ "triggerIfComplete: " ++ (show a)
       eval <- gets evalFunc
       err <- gets errorHandler
       (void $ (eval $ h (en, a))) `catchError` (err en)

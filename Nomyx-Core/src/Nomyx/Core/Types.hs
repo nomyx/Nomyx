@@ -138,4 +138,4 @@ instance ToJSON Rule where
    toJSON _ = object []
 
 instance FromJSON Rule where
-   parseJSON (Object _) = undefined
+   parseJSON (Object _) = error "FromJSON"

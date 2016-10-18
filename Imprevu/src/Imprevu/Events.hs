@@ -132,10 +132,4 @@ signalEvent = SignalEvent . Signal
 inputEvent    :: (Typeable e, Show e, Eq e) => Input e -> ClientNumber -> EventM n e
 inputEvent i cn = SignalEvent $ InputS i cn
 
-displayEvent :: [EventInfoN n] -> EventInfoN n -> String
-displayEvent eis ei@(EventInfo en _ _ s envi) =
-   "event num: " ++ (show en) ++
-   --", remaining signals: " ++ (show $ getRemainingSignals ei eis) ++ --TODO: display also event result?
-  -- ", envs: " ++ (show envi) ++
-   ", status: " ++ (show s)
 

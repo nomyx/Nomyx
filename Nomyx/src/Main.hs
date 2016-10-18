@@ -11,6 +11,7 @@ import           Control.Concurrent
 import           Control.Concurrent.STM
 import           Control.Exception                   as E hiding (bracket)
 import           Control.Monad.State
+--import           Control.Lens
 import           Data.Maybe
 import           Data.Time.Clock
 import           Data.Version                        (showVersion)
@@ -55,7 +56,7 @@ main = do
    else if Help `elem` flags then putStrLn $ usageInfo header options
    else if API `elem` flags then putSwaggerYaml
    else do
-      putStrLn "Welcome to Nomyx!"
+      putStrLn "Welcome to Nomyx! test"
       putStrLn "Type \"Nomyx --help\" for usage options"
       start flags
    return True
@@ -101,7 +102,7 @@ mainLoop settings saveDir host port = do
      ts <- atomically $ newTVar (Session sh multi acid)
      --start the web server
      forkIO $ launchWebServer ts (Network host port)
-     forkIO $ launchTimeEvents ts (EvalFunc evalNomex' undefined)
+     --forkIO $ launchTimeEvents ts (EvalFunc evalNomex' undefined)
      --start the REST API
      forkIO $ serveApi ts
      serverLoop ts
@@ -253,6 +254,6 @@ findWatchdog  fs = listToMaybe [a | Watchdog  a <- fs]
 --    threadDelay 30000000
 --    launchTimeEvents tm
 --
-instance HasEvents Nomex Session where
-  getEvents s = undefined --_erEventInfo $ _events $ _game $ _loggedGame $ _gameInfos $ _multi s
-  setEvents ei s = undefined
+--instance HasEvents Nomex Session where
+--  getEvents s = view (multi . gameInfos . each . loggedGame . game . events . each . erEventInfo) s
+--  setEvents ei s = undefined

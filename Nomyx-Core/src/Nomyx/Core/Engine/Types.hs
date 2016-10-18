@@ -245,8 +245,11 @@ instance FromJSON RuleTemplate where
 
 instance HasEvents Nomex EvalState where
    getEvents s = map _erEventInfo (_events $ _eGame s)
-   setEvents eis s = undefined -- (eGame . events) .~ eis $ s
+   setEvents eis s = (eGame . events) .~ (getreis (_events $ _eGame s) eis) $ s where
+     getreis reis eis = if (length reis /= length eis) then error "setEvents" else zipWith (\rei ei -> rei {_erEventInfo = ei}) reis eis
 
+--data RuleEventInfo = RuleEventInfo { _erRuleNumber :: RuleNumber,  -- the rule that created the event
+--                                     _erEventInfo :: EventInfo}    -- event informations
 
 $(deriveJSON defaultOptions ''TimedEvent)
 $(deriveJSON defaultOptions ''GameEvent)
