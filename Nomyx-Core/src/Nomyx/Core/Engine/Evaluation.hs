@@ -359,7 +359,7 @@ runEvaluate :: Game -> RuleNumber -> State EvalEnv a -> a
 runEvaluate g rn ev = error "runEvaluate" --evalState ev (EvalEnv rn g evalNomex)
 
 runEvaluate' :: Game -> RuleNumber -> Evaluate a -> a
-runEvaluate' g rn ev = error "runEvaluateb" --evalState (runEvalError'' Nothing ev) (EvalEnv rn g evalNomex)
+runEvaluate' g rn ev = fromJust $ Imp.runEvaluate ev (EvalEnv (EvalState g rn) evalNomex undefined) --TODO check this fromJust
 
 -- | Show instance for Game
 -- showing a game involves evaluating some parts (such as victory and outputs)
