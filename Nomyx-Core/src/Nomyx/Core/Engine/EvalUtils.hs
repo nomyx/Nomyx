@@ -67,12 +67,12 @@ accessGame l = do
 putGame :: Lens' Game a -> a -> Evaluate ()
 putGame l a = do
    ruleActive <- evalRuleActive
-   when ruleActive $ void $ (evalEnv . eGame . l) .= a
+   void $ (evalEnv . eGame . l) .= a --when ruleActive $
 
 modifyGame :: Lens' Game a -> (a -> a) -> Evaluate ()
 modifyGame l f = do
    ruleActive <- evalRuleActive
-   when ruleActive $ void $ (evalEnv . eGame . l) %= f
+   void $ (evalEnv . eGame . l) %= f --when ruleActive $
 
 evalRuleActive :: Evaluate Bool
 evalRuleActive = do

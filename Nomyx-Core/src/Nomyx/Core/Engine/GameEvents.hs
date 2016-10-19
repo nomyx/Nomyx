@@ -83,7 +83,7 @@ leaveGame pn = runSystemEval pn $ void $ evDelPlayer pn
 proposeRule :: RuleTemplate -> [ModuleInfo] -> PlayerNumber -> Either InterpretRule Rule -> StateT Game IO ()
 proposeRule rt ms pn inter = do
    rule <- createRule rt ms pn inter
-   mapStateIO $ runEvalError (_rNumber rule) (Just pn) $ do
+   mapStateIO $ runEvalError (_rNumber rule) (Just pn) $ do --bug here
       r <- evProposeRule rule
       tracePN pn $ if r then "Your rule has been added to pending rules."
                         else "Error: Rule could not be proposed"
