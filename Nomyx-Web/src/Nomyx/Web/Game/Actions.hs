@@ -67,7 +67,7 @@ viewIORuleM pn rn g = do
 viewInputsRule :: PlayerNumber -> RuleNumber -> [RuleEventInfo] -> Game -> RoutedNomyxServer (Maybe Html)
 viewInputsRule pn rn ehs g = do
    let filtered = filter (\e -> _erRuleNumber e == rn) ehs
-   let link en sa iv = pack $ "/test/do-input/" ++ (show en) ++ "/" ++ (show sa) ++ "/" ++ (show iv)
+   let link en sa iv = showRelURL (DoInput en sa iv (_gameName g))
    ws <- use webSession
    mis <- liftRouteT $ lift $ mapM (viewInput pn ws link) $ (map _erEventInfo $ sort filtered)
    let is = catMaybes mis
