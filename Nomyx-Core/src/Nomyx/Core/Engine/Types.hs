@@ -33,13 +33,6 @@ import Imprevu.Evaluation.InputEval
 -- * Evaluation
 
 -- | Environment necessary for the evaluation of any nomyx expressions or events
---TODO: should the first field be a "Maybe RuleNumber"?
---Indeed an evaluation is not always performed by a rule but also by the system (in which case we currently use rule number 0)
---data EvalEnv = EvalEnv { _eRuleNumber :: RuleNumber,
---                         _eGame :: Game,
---                         evalNomexFunc :: forall a. Nomex a -> Evaluate a}       -- evaluation function
---                        -- evalNomexNEFunc :: forall b. NomexNE b -> EvaluateNE b} -- evaluation function without effect
-
 data EvalState = EvalState { _eGame :: Game,             -- game to be read/modified
                              _eRuleNumber :: RuleNumber} -- number of the rule requesting the evaluation
 
@@ -48,15 +41,8 @@ type EvalEnv = EvalEnvN Nomex EvalState
 -- | Environment necessary for the evaluation of Nomex
 type Evaluate a = EvaluateN Nomex EvalState a
 
--- | Environment necessary for the evaluation of NomexNE
---type EvaluateNE a = Reader EvalEnv a
-
 -- | extract a rule from a code string and an environment
 type InterpretRule = RuleCode -> [ModuleInfo] -> IO Rule
-
---class HasEvents n s where
---   getEvents :: s -> [EventInfoN n]
---   setEvents :: [EventInfoN n] -> s -> s
 
 -- * Game
 
@@ -152,23 +138,6 @@ data RuleEventInfo = RuleEventInfo { _erRuleNumber :: RuleNumber,  -- the rule t
 
 instance Ord RuleEventInfo where
      (RuleEventInfo rn1 _) <= (RuleEventInfo rn2 _) = rn1 <= rn2
-
--- a form field
---data FormField = RadioField    PlayerNumber String [(Int, String)]
---               | TextField     PlayerNumber String
---               | TextAreaField PlayerNumber String
---               | ButtonField   PlayerNumber String
---               | CheckboxField PlayerNumber String [(Int, String)]
---                 deriving (Show, Read, Ord, Eq, Generic)
---
----- data sent back by the form fields
---data InputData = RadioData    Int
---               | CheckboxData [Int]
---               | TextData     String
---               | TextAreaData String
---               | ButtonData
---                 deriving (Show, Read, Eq, Ord)
---
 
 -- * Outputs
 
