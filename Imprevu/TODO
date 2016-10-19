@@ -18,6 +18,8 @@
 
 - factorize runEvalError/runEvaluate
 
+- fix problem with rule number in Eval Env
+
 Web:
 - check Webstate/websession
 
