@@ -173,6 +173,6 @@ execSignals r sds evalEnv = _evalEnv $ runIdentity $ flip execStateT evalEnv $ d
       mapM_ (\(f,d) -> triggerEvent f d) sds
    case res of
       Right a -> return a
-      Left e -> error $ show "error occured"
+      Left _ -> error $ show "error occured"
 
 

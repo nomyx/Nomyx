@@ -9,24 +9,16 @@ import           Nomyx.Auth.Types
 import           Language.Nomyx
 import           Happstack.Authenticate.OpenId.Route   (initOpenId)
 import           Happstack.Authenticate.Password.Route (initPassword)
-import           Happstack.Authenticate.Password.Core  (PasswordConfig(..), PasswordState)
+import           Happstack.Authenticate.Password.Core  (PasswordConfig(..))
 import           Happstack.Authenticate.Route          (initAuthentication)
-import           Happstack.Authenticate.Core           (AuthenticateURL(..),
-                                                        AuthenticateConfig(..),
-                                                        AuthenticateState,
-                                                        Email(..),
+import           Happstack.Authenticate.Core           (AuthenticateConfig(..),
                                                         User(..),
-                                                        Username(..),
                                                         UserId(..),
                                                         GetUserByUserId (..),
-                                                        GetAuthenticateState(..),
-                                                        decodeAndVerifyToken,
-                                                        tokenUser,
                                                         usernamePolicy,
                                                         getUserId)
 import           Happstack.Server
 import           Data.Maybe
-import           Control.Lens
 import           Control.Monad.State
 import           Data.Acid.Advanced                  (query')
 import           Data.Text as T

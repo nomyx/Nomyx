@@ -7,11 +7,11 @@ packages:
   extra-dep: true
 - location: ../Nomyx-Library
   extra-dep: true
-- ../../Haskell/hint-server
+- location: ../shortcut
+  extra-dep: true
+- location: ../Imprevu
+  extra-dep: true
 extra-deps:
-- Nomyx-Core-0.7.6
-- Nomyx-Language-0.7.6
-- Nomyx-Library-0.7.6
 - DebugTraceHelpers-0.12
 - hint-server-1.4.1
 - time-recurrence-0.9.2

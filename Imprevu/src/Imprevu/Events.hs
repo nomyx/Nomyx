@@ -19,7 +19,7 @@ module Imprevu.Events
 
 import Imprevu.Event
 import Imprevu.SysMgt
-import Control.Monad.Error
+import Control.Monad.Except
 import Data.Typeable
 import Data.Time hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)

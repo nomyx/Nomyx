@@ -87,10 +87,7 @@ findField :: InputView -> SignalAddress -> EventInfoN n -> EvaluateN n s (Maybe 
 findField sv sa (EventInfo _ e _ _ envi) = findField' sa e envi sv
 
 findField' :: SignalAddress -> EventM n e -> [SignalOccurence] -> InputView -> EvaluateN n s (Maybe SomeSignal)
-findField' []         (SignalEvent f)    _   ff = return $ do
-   --ff' <- getFormField f
-   --guard (ff' == ff)
-   return $ SomeSignal f
+findField' []         (SignalEvent f)    _  _  = return $ Just $ SomeSignal f
 findField' (SumL:as)  (SumEvent e1 _)  envi ff = findField' as e1 (filterPath SumL envi) ff
 findField' (SumR:as)  (SumEvent _ e2)  envi ff = findField' as e2 (filterPath SumR envi) ff
 findField' (AppL:as)  (AppEvent e1 _)  envi ff = findField' as e1 (filterPath AppL envi) ff
