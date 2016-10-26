@@ -10,6 +10,7 @@ import           Control.Concurrent.STM
 import           Control.Monad
 import           Control.Monad.Error
 import           Control.Monad.State
+import           Control.Lens
 import           Data.List
 import           Data.Maybe
 import           Data.Monoid
@@ -28,6 +29,7 @@ import           Nomyx.Core.Profile                    as Profile
 import qualified Nomyx.Core.Session                    as S
 import           Nomyx.Core.Types                      as T hiding (Library)
 import           Nomyx.Core.Utils
+import           Nomyx.Core.Engine.Evaluation
 import           Nomyx.Web.Common                      as W
 import           Nomyx.Web.Game.Details
 import           Nomyx.Web.Game.Infos
@@ -54,7 +56,10 @@ import           Web.Routes.RouteT                     (runRouteT)
 import           Web.Routes.Site
 import           Imprevu.Happstack.Forms
 import           Imprevu.Happstack.Types
-
+import           Imprevu.Evaluation.EventEval
+import           Imprevu.Evaluation.InputEval
+import qualified Nomyx.Core.Engine.Types as ET
+import qualified Nomyx.Core.Session as S
 
 default (Integer, Double, T.Text)
 
@@ -226,8 +231,21 @@ launchWebServer ts net = do
    let conf = nullConf {HS.port = T._port net}
    docdir <- liftIO getDocDir
    auth<- Auth.launchAuth (_saveDir set)
-   let wst = WebState ts undefined undefined undefined
+   let wst = WebState ts updateSession' evalFunc' undefined
    simpleHTTP conf $ server (WebSession wst auth) set net docdir
+
+evalFunc' :: Nomex a -> EvaluateN Nomex Session a
+evalFunc' nom = undefined --do
+--  g <- use (multi . gameInfos . ix 0 . game)
+--  let (g', a) = runState (evalNomex nom) (ET.EvalState g 0)
+--  (multi . gameInfos . ix 0 . game) .= g'
+--  return a
+
+
+updateSession' :: TVar Session -> Imprevu.Happstack.Types.InputResult -> IO ()
+updateSession' tvs (Imprevu.Happstack.Types.InputResult en sa iv idv) = do
+  putStrLn "updateSession"
+  S.updateSession tvs $ S.inputResult 1 en sa iv idv "Default game"
 
 --serving Nomyx web page as well as data from this package and the language library package
 server :: WebSession -> Settings -> Network -> String -> ServerPartT IO Response
