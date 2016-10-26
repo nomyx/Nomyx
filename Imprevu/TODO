@@ -19,7 +19,13 @@
 - factorize runEvalError/runEvaluate
 
 - fix problem with rule number in Eval Env
+- duplicate InputResult
 
+Ambiguous occurrence ‘events’
+Vt could refer to either ‘Nomyx.Core.Engine.Types.events’,
+                                 imported from ‘Nomyx.Core.Engine.Types’ at src/Nomyx/Core/Engine/GameEvents.hs:13:1-30
+                              or ‘Imprevu.Evaluation.EventEval.events’,
+                                 imported from ‘Imprevu.Evaluation.EventEval’ at src/Nomyx/Core/Engine/GameEvents.hs:15:1-35
 Web:
 - check Webstate/websession
 
