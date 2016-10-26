@@ -106,7 +106,9 @@ logGame s mpn = do
 inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> InputView -> InputDataView -> State Game ()
 inputResult pn en sa ff ide = do
    tracePN pn $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show sa ++ ", Form " ++ show ff ++ ", choice " ++ show ide
-   runSystemEval pn $ triggerInput ff ide sa en
+   evs <- gets _events
+   let rn = _erRuleNumber $ fromJust $ find (\(RuleEventInfo rn (EventInfo en' _ _ _ _)) -> en' == en) evs
+   runEvalError rn (Just pn) $ triggerInput ff ide sa en
 
 --getGameTimes :: Game -> [UTCTime]
 --getGameTimes g = concatMap (\ei -> getTimes ei g) (map _erEventInfo $ _events g)
