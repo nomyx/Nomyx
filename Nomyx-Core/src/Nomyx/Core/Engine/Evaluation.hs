@@ -118,7 +118,7 @@ evProposeRule rule = do
 --Sets the rule status to Active and execute it if possible
 evActivateRule :: RuleNumber -> Evaluate Bool
 evActivateRule rn = do
-   (rs, by) <- accessGame rules
+   (rs, by) <- accessGame rules --bug here
    case find (\r -> _rNumber r == rn && _rStatus r /= Active) rs of
       Nothing -> return False
       Just r -> do
@@ -317,31 +317,11 @@ runEvalError rn mpn eva = do --error "runEvalError
   let (EvalEnv (EvalState g' _) _ _) = execState (Imp.runEvalError' eva) (EvalEnv (EvalState g rn) evalNomex undefined)
   put g'
 
---runEvalError' :: EvaluateN n s a -> State (EvalEnvN n s) (Maybe a)
-
---runEvalError' :: Maybe PlayerNumber -> Evaluate a -> State EvalEnv ()
---runEvalError' mpn egs = do
---   e <- runErrorT egs
---   case e of
---      Right _ -> return ()
---      Left e' -> do
---         tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
---         void $ runErrorT $ log mpn "Error: "
-
 runSystemEval :: PlayerNumber -> Evaluate a -> State Game ()
 runSystemEval pn = runEvalError 0 (Just pn)
 
 runSystemEval' :: Evaluate a -> State Game ()
 runSystemEval' = runEvalError 0 Nothing
-
---get the signals left to be completed in an event
---getRemainingSignals :: EventInfo -> Game -> [(SignalAddress, SomeSignal)]
---getRemainingSignals (EventInfo _ rn e _ _ en) g = case runEvaluate g rn (getEventResult e en) of
---   Done _ -> []
---   Todo a -> a
-
---getRemainingSignals :: EventInfo -> Game -> [(SignalAddress, SomeSignal)]
---getRemainingSignals ei g = evalState (runEvalError'' Nothing (getRemainingSignals' ei)) (EvalEnv 0 g evalNomex)
 
 --runEvalError'' :: Maybe PlayerNumber -> Evaluate a -> State EvalEnv a
 --runEvalError'' mpn egs = do
@@ -352,8 +332,6 @@ runSystemEval' = runEvalError 0 Nothing
 --         tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
 --         void $ runErrorT $ log mpn "Error: "
 --         error "Eval"
---runEvaluateNE :: Game -> RuleNumber -> Evaluate a -> a
---runEvaluateNE g rn ev = runReader ev (EvalEnv rn g evalNomex)
 
 runEvaluate :: Game -> RuleNumber -> State EvalEnv a -> a
 runEvaluate g rn ev = error "runEvaluate" --evalState ev (EvalEnv rn g evalNomex)

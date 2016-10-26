@@ -110,16 +110,6 @@ inputResult pn en sa ff ide = do
    let rn = _erRuleNumber $ fromJust $ find (\(RuleEventInfo rn (EventInfo en' _ _ _ _)) -> en' == en) evs
    runEvalError rn (Just pn) $ triggerInput ff ide sa en
 
---getGameTimes :: Game -> [UTCTime]
---getGameTimes g = concatMap (\ei -> getTimes ei g) (map _erEventInfo $ _events g)
-
---getTimes :: EventInfo -> Game -> [UTCTime]
---getTimes ei g = mapMaybe getTime (map snd $ getRemainingSignals ei g)
---
---getTime :: SomeSignal -> Maybe UTCTime
---getTime (SomeSignal t) = Just t
---getTime _                    = Nothing
-
 -- | A helper function to run the game state.
 -- It additionally sets the current time.
 execWithGame :: UTCTime -> State LoggedGame () -> LoggedGame -> LoggedGame
