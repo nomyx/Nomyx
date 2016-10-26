@@ -32,7 +32,7 @@ import           Text.Reform.Blaze.String    (inputCheckboxes, label, textarea)
 import qualified Text.Reform.Blaze.String    as RB
 import           Text.Reform.Happstack       (environment)
 import           Web.Routes.RouteT           (liftRouteT)
-import           Imprevu.Happstack.Forms
+import           Imprevu.Happstack.Forms     (viewInput, newInput)
 import           Imprevu.Happstack.Types
 import           Imprevu.Evaluation.InputEval
 
@@ -130,6 +130,7 @@ viewOutput g o = if (s /= "") then Just (pre $ fromString s >> br) else Nothing 
 newInput' :: EventNumber -> SignalAddress -> InputView -> GameName -> RoutedNomyxServer Response
 newInput' en sa ii gn = do
   ws <- use webSession
+  liftIO $ putStrLn "newInput'"
   let link = showRelURL $ Menu Actions gn
   liftRouteT $ lift $ newInput en sa ii ws link
 --toResponse <$> do

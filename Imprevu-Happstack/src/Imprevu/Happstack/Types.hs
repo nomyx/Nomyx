@@ -18,8 +18,8 @@ import Safe
 data InputResult = InputResult EventNumber SignalAddress InputView InputDataView
 
 data WebStateN n s = WebState {_webState     :: TVar s,
-                               updateSession :: TVar s -> InputResult -> IO (),
-                               evalFunc      :: forall a. n a -> EvaluateN n s a,       -- evaluation function
+                               updateSession :: TVar s -> InputResult -> IO (),               -- update the session after an input is submitted
+                               evalFunc      :: forall a. n a -> EvaluateN n s a,             -- evaluation function used to compute the remaining signals/inputs and display them
                                errorHandler  :: EventNumber -> String -> EvaluateN n s ()}    -- error function
 
 type ImpForm a = Form (ServerPartT IO) [HS.Input] ImpFormError Html () a
