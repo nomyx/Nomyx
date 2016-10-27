@@ -8,12 +8,9 @@ module Nomyx.Core.Test where
 
 import           Language.Haskell.Interpreter.Server (ServerHandle)
 import           Language.Nomyx hiding (getCurrentTime)
-import           Control.Applicative
 import           Control.Monad.State
 import           Control.Exception as E
-import           Control.Arrow ((>>>))
 import           Control.Lens
-import           Control.Concurrent.STM
 import           Language.Haskell.TH hiding (ModuleInfo)
 import           Language.Haskell.TH.Syntax as THS hiding (lift, Module, ModuleInfo)
 import           System.IO.Unsafe

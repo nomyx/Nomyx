@@ -10,13 +10,11 @@ import           Control.Monad.State
 import           Data.Yaml                           (decodeEither, encode)
 import qualified Data.ByteString.Char8            as BL
 import           Language.Haskell.Interpreter.Server
-import           Language.Nomyx                      hiding (getCurrentTime)
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Interpret
 import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
 import           Prelude                             hiding (log, (.))
-import           System.FilePath                     ((</>))
 
 save :: Multi -> IO ()
 save m = BL.writeFile (getSaveFile $ _mSettings m) (encode m)

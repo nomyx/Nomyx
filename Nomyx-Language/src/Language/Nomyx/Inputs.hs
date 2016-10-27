@@ -17,9 +17,7 @@ module Language.Nomyx.Inputs (
 import Language.Nomyx.Expression
 --import Language.Nomyx.Events
 import qualified Imprevu.Inputs as Imp
-import Imprevu.Event
 import Data.Typeable
-import Control.Applicative
 
 -- * Inputs
 

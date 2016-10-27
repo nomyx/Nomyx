@@ -20,18 +20,9 @@ module Language.Nomyx.Variables (
 
 
 import Language.Nomyx.Expression
-import Imprevu.Event
-import Imprevu.Events
 import Imprevu.Variables (V, VarName, getTempVar)
 import qualified Imprevu.Variables as Imp
 import Data.Typeable
-import Control.Monad.State
-import Control.Applicative
-import Data.Maybe
-import qualified Data.Map as M
-import Data.Map hiding (map, filter, insert, mapMaybe, null)
-import Data.Foldable as F (mapM_)
-import Control.Monad.Loops
 
 -- * Variables
 -- | variable creation

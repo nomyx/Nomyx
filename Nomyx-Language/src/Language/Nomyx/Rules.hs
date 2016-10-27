@@ -35,7 +35,6 @@ module Language.Nomyx.Rules (
 
 import Prelude hiding (foldr)
 import Language.Nomyx.Expression
-import Imprevu.Event
 import Imprevu.Events
 import Imprevu.Variables
 import Language.Nomyx.Outputs
@@ -43,7 +42,6 @@ import Control.Lens
 import Control.Monad
 import Data.List
 import Data.Maybe
-import Control.Applicative
 
 -- * Rule management
 
@@ -215,7 +213,8 @@ defaultRuleInfo = RuleInfo  {
     _rRule         = return (),
     _rStatus       = Pending,
     _rAssessedBy   = Nothing,
-    _rRuleTemplate      = defaultRuleTemplate}
+    _rModules      = [],
+    _rRuleTemplate = defaultRuleTemplate}
 
 defaultRuleTemplate :: RuleTemplate
 defaultRuleTemplate = RuleTemplate {
@@ -224,7 +223,8 @@ defaultRuleTemplate = RuleTemplate {
     _rRuleCode     = "",
     _rAuthor       = "",
     _rPicture      = Nothing,
-    _rCategory     = []}
+    _rCategory     = [],
+    _rDeclarations = []}
 
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
 mapMaybeM f = liftM catMaybes . mapM f

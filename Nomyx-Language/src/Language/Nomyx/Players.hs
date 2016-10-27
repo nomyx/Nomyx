@@ -30,17 +30,14 @@ module Language.Nomyx.Players (
    ) where
 
 import Language.Nomyx.Expression
-import Imprevu.Event
 import Imprevu.Events
 import Imprevu.Variables
 import Language.Nomyx.Rules
 import Data.Typeable
 import Data.List
 import Control.Lens
-import Control.Applicative
 import Control.Arrow
 import Control.Monad
-import System.Random
 
 -- * Players
 

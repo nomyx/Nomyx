@@ -9,28 +9,20 @@ import Language.Nomyx.Variables
 import Language.Nomyx.Rules
 import Language.Nomyx.Events
 import Language.Nomyx.Outputs
-import Language.Nomyx.Inputs
 import Language.Nomyx.Messages
 import Nomyx.Core.Engine.Evaluation
-import Nomyx.Core.Engine.EventEval
 import Nomyx.Core.Engine.Types
-import Nomyx.Core.Engine.Utils
 import Nomyx.Library.Examples
 import Nomyx.Library.Vote
 import Nomyx.Library.Victory
 import Control.Monad.State
 import Data.Typeable
 import Data.Function hiding ((.))
-import Data.Maybe
-import Control.Applicative
 import Control.Lens
-import Control.Shortcut
 import System.Random
-import Data.Time hiding (getCurrentTime)
 import Imprevu.Test.TestMgt
 import Imprevu.Evaluation.EventEval hiding (events)
 import Imprevu.Evaluation.InputEval
-import Imprevu.Events
 
 testGame :: Game
 testGame = Game { _gameName      = "test",
@@ -51,12 +43,14 @@ testRule = RuleInfo  { _rNumber       = 0,
                        _rRule         = return (),
                        _rStatus       = Pending,
                        _rAssessedBy   = Nothing,
+                       _rModules      = [],
                        _rRuleTemplate = RuleTemplate {_rName = "test",
                                                       _rDescription = "test",
                                                       _rRuleCode = "",
                                                       _rAuthor = "",
                                                       _rPicture = Nothing,
-                                                      _rCategory = []}}
+                                                      _rCategory = [],
+                                                      _rDeclarations = []}}
 
 --execRuleEvent :: (Show e, Typeable e) => Nomex a -> Signal e -> e -> Game
 --execRuleEvent r f d = execState (runSystemEval' $ evalNomex r >> triggerEvent f d) testGame

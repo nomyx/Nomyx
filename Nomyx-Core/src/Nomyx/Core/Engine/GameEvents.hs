@@ -9,7 +9,6 @@ import Control.Monad.State
 import Data.List
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Evaluation
-import Nomyx.Core.Engine.EventEval
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Utils
 import Imprevu.Evaluation.EventEval
@@ -19,7 +18,6 @@ import Control.Category ((>>>))
 import Control.Exception as E
 import Data.Time
 import Data.Maybe
-import Data.Either
 
 -- | perform a game event
 enactEvent :: GameEvent -> Maybe (Either InterpretRule Rule) -> StateT Game IO ()

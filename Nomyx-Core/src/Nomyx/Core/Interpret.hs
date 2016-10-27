@@ -6,18 +6,12 @@ module Nomyx.Core.Interpret where
 
 import           Control.Exception                   as CE
 import           Control.Monad
-import           Data.Either.Unwrap
 import           Data.List
-import           Data.Maybe
 import           Language.Haskell.Interpreter
 import           Language.Haskell.Interpreter.Server
 import           Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
 import           Language.Nomyx
 import           Nomyx.Core.Context
-import           Nomyx.Core.Utils
-import           System.Directory                    (copyFile,
-                                                      createDirectoryIfMissing,
-                                                      doesFileExist, removeFile)
 import           System.FilePath                     (dropExtension, joinPath,
                                                       takeFileName, dropFileName,
                                                       splitDirectories, takeBaseName, (</>))

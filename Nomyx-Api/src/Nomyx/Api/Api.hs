@@ -39,15 +39,8 @@ import Control.Monad.Trans.Either
 import Data.Swagger
 import Data.Swagger.Schema
 import Language.Nomyx.Expression
-import Data.Swagger.Internal.Schema
-import Data.Swagger.Internal
-import Data.Swagger.Lens
-import Data.Swagger.Declare
-import Data.Swagger.SchemaOptions
 import Control.Monad.Except
-import Control.Lens
 import Network.Wai.Parse
-import Safe
 import qualified Data.ByteString.Char8 as B
 
 -- * API definition
@@ -71,12 +64,12 @@ serverPath :: String
 serverPath = "https://api.nomyx.net/v1"
 
 parseHostPort :: String -> (String, Int)
-parseHostPort path = (host,port)
+parseHostPort path = (myhost,myport)
     where
         authority = case parseURI path of
             Just x -> uriAuthority x
             _      -> Nothing
-        (host, port) = case authority of
+        (myhost, myport) = case authority of
             Just y -> (uriRegName y, (getPort . uriPort) y)
             _      -> ("localhost", 8080)
         getPort p = case (length p) of
@@ -150,15 +143,15 @@ getTemplates ("templates", _, c) = case decodeEither c of
 getTemplates _ = Nothing
 
 getFileDetails :: File FilePath -> IO (String, FilePath, B.ByteString)
-getFileDetails (name, fileinfo) = do
-   putStrLn $ "Input name: " ++ (B.unpack name)
+getFileDetails (myname, fileinfo) = do
+   putStrLn $ "Input name: " ++ (B.unpack myname)
    putStrLn $ "File name: " ++ show (fileName fileinfo)
    putStrLn $ "Content type: " ++ show (fileContentType fileinfo)
    putStrLn $ "------- Content --------"
    cont <- readFile (fileContent fileinfo)
    putStrLn cont
    putStrLn $ "------------------------"
-   return (B.unpack name, B.unpack $ fileName fileinfo, B.pack cont)
+   return (B.unpack myname, B.unpack $ fileName fileinfo, B.pack cont)
 
 instance ToSchema ProfileData
 instance ToSchema PlayerSettings

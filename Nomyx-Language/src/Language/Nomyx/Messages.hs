@@ -4,18 +4,14 @@ module Language.Nomyx.Messages (
   sendMessage, sendMessage_,
   onMessage, onMessageOnce,
   APICall(..), onAPICall, callAPI, callAPIBlocking,
-  Msg(..))
+  Msg)
    where
 
 import Language.Nomyx.Expression
-import Imprevu.Variables
-import Imprevu.Event
 import Imprevu.Events hiding (sendMessage)
 import Imprevu.Messages (APICall)
 import qualified Imprevu.Messages as Imp
 import Data.Typeable
-import Control.Monad.Loops (untilJust)
-import Control.Monad
 
 -- * Messages
 -- a rule can send a simple message to another rule, and subscribe to a message.

@@ -11,14 +11,12 @@ import qualified Data.Acid.Advanced                  as A (query', update')
 import           Data.List
 import           Data.Maybe
 import           Data.Time                           as T
-import           Data.Either
 import           Debug.Trace.Helpers
 import           Language.Haskell.Interpreter        (InterpreterError)
 import           Language.Haskell.Interpreter.Server (ServerHandle)
 import           Language.Nomyx
 import           Nomyx.Core.Engine                   as G
 import           Nomyx.Core.Interpret
-import           Nomyx.Core.Mail
 import           Nomyx.Core.Multi
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Serialize
@@ -118,7 +116,7 @@ getModules rt = do
    return $ catMaybes $ map (getModule mods) (_rDeclarations rt)
 
 getModule :: [ModuleInfo] -> FilePath -> Maybe ModuleInfo
-getModule ms fp = listToMaybe $ filter (\(ModuleInfo fp' c) -> (fp==fp')) ms
+getModule ms fp = listToMaybe $ filter (\(ModuleInfo fp' _) -> (fp==fp')) ms
 
 submitRuleError :: RuleTemplate -> PlayerNumber -> GameName -> InterpreterError -> StateT Session IO ()
 submitRuleError sr pn gn e = do

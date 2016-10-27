@@ -5,7 +5,7 @@
 module Language.Nomyx.Events (
    onEvent, onEvent_, onEventOnce,
    delEvent,
-   --getEvents, getEvent,
+   getEvents,
    getIntermediateResults,
    schedule, schedule_, schedule', --schedule'_,
    getCurrentTime,
@@ -23,13 +23,8 @@ import Language.Nomyx.Expression
 import Imprevu.Event
 import qualified Imprevu.Events as Imp
 import Data.Typeable
-import Control.Monad.State
-import Control.Applicative
-import Data.List
-import Data.Maybe
 import Data.Time hiding (getCurrentTime)
 import Data.Time.Recurrence hiding (filter)
-import Safe
 
 
 -- * Events
@@ -52,13 +47,8 @@ delEvent = Imp.delEvent
 getEvents :: Nomex [EventInfo]
 getEvents = Imp.getEvents
 
---getEvent :: EventNumber -> Nomex (Maybe EventInfoN)
---getEvent en = find (\(EventInfo en2 _ _ evst _) -> en == en2 && evst == SActive) <$> getEvents
-
 getIntermediateResults :: EventNumber -> Nomex (Maybe [(PlayerNumber, SomeData)])
 getIntermediateResults = Imp.getIntermediateResults
-
---getIntermediateResults :: (EvMgt n) => EventNumber -> n (Maybe [(ClientNumber, SomeData)])
 
 -- | on the provided schedule, the supplied function will be called
 schedule :: Schedule Freq -> (UTCTime -> Nomex ()) -> Nomex ()
@@ -90,11 +80,6 @@ data Victory = Victory
 -- | Build a event firing when the victory condition is changed
 victoryEvent :: Event VictoryInfo
 victoryEvent = SignalEvent $ Signal Victory
-
--- | Build a message event, that can be intercepted by another rule
--- this is useful for message-passing style of communication
---messageEvent :: (Typeable a) => Msg a -> Event a
---messageEvent = SignalEvent . Message
 
 -- | Build a event firing immediatly, yelding the value of the NomexNE
 liftEvent :: Nomex a -> Event a

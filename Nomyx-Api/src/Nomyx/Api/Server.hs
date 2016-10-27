@@ -12,9 +12,6 @@ import           Network.Wai.Middleware.Cors
 import           Network.Wai
 import           Control.Concurrent.STM
 import           Nomyx.Core.Types
-import           Data.Yaml                           ( encode)
-import qualified Data.ByteString.Char8            as BL
-import           Servant.Swagger
 import           Data.Monoid
 
 serveApi :: TVar Session -> IO ()
@@ -22,6 +19,7 @@ serveApi tv = do
    putStrLn "Starting Api on http://localhost:8001/"
    Warp.run 8001 $ myCors $ serve nomyxApi $ server tv
 
+customPolicy :: CorsResourcePolicy
 customPolicy = simpleCorsResourcePolicy { corsMethods = simpleMethods <> ["DELETE", "PUT"] }
 
 myCors :: Middleware

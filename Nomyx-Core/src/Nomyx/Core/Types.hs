@@ -11,9 +11,8 @@ import           Control.Lens hiding (Indexable)
 import           Data.Acid                           (AcidState)
 import           Data.Aeson.TH                       (defaultOptions, deriveJSON)
 import           Data.Data                           (Data)
-import           Data.IxSet                          (inferIxSet, noCalcs, ixFun, ixSet, Indexable(..), IxSet)
-import           Data.SafeCopy                       (Migrate (..), base,
-                                                      deriveSafeCopy, extension)
+import           Data.IxSet                          (ixFun, ixSet, Indexable(..), IxSet)
+import           Data.SafeCopy                       (base, deriveSafeCopy)
 import           Data.Time
 import           Data.Typeable
 import           GHC.Generics (Generic)
@@ -21,7 +20,7 @@ import           Language.Haskell.Interpreter.Server (ServerHandle)
 import           Language.Nomyx
 import           Network.BSD
 import           Nomyx.Core.Engine
-import Data.Aeson
+import           Data.Aeson
 
 type PlayerPassword = String
 type Port = Int

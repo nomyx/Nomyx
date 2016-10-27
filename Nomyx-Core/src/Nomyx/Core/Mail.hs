@@ -5,7 +5,6 @@
 
 module Nomyx.Core.Mail where
 
-import           Control.Applicative                 ((<$>))
 import           Control.Category
 import           Control.Concurrent
 import           Control.Monad

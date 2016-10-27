@@ -4,23 +4,19 @@
 -- | Evaluation of a Nomyx expression
 module Nomyx.Core.Engine.Evaluation where
 
-import           Control.Applicative
 import           Control.Category            hiding (id)
 import           Control.Lens
 import           Control.Monad
-import           Control.Monad.Error
-import           Control.Monad.Reader
+import           Control.Monad.Except
 import           Control.Monad.State
 import           Data.List
 import           Data.Maybe
 import           Data.Time
-import           Data.Todo
 import           Data.Typeable
 import           Imprevu.Evaluation.EventEval as Imp hiding (events)
 import           Imprevu.Event
 import           Language.Nomyx
 import           Nomyx.Core.Engine.EvalUtils
-import           Nomyx.Core.Engine.EventEval
 import           Nomyx.Core.Engine.Types     hiding (_vRuleNumber)
 import           Nomyx.Core.Engine.Utils
 import           Prelude                     hiding (log, (.))
@@ -63,8 +59,6 @@ evalNomex  GetPlayers     = use (evalEnv . eGame . players)
 evalNomex  GetEvents      = use (evalEnv . eGame . events) >>= return . (map _erEventInfo)
 evalNomex  SelfRuleNumber = use (evalEnv . eRuleNumber)
 evalNomex (GetCurrentTime)= use (evalEnv . eGame . currentTime)
-evalNomex (Return a)      = return a
-evalNomex (Bind ex f)     = evalNomex ex >>= \e -> evalNomex (f e)
 evalNomex (Simu sim ev)   = evSimu sim ev
 
 
@@ -312,7 +306,7 @@ delVictoryRule rn = do
 --and the player number to whom display errors (set to Nothing for all players)
 --TODO: clean
 runEvalError :: RuleNumber -> Maybe PlayerNumber -> Evaluate a -> State Game ()
-runEvalError rn mpn eva = do --error "runEvalError
+runEvalError rn mpn eva = do
   g <- get
   let (EvalEnv (EvalState g' _) _ _) = execState (Imp.runEvalError' eva) (EvalEnv (EvalState g rn) evalNomex undefined)
   put g'
