@@ -20,6 +20,7 @@ executable Nomyx
                    Nomyx-Language         == 0.7.6,
                    Nomyx-Web              == 0.7.6,
                    Nomyx-Api              == 0.7.6,
+                   Nomyx-Library          == 0.7.6,
                    Imprevu                == 0.7.6,
                    base                   >= 4.6 && <5,
                    directory              == 1.2.*,

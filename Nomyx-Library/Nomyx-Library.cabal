@@ -13,7 +13,16 @@ category: Language
 Homepage: http://www.nomyx.net
 author: Corentin Dupont
 --data-files: static/pictures/*.png
---data-dir: data
+data-files: src/Nomyx/Library/Examples.hs
+            src/Nomyx/Library/Democracy.hs
+            src/Nomyx/Library/Monarchy.hs
+            src/Nomyx/Library/PlayerManagement.hs
+            src/Nomyx/Library/Victory.hs
+            src/Nomyx/Library/Vote.hs
+            src/Nomyx/Library/Elections.hs
+            src/Nomyx/Library/Bank.hs
+            data/templates.yaml
+data-dir: .
 extra-source-files: AUTHORS README
 
 library
@@ -36,6 +45,7 @@ library
                      Nomyx.Library.Vote
                      Nomyx.Library.Elections
                      Nomyx.Library.Bank
+                     Paths_Nomyx_Library
     exposed: True
     buildable: True
     hs-source-dirs: src

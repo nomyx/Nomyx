@@ -44,7 +44,9 @@ playTests saveDir sh mTestName delay = do
    tp <- testProfiles
    dir <- createTempDirectory "/tmp" "Nomyx"
    createDirectoryIfMissing True $ dir </> uploadDir
-   let session = Session sh (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = saveDir, _webDir = "", _sourceDir = "", _watchdog = delay}  (Library [rAutoActivate] [])   ) tp
+   let session = Session sh (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = saveDir, _webDir = "", _sourceDir = "", _watchdog = delay}
+                                          (Library [rAutoActivate]
+                                          [])) tp
    mapM (\(title, t, cond) -> (title,) <$> test title session t cond) tests
 
 defaultNetwork :: Network

@@ -33,6 +33,7 @@ import           Nomyx.Api.Server                    (serveApi, putSwaggerYaml)
 import           Paths_Nomyx                         as PN
 import           Paths_Nomyx_Language                as PNL
 import           Paths_Nomyx_Web                     as PNW
+import           Paths_Nomyx_Library                 as PNLib
 import           Prelude                             hiding ((.))
 import           Safe
 import           System.Console.GetOpt
@@ -62,40 +63,39 @@ main = do
 
 start :: [Flag] -> IO ()
 start flags = do
-   defWebDir <- PNW.getDataDir
+   defWebDir    <- PNW.getDataDir
    defSourceDir <- PNL.getDataDir
-   let defSaveDir = PN.getDataDir
-   hostName <- getHostName
-   let port = read $ fromMaybe "8000" (findPort flags)
-   let host = fromMaybe hostName (findHost flags)
-   let adminPass = fromMaybe "NXPSD" (findAdminPass flags)
-   let sendMail = Mails `elem` flags
+   defLib       <- PNLib.getDataFileName "data/templates.yaml"
+   hostName     <- getHostName
+   let port        = read $ fromMaybe "8000" (findPort flags)
+   let host        = fromMaybe hostName      (findHost flags)
+   let adminPass   = fromMaybe "NXPSD"       (findAdminPass flags)
+   let sendMail    = Mails `elem` flags
+   let webDir      = fromMaybe defWebDir     (findWebDir flags)    -- data directory: web ressources and profiles
+   let sourceDir   = fromMaybe defSourceDir  (findSourceDir flags) -- source directory: Nomyx-Language files
+   let libraryPath = fromMaybe defLib        (findLibrary flags)
+   let watchdog    = fromMaybe 20 (read <$> findWatchdog flags)
+   let mLoad       = findLoadTest flags
    -- save directory: Nomyx.save and uploaded files
    saveDir <- case findTarFile flags of
       Just tarFile -> untar tarFile
       Nothing -> case findSaveDir flags of
          Just f -> canonicalizePath f
-         Nothing -> defSaveDir
-   -- data directory: web ressources and profiles
-   let webDir = fromMaybe defWebDir (findWebDir flags)
-   -- source directory: Nomyx-Language files (used only for display in GUI, since this library is statically linked otherwise)
-   let sourceDir = fromMaybe defSourceDir (findSourceDir flags)
-   let watchdog = fromMaybe 20 (read <$> findWatchdog flags)
-   let settings = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir watchdog
-   let mLoad = findLoadTest flags
+         Nothing -> PN.getDataDir
+   let settings    = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir watchdog
    when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\nweb dir = " ++ webDir ++ "\nsource dir = " ++ sourceDir
    if Test `elem` flags then runTests saveDir mLoad watchdog
    else if DeleteSaveFile `elem` flags then cleanFile saveDir
-   else mainLoop settings saveDir host port
+   else mainLoop settings saveDir host port libraryPath
 
 
-mainLoop :: Settings -> FilePath -> HostName -> Port -> IO ()
-mainLoop settings saveDir host port = do
+mainLoop :: Settings -> FilePath -> HostName -> Port -> FilePath -> IO ()
+mainLoop settings saveDir host port lib = do
    serverCommandUsage
    --start the haskell interpreter
    sh <- protectHandlers $ startInterpreter
    --creating game structures
-   multi <- Main.loadMulti settings sh
+   multi <- Main.loadMulti settings lib sh
    --main loop
    withAcid (Just $ saveDir </> profilesDir) $ \acid -> do
      ts <- atomically $ newTVar (Session sh multi acid)
@@ -120,22 +120,21 @@ mainLoop settings saveDir host port = do
 evalNomex' :: Nomex a ->  EvaluateN Nomex Session a
 evalNomex' exp = undefined
 
-loadMulti :: Settings -> ServerHandle -> IO Multi
-loadMulti set sh = do
+loadMulti :: Settings -> FilePath -> ServerHandle -> IO Multi
+loadMulti set libPath sh = do
    fileExists <- doesFileExist $ getSaveFile set
    if fileExists then do
       putStrLn $ "Loading game: " ++ getSaveFile set
       Serialize.loadMulti set sh `E.catch` (errMsg set)
    else do
-      lib <- readLibrary "../Nomyx-Library/src/templates.yaml"
+      lib <- readLibrary libPath
       let defMulti = defaultMulti set lib
       execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 True sh) defMulti where
 
 errMsg :: Settings -> ErrorCall -> IO Multi
 errMsg set e = do
   putStrLn $ "Error while loading logged events, log file discarded\n" ++ show (e::ErrorCall)
-  lib <- readLibrary "../Nomyx-Library/src/templates.yaml"
-  return $ defaultMulti set lib
+  return $ defaultMulti set (Library [rAutoActivate] [])
 
 
 runTests :: FilePath -> Maybe String -> Int -> IO ()
@@ -193,27 +192,29 @@ data Flag = Verbose
           | TarFile FilePath
           | API
           | Watchdog String
+          | LibraryPath FilePath
        deriving (Show, Eq)
 
 -- | launch options description
 options :: [OptDescr Flag]
 options =
-     [ Option "v" ["verbose"]   (NoArg Verbose)                "chatty output on stderr"
-     , Option "V" ["version"]   (NoArg Version)                "show version number"
-     , Option "h" ["host"]      (ReqArg HostName "Hostname")   "specify host name"
-     , Option "p" ["port"]      (ReqArg Port "Port")           "specify port"
-     , Option "n" ["delete"]    (NoArg DeleteSaveFile)         "delete all save files"
-     , Option "t" ["tests"]     (NoArg Test)                   "perform routine check"
-     , Option "l" ["loadtest"]  (ReqArg LoadTest "TestName")   "specify name of test to load (in combination with -t i.e. -t -l \"testName\")"
-     , Option "a" ["adminPass"] (ReqArg AdminPass "AdminPass") "specify the admin password (default is NXPSD)"
-     , Option "m" ["mails"]     (NoArg Mails)                  "send mails (default is no)"
-     , Option "?" ["help"]      (NoArg Help)                   "display usage options (this screen)"
-     , Option "r" ["saveDir"]   (ReqArg SaveDir "SaveDir")     "specify save directory (for Nomyx.save and uploads)"
-     , Option "f" ["dataDir"]   (ReqArg WebDir "WebDir")       "specify data directory (for profiles and website files)"
-     , Option "s" ["sourceDir"] (ReqArg SourceDir "SourceDir") "specify source directory (for Nomyx-Language files)"
-     , Option "T" ["tar"]       (ReqArg TarFile "TarFile")     "specify tar file (containing Nomyx.save and uploads)"
-     , Option ""  ["api"]       (NoArg API)                    "get swagger API file"
-     , Option ""  ["watchdog"]  (ReqArg Watchdog "5")          "time in seconds before killing the compilation thread"
+     [ Option "v" ["verbose"]   (NoArg Verbose)                     "chatty output on stderr"
+     , Option "V" ["version"]   (NoArg Version)                     "show version number"
+     , Option "h" ["host"]      (ReqArg HostName "Hostname")        "specify host name"
+     , Option "p" ["port"]      (ReqArg Port "Port")                "specify port"
+     , Option "n" ["delete"]    (NoArg DeleteSaveFile)              "delete all save files"
+     , Option "t" ["tests"]     (NoArg Test)                        "perform routine check"
+     , Option "l" ["loadtest"]  (ReqArg LoadTest "TestName")        "specify name of test to load (in combination with -t i.e. -t -l \"testName\")"
+     , Option "a" ["adminPass"] (ReqArg AdminPass "AdminPass")      "specify the admin password (default is NXPSD)"
+     , Option "m" ["mails"]     (NoArg Mails)                       "send mails (default is no)"
+     , Option "?" ["help"]      (NoArg Help)                        "display usage options (this screen)"
+     , Option "r" ["saveDir"]   (ReqArg SaveDir "SaveDir")          "specify save directory (for Nomyx.save and uploads)"
+     , Option "f" ["dataDir"]   (ReqArg WebDir "WebDir")            "specify data directory (for profiles and website files)"
+     , Option "s" ["sourceDir"] (ReqArg SourceDir "SourceDir")      "specify source directory (for Nomyx-Language files)"
+     , Option "T" ["tar"]       (ReqArg TarFile "TarFile")          "specify tar file (containing Nomyx.save and uploads)"
+     , Option ""  ["api"]       (NoArg API)                         "get swagger API file"
+     , Option ""  ["watchdog"]  (ReqArg Watchdog "5")               "time in seconds before killing the compilation thread"
+     , Option ""  ["library"]   (ReqArg LibraryPath "Library path") "specify the path of a library of rules (yaml file)"
      ]
 
 nomyxOpts :: [String] -> IO ([Flag], [String])
@@ -226,35 +227,13 @@ header :: String
 header = "Usage: Nomyx [OPTION...]"
 
 findPort, findHost, findLoadTest, findSaveDir, findWebDir, findSourceDir, findAdminPass, findTarFile, findWatchdog  :: [Flag] -> Maybe String
-findPort      fs = listToMaybe [a | Port      a <- fs]
-findHost      fs = listToMaybe [a | HostName  a <- fs]
-findLoadTest  fs = listToMaybe [a | LoadTest  a <- fs]
-findSaveDir   fs = listToMaybe [a | SaveDir   a <- fs]
-findWebDir    fs = listToMaybe [a | AdminPass a <- fs]
-findSourceDir fs = listToMaybe [a | WebDir    a <- fs]
-findAdminPass fs = listToMaybe [a | AdminPass a <- fs]
-findTarFile   fs = listToMaybe [a | TarFile   a <- fs]
-findWatchdog  fs = listToMaybe [a | Watchdog  a <- fs]
-
---triggerTimeEvent :: TVar Session -> UTCTime -> IO()
---triggerTimeEvent tm t = do
---    (Session sh m a) <- atomically $ readTVar tm
---    m' <- execWithMulti t (Multi.triggerTimeEvent t) m
---    atomically $ writeTVar tm (Session sh m' a)
---    save m'
-
---launchTimeEvents :: TVar Session -> IO()
---launchTimeEvents tm = do
---    now <- getCurrentTime
---    --putStrLn $ "tick " ++ (show now)
---    (Session _ m _) <- atomically $ readTVar tm
---    timeEvents <- getTimeEvents now m
---    unless (null timeEvents) $ putStrLn "found time event(s)"
---    mapM_ (Main.triggerTimeEvent tm) timeEvents
---    --sleep 30 second roughly
---    threadDelay 30000000
---    launchTimeEvents tm
---
---instance HasEvents Nomex Session where
---  getEvents s = view (multi . gameInfos . each . loggedGame . game . events . each . erEventInfo) s
---  setEvents ei s = undefined
+findPort      fs = listToMaybe [a | Port          a <- fs]
+findHost      fs = listToMaybe [a | HostName      a <- fs]
+findLoadTest  fs = listToMaybe [a | LoadTest      a <- fs]
+findSaveDir   fs = listToMaybe [a | SaveDir       a <- fs]
+findWebDir    fs = listToMaybe [a | AdminPass     a <- fs]
+findSourceDir fs = listToMaybe [a | WebDir        a <- fs]
+findAdminPass fs = listToMaybe [a | AdminPass     a <- fs]
+findTarFile   fs = listToMaybe [a | TarFile       a <- fs]
+findWatchdog  fs = listToMaybe [a | Watchdog      a <- fs]
+findLibrary   fs = listToMaybe [a | LibraryPath   a <- fs]
