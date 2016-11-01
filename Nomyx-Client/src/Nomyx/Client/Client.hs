@@ -18,7 +18,7 @@ import Servant.Client
 import Nomyx.Api.Api
 import Nomyx.Api.Files
 import Nomyx.Client.Types
-import Nomyx.Client.Serialize
+import Nomyx.Core.Serialize
 import Language.Nomyx.Expression
 import Control.Monad.Trans.Either
 import System.FilePath
@@ -34,7 +34,7 @@ templateApi = Proxy
 uploadTemplates :: FilePath -> Options -> IO ()
 uploadTemplates yamlFile os = do
   let dir = takeDirectory yamlFile
-  ts <- readLibrary yamlFile dir
+  ts <- readLibrary yamlFile
   --res <- runEitherT $ putTemplates ts
   putStrLn $ show ts
   --putStrLn $ show res

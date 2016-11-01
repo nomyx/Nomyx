@@ -11,7 +11,6 @@ import           Control.Concurrent
 import           Control.Concurrent.STM
 import           Control.Exception                   as E hiding (bracket)
 import           Control.Monad.State
---import           Control.Lens
 import           Data.Maybe
 import           Data.Time.Clock
 import           Data.Version                        (showVersion)
@@ -128,13 +127,15 @@ loadMulti set sh = do
       putStrLn $ "Loading game: " ++ getSaveFile set
       Serialize.loadMulti set sh `E.catch` (errMsg set)
    else do
-      let defMulti = defaultMulti set
+      lib <- readLibrary "../Nomyx-Library/src/templates.yaml"
+      let defMulti = defaultMulti set lib
       execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 True sh) defMulti where
 
 errMsg :: Settings -> ErrorCall -> IO Multi
 errMsg set e = do
   putStrLn $ "Error while loading logged events, log file discarded\n" ++ show (e::ErrorCall)
-  return $ defaultMulti set
+  lib <- readLibrary "../Nomyx-Library/src/templates.yaml"
+  return $ defaultMulti set lib
 
 
 runTests :: FilePath -> Maybe String -> Int -> IO ()

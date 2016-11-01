@@ -65,8 +65,8 @@ initialGameInfo name desc isPub mpn date sh = do
 
    execStateT (initialGame sh) lg
 
-defaultMulti :: Settings -> Multi
-defaultMulti s = Multi [] s (Library [rAutoActivate] [])
+defaultMulti :: Settings -> Library -> Multi
+defaultMulti s lib = Multi [] s lib
 
 -- | finds the corresponding game in the multistate and replaces it.
 modifyGame :: GameInfo -> StateT Multi IO ()

@@ -9,11 +9,11 @@ packages:
   extra-dep: true
 - location: ../Nomyx-Library
   extra-dep: true
+- location: ../Imprevu
+  extra-dep: true
+- location: ../shortcut
+  extra-dep: true
 extra-deps:
-- Nomyx-Language-0.7.6
-- Nomyx-Api-0.7.6
-- Nomyx-Library-0.7.6
-- Nomyx-Core-0.7.6
 - DebugTraceHelpers-0.12
 - hint-server-1.4.2
 - eprocess-1.7.2
