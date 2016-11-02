@@ -22,7 +22,7 @@ data-files: src/Language/Nomyx.hs
             src/Language/Nomyx/Events.hs
             src/Language/Nomyx/Messages.hs
             src/Language/Nomyx/Players.hs
-data-dir: ""
+data-dir: .
 extra-source-files: AUTHORS README
 
 library
