@@ -65,7 +65,7 @@ start :: [Flag] -> IO ()
 start flags = do
    defWebDir    <- PNW.getDataDir
    defSourceDir <- PNL.getDataDir
-   defLib       <- PNLib.getDataFileName "data/templates.yaml"
+   defLib       <- PNLib.getDataFileName "templates.yaml"
    hostName     <- getHostName
    let port        = read $ fromMaybe "8000" (findPort flags)
    let host        = fromMaybe hostName      (findHost flags)
@@ -84,9 +84,10 @@ start flags = do
          Nothing -> PN.getDataDir
    let settings    = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir watchdog
    when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\nweb dir = " ++ webDir ++ "\nsource dir = " ++ sourceDir
-   if Test `elem` flags then runTests saveDir mLoad watchdog
-   else if DeleteSaveFile `elem` flags then cleanFile saveDir
-   else mainLoop settings saveDir host port libraryPath
+   if Test `elem` flags
+      then runTests saveDir mLoad watchdog
+      else if DeleteSaveFile `elem` flags then cleanFile saveDir
+      else mainLoop settings saveDir host port libraryPath
 
 
 mainLoop :: Settings -> FilePath -> HostName -> Port -> FilePath -> IO ()
