@@ -37,10 +37,6 @@ data TestState = TestState {eventInfos :: [EventInfoN TestM],
 newtype TestM a = TestM {unTestM :: StateT TestState IO a}
   deriving (Functor, Applicative, Monad, MonadIO, MonadState TestState)
 
-instance HasEvents TestM TestState where
-  getEvents = eventInfos
-  setEvents eis (TestState _ os vs) = (TestState eis os vs)
-
 -- | stores the variable's data
 data Var = forall a . (Typeable a, Show a) =>
    Var { vName :: String,
@@ -71,7 +67,8 @@ instance VarMgt TestM where
 eventsEval :: EvaluateN TestM TestState () -> TestM ()
 eventsEval eval = do
    s <- get
-   let (EvalEnv s' _ _) = runIdentity $ flip execStateT (EvalEnv s evalEvents undefined) $ do
+   let ee = defaultEvalEnv' s
+   let (EvalEnv s' _ _ _ _) = runIdentity $ flip execStateT ee $ do
        res <- runExceptT eval
        case res of
          Right a -> return a
@@ -80,9 +77,9 @@ eventsEval eval = do
 
 evalEvents :: TestM a -> EvaluateN TestM TestState a
 evalEvents (TestM tio) = do
-   (EvalEnv s f g) <- get
+   ee@(EvalEnv s _ _ _ _) <- get
    let (a, s') = unsafePerformIO $ runStateT tio s
-   put (EvalEnv s' f g)
+   put ee{_evalEnv = s'}
    return a
 
 evOnEvent :: (Typeable e, Show e) => EventM TestM e -> ((EventNumber, e) -> TestM ()) -> TestM EventNumber
@@ -108,7 +105,10 @@ defaultEvalEnv :: EvalEnvN TestM TestState
 defaultEvalEnv = defaultEvalEnv' (TestState [] [] (Var "" ""))
 
 defaultEvalEnv' :: TestState -> EvalEnvN TestM TestState
-defaultEvalEnv' ts = EvalEnv ts evalEvents undefined
+defaultEvalEnv' ts = EvalEnv ts getEventsTest setEventsTest evalEvents undefined
+
+getEventsTest = eventInfos
+setEventsTest eis (TestState _ os vs) = (TestState eis os vs)
 
 execEvent :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestM () -> Signal s e -> e -> [String]
 execEvent r f d = execEvents r [(f,d)]

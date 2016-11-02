@@ -17,31 +17,30 @@ import Control.Lens
 
 type Time = Signal UTCTime UTCTime
 
-data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. n a -> EvaluateN n s a,     -- evaluation function
-                               _errorHandler :: EventNumber -> String -> EvaluateN n s ()}    -- error function
+--data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. n a -> EvaluateN n s a,     -- evaluation function
+--                               _errorHandler :: EventNumber -> String -> EvaluateN n s ()}    -- error function
 
-launchTimeEvents :: (HasEvents n s, Monad n) => TVar s -> EvalFunc n s -> IO ()
-launchTimeEvents tv ef = do
+launchTimeEvents :: (Monad n) => TVar s -> EvalEnvN n s -> IO ()
+launchTimeEvents tv ee = do
     now <- getCurrentTime
     --putStrLn $ "tick " ++ (show now)
     s <- atomically $ readTVar tv
-    let timeEvents = join $ maybeToList $ runEvaluate (getTimeEvents now) (EvalEnv s (_evalFunc ef) (_errorHandler ef))
+    let timeEvents = join $ maybeToList $ runEvaluate (getTimeEvents now) ee --(EvalEnv s (_evalFunc ef) (_errorHandler ef))
     unless (null timeEvents) $ putStrLn "found time event(s)"
-    mapM_ (triggerTimeEvent tv ef) timeEvents
+    mapM_ (triggerTimeEvent tv ee) timeEvents
     --sleep 30 second roughly
     threadDelay 30000000
-    launchTimeEvents tv ef
+    launchTimeEvents tv ee
 
-triggerTimeEvent :: (HasEvents n s, Monad n) => TVar s -> EvalFunc n s -> UTCTime -> IO ()
-triggerTimeEvent tv ef t = do
+triggerTimeEvent :: (Monad n) => TVar s -> EvalEnvN n s -> UTCTime -> IO ()
+triggerTimeEvent tv ee t = do
     s <- atomically $ readTVar tv
-    let ee = EvalEnv s (_evalFunc ef) (_errorHandler ef)
     let s' = execSignals (return ()) [(Signal t, t)] ee
     atomically $ writeTVar tv s'
     --save m'
 
 -- | get all events that has not been triggered yet
-getTimeEvents :: (HasEvents n s) => UTCTime -> EvaluateN n s [UTCTime]
+getTimeEvents :: UTCTime -> EvaluateN n s [UTCTime]
 getTimeEvents now = do
    eis <- use events
    times <- mapM getTimes eis

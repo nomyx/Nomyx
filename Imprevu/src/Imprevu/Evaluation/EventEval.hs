@@ -25,34 +25,32 @@ import           Safe
 import           Debug.Trace.Helpers    (traceM)
 
 
-class HasEvents n s where
-   getEvents :: s -> [EventInfoN n]
-   setEvents :: [EventInfoN n] -> s -> s
-
 -- | Environment necessary for the evaluation of events
 data EvalEnvN n s = EvalEnv { _evalEnv     :: s,
-                             evalFunc     :: forall a. n a -> EvaluateN n s a,           -- evaluation function
-                             errorHandler :: EventNumber -> String -> EvaluateN n s ()}  -- error function
+                              getEvents    :: s -> [EventInfoN n],
+                              setEvents    :: [EventInfoN n] -> s -> s,
+                              evalFunc     :: forall a. n a -> EvaluateN n s a,           -- evaluation function
+                              errorHandler :: EventNumber -> String -> EvaluateN n s ()}  -- error function
 
 -- | Environment necessary for the evaluation of Nome
 type EvaluateN n s a = ExceptT String (State (EvalEnvN n s)) a
 
 makeLenses ''EvalEnvN
 
-events :: (HasEvents n s) => Lens' (EvalEnvN n s) [EventInfoN n]
-events f (EvalEnv s g h) = fmap (\s' -> (EvalEnv (setEvents s' s) g h)) (f (getEvents s))
+events :: Lens' (EvalEnvN n s) [EventInfoN n]
+events f ee@(EvalEnv s ge se _ _) = fmap (\s' -> ee{_evalEnv = se s' s}) (f $ ge s)
 
 
 -- * Event triggers
 
 -- trigger an event with an event result
-triggerEvent :: (HasEvents n s, Show a, Typeable a, Show e, Typeable e, Eq a) => Signal a e -> e -> EvaluateN n s ()
+triggerEvent :: (Show a, Typeable a, Show e, Typeable e, Eq a) => Signal a e -> e -> EvaluateN n s ()
 triggerEvent e dat = do
-   (EvalEnv s _ _) <- get
-   triggerEvent' (SignalData e dat) Nothing (getEvents s)
+   evs <- use events
+   triggerEvent' (SignalData e dat) Nothing evs
 
 -- trigger some specific signal
-triggerEvent' :: (HasEvents n s) => SignalData -> Maybe SignalAddress -> [EventInfoN n] -> EvaluateN n s ()
+triggerEvent' :: SignalData -> Maybe SignalAddress -> [EventInfoN n] -> EvaluateN n s ()
 triggerEvent' sd msa evs = do
    let evs' = evs -- sortBy (compare `on` _ruleNumber) evs
    eids <- mapM (getUpdatedEventInfo sd msa) evs'           -- get all the EventInfoNs updated with the field
@@ -166,7 +164,7 @@ getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
   if (sa' == sa) && (s === s') then Just res' else Nothing
 
 
-execSignals :: (Show a, Show e, Typeable e, Eq e, Show d, Typeable d, Eq d, HasEvents n s) => n a -> [(Signal e d, d)] -> EvalEnvN n s -> s
+execSignals :: (Show a, Show e, Typeable e, Eq e, Show d, Typeable d, Eq d) => n a -> [(Signal e d, d)] -> EvalEnvN n s -> s
 execSignals r sds evalEnv = _evalEnv $ runIdentity $ flip execStateT evalEnv $ do
    res <- runExceptT $ do
       evalFunc evalEnv r
