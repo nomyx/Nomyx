@@ -16,7 +16,7 @@ import           Control.Monad.State
 import           Data.List
 import           Data.Maybe
 import           Data.Typeable
-import           Imprevu.Evaluation.EventEval
+import           Imprevu.Evaluation
 import           Language.Nomyx.Expression
 import           Nomyx.Core.Engine.Types
 import           Nomyx.Core.Engine.Utils

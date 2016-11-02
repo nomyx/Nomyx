@@ -17,7 +17,7 @@
 -- | This module contains the type definitions necessary to build a Nomic rule.
 module Language.Nomyx.Expression (
   module Language.Nomyx.Expression,
-  module Imprevu.Event)
+  module Imprevu.Types)
   where
 
 import           Control.Lens
@@ -27,10 +27,8 @@ import           Data.Time
 import           Data.Typeable
 import           GHC.Generics
 import           System.Random
-import           Imprevu.Event
-import           Imprevu.Variables
-import           Imprevu.SysMgt
-import           Imprevu.Events
+import           Imprevu.Types
+import           Imprevu
 
 type PlayerNumber = Int
 type PlayerName = String

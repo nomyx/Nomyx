@@ -23,7 +23,7 @@ import           Nomyx.Core.Serialize
 import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
 import           System.IO.PlafCompat
-import           Imprevu.Evaluation.InputEval
+import           Imprevu.Evaluation
 
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()

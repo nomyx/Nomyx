@@ -21,8 +21,7 @@ import Data.Function hiding ((.))
 import Control.Lens
 import System.Random
 import Imprevu.Test.TestMgt
-import Imprevu.Evaluation.EventEval hiding (events)
-import Imprevu.Evaluation.InputEval
+import Imprevu.Evaluation hiding (events)
 
 testGame :: Game
 testGame = Game { _gameName      = "test",

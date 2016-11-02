@@ -10,9 +10,8 @@ import           Control.Monad.State
 import           Data.String
 import           Data.Text                           (Text)
 import           Debug.Trace.Helpers                 (traceM)
-import           Imprevu.Event
-import           Imprevu.Evaluation.EventEval
-import           Imprevu.Evaluation.InputEval
+import           Imprevu
+import           Imprevu.Evaluation
 import           Imprevu.Happstack.Types
 import           Happstack.Server              as HS (Response, Method (..), methodM, seeOther, toResponse, ServerPartT)
 import           Text.Blaze.Html5                    (ToMarkup, Html, toHtml, td, toValue, tr, (!), input)
@@ -37,8 +36,6 @@ viewInput cn (WebState tvs _ f g) bl ei@(EventInfo en _ _ SActive _) = do
       else Just $ sequence_ ds
 viewInput _ _ _ _ = return Nothing
 
-
---TODO filter with ClientNumber
 viewInput' :: EventNumber -> ClientNumber -> BackLink -> (SignalAddress, SomeSignal) -> ServerPartT IO (Maybe Html)
 viewInput' en me bl (sa, (SomeSignal (InputS s cn)))
   | me == cn = do

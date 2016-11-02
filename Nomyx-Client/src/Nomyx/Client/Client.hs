@@ -34,9 +34,9 @@ templateApi = Proxy
 uploadTemplates :: FilePath -> Options -> IO ()
 uploadTemplates yamlFile os = do
   let dir = takeDirectory yamlFile
-  ts <- readLibrary yamlFile
+  --ts <- readLibrary yamlFile
   --res <- runEitherT $ putTemplates ts
-  putStrLn $ show ts
+  --putStrLn $ show ts
   --putStrLn $ show res
   return ()
 

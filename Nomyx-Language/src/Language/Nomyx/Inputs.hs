@@ -14,10 +14,9 @@ module Language.Nomyx.Inputs (
    onInputTextarea, onInputTextarea_, onInputTextareaOnce,
    ) where
 
-import Language.Nomyx.Expression
---import Language.Nomyx.Events
-import qualified Imprevu.Inputs as Imp
-import Data.Typeable
+import           Language.Nomyx.Expression
+import qualified Imprevu as Imp
+import           Data.Typeable
 
 -- * Inputs
 

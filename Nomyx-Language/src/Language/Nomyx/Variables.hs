@@ -19,10 +19,10 @@ module Language.Nomyx.Variables (
    ) where
 
 
-import Language.Nomyx.Expression
-import Imprevu.Variables (V, VarName, getTempVar)
-import qualified Imprevu.Variables as Imp
-import Data.Typeable
+import           Language.Nomyx.Expression
+import           Imprevu (V, VarName, getTempVar)
+import qualified Imprevu                          as Imp
+import           Data.Typeable
 
 -- * Variables
 -- | variable creation

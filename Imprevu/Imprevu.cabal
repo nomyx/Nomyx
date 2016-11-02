@@ -35,12 +35,14 @@ library
                    validation,
                    semigroups,
                    shortcut
-    exposed-modules: Imprevu.Event
+    exposed-modules: Imprevu
+                     Imprevu.Types
                      Imprevu.Events
                      Imprevu.Inputs
                      Imprevu.Messages
                      Imprevu.Variables
                      Imprevu.SysMgt
+                     Imprevu.Evaluation
                      Imprevu.Evaluation.EventEval
                      Imprevu.Evaluation.InputEval
                      Imprevu.Evaluation.TimeEval

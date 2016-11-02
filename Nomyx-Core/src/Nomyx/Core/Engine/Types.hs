@@ -15,20 +15,15 @@ module Nomyx.Core.Engine.Types where
 import Prelude hiding (log)
 import Language.Nomyx.Expression
 import Control.Lens hiding ((.=))
-import Control.Applicative
 import Data.Time
 import Data.Typeable
-import Data.Data
-import Control.Monad.Error (ErrorT(..))
 import Control.Monad.State
 import Control.Monad.Reader
-import GHC.Generics
 import System.Random
 import Data.Aeson.TH (deriveJSON, defaultOptions)
 import Data.Aeson
 import Data.Time.Clock.POSIX
-import Imprevu.Evaluation.EventEval hiding (events)
-import Imprevu.Evaluation.InputEval
+import Imprevu.Evaluation hiding (events)
 
 -- * Evaluation
 

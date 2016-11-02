@@ -21,7 +21,7 @@ import Data.Time
 import Imprevu.Events
 import Imprevu.SysMgt
 import Imprevu.Variables
-import Imprevu.Event
+import Imprevu.Types
 import Imprevu.Evaluation.EventEval
 import Imprevu.Evaluation.InputEval
 import Imprevu.Evaluation.Utils

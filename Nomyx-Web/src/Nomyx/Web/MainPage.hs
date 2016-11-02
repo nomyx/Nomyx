@@ -56,8 +56,7 @@ import           Web.Routes.RouteT                     (runRouteT)
 import           Web.Routes.Site
 import           Imprevu.Happstack.Forms
 import           Imprevu.Happstack.Types
-import           Imprevu.Evaluation.EventEval
-import           Imprevu.Evaluation.InputEval
+import           Imprevu.Evaluation
 import qualified Nomyx.Core.Engine.Types as ET
 import qualified Nomyx.Core.Session as S
 

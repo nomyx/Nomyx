@@ -13,8 +13,8 @@ import           Data.List
 import           Data.Maybe
 import           Data.Time
 import           Data.Typeable
-import           Imprevu.Evaluation.EventEval as Imp hiding (events)
-import           Imprevu.Event
+import           Imprevu.Evaluation as Imp hiding (events)
+import           Imprevu
 import           Language.Nomyx
 import           Nomyx.Core.Engine.EvalUtils
 import           Nomyx.Core.Engine.Types     hiding (_vRuleNumber)

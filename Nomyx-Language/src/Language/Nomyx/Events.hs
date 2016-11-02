@@ -14,17 +14,17 @@ module Language.Nomyx.Events (
    --signalEvent, inputFormSignal,
    liftEvent,
    victoryEvent, timeEvent,
-   Imprevu.Event.EventNumber,
+   Imprevu.EventNumber,
    SomeData,
    Victory(..)
    ) where
 
-import Language.Nomyx.Expression
-import Imprevu.Event
-import qualified Imprevu.Events as Imp
-import Data.Typeable
-import Data.Time hiding (getCurrentTime)
-import Data.Time.Recurrence hiding (filter)
+import           Language.Nomyx.Expression
+import           Imprevu (EventNumber)
+import qualified Imprevu as Imp
+import           Data.Typeable
+import           Data.Time hiding (getCurrentTime)
+import           Data.Time.Recurrence hiding (filter)
 
 
 -- * Events

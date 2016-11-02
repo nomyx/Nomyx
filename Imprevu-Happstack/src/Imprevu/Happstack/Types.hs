@@ -8,9 +8,8 @@ module Imprevu.Happstack.Types where
 import Control.Concurrent.STM
 import Control.Lens
 import Happstack.Server            as HS (Input, ServerPartT, FromReqURI(..))
-import Imprevu.Event
-import Imprevu.Evaluation.EventEval
-import Imprevu.Evaluation.InputEval
+import Imprevu
+import Imprevu.Evaluation
 import Text.Blaze.Html5                  (Html)
 import Text.Reform                       (CommonFormError, ErrorInputType, Form, FormError (..))
 import Safe

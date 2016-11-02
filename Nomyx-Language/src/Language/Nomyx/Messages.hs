@@ -7,11 +7,10 @@ module Language.Nomyx.Messages (
   Msg)
    where
 
-import Language.Nomyx.Expression
-import Imprevu.Events hiding (sendMessage)
-import Imprevu.Messages (APICall)
-import qualified Imprevu.Messages as Imp
-import Data.Typeable
+import           Language.Nomyx.Expression
+import           Imprevu (APICall, Msg)
+import qualified Imprevu as Imp
+import           Data.Typeable
 
 -- * Messages
 -- a rule can send a simple message to another rule, and subscribe to a message.

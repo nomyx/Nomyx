@@ -31,7 +31,7 @@ import           Nomyx.Core.Profile
 import           Nomyx.Core.Quotes
 import           Nomyx.Core.Engine
 import qualified Nomyx.Core.Engine as G
-import           Imprevu.Evaluation.InputEval
+import           Imprevu.Evaluation
 
 
 playTests :: FilePath -> ServerHandle -> Maybe String -> Int -> IO [(String, Bool)]
@@ -194,7 +194,7 @@ gamePartialFunction2 = do
    submitR partialFunction2
    gs <- (use $ multi . gameInfos)
    let now = _currentTime $ G._game $ _loggedGame $ head gs
-   zoom multi $ triggerTimeEvent (5 `addUTCTime` now)
+   zoom multi $ Nomyx.Core.Multi.triggerTimeEvent (5 `addUTCTime` now)
 
 
 -- rule has not been accepted due to exception
@@ -311,7 +311,7 @@ isOutput' s m = any (isOutput s . _game . _loggedGame) (_gameInfos m)
 inputAllRadios :: Int -> StateT Session IO ()
 inputAllRadios choice = do
    s <- get
-   let evs = runEvaluate (firstGame $ _multi s) 0 getChoiceEvents
+   let evs = G.runEvaluate (firstGame $ _multi s) 0 getChoiceEvents
    mapM_ (\(en, fa, pn, t) -> inputResult pn en fa (RadioField t [(0,"For"),(1,"Against")]) (RadioData choice) "test") evs
 
 -- input text for all text fields

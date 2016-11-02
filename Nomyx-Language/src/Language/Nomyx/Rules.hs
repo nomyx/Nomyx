@@ -35,9 +35,8 @@ module Language.Nomyx.Rules (
 
 import Prelude hiding (foldr)
 import Language.Nomyx.Expression
-import Imprevu.Events
-import Imprevu.Variables
 import Language.Nomyx.Outputs
+import Imprevu
 import Control.Lens
 import Control.Monad
 import Data.List

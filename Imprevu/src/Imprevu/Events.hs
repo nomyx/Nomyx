@@ -17,7 +17,7 @@ module Imprevu.Events
 --   liftEvent
     where
 
-import Imprevu.Event
+import Imprevu.Types
 import Imprevu.SysMgt
 import Control.Monad.Except
 import Data.Typeable

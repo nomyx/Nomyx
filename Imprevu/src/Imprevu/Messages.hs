@@ -12,7 +12,7 @@ import Control.Monad
 import Control.Monad.Except
 import Data.Typeable
 import Imprevu.Events
-import Imprevu.Event
+import Imprevu.Types
 import Imprevu.SysMgt
 import Imprevu.Variables
 

@@ -17,7 +17,7 @@ module Imprevu.Inputs
     where
 
 import Imprevu.Events
-import Imprevu.Event
+import Imprevu.Types
 import Data.Typeable
 
 
