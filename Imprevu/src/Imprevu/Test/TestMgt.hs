@@ -67,8 +67,8 @@ instance VarMgt TestM where
 eventsEval :: EvaluateN TestM TestState () -> TestM ()
 eventsEval eval = do
    s <- get
-   let ee = defaultEvalEnv' s
-   let (EvalEnv s' _ _ _ _) = runIdentity $ flip execStateT ee $ do
+   let ee = EvalEnv s defaultEvalConf
+   let (EvalEnv s' _) = runIdentity $ flip execStateT ee $ do
        res <- runExceptT eval
        case res of
          Right a -> return a
@@ -77,7 +77,7 @@ eventsEval eval = do
 
 evalEvents :: TestM a -> EvaluateN TestM TestState a
 evalEvents (TestM tio) = do
-   ee@(EvalEnv s _ _ _ _) <- get
+   ee@(EvalEnv s _) <- get
    let (a, s') = unsafePerformIO $ runStateT tio s
    put ee{_evalEnv = s'}
    return a
@@ -102,10 +102,10 @@ evDelEvent en = do
 
 
 defaultEvalEnv :: EvalEnvN TestM TestState
-defaultEvalEnv = defaultEvalEnv' (TestState [] [] (Var "" ""))
+defaultEvalEnv = EvalEnv (TestState [] [] (Var "" "")) defaultEvalConf
 
-defaultEvalEnv' :: TestState -> EvalEnvN TestM TestState
-defaultEvalEnv' ts = EvalEnv ts getEventsTest setEventsTest evalEvents undefined
+defaultEvalConf :: EvalConfN TestM TestState
+defaultEvalConf = EvalConf getEventsTest setEventsTest evalEvents undefined
 
 getEventsTest = eventInfos
 setEventsTest eis (TestState _ os vs) = (TestState eis os vs)

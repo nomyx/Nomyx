@@ -230,7 +230,7 @@ launchWebServer ts net = do
    let conf = nullConf {HS.port = T._port net}
    docdir <- liftIO getDocDir
    auth<- Auth.launchAuth (_saveDir set)
-   let wst = WebState ts updateSession' evalFunc' undefined
+   let wst = WebState ts updateSession' (EvalConf undefined undefined evalFunc' undefined)
    simpleHTTP conf $ server (WebSession wst auth) set net docdir
 
 evalFunc' :: Nomex a -> EvaluateN Nomex Session a

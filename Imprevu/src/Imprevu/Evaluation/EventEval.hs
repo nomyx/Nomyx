@@ -20,25 +20,28 @@ import           Data.Validation
 import           Data.Typeable
 import           Imprevu.Types
 import           Imprevu.Evaluation.Utils
-import           Prelude                     hiding (log, (.))
+import           Prelude                     hiding (log)
 import           Safe
 import           Debug.Trace.Helpers    (traceM)
 
 
 -- | Environment necessary for the evaluation of events
 data EvalEnvN n s = EvalEnv { _evalEnv     :: s,
-                              getEvents    :: s -> [EventInfoN n],
-                              setEvents    :: [EventInfoN n] -> s -> s,
-                              evalFunc     :: forall a. n a -> EvaluateN n s a,           -- evaluation function
-                              errorHandler :: EventNumber -> String -> EvaluateN n s ()}  -- error function
+                              _evalConf    :: EvalConfN n s}
+
+data EvalConfN n s = EvalConf { getEvents    :: s -> [EventInfoN n],
+                                setEvents    :: [EventInfoN n] -> s -> s,
+                                _evalFunc     :: forall a. n a -> EvaluateN n s a,           -- evaluation function
+                                _errorHandler :: EventNumber -> String -> EvaluateN n s ()}  -- error function
 
 -- | Environment necessary for the evaluation of Nome
 type EvaluateN n s a = ExceptT String (State (EvalEnvN n s)) a
 
 makeLenses ''EvalEnvN
+makeLenses ''EvalConfN
 
 events :: Lens' (EvalEnvN n s) [EventInfoN n]
-events f ee@(EvalEnv s ge se _ _) = fmap (\s' -> ee{_evalEnv = se s' s}) (f $ ge s)
+events f ee@(EvalEnv s (EvalConf ge se _ _)) = fmap (\s' -> ee{_evalEnv = se s' s}) (f $ ge s)
 
 
 -- * Event triggers
@@ -63,8 +66,8 @@ triggerIfComplete :: (EventInfoN n, Maybe SomeData) -> EvaluateN n s ()
 triggerIfComplete (EventInfo en _ h SActive _, Just (SomeData val)) = case cast val of
    Just a -> do
       traceM $ "triggerIfComplete: " ++ (show a)
-      eval <- gets evalFunc
-      err <- gets errorHandler
+      eval <- use (evalConf . evalFunc)
+      err <- use (evalConf . errorHandler)
       (void $ (eval $ h (en, a))) `catchError` (err en)
    Nothing -> error "Bad trigger data type"
 triggerIfComplete _ = return ()
@@ -121,7 +124,7 @@ getEventResult'  EmptyEvent     _   _  = return $ AccFailure []
 getEventResult' (SumEvent a b)  ers fa = liftM2 (<|>) (getEventResult' a ers (fa ++ [SumL])) (getEventResult' b ers (fa ++ [SumR]))
 getEventResult' (AppEvent f b)  ers fa = liftM2 (<*>) (getEventResult' f ers (fa ++ [AppL])) (getEventResult' b ers (fa ++ [AppR]))
 getEventResult' (LiftEvent a)   _   _  = do
-   eval <- gets evalFunc
+   eval <- use (evalConf . evalFunc)
    AccSuccess <$> eval a
    --return $ AccSuccess r
 getEventResult' (BindEvent a f) ers fa = do
@@ -167,7 +170,8 @@ getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
 execSignals :: (Show a, Show e, Typeable e, Eq e, Show d, Typeable d, Eq d) => n a -> [(Signal e d, d)] -> EvalEnvN n s -> s
 execSignals r sds evalEnv = _evalEnv $ runIdentity $ flip execStateT evalEnv $ do
    res <- runExceptT $ do
-      evalFunc evalEnv r
+      let eval = _evalFunc $ _evalConf evalEnv
+      eval r
       mapM_ (\(f,d) -> triggerEvent f d) sds
    case res of
       Right a -> return a

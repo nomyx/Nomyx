@@ -308,11 +308,15 @@ delVictoryRule rn = do
 runEvalError :: RuleNumber -> Maybe PlayerNumber -> Evaluate a -> State Game ()
 runEvalError rn mpn eva = do
   g <- get
-  let (EvalEnv (EvalState g' _) _ _ _ _) = execState (Imp.runEvalError' eva) (defaultEvalEnv rn g)
+  let (EvalEnv (EvalState g' _) _) = execState (Imp.runEvalError' eva) (defaultEvalEnv rn g)
   put g'
 
 defaultEvalEnv :: RuleNumber -> Game -> EvalEnvN Nomex EvalState
-defaultEvalEnv rn g = EvalEnv (EvalState g rn) getEventsNomex setEventsNomex evalNomex undefined where
+defaultEvalEnv rn g = EvalEnv (EvalState g rn) defaultEvalConf
+
+--TODO: to check. how to map the events correctly?
+defaultEvalConf :: EvalConfN Nomex EvalState
+defaultEvalConf = EvalConf getEventsNomex setEventsNomex evalNomex undefined where
    getEventsNomex s = map _erEventInfo (_events $ _eGame s)
    setEventsNomex eis s = (eGame . events) .~ (getreis (_events $ _eGame s) eis) $ s where
      getreis reis eis = if (length reis /= length eis) then error "setEvents" else zipWith (\rei ei -> rei {_erEventInfo = ei}) reis eis

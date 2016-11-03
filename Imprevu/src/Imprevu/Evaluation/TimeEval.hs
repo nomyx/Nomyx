@@ -20,22 +20,22 @@ type Time = Signal UTCTime UTCTime
 --data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. n a -> EvaluateN n s a,     -- evaluation function
 --                               _errorHandler :: EventNumber -> String -> EvaluateN n s ()}    -- error function
 
-launchTimeEvents :: (Monad n) => TVar s -> EvalEnvN n s -> IO ()
-launchTimeEvents tv ee = do
+launchTimeEvents :: (Monad n) => TVar s -> EvalConfN n s -> IO ()
+launchTimeEvents tv ec = do
     now <- getCurrentTime
     --putStrLn $ "tick " ++ (show now)
     s <- atomically $ readTVar tv
-    let timeEvents = join $ maybeToList $ runEvaluate (getTimeEvents now) ee --(EvalEnv s (_evalFunc ef) (_errorHandler ef))
+    let timeEvents = join $ maybeToList $ runEvaluate (getTimeEvents now) (EvalEnv s ec)
     unless (null timeEvents) $ putStrLn "found time event(s)"
-    mapM_ (triggerTimeEvent tv ee) timeEvents
+    mapM_ (triggerTimeEvent tv ec) timeEvents
     --sleep 30 second roughly
     threadDelay 30000000
-    launchTimeEvents tv ee
+    launchTimeEvents tv ec
 
-triggerTimeEvent :: (Monad n) => TVar s -> EvalEnvN n s -> UTCTime -> IO ()
-triggerTimeEvent tv ee t = do
+triggerTimeEvent :: (Monad n) => TVar s -> EvalConfN n s -> UTCTime -> IO ()
+triggerTimeEvent tv ec t = do
     s <- atomically $ readTVar tv
-    let s' = execSignals (return ()) [(Signal t, t)] ee
+    let s' = execSignals (return ()) [(Signal t, t)] (EvalEnv s ec)
     atomically $ writeTVar tv s'
     --save m'
 

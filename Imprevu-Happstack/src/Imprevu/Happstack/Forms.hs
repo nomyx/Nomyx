@@ -27,9 +27,9 @@ default (Integer, Double, Data.Text.Text)
 type BackLink = EventNumber -> SignalAddress -> InputView -> Text
 
 viewInput :: ClientNumber -> WebStateN n s -> BackLink -> EventInfoN n -> ServerPartT IO (Maybe Html)
-viewInput cn (WebState tvs _ f g) bl ei@(EventInfo en _ _ SActive _) = do
+viewInput cn (WebState tvs _ conf) bl ei@(EventInfo en _ _ SActive _) = do
    s <- liftIO $ atomically $ readTVar tvs
-   ds <- mapMaybeM (viewInput' en cn bl) (getRemainingSignals ei (EvalEnv s f g))
+   ds <- mapMaybeM (viewInput' en cn bl) (getRemainingSignals ei (EvalEnv s conf))
    traceM $ "viewInput " ++ (show $ length ds)
    return $ if null ds
       then Nothing
@@ -59,7 +59,7 @@ inputForm' (CheckboxField _ choices) = CheckboxData <$> inputCheckboxes choices 
 
 -- | a form result has been sent
 newInput :: EventNumber -> SignalAddress -> InputView -> WebStateN n s -> Text -> ServerPartT IO Response
-newInput en sa ff (WebState tv updateSession _ _) bl = toResponse <$> do
+newInput en sa ff (WebState tv updateSession _) bl = toResponse <$> do
    methodM POST
    r <- eitherForm environment "user" (inputForm' ff)
    case r of
