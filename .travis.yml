@@ -1,28 +1,35 @@
-language: haskell
-ghc: 
-  - 7.6
-  - 7.8
-
 notifications:
   email:
     recipients: corentin.dupont@gmail.com
 
-install:
-  - cabal install happy-1.19.3
-  - cabal install --ghc-options=-DNO_INTERPRET_QUOTES Nomyx-Language/ Nomyx-Library/ Nomyx-Core/ Nomyx-Web/ Nomyx/ --constraint mtl==2.1.* -f -integer-simple
-
-script: Nomyx/tests.sh
-
+# Use new container infrastructure to enable caching
 sudo: false
+
+# Choose a lightweight base image; we provide our own build tools.
+language: c
 
 # Caching so the next build will be fast too.
 cache:
   directories:
   - $HOME/.stack
 
+# Ensure necessary system libraries are present
+addons:
+  apt:
+    packages:
+      - libgmp-dev
+
 before_install:
 # Download and unpack the stack executable
 - mkdir -p ~/.local/bin
 - export PATH=$HOME/.local/bin:$PATH
 - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+install:
+# Build dependencies
+- stack --no-terminal --install-ghc test --only-dependencies
+
+script:
+# Build the package, its tests, and its docs and run the tests
+- stack --no-terminal test --haddock --no-haddock-deps
 
