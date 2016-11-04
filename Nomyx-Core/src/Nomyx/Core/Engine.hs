@@ -29,13 +29,7 @@ module Nomyx.Core.Engine(
 
    -- * Events management
    events,
---   getRemainingSignals,
    getEventInfo,
---   getFormField,
-
-   -- * Inputs management
---   FormField(..),
---   InputData(..),
 
    -- * Outputs management
    Output(..),
@@ -44,13 +38,10 @@ module Nomyx.Core.Engine(
    isOutput,
 
    -- * Time
---   getTimes,
---   getGameTimes,
    currentTime,
 
    -- * Misc
    tracePN,
-   replaceWith,
    getChoiceEvents,
    getTextEvents,
    runEvaluate,
@@ -61,4 +52,5 @@ import           Nomyx.Core.Engine.Evaluation
 import           Nomyx.Core.Engine.GameEvents
 import           Nomyx.Core.Engine.Test
 import           Nomyx.Core.Engine.Types
-import           Nomyx.Core.Engine.Utils
+import           Nomyx.Core.Engine.EvalUtils
+import           Imprevu.Evaluation.Utils

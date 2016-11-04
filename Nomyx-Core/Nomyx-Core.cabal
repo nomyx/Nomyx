@@ -77,7 +77,6 @@ library
                      Nomyx.Core.Engine.Types
                      Nomyx.Core.Engine.GameEvents
                      Nomyx.Core.Engine.Test
-                     Nomyx.Core.Engine.Utils
                      Paths_Nomyx_Core
                      Data.Todo
     ghc-options: -W -threaded -DNO_INTERPRET_QUOTES

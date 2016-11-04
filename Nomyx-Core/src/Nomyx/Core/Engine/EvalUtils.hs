@@ -19,20 +19,9 @@ import           Data.Typeable
 import           Imprevu.Evaluation
 import           Language.Nomyx.Expression
 import           Nomyx.Core.Engine.Types
-import           Nomyx.Core.Engine.Utils
 import           Prelude                   hiding (log, (.))
 import           Safe
-
----- find a signal occurence in an environment
---lookupSignal :: Typeable a => Signal a -> SignalAddress -> [SignalOccurence] -> Maybe a
---lookupSignal s sa envi = headMay $ mapMaybe (getSignalData s sa) envi
---
-----get the signal data from the signal occurence
---getSignalData :: Typeable a => Signal a -> SignalAddress -> SignalOccurence -> Maybe a
---getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
---   ((s'', res') :: (Signal a, a)) <- cast (s', res)
---   if (s'' == s) && (sa' == sa) then Just res' else Nothing
-
+import           Debug.Trace.Helpers    (traceM)
 
 errorHandler :: EventNumber -> String -> Evaluate ()
 errorHandler en s = do
@@ -52,8 +41,6 @@ log mpn s = focusGame $ do
 
 --liftEval :: EvaluateNE a -> Evaluate a
 --liftEval r = runReader r <$> get
-
-
 
 focusGame :: State Game a -> Evaluate a
 focusGame = lift . zoom (evalEnv . eGame)
@@ -93,12 +80,6 @@ withRN rn eval = do
    evalEnv . eRuleNumber .= oldRn
    return a
 
---instance Eq SomeSignal where
---  (SomeSignal e1) == (SomeSignal e2) = e1 === e2
+tracePN :: (Monad m) => Int -> String -> m ()
+tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s
 
---instance Show EventInfo where
---   show (EventInfo en rn _ _ s envi) =
---      "event num: " ++ (show en) ++
---      ", rule num: " ++ (show rn) ++
---      ", envs: " ++ (show envi) ++
---      ", status: " ++ (show s)

@@ -18,7 +18,6 @@ import           Imprevu
 import           Language.Nomyx
 import           Nomyx.Core.Engine.EvalUtils
 import           Nomyx.Core.Engine.Types     hiding (_vRuleNumber)
-import           Nomyx.Core.Engine.Utils
 import           Prelude                     hiding (log, (.))
 import           System.Random
 

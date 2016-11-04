@@ -9,10 +9,9 @@ import Control.Monad.State
 import Data.List
 import Language.Nomyx.Expression
 import Nomyx.Core.Engine.Evaluation
+import Nomyx.Core.Engine.EvalUtils
 import Nomyx.Core.Engine.Types
-import Nomyx.Core.Engine.Utils
-import Imprevu.Evaluation.EventEval
-import Imprevu.Evaluation.InputEval
+import Imprevu.Evaluation
 import Control.Lens
 import Control.Category ((>>>))
 import Control.Exception as E
