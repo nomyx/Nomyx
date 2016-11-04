@@ -64,8 +64,18 @@ mainPage :: WebState -> ServerPartT IO Response
 mainPage ws@(WebState tts _ _) = do
    (TestState eis os _) <- liftIO $ atomically $ readTVar tts
    let link en sa iv = pack $ "/test/do-input/" ++ (show en) ++ "/" ++ (show sa) ++ "/" ++ (urlEncode $ show iv)
-   m <- mapM (viewInput 1 ws link) eis
+   m1 <- mapM (viewInput 1 ws link) eis
+   m2 <- mapM (viewInput 2 ws link) eis
+   m3 <- mapM (viewInput 3 ws link) eis
+   m4 <- mapM (viewInput 4 ws link) eis
    return $ toResponse $ do
-     sequence_ $ catMaybes m
+     sequence_ $ catMaybes m1
+     "-----------"
+     sequence_ $ catMaybes m2
+     "-----------"
+     sequence_ $ catMaybes m3
+     "-----------"
+     sequence_ $ catMaybes m4
+     "-----------\n"
      toHtml $ show os
 
