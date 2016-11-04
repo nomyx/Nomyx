@@ -119,7 +119,7 @@ mainLoop settings saveDir host port lib = do
 --                             _eRuleNumber :: RuleNumber} -- number of the rule requesting the evaluation
 
 evalNomex' :: Nomex a ->  EvaluateN Nomex Session a
-evalNomex' exp = undefined
+evalNomex' exp = error "evalNomex"
 
 loadMulti :: Settings -> FilePath -> ServerHandle -> IO Multi
 loadMulti set libPath sh = do
