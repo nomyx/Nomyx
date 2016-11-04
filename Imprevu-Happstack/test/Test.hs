@@ -1,10 +1,10 @@
 
 module Test where
 
-import Imprevu.Happstack.Test
+import Imprevu.Happstack.Test as T
 import Distribution.TestSuite
 
 tests :: IO [Test]
 tests = do
-  start
+  T.tests
   return []

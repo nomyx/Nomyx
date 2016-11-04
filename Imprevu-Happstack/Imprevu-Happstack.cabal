@@ -33,9 +33,11 @@ library
                    text                   >= 1.1 && < 1.3,
                    monad-extras -any,
                    stm,
-                   safe
+                   safe,
+                   HTTP
     exposed-modules: Imprevu.Happstack.Forms
                      Imprevu.Happstack.Types
+                     Imprevu.Happstack.TestServer
                      Imprevu.Happstack.Test
     exposed: True
     buildable: True

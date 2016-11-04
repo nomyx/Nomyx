@@ -51,10 +51,10 @@ viewInput' _ _ _ _ = return Nothing
 
 inputForm' :: InputView -> ImpForm InputDataView
 inputForm' (RadioField s choices)    = RadioData    <$> RB.label s ++> (RB.inputRadio choices (== 0)) <++ RB.label (" " :: String)
-inputForm' (TextField _)             = TextData     <$> RB.inputText "" <++ label (" " :: String)
-inputForm' (TextAreaField _)         = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
-inputForm' (ButtonField _)           = pure ButtonData
-inputForm' (CheckboxField _ choices) = CheckboxData <$> inputCheckboxes choices (const False) <++ label (" " :: String)
+inputForm' (TextField s)             = TextData     <$> RB.label s ++> (RB.inputText "") <++ label (" " :: String)
+inputForm' (TextAreaField s)         = TextAreaData <$> RB.label s ++> (textarea 50 5  "") <++ label (" " :: String)
+inputForm' (ButtonField s)           = pure ButtonData   <$> RB.label s
+inputForm' (CheckboxField s choices) = CheckboxData <$> RB.label s ++> (inputCheckboxes choices $ const False) <++ label (" " :: String)
 
 
 -- | a form result has been sent
