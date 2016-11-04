@@ -5,14 +5,15 @@
 
 module Imprevu.Evaluation.TimeEval where
 
-import Imprevu.Evaluation.EventEval
 import Imprevu.Types
+import Imprevu.Evaluation.EventEval
+import Imprevu.Evaluation.Types
 import Data.Time
 import Data.Maybe
+import Data.Typeable
 import Control.Concurrent.STM
 import Control.Concurrent
 import Control.Monad
-import Data.Typeable
 import Control.Lens
 
 type Time = Signal UTCTime UTCTime

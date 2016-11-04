@@ -19,29 +19,11 @@ import           Data.Maybe
 import           Data.Validation
 import           Data.Typeable
 import           Imprevu.Types
+import           Imprevu.Evaluation.Types
 import           Imprevu.Evaluation.Utils
 import           Prelude                     hiding (log)
 import           Safe
 import           Debug.Trace.Helpers    (traceM)
-
-
--- | Environment necessary for the evaluation of events
-data EvalEnvN n s = EvalEnv { _evalEnv     :: s,
-                              _evalConf    :: EvalConfN n s}
-
-data EvalConfN n s = EvalConf { getEvents    :: s -> [EventInfoN n],
-                                setEvents    :: [EventInfoN n] -> s -> s,
-                                _evalFunc     :: forall a. n a -> EvaluateN n s a,           -- evaluation function
-                                _errorHandler :: EventNumber -> String -> EvaluateN n s ()}  -- error function
-
--- | Environment necessary for the evaluation of Nome
-type EvaluateN n s a = ExceptT String (State (EvalEnvN n s)) a
-
-makeLenses ''EvalEnvN
-makeLenses ''EvalConfN
-
-events :: Lens' (EvalEnvN n s) [EventInfoN n]
-events f ee@(EvalEnv s (EvalConf ge se _ _)) = fmap (\s' -> ee{_evalEnv = se s' s}) (f $ ge s)
 
 
 -- * Event triggers

@@ -25,6 +25,7 @@ import           Data.Typeable
 import           Data.Maybe
 import           Data.Validation
 import           Imprevu.Types
+import           Imprevu.Evaluation.Types
 import           Imprevu.Evaluation.EventEval
 import           Imprevu.Evaluation.Utils
 import           Prelude                     hiding (log, (.))

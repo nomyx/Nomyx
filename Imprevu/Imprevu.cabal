@@ -43,6 +43,7 @@ library
                      Imprevu.Variables
                      Imprevu.SysMgt
                      Imprevu.Evaluation
+                     Imprevu.Evaluation.Types
                      Imprevu.Evaluation.EventEval
                      Imprevu.Evaluation.InputEval
                      Imprevu.Evaluation.TimeEval

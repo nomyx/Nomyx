@@ -18,13 +18,8 @@ import Data.Typeable
 import Data.List
 import Data.Maybe
 import Data.Time
-import Imprevu.Events
-import Imprevu.SysMgt
-import Imprevu.Variables
-import Imprevu.Types
-import Imprevu.Evaluation.EventEval
-import Imprevu.Evaluation.InputEval
-import Imprevu.Evaluation.Utils
+import Imprevu
+import Imprevu.Evaluation
 import System.IO.Unsafe
 import System.Random
 import Prelude
