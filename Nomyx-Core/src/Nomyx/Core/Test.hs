@@ -56,23 +56,21 @@ defaultNetwork = Network "" 0
 -- each test can be loaded individually in Nomyx with the command line:
 -- Nomyx -l <"test name">
 regularTests :: [(String, StateT Session IO (), Multi -> Bool)]
-regularTests = [("hello World",           gameHelloWorld,         condHelloWorld),
-         ("hello World 2 players", gameHelloWorld2Players, condHelloWorld2Players),
-         ("Money transfer",        gameMoneyTransfer,      condMoneyTransfer),
-         ("Partial Function 1",    gamePartialFunction1,   condPartialFunction),
-         ("Partial Function 2",    gamePartialFunction2,   condPartialFunction),
-         ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
-         ("Test file 1",           testFile1,              condNRules 2),
-         ("Test file 2",           testFile2,              condNRules 2),
-#if __GLASGOW_HASKELL__ >= 708
-         --Data.Time is Safe only in recent versions
-         ("Test import Data.Time", testFileTime,           condNRules 2),
-#endif
-         ("load file twice",       testFileTwice,          condNRules 1),
-         ("load file twice 2",     testFileTwice',         condNRules 3),
-         ("load file unsafe",      testFileUnsafeIO,       condNRules 1)] ++
-         map (\i -> ("Loop" ++ show i,      loops !! (i-1),      condNoGame))   [1..(length loops)] ++
-         map (\i -> ("Forbidden" ++ show i, forbiddens !! (i-1), condNRules 1)) [1..(length forbiddens)]
+regularTests =
+   [("hello World",           gameHelloWorld,         condHelloWorld),
+    ("hello World 2 players", gameHelloWorld2Players, condHelloWorld2Players),
+    ("Money transfer",        gameMoneyTransfer,      condMoneyTransfer),
+    ("Partial Function 1",    gamePartialFunction1,   condPartialFunction),
+    ("Partial Function 2",    gamePartialFunction2,   condPartialFunction),
+    ("Partial Function 3",    gamePartialFunction3,   condPartialFunction3),
+    ("Test file 1",           testFile1,              condNRules 2),
+    ("Test file 2",           testFile2,              condNRules 2),
+    ("Test import Data.Time", testFileTime,           condNRules 2),
+    ("load file twice",       testFileTwice,          condNRules 1),
+    ("load file twice 2",     testFileTwice',         condNRules 3),
+    ("load file unsafe",      testFileUnsafeIO,       condNRules 1)] ++
+    map (\i -> ("Loop" ++ show i,      loops !! (i-1),      condNoGame))   [1..(length loops)] ++
+    map (\i -> ("Forbidden" ++ show i, forbiddens !! (i-1), condNRules 1)) [1..(length forbiddens)]
 
 -- Those tests should make the game die immediately because of security problem (it will be re-launched)
 fatalTests :: [(String, StateT Session IO (), Multi -> Bool)]
@@ -182,7 +180,7 @@ partialFunction1 = [cr|void $ readVar_ (V "toto1" :: V String)|]
 
 partialFunction2 :: String
 partialFunction2 = [cr|void $ do
-   t <- liftEffect getCurrentTime
+   t <- getCurrentTime
    onEventOnce (timeEvent $ addUTCTime 5 t) $ const $ readVar_ (V "toto2")|]
 
 gamePartialFunction1 :: StateT Session IO ()
@@ -317,6 +315,7 @@ inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
 inputAllTexts a pn = do
    s <- get
    let evs = G.runEvaluate (firstGame $ _multi s) 0 getTextEvents
+   --let evs = evalState getTextEvents (firstGame $ _multi s)
    mapM_ (\(en, fa) -> inputResult pn en fa (TextField "") (TextData a) "test") evs
 
 firstGame :: Multi -> Game

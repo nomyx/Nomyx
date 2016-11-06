@@ -233,7 +233,7 @@ evDelOutput on = do
 evSetVictory :: Nomex [PlayerNumber] -> Evaluate ()
 evSetVictory ps = do
    rn <- use (evalEnv . eRuleNumber)
-   putGame undefined (Just $ VictoryInfo rn ps)
+   putGame victory (Just $ VictoryInfo rn ps)
    triggerEvent (Signal Victory) (VictoryInfo rn ps)
 
 evReadVar :: (Typeable a, Show a) => V a -> Evaluate (Maybe a)
