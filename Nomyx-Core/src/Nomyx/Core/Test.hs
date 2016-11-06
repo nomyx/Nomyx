@@ -217,8 +217,6 @@ condPartialFunction3 m = (length $ _rules $ firstGame m) == 3
 
 -- * Malicious codes
 
-
-
 --infinite loops: they should be interrupted by the watchdog & resource limits
 loops, forbiddens :: [StateT Session IO ()]
 loops = [loop1, loop2, loop3, loop4, loop5, loop6, stackOverflow, outputLimit]
@@ -318,7 +316,7 @@ inputAllRadios choice = do
 inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
 inputAllTexts a pn = do
    s <- get
-   let evs = evalState getTextEvents (firstGame $ _multi s)
+   let evs = G.runEvaluate (firstGame $ _multi s) 0 getTextEvents
    mapM_ (\(en, fa) -> inputResult pn en fa (TextField "") (TextData a) "test") evs
 
 firstGame :: Multi -> Game

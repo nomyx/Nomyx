@@ -18,6 +18,7 @@ import Nomyx.Library.Victory
 import Control.Monad.State
 import Data.Typeable
 import Data.Function hiding ((.))
+import Data.Maybe
 import Control.Lens
 import System.Random
 import Imprevu.Test.TestMgt
@@ -66,8 +67,8 @@ testRule = RuleInfo  { _rNumber       = 0,
 execRuleGame :: Nomex a -> Game -> Game
 execRuleGame r g = execState (runSystemEval' $ void $ evalNomex r) g
 
-execRuleEventGame :: (Show e, Typeable e) => Nomex a -> Signal s e -> e -> Game -> Game
-execRuleEventGame r f d g = undefined --execState (runSystemEval' $ evalNomex r >> (triggerEvent f d)) g
+execRuleEventGame :: (Show e, Typeable e, Eq e, Eq s, Show s, Typeable s) => Nomex a -> Signal s e -> e -> Game -> Game
+execRuleEventGame r f d g = execState (runSystemEval' $ evalNomex r >> (triggerEvent f d)) g
 
 execRule :: Nomex a -> Game
 execRule r = execRuleGame r testGame
@@ -294,29 +295,29 @@ testVotePlayerLeaveEx = testVoteRule Active testVotePlayerLeave
 
 --Get all event numbers of type choice (radio button)
 getChoiceEvents :: State EvalEnv [(EventNumber, SignalAddress, PlayerNumber, String)]
-getChoiceEvents = undefined --do
---   evs <- use (evalEnv . eGame . events)
---   g <- use eGame
---   return $ [(_eventNumber ev, fa, pn, t) | ev <- evs, (fa, pn, t) <- getInputChoices ev g]
+getChoiceEvents = do
+   evs <- use (evalEnv . eGame . events)
+   ee <- get
+   return $ [(_eventNumber $ _erEventInfo ev, fa, pn, t) | ev <- evs, (fa, pn, t) <- getInputChoices ev ee]
 
-getInputChoices :: EventInfo -> Game -> [(SignalAddress, PlayerNumber, String)]
-getInputChoices ei g = undefined --mapMaybe isInput (getRemainingSignals ei g) where
---   isInput :: (SignalAddress, SomeSignal) -> Maybe (SignalAddress, PlayerNumber, String)
---   isInput (fa, (SomeSignal (InputS pn t (Radio _)))) = Just (fa, pn, t)
---   isInput _ = Nothing
+getInputChoices :: RuleEventInfo -> EvalEnv -> [(SignalAddress, PlayerNumber, String)]
+getInputChoices (RuleEventInfo _ ei) ee = mapMaybe isInput (getRemainingSignals ei ee) where
+   isInput :: (SignalAddress, SomeSignal) -> Maybe (SignalAddress, PlayerNumber, String)
+   isInput (fa, (SomeSignal (InputS (Radio t _) pn))) = Just (fa, pn, t)
+   isInput _ = Nothing
 
 ----Get all event numbers of type text (text field)
-getTextEvents :: State Game [(EventNumber, SignalAddress)]
-getTextEvents = undefined --do
---   evs <- use events
---   g <- get
---   return $ [(_eventNumber ev, fa) | ev <- evs, fa <- getInputTexts ev g]
---
---getInputTexts :: EventInfo -> Game -> [SignalAddress]
---getInputTexts ei g = mapMaybe isInput (getRemainingSignals ei g) where
---   isInput :: (t, SomeSignal) -> Maybe t
---   isInput (fa, (SomeSignal (Input _ _ Text))) = Just fa
---   isInput _ = Nothing
+getTextEvents :: State EvalEnv [(EventNumber, SignalAddress)]
+getTextEvents = do
+   evs <- use (evalEnv . eGame . events)
+   ee <- get
+   return $ [(_eventNumber $ _erEventInfo ev, fa) | ev <- evs, fa <- getInputTexts ev ee]
+
+getInputTexts :: RuleEventInfo -> EvalEnv -> [SignalAddress]
+getInputTexts (RuleEventInfo _ ei) ee = mapMaybe isInput (getRemainingSignals ei ee) where
+   isInput :: (t, SomeSignal) -> Maybe t
+   isInput (fa, (SomeSignal (InputS (Text _) _))) = Just fa
+   isInput _ = Nothing
 
 addPlayer :: PlayerInfo -> Evaluate Bool
 addPlayer pi = do
