@@ -12,7 +12,6 @@
 - Simplify "RuleEventInfo" ?
 
 - Create master module "Imprevu.Happstack"
-- simplify EvalEnvN, WebState
 
 - factorize runEvalError/runEvaluate
 
