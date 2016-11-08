@@ -24,7 +24,7 @@ import           Text.Reform.Happstack               (environment)
 import qualified Text.Reform.Generalized       as G
 default (Integer, Double, Data.Text.Text)
 
-type BackLink = EventNumber -> SignalAddress -> InputView -> Text
+type BackLink = EventNumber -> SignalAddress -> InputView -> ClientNumber -> Text
 
 viewInput :: ClientNumber -> WebStateN n s -> BackLink -> EventInfoN n -> ServerPartT IO (Maybe Html)
 viewInput cn (WebState tvs _ conf) bl ei@(EventInfo en _ _ SActive _) = do
@@ -42,7 +42,7 @@ viewInput' en me bl (sa, (SomeSignal (InputS s cn)))
      traceM $ "viewInput' " ++ (show s)
      let iv = viewSignal s
      lf  <- viewForm "user" $ inputForm' iv
-     let link = bl en sa iv
+     let link = bl en sa iv me
      return $ Just $ tr $ td $ do
           --fromString title
           fromString " "
@@ -58,12 +58,12 @@ inputForm' (CheckboxField s choices) = CheckboxData <$> RB.label s ++> (inputChe
 
 
 -- | a form result has been sent
-newInput :: EventNumber -> SignalAddress -> InputView -> WebStateN n s -> Text -> ServerPartT IO Response
-newInput en sa ff (WebState tv updateSession _) bl = toResponse <$> do
+newInput :: EventNumber -> SignalAddress -> InputView -> WebStateN n s -> ClientNumber -> Text -> ServerPartT IO Response
+newInput en sa ff (WebState tv updateSession _) pn bl = toResponse <$> do
    methodM POST
    r <- eitherForm environment "user" (inputForm' ff)
    case r of
-      (Right c) -> liftIO $ updateSession tv $ InputResult en sa ff c
+      (Right c) -> liftIO $ updateSession tv $ InputResult en sa ff c pn
       (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
    seeOther bl "Redirecting..."
 

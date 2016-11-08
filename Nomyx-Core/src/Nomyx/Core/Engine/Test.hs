@@ -233,7 +233,7 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
 
 --Trigger a vote event (0 for positive, 1 for negative), using event details
 triggerVote :: Int -> (EventNumber, SignalAddress, PlayerNumber, String) -> Evaluate ()
-triggerVote res (en, sa, pn, t) = triggerInput (RadioField t [(0,"For"),(1,"Against")]) (RadioData res) sa en
+triggerVote res (en, sa, pn, t) = triggerInput (RadioField t [(0,"For"),(1,"Against")]) (RadioData res) sa pn en
 
 voteGame' :: Int -> Int -> Int -> Bool -> Rule -> Game
 voteGame' positives negatives notVoted timeEvent rf  = voteGameActions positives negatives notVoted timeEvent $ addActivateRule rf 1

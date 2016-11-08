@@ -105,7 +105,7 @@ inputResult pn en sa ff ide = do
    tracePN pn $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show sa ++ ", Form " ++ show ff ++ ", choice " ++ show ide
    evs <- gets _events
    let rn = _erRuleNumber $ fromJust $ find (\(RuleEventInfo rn (EventInfo en' _ _ _ _)) -> en' == en) evs
-   runEvalError rn (Just pn) $ triggerInput ff ide sa en
+   runEvalError rn (Just pn) $ triggerInput ff ide sa pn en
 
 -- | A helper function to run the game state.
 -- It additionally sets the current time.

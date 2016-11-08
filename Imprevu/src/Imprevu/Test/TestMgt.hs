@@ -115,7 +115,7 @@ execInput :: TestM a -> EventNumber -> SignalAddress -> InputView -> InputDataVi
 execInput r en sa ff ide = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
    res <- runExceptT $ do
       void $ evalEvents r
-      triggerInput ff ide sa en
+      triggerInput ff ide sa 1 en
    case res of
       Right a -> return a
       Left _ -> error $ show "error occured"
@@ -124,7 +124,7 @@ execInputs :: TestM a -> EventNumber -> [(SignalAddress, InputView, InputDataVie
 execInputs r en fads = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
    res <- runExceptT $ do
       void $ evalEvents r
-      mapM (\(sa, ff, ide) -> triggerInput ff ide sa en) fads
+      mapM (\(sa, ff, ide) -> triggerInput ff ide sa 1 en) fads
       return ()
    case res of
       Right a -> return a

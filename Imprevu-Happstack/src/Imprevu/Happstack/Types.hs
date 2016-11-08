@@ -18,7 +18,7 @@ data WebStateN n s = WebState {_webState     :: TVar s,
                                updateSession :: TVar s -> InputResult -> IO (),               -- update the session after an input is submitted
                                webEvalConf   :: EvalConfN n s}
 
-data InputResult = InputResult EventNumber SignalAddress InputView InputDataView
+data InputResult = InputResult EventNumber SignalAddress InputView InputDataView ClientNumber
 
 type ImpForm a = Form (ServerPartT IO) [HS.Input] ImpFormError Html () a
 

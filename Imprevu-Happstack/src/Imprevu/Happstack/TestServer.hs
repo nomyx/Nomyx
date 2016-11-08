@@ -48,34 +48,36 @@ server ws = do
                       path $ \en ->
                       path $ \sa ->
                       path $ \iv ->
-                      newInput en sa iv ws "/test/main"
+                      path $ \pn ->
+                      newInput en sa iv ws pn "/test/main"
                  ]
 
 updateSessionTest :: TVar TestState -> InputResult -> IO ()
-updateSessionTest tvs (InputResult en sa ff ida) = do
+updateSessionTest tvs (InputResult en sa ff ida pn) = do
    s <- atomically $ readTVar tvs
    putStrLn $ show s
    putStrLn  $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show sa ++ ", Form " ++ show ff ++ ", choice " ++ show ida
-   let ev = runEvalError' $ triggerInput ff ida sa en
+   let ev = runEvalError' $ triggerInput ff ida sa pn en
    let (EvalEnv s' _) = execState ev (EvalEnv s defaultEvalConf)
    atomically $ writeTVar tvs s'
 
 mainPage :: WebState -> ServerPartT IO Response
 mainPage ws@(WebState tts _ _) = do
    (TestState eis os _) <- liftIO $ atomically $ readTVar tts
-   let link en sa iv = pack $ "/test/do-input/" ++ (show en) ++ "/" ++ (show sa) ++ "/" ++ (urlEncode $ show iv)
+   let link en sa iv pn = pack $ "/test/do-input/" ++ (show en) ++ "/" ++ (show sa) ++ "/" ++ (urlEncode $ show iv) ++ "/" ++ (show pn)
    m1 <- mapM (viewInput 1 ws link) eis
    m2 <- mapM (viewInput 2 ws link) eis
    m3 <- mapM (viewInput 3 ws link) eis
    m4 <- mapM (viewInput 4 ws link) eis
    return $ toResponse $ do
+     "Test simple input:"
      sequence_ $ catMaybes m1
-     "-----------"
+     "Test sum of events (first input wins):"
      sequence_ $ catMaybes m2
-     "-----------"
+     "Test product of events (both inputs are necessary):"
      sequence_ $ catMaybes m3
-     "-----------"
+     "Test monadic events (enter \"coco\" to get a second input)"
      sequence_ $ catMaybes m4
-     "-----------\n"
+     "Results:\n"
      toHtml $ show os
 

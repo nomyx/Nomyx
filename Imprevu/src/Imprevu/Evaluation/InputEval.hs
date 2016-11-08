@@ -68,20 +68,20 @@ actSignal _ _ = error "actSignal"
 -- * Input triggers
 
 -- trigger the input form with the input data
-triggerInput :: InputView -> InputDataView -> SignalAddress -> EventNumber -> EvaluateN n s ()
-triggerInput sv dv sa en = do
+triggerInput :: InputView -> InputDataView -> SignalAddress -> ClientNumber -> EventNumber -> EvaluateN n s ()
+triggerInput sv dv sa pn en = do
    evs <- use events
    let mei = find (\a -> a ^. eventNumber == en) evs
-   mapM_ (triggerInputSignal sv dv sa) mei
+   mapM_ (triggerInputSignal sv dv sa pn) mei
 
 -- trigger the input signal with the input data
-triggerInputSignal :: InputView -> InputDataView -> SignalAddress -> EventInfoN n -> EvaluateN n s ()
-triggerInputSignal sv dv sa ei@(EventInfo _ _ _ SActive _) = do
+triggerInputSignal :: InputView -> InputDataView -> SignalAddress -> ClientNumber -> EventInfoN n -> EvaluateN n s ()
+triggerInputSignal sv dv sa pn ei@(EventInfo _ _ _ SActive _) = do
     mss <- findField sv sa ei
     case mss of
-       Just (SomeSignal inp@(InputS e' _)) -> triggerEvent' (SignalData inp (actSignal e' dv))  (Just sa) [ei]
+       Just (SomeSignal inp@(InputS e' pn')) | pn' == pn -> triggerEvent' (SignalData inp (actSignal e' dv))  (Just sa) [ei]
        _ -> error $ "Input not found"
-triggerInputSignal _ _ _ _ = return ()
+triggerInputSignal _ _ _ _ _ = return ()
 
 -- | Get the form field at a certain address
 findField :: InputView -> SignalAddress -> EventInfoN n -> EvaluateN n s (Maybe SomeSignal)
