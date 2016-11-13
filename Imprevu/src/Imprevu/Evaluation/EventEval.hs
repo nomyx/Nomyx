@@ -60,22 +60,21 @@ triggerIfComplete _ = return ()
 getUpdatedEventInfo :: SignalData -> Maybe SignalAddress -> EventInfoN n -> EvaluateN n s (EventInfoN n, Maybe SomeData)
 getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ ev _ _ envi) = do
    trs <- getEventResult ev envi
-   traceM $ "getUpdatedEventInfo trs=" ++ (show trs) ++ " envi=" ++ (show envi) ++ " sig=" ++ (show sig) ++ " addr=" ++ (show addr)
+   traceM $ "\ngetUpdatedEventInfo result of event after applying envi=" ++ (show trs) -- ++ " envi=" ++ (show envi) ++ " sig=" ++ (show sig) ++ " addr=" ++ (show addr)
    case trs of
       AccFailure rs -> case find (\(sa, (SomeSignal ss)) -> (ss === sig) && maybe True (==sa) addr) rs of -- check if our signal match one of the remaining signals
          Just (sa, _) -> do
-            traceM $ "getUpdatedEventInfo sa=" ++ (show sa)
             let envi' = SignalOccurence sd sa : envi
             er <- getEventResult ev envi'                                                           -- add our event to the environment and get the result
             case er of
                AccFailure _ -> do
-                 traceM $ "getUpdatedEventInfo"
+                 traceM $ "getUpdatedEventInfo event to be completed"
                  return (env .~ envi' $ ei, Nothing)                                              -- some other signals are left to complete: add ours in the environment
                AccSuccess a -> do
-                 traceM $ "getUpdatedEventInfo a=" ++ (show a)
+                 traceM $ "getUpdatedEventInfo event completed"
                  return (env .~  [] $ ei, Just $ SomeData a)                                       -- event complete: return the final data result
          Nothing -> do
-           traceM "getUpdatedEventInfo Nothing"
+           traceM "getUpdatedEventInfo: no Event matches"
            return (ei, Nothing)                                                            -- our signal does not belong to this event.
       AccSuccess a -> return (env .~  [] $ ei, Just $ SomeData a)
 
@@ -121,6 +120,7 @@ getEventResult' (SignalEvent a) ers fa = return $ case lookupSignal a fa ers of
 
 getEventResult' (ShortcutEvents es f) ers fa = do
   ers' <- mapM (\e -> getEventResult' e ers (fa ++ [Shortcut])) es -- get the result for each event in the list
+  traceM $ "getEventResult" ++ (show $ f (toMaybe <$> ers'))
   return $ if f (toMaybe <$> ers')                                   -- apply f to the event results that we already have
      then AccSuccess $ toMaybe <$> ers'                               -- if the result is true, we are done. Return the list of maybe results
      else AccFailure $ join $ lefts $ toEither <$> ers'                  -- otherwise, return the list of remaining fields to complete from each event
@@ -131,7 +131,7 @@ runEvalError' egs = do
    e <- runExceptT egs
    case e of
       Right a -> return $ Just a
-      Left e' -> error $ "error " ++ e'
+      Left e' -> error $ "error runEvalError" ++ e'
          --tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
          --void $ runErrorT $ log mpn "Error: "
 
@@ -157,6 +157,6 @@ execSignals r sds evalEnv = _evalEnv $ runIdentity $ flip execStateT evalEnv $ d
       mapM_ (\(f,d) -> triggerEvent f d) sds
    case res of
       Right a -> return a
-      Left _ -> error $ show "error occured"
+      Left s -> error $ "error occured: " ++ s
 
 

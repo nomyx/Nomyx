@@ -31,6 +31,7 @@ import           Imprevu.Evaluation.Utils
 import           Prelude                     hiding (log, (.))
 import           GHC.Generics
 import           Safe
+import           Debug.Trace.Helpers                 (traceM)
 
 -- a form field with its title
 data InputView = RadioField    String [(Int, String)]
@@ -76,34 +77,34 @@ triggerInput sv dv sa pn en = do
 
 -- trigger the input signal with the input data
 triggerInputSignal :: InputView -> InputDataView -> SignalAddress -> ClientNumber -> EventInfoN n -> EvaluateN n s ()
-triggerInputSignal sv dv sa pn ei@(EventInfo _ _ _ SActive _) = do
-    mss <- findField sv sa ei
+triggerInputSignal sv dv sa cn ei@(EventInfo _ _ _ SActive _) = do
+    mss <- findField sv sa ei cn
     case mss of
-       Just (SomeSignal inp@(InputS e' pn')) | pn' == pn -> triggerEvent' (SignalData inp (actSignal e' dv))  (Just sa) [ei]
-       _ -> error $ "Input not found"
+       Just (SomeSignal inp@(InputS e' _)) -> triggerEvent' (SignalData inp (actSignal e' dv))  (Just sa) [ei]
+       _ -> error "Input not found" 
 triggerInputSignal _ _ _ _ _ = return ()
 
 -- | Get the form field at a certain address
-findField :: InputView -> SignalAddress -> EventInfoN n -> EvaluateN n s (Maybe SomeSignal)
-findField sv sa (EventInfo _ e _ _ envi) = findField' sa e envi sv
+findField :: InputView -> SignalAddress -> EventInfoN n -> ClientNumber -> EvaluateN n s (Maybe SomeSignal)
+findField sv sa (EventInfo _ e _ _ envi) cn = findField' sa e envi sv cn
 
-findField' :: SignalAddress -> EventM n e -> [SignalOccurence] -> InputView -> EvaluateN n s (Maybe SomeSignal)
-findField' []         (SignalEvent f)    _  _  = return $ Just $ SomeSignal f
-findField' (SumL:as)  (SumEvent e1 _)  envi ff = findField' as e1 (filterPath SumL envi) ff
-findField' (SumR:as)  (SumEvent _ e2)  envi ff = findField' as e2 (filterPath SumR envi) ff
-findField' (AppL:as)  (AppEvent e1 _)  envi ff = findField' as e1 (filterPath AppL envi) ff
-findField' (AppR:as)  (AppEvent _ e2)  envi ff = findField' as e2 (filterPath AppR envi) ff
-findField' (BindL:as) (BindEvent e1 _) envi ff = findField' as e1 (filterPath BindL envi) ff
-findField' (BindR:as) (BindEvent e1 f) envi ff = do
+findField' :: SignalAddress -> EventM n e -> [SignalOccurence] -> InputView -> ClientNumber -> EvaluateN n s (Maybe SomeSignal)
+findField' []         (SignalEvent f@(InputS i cn'))  _  iv cn = return $ if (iv == (viewSignal i) && cn == cn') then Just $ SomeSignal f else Nothing
+findField' (SumL:as)  (SumEvent e1 _)  envi ff cn = findField' as e1 (filterPath SumL envi) ff cn
+findField' (SumR:as)  (SumEvent _ e2)  envi ff cn = findField' as e2 (filterPath SumR envi) ff cn
+findField' (AppL:as)  (AppEvent e1 _)  envi ff cn = findField' as e1 (filterPath AppL envi) ff cn
+findField' (AppR:as)  (AppEvent _ e2)  envi ff cn = findField' as e2 (filterPath AppR envi) ff cn
+findField' (BindL:as) (BindEvent e1 _) envi ff cn = findField' as e1 (filterPath BindL envi) ff cn
+findField' (BindR:as) (BindEvent e1 f) envi ff cn = do
    ter <- getEventResult e1 (filterPath BindL envi)
    case ter of
-      AccSuccess e2 -> findField' as (f e2) (filterPath BindR envi) ff
+      AccSuccess e2 -> findField' as (f e2) (filterPath BindR envi) ff cn
       AccFailure _  -> return Nothing
-findField' (Shortcut:as) (ShortcutEvents es _) envi ff = do
-   msfs <- mapM (\e-> findField' as e envi ff) es
+findField' (Shortcut:as) (ShortcutEvents es _) envi ff cn = do
+   msfs <- mapM (\e-> findField' as e envi ff cn) es
    return $ headMay $ catMaybes msfs  -- returning the first field that matches
 
-findField' fa _ _ _ = error $ "findField: wrong field address: " ++ (show fa)
+findField' fa _ _ _ _ = error $ "findField: wrong field address: " ++ (show fa)
 
 -- | removes one element of signal address for all signal occurences
 filterPath :: SignalAddressElem -> [SignalOccurence] -> [SignalOccurence]
