@@ -23,6 +23,7 @@ import Imprevu.Evaluation
 import System.IO.Unsafe
 import System.Random
 import Prelude
+import           Debug.Trace.Helpers                 (traceM)
 
 data TestState = TestState {eventInfos :: [EventInfoN TestM],
                             outputs    :: [String],
@@ -100,7 +101,7 @@ defaultEvalEnv :: EvalEnvN TestM TestState
 defaultEvalEnv = EvalEnv (TestState [] [] (Var "" "")) defaultEvalConf
 
 defaultEvalConf :: EvalConfN TestM TestState
-defaultEvalConf = EvalConf getEventsTest setEventsTest evalEvents undefined
+defaultEvalConf = EvalConf getEventsTest setEventsTest evalEvents (error "EvalConf")
 
 getEventsTest = eventInfos
 setEventsTest eis (TestState _ os vs) = (TestState eis os vs)
@@ -112,32 +113,23 @@ execEvents :: (Show s, Typeable s, Show e, Typeable e, Eq s, Eq e) => TestM () -
 execEvents r sds = outputs $ execSignals r sds defaultEvalEnv
 
 execInput :: TestM a -> EventNumber -> SignalAddress -> InputView -> InputDataView -> [String]
-execInput r en sa ff ide = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
-   res <- runExceptT $ do
-      void $ evalEvents r
-      triggerInput ff ide sa 1 en
-   case res of
-      Right a -> return a
-      Left _ -> error $ show "error occured"
+execInput r en sa iv idv = execInputs r en [(sa, iv, idv)]  
 
 execInputs :: TestM a -> EventNumber -> [(SignalAddress, InputView, InputDataView)] -> [String]
 execInputs r en fads = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
    res <- runExceptT $ do
+      traceM "before eval"
       void $ evalEvents r
+      traceM "trigger"
       mapM (\(sa, ff, ide) -> triggerInput ff ide sa 1 en) fads
+      traceM "after"
       return ()
    case res of
       Right a -> return a
-      Left _ -> error $ show "error occured"
+      Left s -> error $ "error occured: " ++ s
 
 exec :: TestM a -> [String]
-exec r = outputs $ _evalEnv $ runIdentity $ flip execStateT defaultEvalEnv $ do
-   res <- runExceptT $ do
-      void $ evalEvents r
-      return ()
-   case res of
-      Right a -> return a
-      Left _ -> error $ show "error occured"
+exec r = execInputs r 0 []
 
 putStrLn' :: String -> TestM ()
 putStrLn' s = modify (\(TestState is ss vs) -> (TestState is (s:ss) vs))
