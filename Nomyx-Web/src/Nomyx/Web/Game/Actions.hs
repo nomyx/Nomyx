@@ -67,7 +67,7 @@ viewIORuleM pn rn g = do
 viewInputsRule :: PlayerNumber -> RuleNumber -> [RuleEventInfo] -> Game -> RoutedNomyxServer (Maybe Html)
 viewInputsRule pn rn ehs g = do
    let filtered = filter (\e -> _erRuleNumber e == rn) ehs
-   let link en sa iv = showRelURL (DoInput en sa iv (_gameName g))
+   let link en sa iv cn = showRelURL (DoInput en sa iv (_gameName g) cn)
    ws <- use webSession
    mis <- liftRouteT $ lift $ mapM (viewInput pn ws link) $ (map _erEventInfo $ sort filtered)
    let is = catMaybes mis
@@ -87,57 +87,13 @@ isPn pn (Output _ _ (Just mypn) _ SActive) = mypn == pn
 isPn _  (Output _ _ Nothing _ SActive) = True
 isPn _ _ = False
 
---viewInput :: PlayerNumber -> Game -> EventInfo -> RoutedNomyxServer (Maybe Html)
---viewInput me g ei@(EventInfo en _ _ _ SActive _) = do
---   ds <- mapMaybeM (viewInput' me (_gameName g) en) (getRemainingSignals ei g)
---   return $ if null ds
---      then Nothing
---      else Just $ sequence_ ds
---viewInput _ _ _ = return Nothing
---
---viewInput' :: PlayerNumber -> GameName -> EventNumber -> (SignalAddress, SomeSignal) -> RoutedNomyxServer (Maybe Html)
---viewInput' me gn en (fa, ev@(SomeSignal (Input pn title _))) | me == pn = do
---  lf  <- liftRouteT $ lift $ viewForm "user" $ inputForm ev
---  let link = showRelURL (DoInput en fa (fromJust $ getFormField ev) gn)
---  return $ Just $ tr $ td $ do
---     fromString title
---     fromString " "
---     blazeForm lf link ! A.id "InputForm"
---viewInput' _ _ _ _ = return Nothing
-
 viewOutput :: Game -> Output -> Maybe Html
 viewOutput g o = if (s /= "") then Just (pre $ fromString s >> br) else Nothing where
    s =  (evalOutput g o)
 
---- TODO: merge SomeSignal and FormField...
---inputForm :: SomeSignal -> NomyxForm InputData
---inputForm (SomeSignal (Input _ _ (Radio choices)))    = RadioData    <$> NWC.inputRadio' (zip [0..] (snd <$> choices)) (== 0) <++ label (" " :: String)
---inputForm (SomeSignal (Input _ _ Text))               = TextData     <$> RB.inputText "" <++ label (" " :: String)
---inputForm (SomeSignal (Input _ _ TextArea))           = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
---inputForm (SomeSignal (Input _ _ Button))             = pure ButtonData
---inputForm (SomeSignal (Input _ _ (Checkbox choices))) = CheckboxData <$> inputCheckboxes (zip [0..] (snd <$> choices)) (const False) <++ label (" " :: String)
---inputForm _ = error "Not an input form"
---
---
---inputForm' :: FormField -> NomyxForm InputData
---inputForm' (RadioField _ _ choices)    = RadioData    <$> NWC.inputRadio' choices (== 0) <++ label (" " :: String)
---inputForm' (TextField _ _)             = TextData     <$> RB.inputText "" <++ label (" " :: String)
---inputForm' (TextAreaField _ _)         = TextAreaData <$> textarea 50 5  "" <++ label (" " :: String)
---inputForm' (ButtonField _ _)           = pure ButtonData
---inputForm' (CheckboxField _ _ choices) = CheckboxData <$> inputCheckboxes choices (const False) <++ label (" " :: String)
---
 ---- | a form result has been sent
-newInput' :: EventNumber -> SignalAddress -> InputView -> GameName -> RoutedNomyxServer Response
-newInput' en sa ii gn = do
+newInput' :: EventNumber -> SignalAddress -> InputView -> GameName -> PlayerNumber -> RoutedNomyxServer Response
+newInput' en sa ii gn pn = do
   ws <- use webSession
-  liftIO $ putStrLn "newInput'"
   let link = showRelURL $ Menu Actions gn
-  liftRouteT $ lift $ newInput en sa ii ws link
---toResponse <$> do
---   pn <- fromJust <$> getPlayerNumber
---   methodM POST
---   r <- liftRouteT $ lift $ eitherForm environment "user" (inputForm' ft)
---   case r of
---      (Right c) -> webCommand $ S.inputResult pn en fa ft c gn
---      (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
---   seeOther (showRelURL $ Menu Actions gn) "Redirecting..."
+  liftRouteT $ lift $ newInput en sa ii ws pn link

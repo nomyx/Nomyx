@@ -54,7 +54,7 @@ data PlayerCommand =
   | NewGame
   | SubmitNewGame
   -- Game actions
-  | DoInput   EventNumber SignalAddress InputView GameName
+  | DoInput   EventNumber SignalAddress InputView GameName PlayerNumber
   | SubmitRule   GameName
   -- Templates
   | NewRuleTemplate GameName
