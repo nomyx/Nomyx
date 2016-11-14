@@ -39,6 +39,14 @@ executable Nomyx
     other-modules: Main
     ghc-options: -W -threaded
 
+Test-Suite test
+    type:      detailed-0.9
+    test-module:    Test
+    hs-source-dirs: test
+    build-depends: base,
+                   Nomyx              == 0.7.6,
+                   Cabal              >= 0.22
+
 source-repository head
   type:              git
   location:          https://github.com/cdupont/Nomyx.git
