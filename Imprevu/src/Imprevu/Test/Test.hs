@@ -22,7 +22,6 @@ import Imprevu.Inputs
 import Imprevu.Variables
 import Imprevu.Messages
 import Imprevu.Types
-import Imprevu.Evaluation.InputEval
 import Imprevu.Test.TestMgt
 import Prelude
 
@@ -32,20 +31,20 @@ data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 
 -- Test input
 testSingleInput :: TestM ()
-testSingleInput = void $ onInputRadio_ "Vote for Holland or Sarkozy" [Holland, Sarkozy] h 1 where
-   h a = putStrLn' ("voted for " ++ show a)
+testSingleInput = void $ onInputRadio' "Vote for Holland or Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
+   h _ a = putStrLn' ("voted for " ++ show a)
 
 testSingleInputEx :: Bool
 testSingleInputEx = "voted for Holland" `elem` g where
-   g = execEvent testSingleInput (InputS (Radio "Vote for Holland or Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) 1) Holland
+   g = execEvent testSingleInput (Signal $ InputS (Radio "Vote for Holland or Sarkozy" [(0, "Holland"), (1, "Sarkozy")]) 1) (0::Int)
 
 testMultipleInputs :: TestM ()
-testMultipleInputs = void $ onInputCheckbox_ "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
-   h a = putStrLn' ("voted for " ++ show a)
+testMultipleInputs = void $ onInputCheckbox' "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
+   h _ a = putStrLn' ("voted for " ++ show a)
 
 testMultipleInputsEx :: Bool
 testMultipleInputsEx = "voted for [Holland,Sarkozy]" `elem` g where
-   g = execEvent testMultipleInputs (InputS (Checkbox "Vote for Holland and Sarkozy"  [(Holland, "Holland"), (Sarkozy, "Sarkozy")]) 1) [Holland, Sarkozy]
+   g = execEvent testMultipleInputs (Signal $ InputS (Checkbox "Vote for Holland and Sarkozy"  [(0, "Holland"), (1, "Sarkozy")]) 1) [0, 1 :: Int]
 
 testInputString :: TestM ()
 testInputString = void $ onInputText_ "Enter a number:" h 1 where
@@ -53,7 +52,7 @@ testInputString = void $ onInputText_ "Enter a number:" h 1 where
 
 testInputStringEx :: Bool
 testInputStringEx = "You entered: 1" `elem` g where
-   g = execEvent testInputString (InputS (Text "Enter a number:") 1) "1"
+   g = execEvent testInputString (Signal $ InputS (Text "Enter a number:") 1) "1"
 
 -- Test message
 testSendMessage :: TestM ()
@@ -100,8 +99,8 @@ testUserInputWrite :: TestM ()
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (messageEvent (Signal "voted" :: Msg ())) h2
-    void $ onEvent_ (signalEvent $ Radio "Vote for" [(Me, "Me"), (You, "You")] :: EventM TestM Choice2) h1 where
-        h1 a = do
+    void $ onInputRadio' "Vote for" [(Me, "Me"), (You, "You")] h1 1 where
+        h1 _ a = do
             writeVar (V "vote") (Just a)
             sendMessage (Signal "voted") ()
         h2 _ = do
@@ -113,7 +112,7 @@ testUserInputWrite = do
 
 testUserInputWriteEx :: Bool
 testUserInputWriteEx = "voted Me" `elem` g where
-   g = execEvent testUserInputWrite (Signal $ Radio "Vote for" [(Me, "Me"), (You, "You")]) Me
+   g = execEvent testUserInputWrite (Signal $ InputS (Radio "Vote for" [(0, "Me"), (1, "You")]) 1) (0::Int)
 
 -- Event composition
 
@@ -123,7 +122,7 @@ testSumCompose = void $ onEvent_ (True <$ inputButton 1 "click here:" <|> False 
 
 testSumComposeEx :: Bool
 testSumComposeEx = "True" `elem` g where
-   g = execInput testSumCompose 1 [SumL, AppR] (ButtonField "click here:") ButtonData
+   g = execEvent testSumCompose (Signal $ InputS (Button "click here:") 1) () 
 
 testProdCompose :: TestM ()
 testProdCompose = void $ onEvent_ ((,) <$> inputText 1 "" <*> inputText 1 "") f where
@@ -131,21 +130,21 @@ testProdCompose = void $ onEvent_ ((,) <$> inputText 1 "" <*> inputText 1 "") f 
 
 testProdComposeEx1 :: Bool
 testProdComposeEx1 = null g where
-   g = execInput testProdCompose 1 [AppR] (TextField "") (TextData "toto")
+   g = execEvent testProdCompose (Signal (InputS (Text "") 1)) ""
 
 testProdComposeEx2 :: Bool
 testProdComposeEx2 = "(\"toto\",\"tata\")" `elem` g where
-   g = execInputs testProdCompose 1 [([AppL, AppR], (TextField ""), TextData "toto"), ([AppR], (TextField ""), TextData "tata")]
+   g = execEvents testProdCompose [(Signal (InputS (Text "") 1), "toto"), (Signal (InputS (Text "") 1), "tata")]
 
 testTwoEvents :: TestM ()
 testTwoEvents = do
-   void $ onEvent_ (inputText 1 "") f
-   void $ onEvent_ (inputText 1 "") f where
+   void $ onInputText_ "" f 1
+   void $ onInputText_ "" f 1 where
    f a = putStrLn' $ show a
 
 testTwoEventsEx :: Bool
 testTwoEventsEx = (length g) == 1 where
-   g = execInput testTwoEvents 1 [] (TextField "") (TextData "toto")
+   g = execEvent testTwoEvents (Signal (InputS (Text "") 1)) "toto"
 
 testMonadicEvent :: TestM ()
 testMonadicEvent = do
@@ -157,7 +156,7 @@ testMonadicEvent = do
 
 testMonadicEventEx :: Bool
 testMonadicEventEx = "coco2" `elem` g where
-   g = execInputs testMonadicEvent 1 [([BindL], (TextField ""), TextData "coco1"), ([BindR, BindR], (TextField ""), TextData "coco2")]
+   g = execEvents testMonadicEvent [(Signal (InputS (Text "") 1), "coco1"), (Signal (InputS (Text "") 1), "coco2")]
 
 testShorcutEvent :: TestM ()
 testShorcutEvent = do
@@ -170,7 +169,7 @@ testShorcutEvent = do
 
 testShorcutEventEx :: Bool
 testShorcutEventEx = "coco1" `elem` g where
-   g = execInputs testShorcutEvent 1 [([Shortcut], (TextField "a"), TextData "coco1")]
+   g = execEvent testShorcutEvent (Signal (InputS (Text "a") 1)) "coco1"
 
 -- | Build a event firing when a player arrives or leaves
 playerEvent :: Player -> EventM TestM PlayerInfo

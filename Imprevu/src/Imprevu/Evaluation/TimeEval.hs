@@ -50,7 +50,7 @@ getTimeEvents now = do
 getTimes :: EventInfoN n -> EvaluateN n s [UTCTime]
 getTimes ei = do
   rss <- getRemainingSignals' ei
-  return $ mapMaybe getTime (map snd rss)
+  return $ mapMaybe getTime rss
 
 getTime :: SomeSignal -> Maybe UTCTime
 getTime (SomeSignal (Signal t)) = cast t

@@ -82,14 +82,14 @@ getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ ev _ _ envi) = do
 -- * Evaluations
 
 --get the signals left to be completed in an event
-getRemainingSignals' :: EventInfoN n -> EvaluateN n s [(SignalAddress, SomeSignal)]
+getRemainingSignals' :: EventInfoN n -> EvaluateN n s [SomeSignal]
 getRemainingSignals' (EventInfo _ e _ _ envi) = do
    tr <- getEventResult e envi
    return $ case tr of
       AccSuccess _ -> []
-      AccFailure a -> a
+      AccFailure a -> map snd a
 
-getRemainingSignals :: EventInfoN n -> EvalEnvN n s -> [(SignalAddress, SomeSignal)]
+getRemainingSignals :: EventInfoN n -> EvalEnvN n s -> [SomeSignal]
 getRemainingSignals ei env = join $ maybeToList $ evalState (runEvalError' (getRemainingSignals' ei)) env
 
 

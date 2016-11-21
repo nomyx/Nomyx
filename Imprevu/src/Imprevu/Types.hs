@@ -66,24 +66,28 @@ type ClientNumber = Int
 
 data Signal s a where
   Signal :: s -> Signal s a
-  InputS :: Input a -> ClientNumber -> Signal () a
 
 deriving instance (Show s, Show a) => Show (Signal s a)
 deriving instance (Eq s) => Eq (Signal s a)
 deriving instance (Typeable s, Typeable a) => Typeable (Signal s a)
 
+data InputS a where
+  InputS :: Input a -> ClientNumber -> InputS a
+
+deriving instance (Eq a) => Eq (InputS a)
+deriving instance (Show a) => Show (InputS a)
 
 -- | Input forms as programmed by the user
 data Input a where
-   Text     :: String ->                                   Input String
-   TextArea :: String ->                                   Input String
-   Button   :: String ->                                   Input ()
-   Radio    :: (Show a, Eq a) => String -> [(a, String)] -> Input a
-   Checkbox :: (Show a, Eq a) => String -> [(a, String)] -> Input [a]
-   deriving Typeable
+   Text     :: String ->             Input String
+   TextArea :: String ->             Input String
+   Button   :: String ->             Input ()
+   Radio    :: String -> [(Int, String)] -> Input Int
+   Checkbox :: String -> [(Int, String)] -> Input [Int]
+   deriving (Typeable)
 
 deriving instance Show (Input a)
-deriving instance Eq (Input e)
+deriving instance Eq (Input a)
 
 -- | Type agnostic base signal
 data SomeSignal = forall a s. (Typeable a, Typeable s, Show a, Show s) => SomeSignal (Signal s a)
