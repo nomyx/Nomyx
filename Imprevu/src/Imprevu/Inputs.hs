@@ -18,8 +18,6 @@ module Imprevu.Inputs
 
 import Imprevu.Events
 import Imprevu.Types
-import Data.Typeable
-
 
 
 -- * Inputs
@@ -28,7 +26,7 @@ import Data.Typeable
 
 -- | event based on a radio input choice
 inputRadio :: ClientNumber -> String -> [(Int, String)] -> EventM n Int
-inputRadio cn title cs = inputEvent (Radio title cs) cn
+inputRadio cn title cs = SignalEvent (inputRadioSignal title cs cn)
 
 
 onInputRadio' :: (EvMgt n, Enum a) => String -> [(a, String)] -> (EventNumber -> a -> n ()) -> ClientNumber -> n EventNumber
@@ -50,7 +48,7 @@ onInputRadioOnce title choices handler pn = onEventOnce (inputRadio pn title cho
 
 -- | event based on a text input
 inputText :: ClientNumber -> String -> EventM n String
-inputText cn title = inputEvent (inputTextSignal title) cn
+inputText cn title = SignalEvent (inputTextSignal title cn)
 
 -- | triggers a string input to the user. The result will be sent to the callback
 onInputText :: (EvMgt n) => String -> (EventNumber -> String -> n ()) -> ClientNumber -> n EventNumber
@@ -69,7 +67,7 @@ onInputTextOnce title handler pn = onEventOnce (inputText pn title) handler
 
 -- | event based on a checkbox input
 inputCheckbox :: ClientNumber -> String -> [(Int, String)] -> EventM n [Int]
-inputCheckbox cn title cs = inputEvent (inputCheckboxSignal title cs) cn
+inputCheckbox cn title cs = SignalEvent (inputCheckboxSignal title cs cn)
 
 onInputCheckbox :: (EvMgt n) => String -> [(Int, String)] -> (EventNumber -> [Int] -> n ()) -> ClientNumber -> n EventNumber
 onInputCheckbox title choices handler pn = onEvent (inputCheckbox pn title choices) (\(en, a) -> handler en a)
@@ -87,7 +85,7 @@ onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn tit
 
 -- | event based on a button
 inputButton :: ClientNumber -> String -> EventM n ()
-inputButton cn title = inputEvent (inputButtonSignal title) cn
+inputButton cn title = SignalEvent (inputButtonSignal title cn)
 
 onInputButton :: (EvMgt n) => String -> (EventNumber -> () -> n ()) -> ClientNumber -> n EventNumber
 onInputButton title handler pn = onEvent (inputButton pn title) (\(en, ()) -> handler en ())
@@ -103,7 +101,7 @@ onInputButtonOnce title handler pn = onEventOnce (inputButton pn title) handler
 
 -- | event based on a text area
 inputTextarea :: ClientNumber -> String -> EventM n String
-inputTextarea cn title = inputEvent (inputTextareaSignal title) cn
+inputTextarea cn title = SignalEvent (inputTextareaSignal title cn)
 
 onInputTextarea :: (EvMgt n) => String -> (EventNumber -> String -> n ()) -> ClientNumber -> n EventNumber
 onInputTextarea title handler pn = onEvent (inputTextarea pn title) (\(en, a) -> handler en a)
@@ -117,18 +115,18 @@ onInputTextareaOnce title handler pn = onEventOnce (inputTextarea pn title) hand
 
 -- ** Internals
 
-inputRadioSignal :: String -> [(Int, String)] -> Input Int
-inputRadioSignal title cs = Radio title cs
+inputRadioSignal :: String -> [(Int, String)] -> ClientNumber -> Signal InputS Int
+inputRadioSignal title cs cn = Signal (InputS (Radio title cs) cn)
 
-inputTextSignal :: String -> Input String
-inputTextSignal title = Text title
+inputTextSignal :: String -> ClientNumber -> Signal InputS String
+inputTextSignal title cn = Signal (InputS (Text title) cn)
 
-inputCheckboxSignal :: String -> [(Int, String)] -> Input [Int]
-inputCheckboxSignal title cs = Checkbox title cs
+inputCheckboxSignal :: String -> [(Int, String)] -> ClientNumber -> Signal InputS [Int]
+inputCheckboxSignal title cs cn = Signal (InputS (Checkbox title cs) cn)
 
-inputButtonSignal :: String -> Input ()
-inputButtonSignal title = Button title
+inputButtonSignal :: String -> ClientNumber -> Signal InputS ()
+inputButtonSignal title cn = Signal (InputS (Button title) cn)
 
-inputTextareaSignal :: String -> Input String
-inputTextareaSignal title = TextArea title
+inputTextareaSignal :: String -> ClientNumber -> Signal InputS String
+inputTextareaSignal title cn = Signal (InputS (TextArea title) cn)
 

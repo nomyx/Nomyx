@@ -66,8 +66,9 @@ getIntermediateResults en = do
       Nothing -> return Nothing
 
 getInputResult :: SignalOccurence -> Maybe (ClientNumber, SomeData)
-getInputResult (SignalOccurence (SignalData (InputS _ cn) r) _) = Just (cn, SomeData r)
-getInputResult _ = Nothing
+getInputResult = undefined
+--getInputResult (SignalOccurence (SignalData (InputS _ cn) r) _) = Just (cn, SomeData r)
+--getInputResult _ = Nothing
 
 -- | on the provided schedule, the supplied function will be called
 schedule :: (EvMgt n, SysMgt n) => Schedule Freq -> (UTCTime -> n ()) -> n ()
@@ -129,7 +130,7 @@ signalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e, Eq e) => s -> E
 signalEvent = SignalEvent . Signal
 
 -- Embed a single Signal as an EventM
-inputEvent    :: (Typeable e, Show e, Eq e) => Input e -> ClientNumber -> EventM n e
-inputEvent i cn = SignalEvent $ InputS i cn
+inputEvent    :: (Typeable e, Show e, Eq e) => Input -> ClientNumber -> EventM n e
+inputEvent i cn = SignalEvent $ Signal $ InputS i cn
 
 

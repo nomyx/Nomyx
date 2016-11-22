@@ -71,23 +71,17 @@ deriving instance (Show s, Show a) => Show (Signal s a)
 deriving instance (Eq s) => Eq (Signal s a)
 deriving instance (Typeable s, Typeable a) => Typeable (Signal s a)
 
-data InputS a where
-  InputS :: Input a -> ClientNumber -> InputS a
-
-deriving instance (Eq a) => Eq (InputS a)
-deriving instance (Show a) => Show (InputS a)
+data InputS = InputS Input ClientNumber
+   deriving (Typeable, Show, Eq)
 
 -- | Input forms as programmed by the user
-data Input a where
-   Text     :: String ->             Input String
-   TextArea :: String ->             Input String
-   Button   :: String ->             Input ()
-   Radio    :: String -> [(Int, String)] -> Input Int
-   Checkbox :: String -> [(Int, String)] -> Input [Int]
-   deriving (Typeable)
-
-deriving instance Show (Input a)
-deriving instance Eq (Input a)
+data Input where
+   Text     :: String ->             Input
+   TextArea :: String ->             Input
+   Button   :: String ->             Input
+   Radio    :: String -> [(Int, String)] -> Input
+   Checkbox :: String -> [(Int, String)] -> Input
+   deriving (Typeable, Show, Eq)
 
 -- | Type agnostic base signal
 data SomeSignal = forall a s. (Typeable a, Typeable s, Show a, Show s) => SomeSignal (Signal s a)

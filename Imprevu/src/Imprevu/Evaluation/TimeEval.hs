@@ -18,9 +18,6 @@ import Control.Lens
 
 type Time = Signal UTCTime UTCTime
 
---data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. n a -> EvaluateN n s a,     -- evaluation function
---                               _errorHandler :: EventNumber -> String -> EvaluateN n s ()}    -- error function
-
 launchTimeEvents :: (Monad n) => TVar s -> EvalConfN n s -> IO ()
 launchTimeEvents tv ec = do
     now <- getCurrentTime
