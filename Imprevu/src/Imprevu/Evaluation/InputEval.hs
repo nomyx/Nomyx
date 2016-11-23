@@ -41,13 +41,6 @@ data InputView = RadioField    String [(Int, String)]
                | CheckboxField String [(Int, String)]
                deriving (Show, Read, Ord, Eq, Generic, Typeable)
 
--- data sent back by the form fields
-data InputDataView = RadioData    Int
-               | CheckboxData [Int]
-               | TextData     String
-               | TextAreaData String
-               | ButtonData
-               deriving (Show, Read, Eq, Ord, Typeable)
 
 --View an Input
 viewSignal :: Input a -> InputView

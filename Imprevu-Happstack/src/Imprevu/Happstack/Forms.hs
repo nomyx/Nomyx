@@ -8,7 +8,8 @@ import           Control.Monad.Extra                 (mapMaybeM)
 import           Control.Concurrent.STM
 import           Control.Monad.State
 import           Data.String
-import           Data.Text                           (Text)
+import           Data.Text                           (Text, unpack)
+import           Data.Typeable
 import           Debug.Trace.Helpers                 (traceM)
 import           Imprevu
 import           Imprevu.Evaluation
@@ -24,46 +25,48 @@ import           Text.Reform.Happstack               (environment)
 import qualified Text.Reform.Generalized       as G
 default (Integer, Double, Data.Text.Text)
 
-type BackLink = EventNumber -> SignalAddress -> InputView -> ClientNumber -> Text
+type BackLink = InputS -> Text
 
 viewInput :: ClientNumber -> WebStateN n s -> BackLink -> EventInfoN n -> ServerPartT IO (Maybe Html)
 viewInput cn (WebState tvs _ conf) bl ei@(EventInfo en _ _ SActive _) = do
    s <- liftIO $ atomically $ readTVar tvs
-   ds <- mapMaybeM (viewInput' en cn bl) (getRemainingSignals ei (EvalEnv s conf))
+   ds <- mapMaybeM (viewInput' cn bl) (getRemainingSignals ei (EvalEnv s conf))
    traceM $ "viewInput " ++ (show $ length ds)
    return $ if null ds
       then Nothing
       else Just $ sequence_ ds
 viewInput _ _ _ _ = return Nothing
 
-viewInput' :: EventNumber -> ClientNumber -> BackLink -> (SignalAddress, SomeSignal) -> ServerPartT IO (Maybe Html)
-viewInput' en me bl (sa, (SomeSignal (InputS s cn)))
-  | me == cn = do
-     traceM $ "viewInput' " ++ (show s)
-     let iv = viewSignal s
-     lf  <- viewForm "user" $ inputForm' iv
-     let link = bl en sa iv me
-     return $ Just $ tr $ td $ do
-          --fromString title
+viewInput' :: ClientNumber -> BackLink -> SomeSignal -> ServerPartT IO (Maybe Html)
+viewInput' me backlink (SomeSignal (Signal s)) = do
+  traceM $ "viewInput' " ++ (show s)
+  case (cast s) of
+   Just is@(InputS i cn) | me == cn -> do
+      traceM $ "viewInput' " ++ (show i)
+      lf  <- viewForm "user" $ inputForm' i
+      let link = backlink is
+      traceM $ "viewInput' backlink=" ++ (unpack link)
+      return $ Just $ tr $ td $ do
+         --fromString title
           fromString " "
           blazeForm lf link ! A.id "InputForm"
-viewInput' _ _ _ _ = return Nothing
+   _ -> return Nothing
 
-inputForm' :: InputView -> ImpForm InputDataView
-inputForm' (RadioField s choices)    = RadioData    <$> RB.label s ++> (RB.inputRadio choices (== 0)) <++ RB.label (" " :: String)
-inputForm' (TextField s)             = TextData     <$> RB.label s ++> (RB.inputText "") <++ label (" " :: String)
-inputForm' (TextAreaField s)         = TextAreaData <$> RB.label s ++> (textarea 50 5  "") <++ label (" " :: String)
-inputForm' (ButtonField s)           = pure ButtonData   <$> RB.label s
-inputForm' (CheckboxField s choices) = CheckboxData <$> RB.label s ++> (inputCheckboxes choices $ const False) <++ label (" " :: String)
+inputForm' :: Input -> ImpForm InputData
+inputForm' (Radio s choices)    = RadioData    <$> RB.label s ++> (RB.inputRadio choices (== 0)) <++ RB.label (" " :: String)
+inputForm' (Text s)             = TextData     <$> RB.label s ++> (RB.inputText "") <++ label (" " :: String)
+inputForm' (TextArea s)         = TextAreaData <$> RB.label s ++> (textarea 50 5  "") <++ label (" " :: String)
+inputForm' (Button s)           = pure ButtonData   <$> RB.label s
+inputForm' (Checkbox s choices) = CheckboxData <$> RB.label s ++> (inputCheckboxes choices $ const False) <++ label (" " :: String)
 
 
 -- | a form result has been sent
-newInput :: EventNumber -> SignalAddress -> InputView -> WebStateN n s -> ClientNumber -> Text -> ServerPartT IO Response
-newInput en sa ff (WebState tv updateSession _) pn bl = toResponse <$> do
+newInput :: InputS -> WebStateN n s -> Text -> ServerPartT IO Response
+newInput is@(InputS i _) (WebState tv updateSession _) bl = toResponse <$> do
    methodM POST
-   r <- eitherForm environment "user" (inputForm' ff)
+   r <- eitherForm environment "user" (inputForm' i)
    case r of
-      (Right c) -> liftIO $ updateSession tv $ InputResult en sa ff c pn
+      (Right id) -> liftIO $ updateSession tv is id
       (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
    seeOther bl "Redirecting..."
 

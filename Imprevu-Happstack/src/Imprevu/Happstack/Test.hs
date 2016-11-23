@@ -19,5 +19,5 @@ tests = startTest $ do
    let e = do
        a <- inputText 4 "Enter text: "
        guard (a == "coco") >> inputText 4 "Hello coco! Enter additional text: "
-   void $ onEvent_ e putStrLn'
+   void $ onEvent_ e (\a -> putStrLn' a)
    return ()

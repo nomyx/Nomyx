@@ -72,7 +72,7 @@ deriving instance (Eq s) => Eq (Signal s a)
 deriving instance (Typeable s, Typeable a) => Typeable (Signal s a)
 
 data InputS = InputS Input ClientNumber
-   deriving (Typeable, Show, Eq)
+   deriving (Show, Read, Eq, Ord, Typeable)
 
 -- | Input forms as programmed by the user
 data Input where
@@ -81,7 +81,15 @@ data Input where
    Button   :: String ->             Input
    Radio    :: String -> [(Int, String)] -> Input
    Checkbox :: String -> [(Int, String)] -> Input
-   deriving (Typeable, Show, Eq)
+   deriving (Show, Read, Eq, Ord, Typeable)
+
+-- data sent back by the form fields
+data InputData = RadioData    Int
+               | CheckboxData [Int]
+               | TextData     String
+               | TextAreaData String
+               | ButtonData
+               deriving (Show, Read, Eq, Ord, Typeable)
 
 -- | Type agnostic base signal
 data SomeSignal = forall a s. (Typeable a, Typeable s, Show a, Show s) => SomeSignal (Signal s a)

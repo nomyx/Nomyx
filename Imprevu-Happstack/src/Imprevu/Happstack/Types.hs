@@ -15,10 +15,8 @@ import Text.Reform                       (CommonFormError, ErrorInputType, Form,
 import Safe
 
 data WebStateN n s = WebState {_webState     :: TVar s,
-                               updateSession :: TVar s -> InputResult -> IO (),               -- update the session after an input is submitted
+                               updateSession :: TVar s -> InputS -> InputData -> IO (), -- update the session after an input is submitted
                                webEvalConf   :: EvalConfN n s}
-
-data InputResult = InputResult EventNumber SignalAddress InputView InputDataView ClientNumber
 
 type ImpForm a = Form (ServerPartT IO) [HS.Input] ImpFormError Html () a
 
@@ -28,10 +26,10 @@ instance FormError ImpFormError where
     type ErrorInputType ImpFormError = [HS.Input]
     commonFormError = ImpFormError
 
-instance FromReqURI SignalAddress where
+instance FromReqURI InputS where
     fromReqURI = readMay
 
-instance FromReqURI InputView where
+instance FromReqURI InputData where
     fromReqURI = readMay
 
 makeLenses ''WebStateN
