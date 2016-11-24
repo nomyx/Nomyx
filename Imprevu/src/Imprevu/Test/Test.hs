@@ -159,7 +159,7 @@ testMonadicEventEx = "coco2" `elem` g where
    g = execEvents testMonadicEvent [(Signal (InputS (Text "") 1), "coco1"), (Signal (InputS (Text "") 1), "coco2")]
 
 testShorcutEvent :: TestM ()
-testShorcutEvent = do
+testShorcutEvent = do 
    let displayMsg a = putStrLn' (concat $ catMaybes a)
    let e = do
        let a = inputText 1 "a"
@@ -175,11 +175,11 @@ testShorcutEventEx = "coco1" `elem` g where
 playerEvent :: Player -> EventM TestM PlayerInfo
 playerEvent p = SignalEvent $ Signal p
 
-data Player    = Arrive | Leave deriving (Typeable, Show, Eq)
+data Player = Arrive | Leave deriving (Typeable, Show, Eq)
 
 -- | informations on players
 data PlayerInfo = PlayerInfo { _playerNumber :: Int}
-                               deriving (Eq, Typeable, Show)
+   deriving (Eq, Typeable, Show)
 
 --This event waits for two identical signals to fire
 testDoubleEvent :: TestM ()
