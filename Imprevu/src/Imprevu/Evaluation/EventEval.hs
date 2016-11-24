@@ -32,14 +32,10 @@ import           Debug.Trace.Helpers    (traceM)
 triggerEvent :: (Show a, Typeable a, Show e, Typeable e, Eq a) => Signal a e -> e -> EvaluateN n s ()
 triggerEvent e dat = do
    evs <- use events
-   triggerEvent' (SignalData e dat) Nothing evs
-
--- trigger some specific signal
-triggerEvent' :: SignalData -> Maybe SignalAddress -> [EventInfoN n] -> EvaluateN n s ()
-triggerEvent' sd msa evs = do
    let evs' = evs -- sortBy (compare `on` _ruleNumber) evs
-   eids <- mapM (getUpdatedEventInfo sd msa) evs'           -- get all the EventInfoNs updated with the field
-   traceM $ "triggerEvent' eids=" ++ (show eids) ++ " sd=" ++ (show sd) ++ " msa=" ++ (show msa) ++ " evs=" ++ (show evs)
+   let sd = (SignalData e dat)
+   eids <- mapM (getUpdatedEventInfo sd) evs'           -- get all the EventInfoNs updated with the field
+   traceM $ "triggerEvent' eids=" ++ (show eids) ++ " sd=" ++ (show sd) ++ " evs=" ++ (show evs)
    events %= union (map fst eids)                           -- store them
    void $ mapM triggerIfComplete eids                           -- trigger the handlers for completed events
 
@@ -57,12 +53,12 @@ triggerIfComplete _ = return ()
 
 -- get update the EventInfoN updated with the signal data.
 -- get the event result if all signals are completed
-getUpdatedEventInfo :: SignalData -> Maybe SignalAddress -> EventInfoN n -> EvaluateN n s (EventInfoN n, Maybe SomeData)
-getUpdatedEventInfo sd@(SignalData sig _) addr ei@(EventInfo _ ev _ _ envi) = do
+getUpdatedEventInfo :: SignalData -> EventInfoN n -> EvaluateN n s (EventInfoN n, Maybe SomeData)
+getUpdatedEventInfo sd@(SignalData sig _) ei@(EventInfo _ ev _ _ envi) = do
    trs <- getEventResult ev envi
    traceM $ "\ngetUpdatedEventInfo result of event after applying envi=" ++ (show trs) -- ++ " envi=" ++ (show envi) ++ " sig=" ++ (show sig) ++ " addr=" ++ (show addr)
    case trs of
-      AccFailure rs -> case find (\(sa, (SomeSignal ss)) -> (ss === sig) && maybe True (==sa) addr) rs of -- check if our signal match one of the remaining signals
+      AccFailure rs -> case find (\(sa, (SomeSignal ss)) -> (ss === sig)) rs of -- check if our signal match one of the remaining signals
          Just (sa, _) -> do
             let envi' = SignalOccurence sd sa : envi
             er <- getEventResult ev envi'                                                           -- add our event to the environment and get the result
@@ -126,6 +122,16 @@ getEventResult' (ShortcutEvents es f) ers fa = do
      else AccFailure $ join $ lefts $ toEither <$> ers'                  -- otherwise, return the list of remaining fields to complete from each event
 
 
+-- find a signal occurence in an environment
+lookupSignal :: (Typeable a, Typeable s, Eq s) => Signal s a -> SignalAddress -> [SignalOccurence] -> Maybe a
+lookupSignal s sa envi = headMay $ mapMaybe (getSignalData s sa) envi
+
+--get the signal data from the signal occurence
+getSignalData :: (Typeable a, Typeable s, Eq s) => Signal s a -> SignalAddress -> SignalOccurence -> Maybe a
+getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
+  res' <- cast res
+  if (sa' == sa) && (s === s') then Just res' else Nothing
+
 runEvalError' :: EvaluateN n s a -> State (EvalEnvN n s) (Maybe a)
 runEvalError' egs = do
    e <- runExceptT egs
@@ -137,17 +143,6 @@ runEvalError' egs = do
 
 runEvaluate :: EvaluateN n s a -> EvalEnvN n s -> Maybe a
 runEvaluate ev ee = evalState (runEvalError' ev) ee
-
--- find a signal occurence in an environment
-lookupSignal :: (Typeable a, Typeable s, Eq s) => Signal s a -> SignalAddress -> [SignalOccurence] -> Maybe a
-lookupSignal s sa envi = headMay $ mapMaybe (getSignalData s sa) envi
-
---get the signal data from the signal occurence
-getSignalData :: (Typeable a, Typeable s, Eq s) => Signal s a -> SignalAddress -> SignalOccurence -> Maybe a
-getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
-  res' <- cast res
-  if (sa' == sa) && (s === s') then Just res' else Nothing
-
 
 execSignals :: (Show a, Show e, Typeable e, Eq e, Show d, Typeable d, Eq d) => n a -> [(Signal e d, d)] -> EvalEnvN n s -> s
 execSignals r sds evalEnv = _evalEnv $ runIdentity $ flip execStateT evalEnv $ do
