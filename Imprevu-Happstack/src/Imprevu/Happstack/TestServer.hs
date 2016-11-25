@@ -75,6 +75,7 @@ mainPage ws@(WebState tts _ _) = do
    m2 <- mapM (viewInput 2 ws link) eis
    m3 <- mapM (viewInput 3 ws link) eis
    m4 <- mapM (viewInput 4 ws link) eis
+   m5 <- mapM (viewInput 5 ws link) eis
    return $ toResponse $ do
      "Test simple input:"
      sequence_ $ catMaybes m1
@@ -84,6 +85,8 @@ mainPage ws@(WebState tts _ _) = do
      sequence_ $ catMaybes m3
      "Test monadic events (enter \"coco\" to get a second input)"
      sequence_ $ catMaybes m4
+     "Test radio events:"
+     sequence_ $ catMaybes m5
      "Results:\n"
      toHtml $ show os
 

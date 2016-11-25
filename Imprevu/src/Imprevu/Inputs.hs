@@ -28,13 +28,15 @@ import Imprevu.Types
 inputRadio :: ClientNumber -> String -> [(Int, String)] -> EventM n Int
 inputRadio cn title cs = SignalEvent (inputRadioSignal title cs cn)
 
-
-onInputRadio' :: (EvMgt n, Enum a) => String -> [(a, String)] -> (EventNumber -> a -> n ()) -> ClientNumber -> n EventNumber
-onInputRadio' title choices handler pn = onEvent (inputRadio pn title (map (\(a, s) -> (fromEnum a, s)) choices)) (\(en, a) -> handler en (toEnum a))
+inputRadio' :: (Enum a) => ClientNumber -> String -> [(a, String)] -> EventM n Int
+inputRadio' cn title cs = SignalEvent (inputRadioSignal title (map (\(a, s) -> (fromEnum a, s)) cs) cn)
 
 -- | triggers a choice input to the user. The result will be sent to the callback
 onInputRadio :: (EvMgt n) => String -> [(Int, String)] -> (EventNumber -> Int -> n ()) -> ClientNumber -> n EventNumber
 onInputRadio title choices handler pn = onEvent (inputRadio pn title choices) (\(en, a) -> handler en a)
+
+onInputRadio' :: (EvMgt n, Enum a) => String -> [(a, String)] -> (EventNumber -> a -> n ()) -> ClientNumber -> n EventNumber
+onInputRadio' title choices handler pn = onEvent (inputRadio' pn title choices) (\(en, a) -> handler en (toEnum a))
 
 -- | the same, disregard the event number
 onInputRadio_ :: (EvMgt n) => String -> [(Int, String)] -> (Int -> n ()) -> ClientNumber -> n EventNumber
@@ -69,14 +71,17 @@ onInputTextOnce title handler pn = onEventOnce (inputText pn title) handler
 inputCheckbox :: ClientNumber -> String -> [(Int, String)] -> EventM n [Int]
 inputCheckbox cn title cs = SignalEvent (inputCheckboxSignal title cs cn)
 
+inputCheckbox' :: (Enum a) => ClientNumber -> String -> [(a, String)] -> EventM n [Int]
+inputCheckbox' cn title cs = SignalEvent (inputCheckboxSignal title (map (\(a, s) -> (fromEnum a, s)) cs) cn)
+
 onInputCheckbox :: (EvMgt n) => String -> [(Int, String)] -> (EventNumber -> [Int] -> n ()) -> ClientNumber -> n EventNumber
 onInputCheckbox title choices handler pn = onEvent (inputCheckbox pn title choices) (\(en, a) -> handler en a)
 
+onInputCheckbox' :: (EvMgt n, Enum a) => String -> [(a, String)] -> (EventNumber -> [a] -> n ()) -> ClientNumber -> n EventNumber
+onInputCheckbox' title choices handler pn = onEvent (inputCheckbox' pn title choices) (\(en, a) -> handler en (map toEnum a))
+
 onInputCheckbox_ :: (EvMgt n) => String -> [(Int, String)] -> ([Int] -> n ()) -> ClientNumber -> n EventNumber
 onInputCheckbox_ title choices handler pn = onEvent_ (inputCheckbox pn title choices) handler
-
-onInputCheckbox' :: (EvMgt n, Enum a) => String -> [(a, String)] -> (EventNumber -> [a] -> n ()) -> ClientNumber -> n EventNumber
-onInputCheckbox' title choices handler pn = onEvent (inputCheckbox pn title (map (\(a, s) -> (fromEnum a, s)) choices)) (\(en, a) -> handler en (map toEnum a))
 
 onInputCheckboxOnce :: (EvMgt n) => String -> [(Int, String)] -> ([Int] -> n ()) -> ClientNumber -> n EventNumber
 onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn title choices) handler

@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables  #-}
 
 module Imprevu.Happstack.Test where
 
@@ -20,4 +21,7 @@ tests = startTest $ do
        a <- inputText 4 "Enter text: "
        guard (a == "coco") >> inputText 4 "Hello coco! Enter additional text: "
    void $ onEvent_ e (\a -> putStrLn' a)
+   
+   onEvent_ (inputRadio' 5 "enter first value: " [(True, "True"), (False, "False")]) (\a -> if (toEnum a) then putStrLn' "Yes" else putStrLn' "No")
+   
    return ()
