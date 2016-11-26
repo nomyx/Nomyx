@@ -18,6 +18,9 @@
 - fix problem with rule number in Eval Env
 - duplicate InputResult
 
+- primitives in Inputs are quite numerous: suppress some?
+
+
 Web:
 - check Webstate/websession
 

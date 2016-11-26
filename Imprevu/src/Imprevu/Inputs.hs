@@ -18,33 +18,31 @@ module Imprevu.Inputs
 
 import Imprevu.Events
 import Imprevu.Types
-
+import Data.Typeable
 
 -- * Inputs
 
 -- ** Radio inputs
 
 -- | event based on a radio input choice
-inputRadio :: ClientNumber -> String -> [(Int, String)] -> EventM n Int
-inputRadio cn title cs = SignalEvent (inputRadioSignal title cs cn)
+inputRadio :: (Enum a) => ClientNumber -> String -> [(a, String)] -> EventM n a
+inputRadio cn title cs = toEnum <$> SignalEvent (inputRadioSignal title (map (\(a, s) -> (fromEnum a, s)) cs) cn)
 
-inputRadio' :: (Enum a) => ClientNumber -> String -> [(a, String)] -> EventM n Int
-inputRadio' cn title cs = SignalEvent (inputRadioSignal title (map (\(a, s) -> (fromEnum a, s)) cs) cn)
+inputRadio' :: (Enum a, Show a) => ClientNumber -> String -> [a] -> EventM n a
+inputRadio' cn title cs = toEnum <$> SignalEvent (inputRadioSignal title (map (\a -> (fromEnum a, show a)) cs) cn)
 
 -- | triggers a choice input to the user. The result will be sent to the callback
-onInputRadio :: (EvMgt n) => String -> [(Int, String)] -> (EventNumber -> Int -> n ()) -> ClientNumber -> n EventNumber
-onInputRadio title choices handler pn = onEvent (inputRadio pn title choices) (\(en, a) -> handler en a)
-
-onInputRadio' :: (EvMgt n, Enum a) => String -> [(a, String)] -> (EventNumber -> a -> n ()) -> ClientNumber -> n EventNumber
-onInputRadio' title choices handler pn = onEvent (inputRadio' pn title choices) (\(en, a) -> handler en (toEnum a))
+-- TODO: necessary Typeable?
+onInputRadio :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [a] -> (EventNumber -> a -> n ()) -> ClientNumber -> n EventNumber
+onInputRadio title choices handler pn = onEvent (inputRadio' pn title choices) (\(en, a) -> handler en a)
 
 -- | the same, disregard the event number
-onInputRadio_ :: (EvMgt n) => String -> [(Int, String)] -> (Int -> n ()) -> ClientNumber -> n EventNumber
-onInputRadio_ title choices handler pn = onEvent_ (inputRadio pn title choices) handler
+onInputRadio_ :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [a] -> (a -> n ()) -> ClientNumber -> n EventNumber
+onInputRadio_ title choices handler pn = onEvent_ (inputRadio' pn title choices) handler
 
 -- | the same, suppress the event after first trigger
-onInputRadioOnce :: (EvMgt n) => String -> [(Int, String)] -> (Int -> n ()) -> ClientNumber -> n EventNumber
-onInputRadioOnce title choices handler pn = onEventOnce (inputRadio pn title choices) handler
+onInputRadioOnce :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [a] -> (a -> n ()) -> ClientNumber -> n EventNumber
+onInputRadioOnce title choices handler pn = onEventOnce (inputRadio' pn title choices) handler
 
 -- ** Text inputs
 

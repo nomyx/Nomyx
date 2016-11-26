@@ -31,7 +31,7 @@ data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 
 -- Test input
 testSingleInput :: TestM ()
-testSingleInput = void $ onInputRadio' "Vote for Holland or Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
+testSingleInput = void $ onInputRadio "Vote for Holland or Sarkozy" [Holland, Sarkozy] h 1 where
    h _ a = putStrLn' ("voted for " ++ show a)
 
 testSingleInputEx :: Bool
@@ -99,7 +99,7 @@ testUserInputWrite :: TestM ()
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (messageEvent (Signal "voted" :: Msg ())) h2
-    void $ onInputRadio' "Vote for" [(Me, "Me"), (You, "You")] h1 1 where
+    void $ onInputRadio "Vote for" [Me, You] h1 1 where
         h1 _ a = do
             writeVar (V "vote") (Just a)
             sendMessage (Signal "voted") ()

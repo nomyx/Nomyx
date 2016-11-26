@@ -22,6 +22,6 @@ tests = startTest $ do
        guard (a == "coco") >> inputText 4 "Hello coco! Enter additional text: "
    void $ onEvent_ e (\a -> putStrLn' a)
    
-   onEvent_ (inputRadio' 5 "enter first value: " [(True, "True"), (False, "False")]) (\a -> if (toEnum a) then putStrLn' "Yes" else putStrLn' "No")
+   onEvent_ (inputRadio' 5 "enter first value: " [True, False]) (\a -> putStrLn' (if a then "Yes" else "No"))
    
    return ()
