@@ -18,8 +18,10 @@
 - fix problem with rule number in Eval Env
 - duplicate InputResult
 
-- primitives in Inputs are quite numerous: suppress some?
 
+Inputs:
+- primitives in Inputs are quite numerous: suppress some?
+- suppress Show from class constraints?
 
 Web:
 - check Webstate/websession

@@ -29,9 +29,12 @@ import Prelude
 
 data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 
+enumAll :: (Enum a, Show a, Bounded a) => [(a, String)]
+enumAll = map (\a -> (a, show a)) (enumFrom minBound)
+
 -- Test input
 testSingleInput :: TestM ()
-testSingleInput = void $ onInputRadio "Vote for Holland or Sarkozy" [Holland, Sarkozy] h 1 where
+testSingleInput = void $ onInputRadio "Vote for Holland or Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
    h _ a = putStrLn' ("voted for " ++ show a)
 
 testSingleInputEx :: Bool
@@ -39,7 +42,7 @@ testSingleInputEx = "voted for Holland" `elem` g where
    g = execEvent testSingleInput (Signal $ InputS (Radio "Vote for Holland or Sarkozy" [(0, "Holland"), (1, "Sarkozy")]) 1) (0::Int)
 
 testMultipleInputs :: TestM ()
-testMultipleInputs = void $ onInputCheckbox' "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
+testMultipleInputs = void $ onInputCheckbox "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
    h _ a = putStrLn' ("voted for " ++ show a)
 
 testMultipleInputsEx :: Bool
@@ -99,7 +102,7 @@ testUserInputWrite :: TestM ()
 testUserInputWrite = do
     newVar_ "vote" (Nothing::Maybe Choice2)
     onEvent_ (messageEvent (Signal "voted" :: Msg ())) h2
-    void $ onInputRadio "Vote for" [Me, You] h1 1 where
+    void $ onInputRadio "Vote for" [(Me, "Me"), (You, "You")] h1 1 where
         h1 _ a = do
             writeVar (V "vote") (Just a)
             sendMessage (Signal "voted") ()

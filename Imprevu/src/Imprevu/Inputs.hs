@@ -28,21 +28,18 @@ import Data.Typeable
 inputRadio :: (Enum a) => ClientNumber -> String -> [(a, String)] -> EventM n a
 inputRadio cn title cs = toEnum <$> SignalEvent (inputRadioSignal title (map (\(a, s) -> (fromEnum a, s)) cs) cn)
 
-inputRadio' :: (Enum a, Show a) => ClientNumber -> String -> [a] -> EventM n a
-inputRadio' cn title cs = toEnum <$> SignalEvent (inputRadioSignal title (map (\a -> (fromEnum a, show a)) cs) cn)
-
 -- | triggers a choice input to the user. The result will be sent to the callback
 -- TODO: necessary Typeable?
-onInputRadio :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [a] -> (EventNumber -> a -> n ()) -> ClientNumber -> n EventNumber
-onInputRadio title choices handler pn = onEvent (inputRadio' pn title choices) (\(en, a) -> handler en a)
+onInputRadio :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [(a, String)] -> (EventNumber -> a -> n ()) -> ClientNumber -> n EventNumber
+onInputRadio title choices handler pn = onEvent (inputRadio pn title choices) (\(en, a) -> handler en a)
 
 -- | the same, disregard the event number
-onInputRadio_ :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [a] -> (a -> n ()) -> ClientNumber -> n EventNumber
-onInputRadio_ title choices handler pn = onEvent_ (inputRadio' pn title choices) handler
+onInputRadio_ :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [(a, String)] -> (a -> n ()) -> ClientNumber -> n EventNumber
+onInputRadio_ title choices handler pn = onEvent_ (inputRadio pn title choices) handler
 
 -- | the same, suppress the event after first trigger
-onInputRadioOnce :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [a] -> (a -> n ()) -> ClientNumber -> n EventNumber
-onInputRadioOnce title choices handler pn = onEventOnce (inputRadio' pn title choices) handler
+onInputRadioOnce :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [(a, String)] -> (a -> n ()) -> ClientNumber -> n EventNumber
+onInputRadioOnce title choices handler pn = onEventOnce (inputRadio pn title choices) handler
 
 -- ** Text inputs
 
@@ -66,22 +63,16 @@ onInputTextOnce title handler pn = onEventOnce (inputText pn title) handler
 -- ** Checkbox inputs
 
 -- | event based on a checkbox input
-inputCheckbox :: ClientNumber -> String -> [(Int, String)] -> EventM n [Int]
-inputCheckbox cn title cs = SignalEvent (inputCheckboxSignal title cs cn)
+inputCheckbox :: (Enum a) => ClientNumber -> String -> [(a, String)] -> EventM n [a]
+inputCheckbox cn title cs = (map toEnum) <$> SignalEvent (inputCheckboxSignal title (map (\(a, s) -> (fromEnum a, s)) cs) cn)
 
-inputCheckbox' :: (Enum a) => ClientNumber -> String -> [(a, String)] -> EventM n [Int]
-inputCheckbox' cn title cs = SignalEvent (inputCheckboxSignal title (map (\(a, s) -> (fromEnum a, s)) cs) cn)
-
-onInputCheckbox :: (EvMgt n) => String -> [(Int, String)] -> (EventNumber -> [Int] -> n ()) -> ClientNumber -> n EventNumber
+onInputCheckbox :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [(a, String)] -> (EventNumber -> [a] -> n ()) -> ClientNumber -> n EventNumber
 onInputCheckbox title choices handler pn = onEvent (inputCheckbox pn title choices) (\(en, a) -> handler en a)
 
-onInputCheckbox' :: (EvMgt n, Enum a) => String -> [(a, String)] -> (EventNumber -> [a] -> n ()) -> ClientNumber -> n EventNumber
-onInputCheckbox' title choices handler pn = onEvent (inputCheckbox' pn title choices) (\(en, a) -> handler en (map toEnum a))
-
-onInputCheckbox_ :: (EvMgt n) => String -> [(Int, String)] -> ([Int] -> n ()) -> ClientNumber -> n EventNumber
+onInputCheckbox_ :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [(a, String)] -> ([a] -> n ()) -> ClientNumber -> n EventNumber
 onInputCheckbox_ title choices handler pn = onEvent_ (inputCheckbox pn title choices) handler
 
-onInputCheckboxOnce :: (EvMgt n) => String -> [(Int, String)] -> ([Int] -> n ()) -> ClientNumber -> n EventNumber
+onInputCheckboxOnce :: (EvMgt n, Enum a, Show a, Typeable a) => String -> [(a, String)] -> ([a] -> n ()) -> ClientNumber -> n EventNumber
 onInputCheckboxOnce title choices handler pn = onEventOnce (inputCheckbox pn title choices) handler
 
 -- ** Button inputs
