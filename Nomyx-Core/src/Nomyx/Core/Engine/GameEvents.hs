@@ -26,7 +26,7 @@ enactEvent (ProposeRuleEv Propose pn rt ms)  (Just inter) = void $ proposeRule r
 enactEvent (ProposeRuleEv SystemAdd _ rt ms) (Just inter) = systemAddRule rt ms inter
 enactEvent (ProposeRuleEv Check _ _ _)       _ = return ()
 enactEvent (ProposeRuleEv _ _ _ _) Nothing               = error "ProposeRuleEv: interpreter function needed"
-enactEvent (InputResult pn en fa ft ir) _     = mapStateIO $ inputResult pn en fa ft ir
+enactEvent (InputResult pn en is id) _        = mapStateIO $ inputResult pn en is id
 enactEvent (GLog mpn s) _                     = mapStateIO $ logGame s mpn
 enactEvent (TimeEvent t) _                    = mapStateIO $ runSystemEval' $ evTriggerTime t
 
@@ -100,15 +100,15 @@ logGame s mpn = do
    void $ logs %= (Log mpn time s : )
 
 -- | the user has provided an input result
-inputResult :: PlayerNumber -> EventNumber -> SignalAddress -> InputView -> InputDataView -> State Game ()
-inputResult pn en sa ff ide = do
-   tracePN pn $ "input result: EventNumber " ++ show en ++ ", SignalAddress " ++ show sa ++ ", Form " ++ show ff ++ ", choice " ++ show ide
+inputResult :: PlayerNumber -> EventNumber -> InputS -> InputData -> State Game ()
+inputResult pn en is id = do
+   tracePN pn $ "input result: input " ++ show is ++ " input data " ++ show id
    evs <- gets _events
    let rn = _erRuleNumber $ fromJust $ find (\(RuleEventInfo rn (EventInfo en' _ _ _ _)) -> en' == en) evs
-   runEvalError rn (Just pn) $ triggerInput ff ide sa pn en
+   runEvalError rn (Just pn) $ triggerInput is id
 
 -- | A helper function to run the game state.
--- It additionally sets the current time.
+-- It additionally sets the current time
 execWithGame :: UTCTime -> State LoggedGame () -> LoggedGame -> LoggedGame
 execWithGame t gs g = execState gs $ set (game . currentTime) t g
 

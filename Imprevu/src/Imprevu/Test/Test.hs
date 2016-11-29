@@ -29,9 +29,6 @@ import Prelude
 
 data Choice = Holland | Sarkozy deriving (Enum, Typeable, Show, Eq, Bounded)
 
-enumAll :: (Enum a, Show a, Bounded a) => [(a, String)]
-enumAll = map (\a -> (a, show a)) (enumFrom minBound)
-
 -- Test input
 testSingleInput :: TestM ()
 testSingleInput = void $ onInputRadio "Vote for Holland or Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where

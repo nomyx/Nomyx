@@ -85,7 +85,7 @@ emptyGame name desc date gen = Game {
 data GameEvent = JoinGame          PlayerNumber PlayerName
                | LeaveGame         PlayerNumber
                | ProposeRuleEv     RuleEv PlayerNumber RuleTemplate [ModuleInfo]
-               | InputResult       PlayerNumber EventNumber SignalAddress InputView InputDataView
+               | InputResult       PlayerNumber EventNumber InputS InputData 
                | GLog              (Maybe PlayerNumber) String
                | TimeEvent         UTCTime
                 deriving (Show, Read, Eq, Ord)
@@ -210,8 +210,9 @@ instance FromJSON RuleTemplate where
 
 $(deriveJSON defaultOptions ''TimedEvent)
 $(deriveJSON defaultOptions ''GameEvent)
-$(deriveJSON defaultOptions ''InputView)
-$(deriveJSON defaultOptions ''InputDataView)
+$(deriveJSON defaultOptions ''Input)
+$(deriveJSON defaultOptions ''InputS)
+$(deriveJSON defaultOptions ''InputData)
 $(deriveJSON defaultOptions ''RuleEv)
 $(deriveJSON defaultOptions ''GameDesc)
 $(deriveJSON defaultOptions ''StdGen)

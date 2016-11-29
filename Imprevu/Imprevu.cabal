@@ -45,6 +45,7 @@ library
                      Imprevu.Evaluation
                      Imprevu.Evaluation.Types
                      Imprevu.Evaluation.EventEval
+                     Imprevu.Evaluation.InputEval
                      Imprevu.Evaluation.TimeEval
                      Imprevu.Evaluation.Utils
                      Imprevu.Test.TestMgt

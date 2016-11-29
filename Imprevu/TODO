@@ -22,6 +22,7 @@
 Inputs:
 - primitives in Inputs are quite numerous: suppress some?
 - suppress Show from class constraints?
+- rename InputS -> Input
 
 Web:
 - check Webstate/websession

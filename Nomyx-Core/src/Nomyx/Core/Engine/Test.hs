@@ -232,8 +232,8 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     when timeEvent $ evTriggerTime date2
 
 --Trigger a vote event (0 for positive, 1 for negative), using event details
-triggerVote :: Int -> (EventNumber, SignalAddress, PlayerNumber, String) -> Evaluate ()
-triggerVote res (en, sa, pn, t) = triggerInput (RadioField t [(0,"For"),(1,"Against")]) (RadioData res) sa pn en
+triggerVote :: Int -> InputS -> Evaluate ()
+triggerVote res is = triggerInput is (RadioData res)
 
 voteGame' :: Int -> Int -> Int -> Bool -> Rule -> Game
 voteGame' positives negatives notVoted timeEvent rf  = voteGameActions positives negatives notVoted timeEvent $ addActivateRule rf 1
@@ -294,30 +294,29 @@ testVotePlayerLeaveEx = testVoteRule Active testVotePlayerLeave
 
 
 --Get all event numbers of type choice (radio button)
-getChoiceEvents :: State EvalEnv [(EventNumber, SignalAddress, PlayerNumber, String)]
+getChoiceEvents :: State EvalEnv [InputS] 
 getChoiceEvents = do
    evs <- use (evalEnv . eGame . events)
    ee <- get
-   return $ [(_eventNumber $ _erEventInfo ev, fa, pn, t) | ev <- evs, (fa, pn, t) <- getInputChoices ev ee]
+   return $ concatMap (getInputChoices ee) evs
 
-getInputChoices :: RuleEventInfo -> EvalEnv -> [(SignalAddress, PlayerNumber, String)]
-getInputChoices (RuleEventInfo _ ei) ee = mapMaybe isInput (getRemainingSignals ei ee) where
-   isInput :: (SignalAddress, SomeSignal) -> Maybe (SignalAddress, PlayerNumber, String)
-   isInput (fa, (SomeSignal (InputS (Radio t _) pn))) = Just (fa, pn, t)
-   isInput _ = Nothing
+getInputChoices :: EvalEnv -> RuleEventInfo -> [InputS]
+getInputChoices ee (RuleEventInfo _ ei) = mapMaybe isInput (getRemainingSignals ei ee) where
+   isInput :: SomeSignal -> Maybe InputS
+   isInput (SomeSignal (Signal s)) = cast s
 
 ----Get all event numbers of type text (text field)
 getTextEvents :: State EvalEnv [(EventNumber, SignalAddress)]
-getTextEvents = do
-   evs <- use (evalEnv . eGame . events)
-   ee <- get
-   return $ [(_eventNumber $ _erEventInfo ev, fa) | ev <- evs, fa <- getInputTexts ev ee]
-
-getInputTexts :: RuleEventInfo -> EvalEnv -> [SignalAddress]
-getInputTexts (RuleEventInfo _ ei) ee = mapMaybe isInput (getRemainingSignals ei ee) where
-   isInput :: (t, SomeSignal) -> Maybe t
-   isInput (fa, (SomeSignal (InputS (Text _) _))) = Just fa
-   isInput _ = Nothing
+getTextEvents = undefined --do
+--   evs <- use (evalEnv . eGame . events)
+--   ee <- get
+--   return $ [(_eventNumber $ _erEventInfo ev, fa) | ev <- evs, fa <- getInputTexts ev ee]
+--
+--getInputTexts :: RuleEventInfo -> EvalEnv -> [SignalAddress]
+--getInputTexts (RuleEventInfo _ ei) ee = mapMaybe isInput (getRemainingSignals ei ee) where
+--   isInput :: (t, SomeSignal) -> Maybe t
+--   isInput (fa, (SomeSignal (InputS (Text _) _))) = Just fa
+--   isInput _ = Nothing
 
 addPlayer :: PlayerInfo -> Evaluate Bool
 addPlayer pi = do

@@ -206,7 +206,7 @@ routedNomyxCommands (DelGame game)       = delGame           game
 routedNomyxCommands NewGame              = newGamePage
 routedNomyxCommands SubmitNewGame        = newGamePost
 -- Game actions
-routedNomyxCommands (DoInput en fa ft g pn) = newInput' en fa ft g pn
+routedNomyxCommands (DoInput is pn)      = newInput' is pn
 routedNomyxCommands (SubmitRule game)    = submitRuleTemplatePost game
 -- Templates
 routedNomyxCommands (NewRuleTemplate game) = newRuleTemplate game
@@ -241,10 +241,11 @@ evalFunc' nom = undefined --do
 --  return a
 
 
-updateSession' :: TVar Session -> Imprevu.Happstack.Types.InputResult -> IO ()
-updateSession' tvs (Imprevu.Happstack.Types.InputResult en sa iv idv pn) = do
+updateSession' :: TVar Session -> InputS -> InputData -> IO ()
+updateSession' tvs is@(InputS _ pn) id = do
   putStrLn "updateSession"
-  S.updateSession tvs $ S.inputResult pn en sa iv idv "Default game"
+  S.updateSession tvs $ S.inputResult pn 0 is id "Default game" -- TODO fix
+
 
 --serving Nomyx web page as well as data from this package and the language library package
 server :: WebSession -> Settings -> Network -> String -> ServerPartT IO Response

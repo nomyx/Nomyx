@@ -50,20 +50,13 @@ server ws = do
                       newInput is ws "/test/main"
                  ]
 
-updateSessionTest :: TVar TestState -> InputS -> InputData -> IO ()
-updateSessionTest tvs is@(InputS (Text _) _)       (TextData a)     = updateSessionTest' tvs (Signal is) a
-updateSessionTest tvs is@(InputS (TextArea _) _)   (TextAreaData a) = updateSessionTest' tvs (Signal is) a
-updateSessionTest tvs is@(InputS (Button _) _)     (ButtonData)     = updateSessionTest' tvs (Signal is) ()
-updateSessionTest tvs is@(InputS (Radio _ _) _)    (RadioData a)    = updateSessionTest' tvs (Signal is) a
-updateSessionTest tvs is@(InputS (Checkbox _ _) _) (CheckboxData a) = updateSessionTest' tvs (Signal is) a
-updateSessionTest _ _ _ = error "updateSessionTest"
 
-updateSessionTest' :: (Show a, Typeable a) => TVar TestState -> Signal InputS a -> a -> IO ()
-updateSessionTest' tvs is id = do
+updateSessionTest :: TVar TestState -> InputS -> InputData -> IO ()
+updateSessionTest tvs is id = do
    s <- atomically $ readTVar tvs
    putStrLn $ show s
    putStrLn  $ "input result: Form " ++ show is ++ ", choice " ++ show id
-   let ev = runEvalError' $ triggerEvent is id
+   let ev = runEvalError' $ triggerInput is id
    let (EvalEnv s' _) = execState ev (EvalEnv s defaultEvalConf)
    atomically $ writeTVar tvs s'
 

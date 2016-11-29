@@ -303,7 +303,6 @@ delVictoryRule rn = do
 --extract the game state from an Evaluate
 --knowing the rule number performing the evaluation (0 if by the system)
 --and the player number to whom display errors (set to Nothing for all players)
---TODO: clean
 runEvalError :: RuleNumber -> Maybe PlayerNumber -> Evaluate a -> State Game ()
 runEvalError rn mpn eva = do
   g <- get

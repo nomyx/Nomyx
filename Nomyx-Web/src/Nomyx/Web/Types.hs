@@ -54,7 +54,7 @@ data PlayerCommand =
   | NewGame
   | SubmitNewGame
   -- Game actions
-  | DoInput   EventNumber SignalAddress InputView GameName PlayerNumber
+  | DoInput   InputS GameName 
   | SubmitRule   GameName
   -- Templates
   | NewRuleTemplate GameName
@@ -92,9 +92,8 @@ data RuleTemplateForm = RuleTemplateForm {name  :: String,               -- rule
                                           decls :: (FilePath, FilePath)} -- list of declaration files (temp path, filename)
                                           deriving (Show)
 
-instance PathInfo SignalAddressElem
-instance PathInfo SignalAddress
-instance PathInfo InputView
+instance PathInfo Language.Nomyx.Input
+instance PathInfo InputS
 instance PathInfo (Int, String)
 instance PathInfo [(Int, String)]
 

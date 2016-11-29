@@ -206,6 +206,9 @@ concatMapM f xs   =  liftM concat (mapM f xs)
 instance (Typeable a, Typeable b) => Show (a -> b) where
     show e = '<' : (show . typeOf) e ++ ">"
 
+enumAll :: (Enum a, Show a, Bounded a) => [(a, String)]
+enumAll = map (\a -> (a, show a)) (enumFrom minBound)
+
 
 makeLenses ''RuleInfo
 makeLenses ''RuleTemplate

@@ -81,7 +81,8 @@ moneyTransfer = do
        askAmount src = do
           pls <- liftEvent getAllPlayerNumbers
           guard (length pls >= 2) >> do
-             dst <- inputRadio' src "Transfer money to player: " (delete src $ sort pls)
+             let pnames = map (\a -> (a, show a)) (delete src $ sort pls)
+             dst <- inputRadio src "Transfer money to player: " pnames
              amount <- inputText src ("Select Amount to transfert to player " ++ show dst ++ ": ")
              return (dst, readDef 0 amount)
    void $ forEachPlayer_ (\pn -> void $ onEvent_ (askAmount pn) (transfer pn))

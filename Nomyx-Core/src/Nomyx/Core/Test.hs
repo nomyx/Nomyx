@@ -308,15 +308,16 @@ inputAllRadios :: Int -> StateT Session IO ()
 inputAllRadios choice = do
    s <- get
    let evs = G.runEvaluate (firstGame $ _multi s) 0 getChoiceEvents
-   mapM_ (\(en, fa, pn, t) -> inputResult pn en fa (RadioField t [(0,"For"),(1,"Against")]) (RadioData choice) "test") evs
+   --mapM_ (\(en, pn, t) -> inputResult pn en is (RadioData choice) "test") evs
+   undefined
 
 -- input text for all text fields
 inputAllTexts :: String -> PlayerNumber -> StateT Session IO ()
 inputAllTexts a pn = do
    s <- get
    let evs = G.runEvaluate (firstGame $ _multi s) 0 getTextEvents
-   --let evs = evalState getTextEvents (firstGame $ _multi s)
-   mapM_ (\(en, fa) -> inputResult pn en fa (TextField "") (TextData a) "test") evs
+   --mapM_ (\(en, fa) -> inputResult pn en is (TextData a) "test") evs
+   undefined
 
 firstGame :: Multi -> Game
 firstGame = G._game . _loggedGame . head . _gameInfos
