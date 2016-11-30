@@ -206,7 +206,7 @@ routedNomyxCommands (DelGame game)       = delGame           game
 routedNomyxCommands NewGame              = newGamePage
 routedNomyxCommands SubmitNewGame        = newGamePost
 -- Game actions
-routedNomyxCommands (DoInput is pn)      = newInput' is pn
+routedNomyxCommands (DoInput is en game) = newInput' is en game
 routedNomyxCommands (SubmitRule game)    = submitRuleTemplatePost game
 -- Templates
 routedNomyxCommands (NewRuleTemplate game) = newRuleTemplate game
@@ -241,10 +241,10 @@ evalFunc' nom = undefined --do
 --  return a
 
 
-updateSession' :: TVar Session -> InputS -> InputData -> IO ()
-updateSession' tvs is@(InputS _ pn) id = do
-  putStrLn "updateSession"
-  S.updateSession tvs $ S.inputResult pn 0 is id "Default game" -- TODO fix
+updateSession' :: TVar Session -> InputS -> InputData -> EventNumber -> IO ()
+updateSession' tvs is@(InputS _ pn) id en = do
+  putStrLn $ "updateSession, pn= " ++ (show pn)
+  S.updateSession tvs $ S.inputResult pn en is id "Default game" -- TODO fix
 
 
 --serving Nomyx web page as well as data from this package and the language library package

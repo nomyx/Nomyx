@@ -25,26 +25,26 @@ import           Text.Reform.Happstack               (environment)
 import qualified Text.Reform.Generalized       as G
 default (Integer, Double, Data.Text.Text)
 
-type BackLink = InputS -> Text
+type BackLink = EventNumber -> InputS -> Text
 
 viewInput :: ClientNumber -> WebStateN n s -> BackLink -> EventInfoN n -> ServerPartT IO (Maybe Html)
 viewInput cn (WebState tvs _ conf) bl ei@(EventInfo en _ _ SActive _) = do
    s <- liftIO $ atomically $ readTVar tvs
-   ds <- mapMaybeM (viewInput' cn bl) (getRemainingSignals ei (EvalEnv s conf))
+   ds <- mapMaybeM (viewInput' cn bl en) (getRemainingSignals ei (EvalEnv s conf))
    traceM $ "viewInput " ++ (show $ length ds)
    return $ if null ds
       then Nothing
       else Just $ sequence_ ds
 viewInput _ _ _ _ = return Nothing
 
-viewInput' :: ClientNumber -> BackLink -> SomeSignal -> ServerPartT IO (Maybe Html)
-viewInput' me backlink (SomeSignal (Signal s)) = do
+viewInput' :: ClientNumber -> BackLink -> EventNumber -> SomeSignal -> ServerPartT IO (Maybe Html)
+viewInput' me backlink en (SomeSignal (Signal s)) = do
   traceM $ "viewInput' " ++ (show s)
   case (cast s) of
    Just is@(InputS i cn) | me == cn -> do
       traceM $ "viewInput' " ++ (show i)
       lf  <- viewForm "user" $ inputForm' i
-      let link = backlink is
+      let link = backlink en is
       traceM $ "viewInput' backlink=" ++ (unpack link)
       return $ Just $ tr $ td $ do
          --fromString title
@@ -61,12 +61,12 @@ inputForm' (Checkbox s choices) = CheckboxData <$> RB.label s ++> (inputCheckbox
 
 
 -- | a form result has been sent
-newInput :: InputS -> WebStateN n s -> Text -> ServerPartT IO Response
-newInput is@(InputS i _) (WebState tv updateSession _) bl = toResponse <$> do
+newInput :: InputS -> EventNumber -> WebStateN n s -> Text -> ServerPartT IO Response
+newInput is@(InputS i _) en (WebState tv updateSession _) bl = toResponse <$> do
    methodM POST
    r <- eitherForm environment "user" (inputForm' i)
    case r of
-      (Right id) -> liftIO $ updateSession tv is id
+      (Right id) -> liftIO $ updateSession tv is id en
       (Left _) ->  liftIO $ putStrLn "cannot retrieve form data"
    seeOther bl "Redirecting..."
 

@@ -15,7 +15,7 @@ import Text.Reform                       (CommonFormError, ErrorInputType, Form,
 import Safe
 
 data WebStateN n s = WebState {_webState     :: TVar s,
-                               updateSession :: TVar s -> InputS -> InputData -> IO (), -- update the session after an input is submitted
+                               updateSession :: TVar s -> InputS -> InputData -> EventNumber -> IO (), -- update the session after an input is submitted
                                webEvalConf   :: EvalConfN n s}
 
 type ImpForm a = Form (ServerPartT IO) [HS.Input] ImpFormError Html () a

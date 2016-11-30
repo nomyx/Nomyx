@@ -54,7 +54,7 @@ data PlayerCommand =
   | NewGame
   | SubmitNewGame
   -- Game actions
-  | DoInput   InputS GameName 
+  | DoInput   InputS EventNumber GameName 
   | SubmitRule   GameName
   -- Templates
   | NewRuleTemplate GameName

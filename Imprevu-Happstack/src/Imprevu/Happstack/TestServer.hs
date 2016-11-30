@@ -46,13 +46,14 @@ server ws = do
   decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
   msum [dirs "test/main" (mainPage ws),
                   dirs "test/do-input" $
+                      path $ \en ->
                       path $ \is ->
-                      newInput is ws "/test/main"
+                      newInput is en ws "/test/main"
                  ]
 
 
-updateSessionTest :: TVar TestState -> InputS -> InputData -> IO ()
-updateSessionTest tvs is id = do
+updateSessionTest :: TVar TestState -> InputS -> InputData -> EventNumber -> IO ()
+updateSessionTest tvs is id _ = do
    s <- atomically $ readTVar tvs
    putStrLn $ show s
    putStrLn  $ "input result: Form " ++ show is ++ ", choice " ++ show id
@@ -63,7 +64,7 @@ updateSessionTest tvs is id = do
 mainPage :: WebState -> ServerPartT IO Response
 mainPage ws@(WebState tts _ _) = do
    (TestState eis os _) <- liftIO $ atomically $ readTVar tts
-   let link iv = pack $ "/test/do-input/" ++ (urlEncode $ show iv)
+   let link en iv = pack $ "/test/do-input/" ++ (urlEncode $ show en) ++ "/" ++ (urlEncode $ show iv)
    m1 <- mapM (viewInput 1 ws link) eis
    m2 <- mapM (viewInput 2 ws link) eis
    m3 <- mapM (viewInput 3 ws link) eis

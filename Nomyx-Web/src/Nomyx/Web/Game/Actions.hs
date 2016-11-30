@@ -67,7 +67,7 @@ viewIORuleM pn rn g = do
 viewInputsRule :: PlayerNumber -> RuleNumber -> [RuleEventInfo] -> Game -> RoutedNomyxServer (Maybe Html)
 viewInputsRule pn rn ehs g = do
    let filtered = filter (\e -> _erRuleNumber e == rn) ehs
-   let link iv = showRelURL (DoInput iv (_gameName g))
+   let link en iv = showRelURL (DoInput iv en (_gameName g))
    ws <- use webSession
    mis <- liftRouteT $ lift $ mapM (viewInput pn ws link) $ (map _erEventInfo $ sort filtered)
    let is = catMaybes mis
@@ -92,8 +92,8 @@ viewOutput g o = if (s /= "") then Just (pre $ fromString s >> br) else Nothing 
    s =  (evalOutput g o)
 
 ---- | a form result has been sent
-newInput' :: InputS -> GameName -> RoutedNomyxServer Response
-newInput' is gn = do
+newInput' :: InputS -> EventNumber -> GameName -> RoutedNomyxServer Response
+newInput' is en gn = do
   ws <- use webSession
   let link = showRelURL $ Menu Actions gn
-  liftRouteT $ lift $ newInput is ws link
+  liftRouteT $ lift $ newInput is en ws link
