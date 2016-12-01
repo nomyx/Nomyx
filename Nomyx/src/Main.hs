@@ -118,8 +118,8 @@ mainLoop settings saveDir host port lib = do
 --data EvalState = EvalState { _eGame :: Game,             -- game to be read/modified
 --                             _eRuleNumber :: RuleNumber} -- number of the rule requesting the evaluation
 
-evalNomex' :: Nomex a ->  EvaluateN Nomex Session a
-evalNomex' exp = error "evalNomex"
+--evalNomex' :: Nomex a ->  EvaluateN Nomex Session a
+--evalNomex' exp = error "evalNomex"
 
 loadMulti :: Settings -> FilePath -> ServerHandle -> IO Multi
 loadMulti set libPath sh = do
