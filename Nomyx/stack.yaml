@@ -26,4 +26,5 @@ extra-deps:
 - eprocess-1.7.2
 - web-routes-regular-0.19.0.1
 - regular-0.3.4.4
+- NoTrace-0.3.0.1
 resolver: lts-5.11

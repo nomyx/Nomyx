@@ -23,6 +23,8 @@ import Control.Lens
 import System.Random
 import Imprevu.Test.TestMgt
 import Imprevu.Evaluation hiding (events)
+import Debug.NoTrace -- .Helpers    (traceM)
+
 
 testGame :: Game
 testGame = Game { _gameName      = "test",
@@ -52,18 +54,6 @@ testRule = RuleInfo  { _rNumber       = 0,
                                                       _rCategory = [],
                                                       _rDeclarations = []}}
 
---execRuleEvent :: (Show e, Typeable e) => Nomex a -> Signal e -> e -> Game
---execRuleEvent r f d = execState (runSystemEval' $ evalNomex r >> triggerEvent f d) testGame
---
---execRuleEvents :: (Show e, Typeable e) => Nomex a -> [(Signal e, e)] -> Game
---execRuleEvents f eds = execState (runSystemEval' $ evalNomex f >> mapM (\(a,b) -> triggerEvent a b) eds) testGame
---
---execRuleInput :: Nomex a -> EventNumber -> SignalAddress -> FormField -> InputData -> Game
---execRuleInput r en sa ff ide = execState (runSystemEval' $ evalNomex r >> triggerInput ff ide sa en) testGame
---
---execRuleInputs :: Nomex a -> EventNumber -> [(SignalAddress, FormField, InputData)] -> Game
---execRuleInputs r en fads = execState (runSystemEval' $ evalNomex r >> mapM (\(sa, ff, ide) -> triggerInput ff ide sa en) fads) testGame
---
 execRuleGame :: Nomex a -> Game -> Game
 execRuleGame r g = execState (runSystemEval' $ void $ evalNomex r) g
 
@@ -227,8 +217,9 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     actions
     evProposeRule testRule
     evs <- lift getChoiceEvents
-    mapM_ (triggerVote 0) (take positives evs)                  --issuing positive votes
-    mapM_ (triggerVote 1) (take negatives $ drop positives evs) --issuing negative votes
+    traceM $  "choice events =" ++ (show evs)
+    mapM_ (triggerVote 1) (take positives evs)                  --issuing positive votes
+    mapM_ (triggerVote 0) (take negatives $ drop positives evs) --issuing negative votes
     when timeEvent $ evTriggerTime date2
 
 --Trigger a vote event (0 for positive, 1 for negative), using event details
