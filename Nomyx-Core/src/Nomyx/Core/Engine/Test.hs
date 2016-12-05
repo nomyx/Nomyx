@@ -261,10 +261,10 @@ testVotePlayerArrive = flip execState testGame {_players = []} $ runSystemEval' 
     addActivateRule  (onRuleProposed $ callVoteRule (unanimity `withQuorum` 2) oneDay) 1
     evProposeRule testRule
     evs <- lift getChoiceEvents
-    mapM_ (triggerVote 0) evs                 --issuing positive vote player 1
+    mapM_ (triggerVote 1) evs                 --issuing positive vote player 1
     addPlayer (PlayerInfo 2 "coco 2" Nothing) --new player
     evs <- lift getChoiceEvents
-    mapM_ (triggerVote 0) evs                 --issuing positive vote player 2
+    mapM_ (triggerVote 1) evs                 --issuing positive vote player 2
 
 testVotePlayerArriveEx = testVoteRule Active testVotePlayerArrive
 
@@ -277,7 +277,7 @@ testVotePlayerLeave = flip execState testGame {_players = []} $ runSystemEval' $
     addActivateRule  (onRuleProposed $ callVoteRule unanimity oneDay) 1
     evProposeRule testRule
     evs <- lift getChoiceEvents
-    triggerVote 0 (last evs)  -- issuing positive vote player 1
+    triggerVote 1 (last evs)  -- issuing positive vote player 1
     evDelPlayer 2             -- player 2 leaving
 
 testVotePlayerLeaveEx :: Bool
