@@ -34,7 +34,8 @@ library
                    stm,
                    validation,
                    semigroups,
-                   shortcut
+                   shortcut,
+                   NoTrace
     exposed-modules: Imprevu
                      Imprevu.Types
                      Imprevu.Events

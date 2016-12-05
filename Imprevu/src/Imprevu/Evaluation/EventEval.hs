@@ -23,7 +23,7 @@ import           Imprevu.Evaluation.Types
 import           Imprevu.Evaluation.Utils
 import           Prelude                     hiding (log)
 import           Safe
-import           Debug.Trace.Helpers    (traceM)
+import           Debug.NoTrace -- .Helpers    (traceM)
 
 
 -- * Event triggers
