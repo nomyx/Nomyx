@@ -10,7 +10,6 @@ import           Control.Monad.State
 import           Data.String
 import           Data.Text                           (Text, unpack)
 import           Data.Typeable
-import           Debug.Trace.Helpers                 (traceM)
 import           Imprevu
 import           Imprevu.Evaluation
 import           Imprevu.Happstack.Types
@@ -23,15 +22,15 @@ import           Text.Reform.Blaze.String            (inputCheckboxes, label, te
 import qualified Text.Reform.Blaze.String      as RB
 import           Text.Reform.Happstack               (environment)
 import qualified Text.Reform.Generalized       as G
+import           Debug.NoTrace
+
 default (Integer, Double, Data.Text.Text)
 
 type BackLink = EventNumber -> InputS -> Text
 
-viewInput :: ClientNumber -> WebStateN n s -> BackLink -> EventInfoN n -> ServerPartT IO (Maybe Html)
-viewInput cn (WebState tvs _ conf) bl ei@(EventInfo en _ _ SActive _) = do
-   s <- liftIO $ atomically $ readTVar tvs
-   ds <- mapMaybeM (viewInput' cn bl en) (getRemainingSignals ei (EvalEnv s conf))
-   traceM $ "viewInput " ++ (show $ length ds)
+viewInput :: ClientNumber -> BackLink -> EventNumber -> [SomeSignal] -> ServerPartT IO (Maybe Html)
+viewInput cn bl en ss = do
+   ds <- mapMaybeM (viewInput' cn bl en) ss 
    return $ if null ds
       then Nothing
       else Just $ sequence_ ds
@@ -42,7 +41,6 @@ viewInput' me backlink en (SomeSignal (Signal s)) = do
   traceM $ "viewInput' " ++ (show s)
   case (cast s) of
    Just is@(InputS i cn) | me == cn -> do
-      traceM $ "viewInput' " ++ (show i)
       lf  <- viewForm "user" $ inputForm' i
       let link = backlink en is
       traceM $ "viewInput' backlink=" ++ (unpack link)
@@ -61,8 +59,8 @@ inputForm' (Checkbox s choices) = CheckboxData <$> RB.label s ++> (inputCheckbox
 
 
 -- | a form result has been sent
-newInput :: InputS -> EventNumber -> WebStateN n s -> Text -> ServerPartT IO Response
-newInput is@(InputS i _) en (WebState tv updateSession _) bl = toResponse <$> do
+newInput :: InputS -> EventNumber -> WebStateN s -> Text -> ServerPartT IO Response
+newInput is@(InputS i _) en (WebState tv updateSession) bl = toResponse <$> do
    methodM POST
    r <- eitherForm environment "user" (inputForm' i)
    case r of

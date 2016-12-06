@@ -9,7 +9,7 @@ import Control.Concurrent
 import Control.Monad
 import Control.Monad.State
 import Data.Maybe
-import Data.Text
+import Data.Text                   hiding (concatMap, map)
 import Data.Typeable
 import Happstack.Server            as HS
 import Imprevu.Happstack.Forms
@@ -17,12 +17,12 @@ import Imprevu.Happstack.Types
 import Imprevu.Evaluation
 import Imprevu.Test.Test
 import Imprevu.Test.TestMgt
-import Text.Blaze.Html5            (toHtml)
+import Text.Blaze.Html5            (toHtml, Html)
 import Imprevu
 import Control.Applicative
 import Network.HTTP (urlEncode)
 
-type WebState = WebStateN TestM TestState
+type WebState = WebStateN TestState
 
 
 startTest :: TestM () -> IO ()
@@ -36,7 +36,7 @@ launchWebServer :: TVar TestState -> IO ()
 launchWebServer tv = do
    putStrLn $ "Starting web server on http://localhost:8080/test/main"
    let conf = nullConf {HS.port = 8080}
-   let ws = WebState tv updateSessionTest defaultEvalConf
+   let ws = WebState tv updateSessionTest
    forkIO $ launchTimeEvents tv defaultEvalConf
    simpleHTTP conf $ server ws
 
@@ -62,16 +62,16 @@ updateSessionTest tvs is id _ = do
    atomically $ writeTVar tvs s'
 
 mainPage :: WebState -> ServerPartT IO Response
-mainPage ws@(WebState tts _ _) = do
-   (TestState eis os _) <- liftIO $ atomically $ readTVar tts
+mainPage ws@(WebState tts _) = do
+   s@(TestState eis os _) <- liftIO $ atomically $ readTVar tts
    let link en iv = pack $ "/test/do-input/" ++ (urlEncode $ show en) ++ "/" ++ (urlEncode $ show iv)
-   m1 <- mapM (viewInput 1 ws link) eis
-   m2 <- mapM (viewInput 2 ws link) eis
-   m3 <- mapM (viewInput 3 ws link) eis
-   m4 <- mapM (viewInput 4 ws link) eis
-   m5 <- mapM (viewInput 5 ws link) eis
+   m1 <- mapM (getViewEvent 1 s link) eis
+   m2 <- mapM (getViewEvent 2 s link) eis
+   m3 <- mapM (getViewEvent 3 s link) eis
+   m4 <- mapM (getViewEvent 4 s link) eis
+   m5 <- mapM (getViewEvent 5 s link) eis
    return $ toResponse $ do
-     "Test simple input:"
+     "Test simple input:"--
      sequence_ $ catMaybes m1
      "Test sum of events (first input wins):"
      sequence_ $ catMaybes m2
@@ -83,4 +83,10 @@ mainPage ws@(WebState tts _ _) = do
      sequence_ $ catMaybes m5
      "Results:\n"
      toHtml $ show os
+
+getViewEvent :: ClientNumber -> TestState -> BackLink -> EventInfoN TestM -> ServerPartT IO (Maybe Html)
+getViewEvent cn ts link ei@(EventInfo en _ _ SActive _) = do
+   let ss = getRemainingSignals ei (EvalEnv ts defaultEvalConf)
+   viewInput cn link en ss
+getViewEvent _ _ _ _ = return Nothing 
 

@@ -156,7 +156,6 @@ webCommand ss = do
   ts <- use (webSession . webState)
   liftIO $ updateSession ts ss
 
-
 isAdmin :: RoutedNomyxServer Bool
 isAdmin = do
    mpn <- getPlayerNumber

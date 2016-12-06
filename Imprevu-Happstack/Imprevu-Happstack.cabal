@@ -34,7 +34,8 @@ library
                    monad-extras -any,
                    stm,
                    safe,
-                   HTTP
+                   HTTP,
+                   NoTrace
     exposed-modules: Imprevu.Happstack.Forms
                      Imprevu.Happstack.Types
                      Imprevu.Happstack.TestServer

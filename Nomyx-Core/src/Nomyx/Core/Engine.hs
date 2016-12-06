@@ -30,6 +30,8 @@ module Nomyx.Core.Engine(
    -- * Events management
    events,
    getEventInfo,
+   EvalState(..),
+   defaultEvalConf,
 
    -- * Outputs management
    Output(..),

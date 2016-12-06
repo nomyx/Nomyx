@@ -230,22 +230,13 @@ launchWebServer ts net = do
    let conf = nullConf {HS.port = T._port net}
    docdir <- liftIO getDocDir
    auth<- Auth.launchAuth (_saveDir set)
-   let wst = WebState ts updateSession' (EvalConf undefined undefined evalFunc' undefined)
+   let wst = WebState ts updateSession'
    simpleHTTP conf $ server (WebSession wst auth) set net docdir
-
-evalFunc' :: Nomex a -> EvaluateN Nomex Session a
-evalFunc' nom = undefined --do
---  g <- use (multi . gameInfos . ix 0 . game)
---  let (g', a) = runState (evalNomex nom) (ET.EvalState g 0)
---  (multi . gameInfos . ix 0 . game) .= g'
---  return a
-
 
 updateSession' :: TVar Session -> InputS -> InputData -> EventNumber -> IO ()
 updateSession' tvs is@(InputS _ pn) id en = do
   putStrLn $ "updateSession, pn= " ++ (show pn)
   S.updateSession tvs $ S.inputResult pn en is id "Default game" -- TODO fix
-
 
 --serving Nomyx web page as well as data from this package and the language library package
 server :: WebSession -> Settings -> Network -> String -> ServerPartT IO Response

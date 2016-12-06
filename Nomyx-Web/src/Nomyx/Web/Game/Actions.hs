@@ -32,9 +32,9 @@ import           Text.Reform.Blaze.String    (inputCheckboxes, label, textarea)
 import qualified Text.Reform.Blaze.String    as RB
 import           Text.Reform.Happstack       (environment)
 import           Web.Routes.RouteT           (liftRouteT)
-import           Imprevu.Happstack.Forms     (viewInput, newInput)
+import           Imprevu.Happstack.Forms     (viewInput, newInput, BackLink)
 import           Imprevu.Happstack.Types
-import           Imprevu.Evaluation.InputEval
+import           Imprevu.Evaluation
 
 default (Integer, Double, Data.Text.Text)
 
@@ -69,11 +69,17 @@ viewInputsRule pn rn ehs g = do
    let filtered = filter (\e -> _erRuleNumber e == rn) ehs
    let link en iv = showRelURL (DoInput iv en (_gameName g))
    ws <- use webSession
-   mis <- liftRouteT $ lift $ mapM (viewInput pn ws link) $ (map _erEventInfo $ sort filtered)
+   mis <- mapM (getViewEvent pn g link) $ (map _erEventInfo $ sort filtered)
    let is = catMaybes mis
    case is of
       [] -> return Nothing
       i -> return $ Just $ table $ mconcat i
+
+getViewEvent :: ClientNumber -> Game -> BackLink -> EventInfo -> RoutedNomyxServer (Maybe Html)
+getViewEvent cn g link ei@(EventInfo en _ _ SActive _) = do
+   let ss = getRemainingSignals ei (EvalEnv (EvalState g 0) defaultEvalConf)
+   liftRouteT $ lift $ viewInput cn link en ss
+getViewEvent _ _ _ _ = return Nothing 
 
 viewOutputsRule :: PlayerNumber -> RuleNumber -> Game -> Maybe Html
 viewOutputsRule pn rn g = do
