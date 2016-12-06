@@ -9,6 +9,7 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.State
 import           Control.Lens hiding (pre)
+import           Control.Concurrent.STM
 import           Data.List
 import           Data.Maybe
 import           Data.Monoid
@@ -18,6 +19,7 @@ import           Happstack.Server            (Method (..), Response, methodM,
                                               ok, seeOther, toResponse)
 import           Language.Nomyx
 import           Nomyx.Core.Engine
+import           Nomyx.Core.Types
 import           Nomyx.Core.Mail
 import           Nomyx.Core.Session          as S
 import           Nomyx.Web.Common            as NWC
@@ -102,4 +104,9 @@ newInput' :: InputS -> EventNumber -> GameName -> RoutedNomyxServer Response
 newInput' is en gn = do
   ws <- use webSession
   let link = showRelURL $ Menu Actions gn
-  liftRouteT $ lift $ newInput is en ws link
+  liftRouteT $ lift $ newInput is en ws updateSession' link
+
+updateSession' :: TVar Session -> InputS -> InputData -> EventNumber -> IO ()
+updateSession' tvs is@(InputS _ pn) id en = do
+  putStrLn $ "updateSession, pn= " ++ (show pn)
+  S.updateSession tvs $ S.inputResult pn en is id "Default game" -- TODO fix

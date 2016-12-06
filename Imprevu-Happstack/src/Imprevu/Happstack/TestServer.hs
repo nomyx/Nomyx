@@ -22,8 +22,6 @@ import Imprevu
 import Control.Applicative
 import Network.HTTP (urlEncode)
 
-type WebState = WebStateN TestState
-
 
 startTest :: TestM () -> IO ()
 startTest t = do
@@ -31,24 +29,22 @@ startTest t = do
   tv <- atomically $ newTVar ts
   launchWebServer tv
 
-
 launchWebServer :: TVar TestState -> IO ()
 launchWebServer tv = do
    putStrLn $ "Starting web server on http://localhost:8080/test/main"
    let conf = nullConf {HS.port = 8080}
-   let ws = WebState tv updateSessionTest
    forkIO $ launchTimeEvents tv defaultEvalConf
-   simpleHTTP conf $ server ws
+   simpleHTTP conf $ server tv
 
 --serving Nomyx web page as well as data from this package and the language library package
-server :: WebState -> ServerPartT IO Response
-server ws = do
+server :: TVar TestState -> ServerPartT IO Response
+server tv = do
   decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
-  msum [dirs "test/main" (mainPage ws),
+  msum [dirs "test/main" (mainPage tv),
                   dirs "test/do-input" $
                       path $ \en ->
                       path $ \is ->
-                      newInput is en ws "/test/main"
+                      newInput is en tv updateSessionTest "/test/main"
                  ]
 
 
@@ -61,8 +57,8 @@ updateSessionTest tvs is id _ = do
    let (EvalEnv s' _) = execState ev (EvalEnv s defaultEvalConf)
    atomically $ writeTVar tvs s'
 
-mainPage :: WebState -> ServerPartT IO Response
-mainPage ws@(WebState tts _) = do
+mainPage :: TVar TestState -> ServerPartT IO Response
+mainPage tts = do
    s@(TestState eis os _) <- liftIO $ atomically $ readTVar tts
    let link en iv = pack $ "/test/do-input/" ++ (urlEncode $ show en) ++ "/" ++ (urlEncode $ show iv)
    m1 <- mapM (getViewEvent 1 s link) eis

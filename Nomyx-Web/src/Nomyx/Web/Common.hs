@@ -147,13 +147,13 @@ getProfile' pn = do
 
 getSession :: RoutedNomyxServer Session
 getSession = do
-  ts <- use (webSession . webState)
+  ts <- use webSession
   liftIO $ atomically $ readTVar ts
 
 --update the session using the command and saves it
 webCommand :: StateT Session IO () -> RoutedNomyxServer ()
 webCommand ss = do
-  ts <- use (webSession . webState)
+  ts <- use webSession
   liftIO $ updateSession ts ss
 
 isAdmin :: RoutedNomyxServer Bool

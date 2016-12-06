@@ -223,20 +223,15 @@ routedNomyxCommands SaveFilePage         = saveFilePage
 routedNomyxCommands NomyxJS              = ok $ toResponse nomyxJS
 
 launchWebServer :: TVar Session -> Network -> IO ()
-launchWebServer ts net = do
+launchWebServer tv net = do
    putStrLn $ "Starting web server...\nTo connect, drive your browser to \"" ++ nomyxURL net ++ "/Nomyx\""
-   s <- liftIO $ atomically $ readTVar ts
+   s <- liftIO $ atomically $ readTVar tv
    let set = _mSettings $ _multi s
    let conf = nullConf {HS.port = T._port net}
    docdir <- liftIO getDocDir
-   auth<- Auth.launchAuth (_saveDir set)
-   let wst = WebState ts updateSession'
-   simpleHTTP conf $ server (WebSession wst auth) set net docdir
+   auth <- Auth.launchAuth (_saveDir set)
+   simpleHTTP conf $ server (WebSession tv auth) set net docdir
 
-updateSession' :: TVar Session -> InputS -> InputData -> EventNumber -> IO ()
-updateSession' tvs is@(InputS _ pn) id en = do
-  putStrLn $ "updateSession, pn= " ++ (show pn)
-  S.updateSession tvs $ S.inputResult pn en is id "Default game" -- TODO fix
 
 --serving Nomyx web page as well as data from this package and the language library package
 server :: WebSession -> Settings -> Network -> String -> ServerPartT IO Response

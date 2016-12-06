@@ -14,8 +14,7 @@ import Text.Blaze.Html5                  (Html)
 import Text.Reform                       (CommonFormError, ErrorInputType, Form, FormError (..))
 import Safe
 
-data WebStateN s = WebState {_webState     :: TVar s,
-                             updateSession :: TVar s -> InputS -> InputData -> EventNumber -> IO ()} -- update the session after an input is submitted
+type UpdateSession s = TVar s -> InputS -> InputData -> EventNumber -> IO () -- update the session after an input is submitted
 
 type ImpForm a = Form (ServerPartT IO) [HS.Input] ImpFormError Html () a
 
@@ -30,5 +29,3 @@ instance FromReqURI InputS where
 
 instance FromReqURI InputData where
     fromReqURI = readMay
-
-makeLenses ''WebStateN

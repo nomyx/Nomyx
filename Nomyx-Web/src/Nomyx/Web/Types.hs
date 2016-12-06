@@ -71,7 +71,7 @@ data PlayerCommand =
   | NomyxJS
   deriving (Show)
 
-data WebSession = WebSession {_webSession        :: WebStateN Session,
+data WebSession = WebSession {_webSession        :: TVar Session,
                               _authState         :: AuthState}
 
 type RoutedNomyxServer a = RouteT PlayerCommand (StateT WebSession (ServerPartT IO)) a

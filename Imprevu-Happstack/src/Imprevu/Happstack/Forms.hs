@@ -59,8 +59,8 @@ inputForm' (Checkbox s choices) = CheckboxData <$> RB.label s ++> (inputCheckbox
 
 
 -- | a form result has been sent
-newInput :: InputS -> EventNumber -> WebStateN s -> Text -> ServerPartT IO Response
-newInput is@(InputS i _) en (WebState tv updateSession) bl = toResponse <$> do
+newInput :: InputS -> EventNumber -> TVar s -> UpdateSession s -> Text -> ServerPartT IO Response
+newInput is@(InputS i _) en tv updateSession bl = toResponse <$> do
    methodM POST
    r <- eitherForm environment "user" (inputForm' i)
    case r of
