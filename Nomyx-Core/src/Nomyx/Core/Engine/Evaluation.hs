@@ -9,6 +9,7 @@ import           Control.Lens
 import           Control.Monad
 import           Control.Monad.Except
 import           Control.Monad.State
+import           Control.Monad.Error
 import           Data.List
 import           Data.Maybe
 import           Data.Time
@@ -314,7 +315,7 @@ defaultEvalEnv rn g = EvalEnv (EvalState g rn) defaultEvalConf
 
 --TODO: to check. how to map the events correctly?
 defaultEvalConf :: EvalConfN Nomex EvalState
-defaultEvalConf = EvalConf getEventsNomex setEventsNomex evalNomex undefined where
+defaultEvalConf = EvalConf getEventsNomex setEventsNomex evalNomex errorNomex where
    getEventsNomex s = map _erEventInfo (_events $ _eGame s)
    setEventsNomex eis s = (eGame . events) .~ (getreis (_events $ _eGame s) eis) $ s where
      getreis reis eis = if (length reis /= length eis) then error "setEvents" else zipWith (\rei ei -> rei {_erEventInfo = ei}) reis eis
@@ -324,6 +325,12 @@ runSystemEval pn = runEvalError 0 (Just pn)
 
 runSystemEval' :: Evaluate a -> State Game ()
 runSystemEval' = runEvalError 0 Nothing
+
+errorNomex :: EventNumber -> String -> Evaluate ()
+errorNomex e s = do 
+   --tracePN (fromMaybe 0 mpn) $ "Error: " ++ s
+   log Nothing "Error: "
+
 
 --runEvalError'' :: Maybe PlayerNumber -> Evaluate a -> State EvalEnv a
 --runEvalError'' mpn egs = do

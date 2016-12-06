@@ -74,7 +74,7 @@ start flags = do
    let webDir      = fromMaybe defWebDir     (findWebDir flags)    -- data directory: web ressources and profiles
    let sourceDir   = fromMaybe defSourceDir  (findSourceDir flags) -- source directory: Nomyx-Language files
    let libraryPath = fromMaybe defLib        (findLibrary flags)
-   let watchdog    = fromMaybe 20 (read <$> findWatchdog flags)
+   let watchdog    = fromMaybe 10 (read <$> findWatchdog flags)
    let mLoad       = findLoadTest flags
    -- save directory: Nomyx.save and uploaded files
    saveDir <- case findTarFile flags of

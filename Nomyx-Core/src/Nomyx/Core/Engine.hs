@@ -43,7 +43,6 @@ module Nomyx.Core.Engine(
    -- * Misc
    tracePN,
    getChoiceEvents,
-   getTextEvents,
    runEvaluate,
    getL
    ) where

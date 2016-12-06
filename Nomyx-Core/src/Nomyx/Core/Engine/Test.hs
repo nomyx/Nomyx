@@ -296,19 +296,6 @@ getInputChoices ee (RuleEventInfo _ ei) = mapMaybe isInput (getRemainingSignals 
    isInput :: SomeSignal -> Maybe InputS
    isInput (SomeSignal (Signal s)) = cast s
 
-----Get all event numbers of type text (text field)
-getTextEvents :: State EvalEnv [(EventNumber, SignalAddress)]
-getTextEvents = undefined --do
---   evs <- use (evalEnv . eGame . events)
---   ee <- get
---   return $ [(_eventNumber $ _erEventInfo ev, fa) | ev <- evs, fa <- getInputTexts ev ee]
---
---getInputTexts :: RuleEventInfo -> EvalEnv -> [SignalAddress]
---getInputTexts (RuleEventInfo _ ei) ee = mapMaybe isInput (getRemainingSignals ei ee) where
---   isInput :: (t, SomeSignal) -> Maybe t
---   isInput (fa, (SomeSignal (InputS (Text _) _))) = Just fa
---   isInput _ = Nothing
-
 addPlayer :: PlayerInfo -> Evaluate Bool
 addPlayer pi = do
    pls <- use (evalEnv . eGame . players)
