@@ -6,10 +6,10 @@ import           Imprevu.Types
 import           Imprevu.Evaluation.Types
 import           Imprevu.Evaluation.EventEval
 
-triggerInput :: InputS -> InputData -> EvaluateN n s ()
-triggerInput is@(InputS (Text _) _)       (TextData a)     = triggerEvent (Signal is) a
-triggerInput is@(InputS (TextArea _) _)   (TextAreaData a) = triggerEvent (Signal is) a
-triggerInput is@(InputS (Button _) _)     (ButtonData)     = triggerEvent (Signal is) ()
-triggerInput is@(InputS (Radio _ _) _)    (RadioData a)    = triggerEvent (Signal is) a
-triggerInput is@(InputS (Checkbox _ _) _) (CheckboxData a) = triggerEvent (Signal is) a
+triggerInput :: Input -> InputData -> EvaluateN n s ()
+triggerInput is@(Input (Text _) _)       (TextData a)     = triggerEvent (Signal is) a
+triggerInput is@(Input (TextArea _) _)   (TextAreaData a) = triggerEvent (Signal is) a
+triggerInput is@(Input (Button _) _)     (ButtonData)     = triggerEvent (Signal is) ()
+triggerInput is@(Input (Radio _ _) _)    (RadioData a)    = triggerEvent (Signal is) a
+triggerInput is@(Input (Checkbox _ _) _) (CheckboxData a) = triggerEvent (Signal is) a
 triggerInput _ _ = error "triggerInput"

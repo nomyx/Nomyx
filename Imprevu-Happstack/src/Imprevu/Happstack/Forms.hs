@@ -26,7 +26,7 @@ import           Debug.NoTrace
 
 default (Integer, Double, Data.Text.Text)
 
-type BackLink = EventNumber -> InputS -> Text
+type BackLink = EventNumber -> Input -> Text
 
 viewInput :: ClientNumber -> BackLink -> EventNumber -> [SomeSignal] -> ServerPartT IO (Maybe Html)
 viewInput cn bl en ss = do
@@ -40,7 +40,7 @@ viewInput' :: ClientNumber -> BackLink -> EventNumber -> SomeSignal -> ServerPar
 viewInput' me backlink en (SomeSignal (Signal s)) = do
   traceM $ "viewInput' " ++ (show s)
   case (cast s) of
-   Just is@(InputS i cn) | me == cn -> do
+   Just is@(Input i cn) | me == cn -> do
       lf  <- viewForm "user" $ inputForm' i
       let link = backlink en is
       traceM $ "viewInput' backlink=" ++ (unpack link)
@@ -50,7 +50,7 @@ viewInput' me backlink en (SomeSignal (Signal s)) = do
           blazeForm lf link ! A.id "InputForm"
    _ -> return Nothing
 
-inputForm' :: Input -> ImpForm InputData
+inputForm' :: InputField -> ImpForm InputData
 inputForm' (Radio s choices)    = RadioData    <$> RB.label s ++> (RB.inputRadio choices (== 0)) <++ RB.label (" " :: String)
 inputForm' (Text s)             = TextData     <$> RB.label s ++> (RB.inputText "") <++ label (" " :: String)
 inputForm' (TextArea s)         = TextAreaData <$> RB.label s ++> (textarea 50 5  "") <++ label (" " :: String)
@@ -59,8 +59,8 @@ inputForm' (Checkbox s choices) = CheckboxData <$> RB.label s ++> (inputCheckbox
 
 
 -- | a form result has been sent
-newInput :: InputS -> EventNumber -> TVar s -> UpdateSession s -> Text -> ServerPartT IO Response
-newInput is@(InputS i _) en tv updateSession bl = toResponse <$> do
+newInput :: Input -> EventNumber -> TVar s -> UpdateSession s -> Text -> ServerPartT IO Response
+newInput is@(Input i _) en tv updateSession bl = toResponse <$> do
    methodM POST
    r <- eitherForm environment "user" (inputForm' i)
    case r of

@@ -100,13 +100,13 @@ viewOutput g o = if (s /= "") then Just (pre $ fromString s >> br) else Nothing 
    s =  (evalOutput g o)
 
 ---- | a form result has been sent
-newInput' :: InputS -> EventNumber -> GameName -> RoutedNomyxServer Response
+newInput' :: Input -> EventNumber -> GameName -> RoutedNomyxServer Response
 newInput' is en gn = do
   ws <- use webSession
   let link = showRelURL $ Menu Actions gn
-  liftRouteT $ lift $ newInput is en ws updateSession' link
+  liftRouteT $ lift $ newInput is en ws (updateSession' gn) link
 
-updateSession' :: TVar Session -> InputS -> InputData -> EventNumber -> IO ()
-updateSession' tvs is@(InputS _ pn) id en = do
+updateSession' :: GameName -> TVar Session -> Input -> InputData -> EventNumber -> IO ()
+updateSession' gn tvs is@(Input _ pn) id en = do
   putStrLn $ "updateSession, pn= " ++ (show pn)
-  S.updateSession tvs $ S.inputResult pn en is id "Default game" -- TODO fix
+  S.updateSession tvs $ S.inputResult pn en is id gn

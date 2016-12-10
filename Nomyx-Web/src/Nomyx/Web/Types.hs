@@ -14,8 +14,8 @@ import           Data.String                   (fromString)
 import           Data.Text                     (Text, pack)
 import           Happstack.Authenticate.Core   (AuthenticateState,
                                                 AuthenticateURL (..))
-import           Happstack.Server              as HS (Input, Response,
-                                                      ServerPartT)
+import           Happstack.Server              as HS (Response, ServerPartT)
+import qualified Happstack.Server              as HS (Input)
 import           Language.Nomyx
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Types              as T
@@ -54,7 +54,7 @@ data PlayerCommand =
   | NewGame
   | SubmitNewGame
   -- Game actions
-  | DoInput   InputS EventNumber GameName 
+  | DoInput   Input EventNumber GameName 
   | SubmitRule   GameName
   -- Templates
   | NewRuleTemplate GameName
@@ -92,8 +92,8 @@ data RuleTemplateForm = RuleTemplateForm {name  :: String,               -- rule
                                           decls :: (FilePath, FilePath)} -- list of declaration files (temp path, filename)
                                           deriving (Show)
 
-instance PathInfo Language.Nomyx.Input
-instance PathInfo InputS
+instance PathInfo Input
+instance PathInfo InputField
 instance PathInfo (Int, String)
 instance PathInfo [(Int, String)]
 

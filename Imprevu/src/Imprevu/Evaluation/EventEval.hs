@@ -46,7 +46,7 @@ triggerIfComplete (EventInfo en _ h SActive _, Just (SomeData val)) = case cast 
       traceM $ "triggerIfComplete: " ++ (show a)
       eval <- use (evalConf . evalFunc)
       err <- use (evalConf . errorHandler)
-      (void $ (eval $ h (en, a))) `catchError` (err en)
+      (void $ (eval $ h (en, a))) `catchError` (err en) --Should be with rn of the event!
    Nothing -> error "Bad trigger data type"
 triggerIfComplete _ = return ()
 

@@ -109,18 +109,18 @@ onInputTextareaOnce title handler pn = onEventOnce (inputTextarea pn title) hand
 
 -- ** Internals
 
-inputRadioSignal :: String -> [(Int, String)] -> ClientNumber -> Signal InputS Int
-inputRadioSignal title cs cn = Signal (InputS (Radio title cs) cn)
+inputRadioSignal :: String -> [(Int, String)] -> ClientNumber -> Signal Input Int
+inputRadioSignal title cs cn = Signal (Input (Radio title cs) cn)
 
-inputTextSignal :: String -> ClientNumber -> Signal InputS String
-inputTextSignal title cn = Signal (InputS (Text title) cn)
+inputTextSignal :: String -> ClientNumber -> Signal Input String
+inputTextSignal title cn = Signal (Input (Text title) cn)
 
-inputCheckboxSignal :: String -> [(Int, String)] -> ClientNumber -> Signal InputS [Int]
-inputCheckboxSignal title cs cn = Signal (InputS (Checkbox title cs) cn)
+inputCheckboxSignal :: String -> [(Int, String)] -> ClientNumber -> Signal Input [Int]
+inputCheckboxSignal title cs cn = Signal (Input (Checkbox title cs) cn)
 
-inputButtonSignal :: String -> ClientNumber -> Signal InputS ()
-inputButtonSignal title cn = Signal (InputS (Button title) cn)
+inputButtonSignal :: String -> ClientNumber -> Signal Input ()
+inputButtonSignal title cn = Signal (Input (Button title) cn)
 
-inputTextareaSignal :: String -> ClientNumber -> Signal InputS String
-inputTextareaSignal title cn = Signal (InputS (TextArea title) cn)
+inputTextareaSignal :: String -> ClientNumber -> Signal Input String
+inputTextareaSignal title cn = Signal (Input (TextArea title) cn)
 

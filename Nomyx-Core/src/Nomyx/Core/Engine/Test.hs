@@ -223,7 +223,7 @@ voteGameActions positives negatives total timeEvent actions = flip execState tes
     when timeEvent $ evTriggerTime date2
 
 --Trigger a vote event (0 for positive, 1 for negative), using event details
-triggerVote :: Int -> InputS -> Evaluate ()
+triggerVote :: Int -> Input -> Evaluate ()
 triggerVote res is = triggerInput is (RadioData res)
 
 voteGame' :: Int -> Int -> Int -> Bool -> Rule -> Game
@@ -285,15 +285,15 @@ testVotePlayerLeaveEx = testVoteRule Active testVotePlayerLeave
 
 
 --Get all event numbers of type choice (radio button)
-getChoiceEvents :: State EvalEnv [InputS] 
+getChoiceEvents :: State EvalEnv [Input] 
 getChoiceEvents = do
    evs <- use (evalEnv . eGame . events)
    ee <- get
    return $ concatMap (getInputChoices ee) evs
 
-getInputChoices :: EvalEnv -> RuleEventInfo -> [InputS]
+getInputChoices :: EvalEnv -> RuleEventInfo -> [Input]
 getInputChoices ee (RuleEventInfo _ ei) = mapMaybe isInput (getRemainingSignals ei ee) where
-   isInput :: SomeSignal -> Maybe InputS
+   isInput :: SomeSignal -> Maybe Input
    isInput (SomeSignal (Signal s)) = cast s
 
 addPlayer :: PlayerInfo -> Evaluate Bool

@@ -36,7 +36,7 @@ testSingleInput = void $ onInputRadio "Vote for Holland or Sarkozy" [(Holland, "
 
 testSingleInputEx :: Bool
 testSingleInputEx = "voted for Holland" `elem` g where
-   g = execEvent testSingleInput (Signal $ InputS (Radio "Vote for Holland or Sarkozy" [(0, "Holland"), (1, "Sarkozy")]) 1) (0::Int)
+   g = execEvent testSingleInput (inputRadioSignal "Vote for Holland or Sarkozy" [(0, "Holland"), (1, "Sarkozy")] 1) (0::Int)
 
 testMultipleInputs :: TestM ()
 testMultipleInputs = void $ onInputCheckbox "Vote for Holland and Sarkozy" [(Holland, "Holland"), (Sarkozy, "Sarkozy")] h 1 where
@@ -44,7 +44,7 @@ testMultipleInputs = void $ onInputCheckbox "Vote for Holland and Sarkozy" [(Hol
 
 testMultipleInputsEx :: Bool
 testMultipleInputsEx = "voted for [Holland,Sarkozy]" `elem` g where
-   g = execEvent testMultipleInputs (Signal $ InputS (Checkbox "Vote for Holland and Sarkozy"  [(0, "Holland"), (1, "Sarkozy")]) 1) [0, 1 :: Int]
+   g = execEvent testMultipleInputs (inputCheckboxSignal "Vote for Holland and Sarkozy" [(0, "Holland"), (1, "Sarkozy")] 1) [0, 1 :: Int]
 
 testInputString :: TestM ()
 testInputString = void $ onInputText_ "Enter a number:" h 1 where
@@ -52,7 +52,7 @@ testInputString = void $ onInputText_ "Enter a number:" h 1 where
 
 testInputStringEx :: Bool
 testInputStringEx = "You entered: 1" `elem` g where
-   g = execEvent testInputString (Signal $ InputS (Text "Enter a number:") 1) "1"
+   g = execEvent testInputString (inputTextSignal "Enter a number:" 1) "1"
 
 -- Test message
 testSendMessage :: TestM ()
@@ -112,7 +112,7 @@ testUserInputWrite = do
 
 testUserInputWriteEx :: Bool
 testUserInputWriteEx = "voted Me" `elem` g where
-   g = execEvent testUserInputWrite (Signal $ InputS (Radio "Vote for" [(0, "Me"), (1, "You")]) 1) (0::Int)
+   g = execEvent testUserInputWrite (inputRadioSignal "Vote for" [(0, "Me"), (1, "You")] 1) (0::Int)
 
 -- Event composition
 
@@ -122,7 +122,7 @@ testSumCompose = void $ onEvent_ (True <$ inputButton 1 "click here:" <|> False 
 
 testSumComposeEx :: Bool
 testSumComposeEx = "True" `elem` g where
-   g = execEvent testSumCompose (Signal $ InputS (Button "click here:") 1) () 
+   g = execEvent testSumCompose (inputButtonSignal "click here:" 1) () 
 
 testProdCompose :: TestM ()
 testProdCompose = void $ onEvent_ ((,) <$> inputText 1 "" <*> inputText 1 "") f where
@@ -130,11 +130,11 @@ testProdCompose = void $ onEvent_ ((,) <$> inputText 1 "" <*> inputText 1 "") f 
 
 testProdComposeEx1 :: Bool
 testProdComposeEx1 = null g where
-   g = execEvent testProdCompose (Signal (InputS (Text "") 1)) ""
+   g = execEvent testProdCompose (inputTextSignal "" 1) ""
 
 testProdComposeEx2 :: Bool
 testProdComposeEx2 = "(\"toto\",\"tata\")" `elem` g where
-   g = execEvents testProdCompose [(Signal (InputS (Text "") 1), "toto"), (Signal (InputS (Text "") 1), "tata")]
+   g = execEvents testProdCompose [(inputTextSignal "" 1, "toto"), (inputTextSignal "" 1, "tata")]
 
 testTwoEvents :: TestM ()
 testTwoEvents = do
@@ -144,7 +144,7 @@ testTwoEvents = do
 
 testTwoEventsEx :: Bool
 testTwoEventsEx = (length g) == 1 where
-   g = execEvent testTwoEvents (Signal (InputS (Text "") 1)) "toto"
+   g = execEvent testTwoEvents (inputTextSignal "" 1) "toto"
 
 testMonadicEvent :: TestM ()
 testMonadicEvent = do
@@ -156,7 +156,7 @@ testMonadicEvent = do
 
 testMonadicEventEx :: Bool
 testMonadicEventEx = "coco2" `elem` g where
-   g = execEvents testMonadicEvent [(Signal (InputS (Text "") 1), "coco1"), (Signal (InputS (Text "") 1), "coco2")]
+   g = execEvents testMonadicEvent [(inputTextSignal "" 1, "coco1"), (inputTextSignal "" 1, "coco2")]
 
 testShorcutEvent :: TestM ()
 testShorcutEvent = do 
@@ -169,7 +169,7 @@ testShorcutEvent = do
 
 testShorcutEventEx :: Bool
 testShorcutEventEx = "coco1" `elem` g where
-   g = execEvent testShorcutEvent (Signal (InputS (Text "a") 1)) "coco1"
+   g = execEvent testShorcutEvent (Signal (Input (Text "a") 1)) "coco1"
 
 -- | Build a event firing when a player arrives or leaves
 playerEvent :: Player -> EventM TestM PlayerInfo

@@ -148,7 +148,7 @@ delRuleTemplate gn rn pn = do
 updateModules :: [ModuleInfo] -> StateT Session IO ()
 updateModules ms = (multi . mLibrary . mModules) .= ms
 
-inputResult :: PlayerNumber -> EventNumber -> InputS -> InputData -> GameName -> StateT Session IO ()
+inputResult :: PlayerNumber -> EventNumber -> Input -> InputData -> GameName -> StateT Session IO ()
 inputResult pn en is id gn = inGameDo gn $ execGameEvent $ InputResult pn en is id
 
 -- | upload a rule file, given a player number, the full path of the file, the file name and the server handle

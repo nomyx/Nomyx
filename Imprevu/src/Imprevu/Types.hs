@@ -71,17 +71,16 @@ deriving instance (Show s, Show a) => Show (Signal s a)
 deriving instance (Eq s) => Eq (Signal s a)
 deriving instance (Typeable s, Typeable a) => Typeable (Signal s a)
 
-data InputS = InputS Input ClientNumber
+data Input = Input InputField ClientNumber
    deriving (Show, Read, Eq, Ord, Typeable, Generic)
 
 -- | Input forms as programmed by the user
-data Input where
-   Text     :: String ->             Input
-   TextArea :: String ->             Input
-   Button   :: String ->             Input
-   Radio    :: String -> [(Int, String)] -> Input
-   Checkbox :: String -> [(Int, String)] -> Input
-   deriving (Show, Read, Eq, Ord, Typeable, Generic)
+data InputField = Text     String
+                | TextArea String
+                | Button   String
+                | Radio    String [(Int, String)]
+                | Checkbox String [(Int, String)]
+                deriving (Show, Read, Eq, Ord, Typeable, Generic)
 
 -- data sent back by the form fields
 data InputData = RadioData    Int

@@ -11,7 +11,7 @@ import Control.Monad.State
 import Data.Maybe
 import Data.Text                   hiding (concatMap, map)
 import Data.Typeable
-import Happstack.Server            as HS
+import Happstack.Server            as HS hiding (Input)
 import Imprevu.Happstack.Forms
 import Imprevu.Happstack.Types
 import Imprevu.Evaluation
@@ -48,7 +48,7 @@ server tv = do
                  ]
 
 
-updateSessionTest :: TVar TestState -> InputS -> InputData -> EventNumber -> IO ()
+updateSessionTest :: TVar TestState -> Input -> InputData -> EventNumber -> IO ()
 updateSessionTest tvs is id _ = do
    s <- atomically $ readTVar tvs
    putStrLn $ show s

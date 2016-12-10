@@ -130,7 +130,7 @@ signalEvent    :: (Eq s, Typeable s, Show s, Typeable e, Show e, Eq e) => s -> E
 signalEvent = SignalEvent . Signal
 
 -- Embed a single Signal as an EventM
-inputEvent    :: (Typeable e, Show e, Eq e) => Input -> ClientNumber -> EventM n e
-inputEvent i cn = SignalEvent $ Signal $ InputS i cn
+inputEvent    :: (Typeable e, Show e, Eq e) => InputField -> ClientNumber -> EventM n e
+inputEvent i cn = SignalEvent $ Signal $ Input i cn
 
 

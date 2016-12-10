@@ -8,7 +8,6 @@
 
 - Clean Tests
 - rename "events"
-- rename "RadioField" etc.
 - Simplify "RuleEventInfo" ?
 
 - Create master module "Imprevu.Happstack"
@@ -16,15 +15,10 @@
 - factorize runEvalError/runEvaluate
 
 - fix problem with rule number in Eval Env
-- duplicate InputResult
 
 
 Inputs:
 - primitives in Inputs are quite numerous: suppress some?
 - suppress Show from class constraints?
-- rename InputS -> Input
-
-Web:
-- check Webstate/websession
 
 
