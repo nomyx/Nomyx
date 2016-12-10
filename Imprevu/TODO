@@ -14,8 +14,7 @@
 
 - factorize runEvalError/runEvaluate
 
-- fix problem with rule number in Eval Env
-
+- redundant withRN/withEvent, also evalEnv
 
 Inputs:
 - primitives in Inputs are quite numerous: suppress some?

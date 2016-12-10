@@ -101,7 +101,7 @@ defaultEvalEnv :: EvalEnvN TestM TestState
 defaultEvalEnv = EvalEnv (TestState [] [] (Var "" "")) defaultEvalConf
 
 defaultEvalConf :: EvalConfN TestM TestState
-defaultEvalConf = EvalConf getEventsTest setEventsTest evalEvents (error "EvalConf")
+defaultEvalConf = EvalConf getEventsTest setEventsTest evalEvents (error "EvalConf") (flip const)
 
 getEventsTest = eventInfos
 setEventsTest eis (TestState _ os vs) = (TestState eis os vs)

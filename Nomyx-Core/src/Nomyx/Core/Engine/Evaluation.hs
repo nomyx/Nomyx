@@ -122,6 +122,17 @@ evActivateRule rn = do
          triggerEvent (Signal Activated) r
          return True
 
+--replace temporarily the rule number used for evaluation
+withEvent' :: EventInfo -> Evaluate a -> Evaluate a
+withEvent' (EventInfo en _ _ _ _) eval = do
+   (evs, _) <- accessGame events
+   let rn = _erRuleNumber $ fromJust $ find (\(RuleEventInfo _ (EventInfo en2 _ _ evst _)) -> en == en2) evs
+   oldRn <- use (evalEnv . eRuleNumber)
+   evalEnv . eRuleNumber .= rn
+   a <- eval
+   evalEnv . eRuleNumber .= oldRn
+   return a
+
 evRejectRule :: RuleNumber -> Evaluate Bool
 evRejectRule rn = do
    (rs, by) <- accessGame rules
@@ -315,7 +326,7 @@ defaultEvalEnv rn g = EvalEnv (EvalState g rn) defaultEvalConf
 
 --TODO: to check. how to map the events correctly?
 defaultEvalConf :: EvalConfN Nomex EvalState
-defaultEvalConf = EvalConf getEventsNomex setEventsNomex evalNomex errorNomex where
+defaultEvalConf = EvalConf getEventsNomex setEventsNomex evalNomex errorNomex withEvent' where
    getEventsNomex s = map _erEventInfo (_events $ _eGame s)
    setEventsNomex eis s = (eGame . events) .~ (getreis (_events $ _eGame s) eis) $ s where
      getreis reis eis = if (length reis /= length eis) then error "setEvents" else zipWith (\rei ei -> rei {_erEventInfo = ei}) reis eis

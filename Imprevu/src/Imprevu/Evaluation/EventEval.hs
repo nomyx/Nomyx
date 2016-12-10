@@ -41,12 +41,13 @@ triggerEvent e dat = do
 
 -- if the event is complete, trigger its handler
 triggerIfComplete :: (EventInfoN n, Maybe SomeData) -> EvaluateN n s ()
-triggerIfComplete (EventInfo en _ h SActive _, Just (SomeData val)) = case cast val of
+triggerIfComplete (ei@(EventInfo en _ h SActive _), Just (SomeData val)) = case cast val of
    Just a -> do
       traceM $ "triggerIfComplete: " ++ (show a)
       eval <- use (evalConf . evalFunc)
       err <- use (evalConf . errorHandler)
-      (void $ (eval $ h (en, a))) `catchError` (err en) --Should be with rn of the event!
+      withEvent <- use (evalConf . withEvent)
+      void $ withEvent ei $ (eval $ h (en, a)) `catchError` (err en)
    Nothing -> error "Bad trigger data type"
 triggerIfComplete _ = return ()
 
