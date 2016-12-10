@@ -100,7 +100,7 @@ logGame s mpn = do
    void $ logs %= (Log mpn time s : )
 
 -- | the user has provided an input result
-inputResult :: PlayerNumber -> EventNumber -> InputS -> InputData -> State Game ()
+inputResult :: PlayerNumber -> EventNumber -> Input -> InputData -> State Game ()
 inputResult pn en is id = do
    tracePN pn $ "input result: input " ++ show is ++ " input data " ++ show id
    evs <- gets _events

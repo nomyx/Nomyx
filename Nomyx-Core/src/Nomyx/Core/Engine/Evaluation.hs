@@ -102,7 +102,7 @@ evSendMessage m = triggerEvent (Signal m)
 evProposeRule :: RuleInfo -> Evaluate Bool
 evProposeRule rule = do
    (rs, _) <- accessGame rules
-   case find (\a -> (rule ^. rNumber) == (a ^. rNumber)) rs of
+   case find (\r -> (rule ^. rNumber) == (r ^. rNumber)) rs of
       Nothing -> do
          modifyGame rules (rule:)
          triggerEvent (Signal Proposed) rule
@@ -117,7 +117,7 @@ evActivateRule rn = do
       Nothing -> return False
       Just r -> do
          putGame rules $ replaceWith ((== rn) . getL rNumber) r{_rStatus = Active, _rAssessedBy = Just by} rs
-         --execute the rule
+         --execute the rule, using its own number: so events and outputs will have its number.
          withRN (_rNumber r) $ evalNomex (_rRule r)
          triggerEvent (Signal Activated) r
          return True
@@ -356,16 +356,17 @@ instance Show Game where
       "\n\n Rules = "       ++ (intercalate "\n " $ map show rs) ++
       "\n\n Players = "     ++ show ps ++
       "\n\n Variables = "   ++ show vs ++
-      "\n\n Events = "      ++ (intercalate "\n " $ map (displayEvent undefined) es) ++ "\n" ++
+      "\n\n Events = "      ++ (intercalate "\n " $ map (displayEvent g) es) ++ "\n" ++
       "\n\n Outputs = "     ++ (intercalate "\n " $ map (displayOutput g) os) ++ "\n" ++
       "\n\n Victory = "     ++ show (getVictorious g) ++
       "\n\n currentTime = " ++ show t ++ "\n" ++
       "\n\n logs = " ++ show l ++ "\n"
 
-displayEvent :: [EventInfoN n] -> RuleEventInfo -> String
-displayEvent eis (RuleEventInfo _ ei@(EventInfo en _ _ s envi)) =
+displayEvent :: Game -> RuleEventInfo -> String
+displayEvent g (RuleEventInfo rn ei@(EventInfo en _ _ s envi)) =
    "event num: " ++ (show en) ++
-   --", remaining signals: " ++ (show $ getRemainingSignals ei eis) ++ --TODO: display also event result?
+   ", rule num: " ++ (show rn) ++
+   ", remaining signals: " ++ (show $ getRemainingSignals ei (EvalEnv (EvalState g 0) defaultEvalConf)) ++ --TODO: display also event result?
    ", envs: " ++ (show envi) ++
    ", status: " ++ (show s)
 
