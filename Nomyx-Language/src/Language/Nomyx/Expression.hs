@@ -143,7 +143,7 @@ data RuleInfo = RuleInfo { _rNumber       :: RuleNumber,       -- number of the 
                            _rRule         :: Rule,             -- function representing the rule (interpreted from rRuleCode)
                            _rStatus       :: RuleStatus,       -- status of the rule
                            _rAssessedBy   :: Maybe RuleNumber, -- which rule accepted or rejected this rule
-                           _rModules      :: [Module],
+                           _rModules      :: [Module],         -- list of modules containing definition (in plain text)
                            _rRuleTemplate :: RuleTemplate}
                            deriving (Typeable, Show)
 
@@ -154,7 +154,7 @@ data RuleTemplate = RuleTemplate { _rName         :: RuleName,         -- short 
                                    _rAuthor       :: String,           -- the name of the original author
                                    _rPicture      :: Maybe FilePath,   -- a file name for the illustration image
                                    _rCategory     :: [String],         -- categories
-                                   _rDeclarations :: [FilePath]} -- addictional declarations (Haskell modules)
+                                   _rDeclarations :: [FilePath]}       -- additional declarations (Haskell modules)
                                    deriving (Typeable, Show, Read, Data, Generic)
 
 type Module = String
