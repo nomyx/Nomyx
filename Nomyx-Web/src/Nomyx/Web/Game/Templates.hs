@@ -148,21 +148,25 @@ viewRuleTemplateEdit lr gn = do
     blazeForm lf $ showRelURL $ NewRuleTemplate gn
     fromString $ snd lr
 
-newRuleTemplateForm :: Maybe RuleTemplate -> Bool -> NomyxForm (RuleTemplateForm, Maybe String)
+newRuleTemplateForm :: Maybe RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
 newRuleTemplateForm sr isGameAdmin = newRuleTemplateForm' (fromMaybe (RuleTemplate "" "" "" "" Nothing [] []) sr) isGameAdmin
 
-newRuleTemplateForm' :: RuleTemplate -> Bool -> NomyxForm (RuleTemplateForm, Maybe String)
+newRuleTemplateForm' :: RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
 newRuleTemplateForm' rt isGameAdmin =
   (,) <$> newRuleTemplateForm'' rt
       <*> inputSubmit "Check"
       -- <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 
-newRuleTemplateForm'' :: RuleTemplate -> NomyxForm RuleTemplateForm
+newRuleTemplateForm'' :: RuleTemplate -> NomyxForm RuleTemplate
 newRuleTemplateForm'' (RuleTemplate name desc code aut pic cat decls) =
-  RuleTemplateForm <$> RB.label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
+  RuleTemplate <$>  RB.label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
                <*> (RB.label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
-               <*> RB.label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
-               <*> ((\(a,b,c) -> (a,b)) <$> RB.inputFile)
+               <*>  RB.label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
+               <*>  (pure aut)
+               <*>  (pure pic)
+               <*>  (pure cat)
+               <*>  (pure decls)
+
 
 newRuleTemplate :: GameName -> RoutedNomyxServer Response
 newRuleTemplate gn = toResponse <$> do
@@ -171,14 +175,14 @@ newRuleTemplate gn = toResponse <$> do
   r <- liftRouteT $ lift $ eitherForm environment "user" (newRuleTemplateForm Nothing False)
   pn <- fromJust <$> getPlayerNumber
   ruleName <- case r of
-     Right (RuleTemplateForm name desc code (tempName, fileName), Nothing) -> do
-       content <- liftIO $ readFile tempName
-       webCommand $ S.newRuleTemplate (RuleTemplate name desc code "" Nothing [] [fileName])
-       return name
-     Right (RuleTemplateForm name desc code (tempName, fileName), Just _)  -> do
-       content <- liftIO $ readFile tempName
-       webCommand $ S.checkRule (RuleTemplate name desc code "" Nothing [] [fileName]) pn undefined (_sh s)
-       return name
+     Right (rt, Nothing) -> do
+       --content <- liftIO $ readFile tempName
+       webCommand $ S.newRuleTemplate rt
+       return $ _rName rt
+     Right (rt, Just _)  -> do
+       --content <- liftIO $ readFile tempName
+       webCommand $ S.checkRule rt pn undefined (_sh s)
+       return $ _rName rt
      _ -> do
        liftIO $ putStrLn "cannot retrieve form data"
        return ""

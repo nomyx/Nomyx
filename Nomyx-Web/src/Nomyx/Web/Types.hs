@@ -86,12 +86,6 @@ data NomyxError = PlayerNameRequired
 
 type NomyxForm a = Form (ServerPartT IO) [HS.Input] NomyxError Html () a
 
-data RuleTemplateForm = RuleTemplateForm {name  :: String,               -- rule name
-                                          desc  :: String,               -- rule description
-                                          code  :: String,               -- rule code
-                                          decls :: (FilePath, FilePath)} -- list of declaration files (temp path, filename)
-                                          deriving (Show)
-
 instance PathInfo Input
 instance PathInfo InputField
 instance PathInfo (Int, String)
