@@ -14,6 +14,7 @@ import           Data.Data                           (Data)
 import           Data.IxSet                          (ixFun, ixSet, Indexable(..), IxSet)
 import           Data.SafeCopy                       (base, deriveSafeCopy)
 import           Data.Time
+import           Data.List
 import           Data.Typeable
 import           GHC.Generics (Generic)
 import           Language.Haskell.Interpreter.Server (ServerHandle)
@@ -69,7 +70,12 @@ data Network = Network {_host :: HostName,
 -- | The Library contains a list of rule templates together with their declarations
 data Library = Library { _mTemplates :: [RuleTemplate],
                          _mModules   :: [ModuleInfo]}
-                         deriving (Eq, Show, Typeable)
+                         deriving (Eq, Typeable)
+
+instance Show Library where
+   show (Library ts ms) = "\n\n Library Templates = " ++ (intercalate "\n " $ map show ts) ++
+                          "\n\n Library Modules = "   ++ (intercalate "\n " $ map show ms)
+
 
 -- * Player settings
 
@@ -138,3 +144,4 @@ instance ToJSON Rule where
 
 instance FromJSON Rule where
    parseJSON (Object _) = error "FromJSON"
+
