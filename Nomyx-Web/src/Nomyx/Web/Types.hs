@@ -16,7 +16,7 @@ import           Happstack.Authenticate.Core   (AuthenticateState,
                                                 AuthenticateURL (..))
 import           Happstack.Server              as HS (Response, ServerPartT)
 import qualified Happstack.Server              as HS (Input)
-import           Language.Nomyx
+import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Types              as T
 import           Nomyx.Auth

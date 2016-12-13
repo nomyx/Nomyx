@@ -7,8 +7,8 @@
 {-# LANGUAGE TemplateHaskell           #-}
 
 -- | This module contains the type definitions necessary to build a Nomic rule.
-module Language.Nomyx.Types (
-  module Language.Nomyx.Types,
+module Nomyx.Language.Types (
+  module Nomyx.Language.Types,
   module Imprevu.Types)
   where
 

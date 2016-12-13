@@ -16,7 +16,7 @@ import           Data.Time
 import           Data.Typeable
 import           Imprevu.Evaluation as Imp hiding (events)
 import           Imprevu
-import           Language.Nomyx
+import           Nomyx.Language
 import           Nomyx.Core.Engine.EvalUtils
 import           Nomyx.Core.Engine.Types     hiding (_vRuleNumber)
 import           Prelude                     hiding (log, (.))

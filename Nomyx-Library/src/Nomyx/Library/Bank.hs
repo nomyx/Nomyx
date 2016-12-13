@@ -9,7 +9,7 @@ import Data.List as X
 import Data.Maybe
 import Control.Monad as X
 import Safe (readDef)
-import Language.Nomyx
+import Nomyx.Language
 
 
 -- | account variable name and type

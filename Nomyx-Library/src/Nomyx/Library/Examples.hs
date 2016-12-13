@@ -7,7 +7,7 @@ module Nomyx.Library.Examples where
 
 import Prelude
 import Control.Monad as X
-import Language.Nomyx
+import Nomyx.Language
 
 
 -- | A rule that does nothing

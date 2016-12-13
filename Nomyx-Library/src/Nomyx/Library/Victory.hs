@@ -12,7 +12,7 @@ import Data.Function
 import Data.List
 import Control.Arrow
 import Control.Monad
-import Language.Nomyx
+import Nomyx.Language
 import Nomyx.Library.Bank
 
 

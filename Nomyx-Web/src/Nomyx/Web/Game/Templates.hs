@@ -17,7 +17,7 @@ import           Data.Text                   (Text, pack, unpack)
 import           Data.Text.Encoding
 import           Happstack.Server            (Method (..), Response, methodM,
                                               ok, seeOther, toResponse)
-import           Language.Nomyx
+import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Session          as S
 import           Nomyx.Core.Types            as T hiding (Library)

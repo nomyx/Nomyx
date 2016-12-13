@@ -10,7 +10,7 @@ import           Data.List
 import           Language.Haskell.Interpreter
 import           Language.Haskell.Interpreter.Server
 import           Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
-import           Language.Nomyx
+import           Nomyx.Language
 import           Nomyx.Core.Context
 import           Nomyx.Core.Utils
 import           System.FilePath                     (dropExtension, joinPath,

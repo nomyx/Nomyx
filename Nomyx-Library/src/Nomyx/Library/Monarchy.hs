@@ -3,7 +3,7 @@
 module Nomyx.Library.Monarchy where
 
 import Control.Monad
-import Language.Nomyx
+import Nomyx.Language
 
 -- | Variable holding the player number of the King
 king :: V PlayerNumber

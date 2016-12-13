@@ -13,7 +13,6 @@ import Data.String
 import Data.List
 import Data.List.Split
 import Data.Text (Text)
-import Language.Nomyx
 import Text.Blaze.Html5                    (Html, div, (!), p, table, td, tr, h2, h3, h4, pre, toValue, br, a)
 import Text.Blaze.Html5.Attributes as A    (id, class_, href, title)
 import Text.Reform.Blaze.String            (inputHidden)
@@ -21,6 +20,7 @@ import Text.Reform                         (viewForm, eitherForm)
 import Text.Reform.Happstack               (environment)
 import Happstack.Server                    (Response, Method(..), seeOther, toResponse, methodM, ok)
 import Web.Routes.RouteT                   (showURL, liftRouteT)
+import Nomyx.Language
 import Nomyx.Web.Common as NWC
 import Nomyx.Web.Help as Help
 import Nomyx.Web.Types

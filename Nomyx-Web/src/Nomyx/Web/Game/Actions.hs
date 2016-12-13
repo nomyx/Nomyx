@@ -17,7 +17,7 @@ import           Data.String
 import           Data.Text                   (Text, pack)
 import           Happstack.Server            (Method (..), Response, methodM,
                                               ok, seeOther, toResponse)
-import           Language.Nomyx
+import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Types
 import           Nomyx.Core.Mail

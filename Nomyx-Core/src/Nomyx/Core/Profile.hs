@@ -19,8 +19,8 @@ import           Data.IxSet                  (toList, (@=))
 import qualified Data.IxSet                  as IxSet
 import           Data.List
 import           Data.Maybe
-import           Language.Nomyx
 import           Safe
+import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Quotes
 import           Nomyx.Core.Types

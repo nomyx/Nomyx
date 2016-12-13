@@ -1,13 +1,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Language.Nomyx.Messages (
+module Nomyx.Language.Messages (
   sendMessage, sendMessage_,
   onMessage, onMessageOnce,
   APICall(..), onAPICall, callAPI, callAPIBlocking,
   Msg)
    where
 
-import           Language.Nomyx.Types
+import           Nomyx.Language.Types
 import           Imprevu (APICall, Msg)
 import qualified Imprevu as Imp
 import           Data.Typeable

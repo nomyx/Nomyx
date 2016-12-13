@@ -8,7 +8,7 @@ import           Data.Maybe
 import           Data.String
 import           Data.Text                   (Text)
 import           Data.Time
-import           Language.Nomyx
+import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Web.Common            as NWC
 import qualified Nomyx.Web.Help              as Help

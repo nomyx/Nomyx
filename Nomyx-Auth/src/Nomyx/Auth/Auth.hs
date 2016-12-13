@@ -6,7 +6,7 @@
 module Nomyx.Auth.Auth where
 
 import           Nomyx.Auth.Types
-import           Language.Nomyx
+import           Nomyx.Language
 import           Happstack.Authenticate.OpenId.Route   (initOpenId)
 import           Happstack.Authenticate.Password.Route (initPassword)
 import           Happstack.Authenticate.Password.Core  (PasswordConfig(..))

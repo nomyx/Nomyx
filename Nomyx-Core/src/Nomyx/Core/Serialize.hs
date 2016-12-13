@@ -4,6 +4,7 @@
 
 module Nomyx.Core.Serialize where
 
+import           Prelude                             hiding (log, (.))
 import           Control.Category
 import           Control.Lens                        hiding ((.=))
 import           Control.Monad.State
@@ -15,8 +16,7 @@ import           Nomyx.Core.Engine
 import           Nomyx.Core.Interpret
 import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
-import           Language.Nomyx
-import           Prelude                             hiding (log, (.))
+import           Nomyx.Language
 import           System.FilePath
 
 save :: Multi -> IO ()

@@ -5,7 +5,7 @@
 -- do
 --    void $ onInputButton_ "Click here:" (const $ outputAll_ "Bravo!") 1
 
-module Language.Nomyx.Inputs (
+module Nomyx.Language.Inputs (
    inputRadio, inputText, inputCheckbox, inputButton, inputTextarea,
    onInputRadio,    onInputRadio_,    onInputRadioOnce,
    onInputText,     onInputText_,     onInputTextOnce,
@@ -14,7 +14,7 @@ module Language.Nomyx.Inputs (
    onInputTextarea, onInputTextarea_, onInputTextareaOnce,
    ) where
 
-import           Language.Nomyx.Types
+import           Nomyx.Language.Types
 import qualified Imprevu as Imp
 import           Data.Typeable
 

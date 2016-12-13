@@ -22,7 +22,7 @@ import           Happstack.Authenticate.Password.Core(PasswordConfig(..), Passwo
 import           Happstack.Authenticate.Route          (initAuthentication)
 import           Happstack.Authenticate.Core (AuthenticateURL(..), AuthenticateConfig(..), AuthenticateState, Email(..), User(..), Username(..), UserId(..), GetAuthenticateState(..), decodeAndVerifyToken, tokenUser, usernamePolicy)
 import           Happstack.Server                      as HS
-import           Language.Nomyx
+import           Nomyx.Language
 import           Nomyx.Core.Engine                     hiding (JoinGame,
                                                         LeaveGame)
 import           Nomyx.Core.Profile                    as Profile

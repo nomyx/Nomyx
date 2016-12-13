@@ -14,7 +14,7 @@ import           Data.Time                           as T
 import           Debug.Trace.Helpers
 import           Language.Haskell.Interpreter        (InterpreterError)
 import           Language.Haskell.Interpreter.Server (ServerHandle)
-import           Language.Nomyx
+import           Nomyx.Language
 import           Nomyx.Core.Engine                   as G
 import           Nomyx.Core.Interpret
 import           Nomyx.Core.Multi

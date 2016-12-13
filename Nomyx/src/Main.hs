@@ -16,7 +16,7 @@ import           Data.Time.Clock
 import           Data.Version                        (showVersion)
 import           Language.Haskell.Interpreter.Server hiding (start)
 import           Network.BSD
-import           Language.Nomyx
+import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Engine.Evaluation
 import           Nomyx.Core.Engine.Test              as LT

@@ -7,7 +7,7 @@
 -- do
 --    void $ modifyPlayerName 1 ("King " ++)
 
-module Language.Nomyx.Players (
+module Nomyx.Language.Players (
    PlayerNumber,
    PlayerName,
    PlayerInfo(..),
@@ -29,10 +29,10 @@ module Language.Nomyx.Players (
    giveVictory
    ) where
 
-import Language.Nomyx.Types
+import Nomyx.Language.Types
 import Imprevu.Events
 import Imprevu.Variables
-import Language.Nomyx.Rules
+import Nomyx.Language.Rules
 import Data.Typeable
 import Data.List
 import Control.Lens

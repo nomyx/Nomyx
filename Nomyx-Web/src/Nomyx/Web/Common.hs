@@ -31,8 +31,8 @@ import           Language.Haskell.HsColour.HTML      (hscolour)
 import           Language.Javascript.JMacro          (JStat (..), jLam, jVarTy,
                                                       jhFromList, jmacro,
                                                       toJExpr)
-import           Language.Nomyx
 import           Network.HTTP.Types                  (urlEncode)
+import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Session

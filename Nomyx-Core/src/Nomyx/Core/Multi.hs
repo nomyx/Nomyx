@@ -10,7 +10,7 @@ import           Control.Monad.State
 import           Data.List
 import           Data.Time                           as T
 import           Language.Haskell.Interpreter.Server (ServerHandle)
-import           Language.Nomyx
+import           Nomyx.Language
 import           Nomyx.Core.Engine                   as G
 import           Nomyx.Core.Interpret
 import           Nomyx.Core.Quotes                   (cr)

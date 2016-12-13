@@ -3,7 +3,7 @@
 -- do
 --    outputAll_ "hello, world!"
 
-module Language.Nomyx.Outputs (
+module Nomyx.Language.Outputs (
    OutputNumber,
    newOutput, newOutput_,
    outputAll, outputAll_,
@@ -14,7 +14,7 @@ module Language.Nomyx.Outputs (
    displaySimpleVar
    ) where
 
-import Language.Nomyx.Types
+import Nomyx.Language.Types
 import Imprevu
 import Data.Typeable
 import Control.Monad.State

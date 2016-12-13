@@ -7,7 +7,7 @@
 --do
 --   newVar_ "MyMoney" (0::Int)
 
-module Language.Nomyx.Variables (
+module Nomyx.Language.Variables (
    V(..),
    newVar, newVar_, newVar',
    readVar, readVar_,
@@ -19,7 +19,7 @@ module Language.Nomyx.Variables (
    ) where
 
 
-import           Language.Nomyx.Types
+import           Nomyx.Language.Types
 import           Imprevu (V, VarName, getTempVar)
 import qualified Imprevu                          as Imp
 import           Data.Typeable

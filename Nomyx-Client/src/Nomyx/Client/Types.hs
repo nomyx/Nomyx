@@ -5,7 +5,7 @@ module Nomyx.Client.Types where
 
 import           Options.Applicative
 import           Data.Aeson
-import           Language.Nomyx
+import           Nomyx.Language
 import           GHC.Generics
 
 data Command = Player

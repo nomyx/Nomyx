@@ -18,7 +18,7 @@ import qualified Data.Map                  as M
 import           Data.Maybe
 import           Data.Time                 hiding (getCurrentTime)
 import           Data.Typeable
-import           Language.Nomyx
+import           Nomyx.Language
 import           Prelude                   hiding (foldr)
 
 -- | a vote assessing function (such as unanimity, majority...)

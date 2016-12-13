@@ -2,7 +2,7 @@
 module SimpleModule2 where
 
 import Prelude
-import Language.Nomyx
+import Nomyx.Language
 import Control.Monad
 
 myRule :: Rule

@@ -13,15 +13,15 @@ category: Language
 Homepage: http://www.nomyx.net
 author: Corentin Dupont
 
-data-files: src/Language/Nomyx.hs
-            src/Language/Nomyx/Types.hs
-            src/Language/Nomyx/Rules.hs
-            src/Language/Nomyx/Inputs.hs
-            src/Language/Nomyx/Outputs.hs
-            src/Language/Nomyx/Variables.hs
-            src/Language/Nomyx/Events.hs
-            src/Language/Nomyx/Messages.hs
-            src/Language/Nomyx/Players.hs
+data-files: src/Nomyx/Language.hs
+            src/Nomyx/Language/Types.hs
+            src/Nomyx/Language/Rules.hs
+            src/Nomyx/Language/Inputs.hs
+            src/Nomyx/Language/Outputs.hs
+            src/Nomyx/Language/Variables.hs
+            src/Nomyx/Language/Events.hs
+            src/Nomyx/Language/Messages.hs
+            src/Nomyx/Language/Players.hs
 data-dir: .
 extra-source-files: AUTHORS README
 
@@ -41,15 +41,15 @@ library
                    monad-loops        == 0.4.*,
                    Imprevu,
                    shortcut
-    exposed-modules: Language.Nomyx
-                     Language.Nomyx.Types
-                     Language.Nomyx.Inputs
-                     Language.Nomyx.Outputs
-                     Language.Nomyx.Players
-                     Language.Nomyx.Rules
-                     Language.Nomyx.Messages
-                     Language.Nomyx.Events
-                     Language.Nomyx.Variables
+    exposed-modules: Nomyx.Language
+                     Nomyx.Language.Types
+                     Nomyx.Language.Inputs
+                     Nomyx.Language.Outputs
+                     Nomyx.Language.Players
+                     Nomyx.Language.Rules
+                     Nomyx.Language.Messages
+                     Nomyx.Language.Events
+                     Nomyx.Language.Variables
                      Paths_Nomyx_Language
     exposed: True
     buildable: True

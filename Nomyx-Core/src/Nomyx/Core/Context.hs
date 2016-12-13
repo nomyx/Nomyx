@@ -6,7 +6,7 @@ module Nomyx.Core.Context (
 
 
 unQualImports :: [String]
-unQualImports =  ["Language.Nomyx",
+unQualImports =  ["Nomyx.Language",
                   "Nomyx.Library.Examples",
                   "Nomyx.Library.Bank",
                   "Safe",

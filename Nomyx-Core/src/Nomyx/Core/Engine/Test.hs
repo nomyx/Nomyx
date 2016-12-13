@@ -4,12 +4,12 @@
 
 module Nomyx.Core.Engine.Test where
 
-import Language.Nomyx.Types
-import Language.Nomyx.Variables
-import Language.Nomyx.Rules
-import Language.Nomyx.Events
-import Language.Nomyx.Outputs
-import Language.Nomyx.Messages
+import Nomyx.Language.Types
+import Nomyx.Language.Variables
+import Nomyx.Language.Rules
+import Nomyx.Language.Events
+import Nomyx.Language.Outputs
+import Nomyx.Language.Messages
 import Nomyx.Core.Engine.Evaluation
 import Nomyx.Core.Engine.Types
 import Nomyx.Library.Examples

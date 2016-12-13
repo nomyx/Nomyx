@@ -9,7 +9,7 @@ import           Control.Monad
 import           Data.Maybe
 import           Data.String
 import           Data.Text                   (Text)
-import           Language.Nomyx
+import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Profile          as Profile
 import           Nomyx.Web.Common            as NWC

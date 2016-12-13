@@ -3,7 +3,7 @@
 module Nomyx.Library.Democracy where
 
 import Prelude
-import Language.Nomyx
+import Nomyx.Language
 import Nomyx.Library.Vote
 
 

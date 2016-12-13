@@ -5,7 +5,7 @@
 --do
 --   suppressRule 1
 
-module Language.Nomyx.Rules (
+module Nomyx.Language.Rules (
    RuleNumber,
    RuleCode,
    RuleEvent(..),
@@ -34,8 +34,8 @@ module Language.Nomyx.Rules (
    ) where
 
 import Prelude hiding (foldr)
-import Language.Nomyx.Types
-import Language.Nomyx.Outputs
+import Nomyx.Language.Types
+import Nomyx.Language.Outputs
 import Imprevu
 import Control.Lens
 import Control.Monad

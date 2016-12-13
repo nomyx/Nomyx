@@ -13,16 +13,16 @@
 module Nomyx.Core.Engine.Types where
 
 import Prelude hiding (log)
-import Language.Nomyx.Types
-import Control.Lens hiding ((.=))
+import Nomyx.Language.Types
 import Data.Time
 import Data.Typeable
-import Control.Monad.State
-import Control.Monad.Reader
-import System.Random
 import Data.Aeson.TH (deriveJSON, defaultOptions)
 import Data.Aeson
 import Data.Time.Clock.POSIX
+import Control.Lens hiding ((.=))
+import Control.Monad.State
+import Control.Monad.Reader
+import System.Random
 import Imprevu.Evaluation hiding (events)
 
 -- * Evaluation

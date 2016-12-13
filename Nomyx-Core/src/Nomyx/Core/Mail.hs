@@ -13,8 +13,8 @@ import           Data.Text                           (Text, pack)
 import qualified Data.Text.Lazy                      as B
 import           Language.Haskell.HsColour.Colourise hiding (string)
 import qualified Language.Haskell.HsColour.HTML      as HSC
-import           Language.Nomyx
 import           Network.Mail.Mime                   hiding (mailTo)
+import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Types

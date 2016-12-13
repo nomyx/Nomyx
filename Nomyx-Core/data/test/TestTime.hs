@@ -2,7 +2,7 @@
 module TestTime where
 
 import Prelude
-import Language.Nomyx
+import Nomyx.Language
 import Control.Monad
 import Data.Time
 

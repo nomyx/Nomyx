@@ -2,7 +2,7 @@
 {-# LANGUAGE GADTs #-}
 
 -- | All the building blocks to allow rules to build events.
-module Language.Nomyx.Events (
+module Nomyx.Language.Events (
    onEvent, onEvent_, onEventOnce,
    delEvent,
    getEvents,
@@ -19,7 +19,7 @@ module Language.Nomyx.Events (
    Victory(..)
    ) where
 
-import           Language.Nomyx.Types
+import           Nomyx.Language.Types
 import           Imprevu (EventNumber)
 import qualified Imprevu as Imp
 import           Data.Typeable

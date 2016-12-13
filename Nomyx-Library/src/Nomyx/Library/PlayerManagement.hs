@@ -3,7 +3,7 @@
 module Nomyx.Library.PlayerManagement where
 
 import Control.Monad
-import Language.Nomyx
+import Nomyx.Language
 
 -- | kick a player and prevent him from returning
 banPlayer :: PlayerNumber -> Rule

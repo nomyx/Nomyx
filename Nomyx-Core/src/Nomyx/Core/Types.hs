@@ -16,12 +16,12 @@ import           Data.SafeCopy                       (base, deriveSafeCopy)
 import           Data.Time
 import           Data.List
 import           Data.Typeable
+import           Data.Aeson
 import           GHC.Generics (Generic)
 import           Language.Haskell.Interpreter.Server (ServerHandle)
-import           Language.Nomyx
 import           Network.BSD
+import           Nomyx.Language
 import           Nomyx.Core.Engine
-import           Data.Aeson
 
 type PlayerPassword = String
 type Port = Int

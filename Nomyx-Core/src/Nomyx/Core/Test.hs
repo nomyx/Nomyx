@@ -6,7 +6,6 @@
 module Nomyx.Core.Test where
 
 import           Language.Haskell.Interpreter.Server (ServerHandle)
-import           Language.Nomyx hiding (getCurrentTime)
 import           Control.Monad.State
 import           Control.Exception as E
 import           Control.Lens
@@ -22,6 +21,7 @@ import           Paths_Nomyx_Core as PNC
 import           System.IO.Temp
 import           System.FilePath ((</>))
 import           System.Directory (createDirectoryIfMissing)
+import           Nomyx.Language hiding (getCurrentTime)
 import           Nomyx.Core.Types
 import           Nomyx.Core.Multi
 import           Nomyx.Core.Session

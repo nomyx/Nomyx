@@ -2,7 +2,7 @@
 module UnsafeIO where
 
 import Prelude
-import Language.Nomyx
+import Nomyx.Language
 import System.IO.Unsafe
 import Control.Monad
 

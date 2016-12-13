@@ -19,7 +19,7 @@ import Nomyx.Api.Api
 import Nomyx.Api.Files
 import Nomyx.Client.Types
 import Nomyx.Core.Serialize
-import Language.Nomyx.Types
+import Nomyx.Language.Types
 import Control.Monad.Trans.Either
 import System.FilePath
 

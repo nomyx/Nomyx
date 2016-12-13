@@ -4,7 +4,7 @@ module Nomyx.Library.Elections where
 
 import Data.List
 import Control.Monad
-import Language.Nomyx
+import Nomyx.Language
 
 
 tournamentMasterCandidates :: Rule
