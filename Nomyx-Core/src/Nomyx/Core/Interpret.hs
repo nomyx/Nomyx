@@ -58,17 +58,14 @@ getModName fp = intercalate "." $ (filter (/= ".") $ splitDirectories $ dropFile
 
 ---- | reads a Rule out of a string.
 interpretRule :: RuleCode -> [ModuleInfo] -> IO (Either InterpreterError Rule)
-interpretRule rc ms = protectHandlers $ runInterpreter $ do
-   initializeInterpreter ms
-   --case res of
-   --   Left e -> return $ Left e
-   --   Right _ -> do
-   let runRule = interpret rc (as :: Rule)
-   -- let handler (e::IOException) = return $ Left $ NotAllowed $ "Caught exception: " ++ (show e)
-   runRule -- `catchIOError` handler
+interpretRule rc ms = runRule `catchIOError` handler where 
+   runRule = protectHandlers $ runInterpreter $ do
+      initializeInterpreter ms
+      interpret rc (as :: Rule)
+   handler (e::IOException) = return $ Left $ NotAllowed $ "Caught exception: " ++ (show e)
 
-interRule :: RuleCode -> [ModuleInfo] -> IO Rule
-interRule rc ms = do
+interpretRule' :: RuleCode -> [ModuleInfo] -> IO Rule
+interpretRule' rc ms = do
    res <- interpretRule rc ms
    case res of
       Right rf -> return rf

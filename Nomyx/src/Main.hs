@@ -135,7 +135,6 @@ errMsg set e = do
   putStrLn $ "Error while loading logged events, log file discarded\n" ++ show (e::ErrorCall)
   return $ defaultMulti set (Library [rAutoActivate] [])
 
-
 runTests :: FilePath -> Maybe String -> Int -> IO ()
 runTests saveDir mTestName delay = do
    putStrLn $ "\nNomyx Language Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") LT.tests

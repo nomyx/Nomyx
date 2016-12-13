@@ -36,7 +36,7 @@ loadMulti :: Settings -> IO Multi
 loadMulti s = do
    let sd = getSaveFile s
    m <- load sd
-   gs' <- mapM (updateGameInfo interRule) $ _gameInfos m
+   gs' <- mapM (updateGameInfo interpretRule') $ _gameInfos m
    let m' = set gameInfos gs' m
    let m'' = set mSettings s m'
    return m''
