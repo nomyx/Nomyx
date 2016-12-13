@@ -1,6 +1,6 @@
 name: Nomyx
 version: 0.7.6
-cabal-version: >=1.6
+cabal-version: >=1.8
 build-type: Simple
 license: BSD3
 license-file: LICENSE

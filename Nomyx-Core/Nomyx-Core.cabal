@@ -1,6 +1,6 @@
 name: Nomyx-Core
 version: 0.7.6
-cabal-version: >=1.6
+cabal-version: >=1.8
 build-type: Simple
 license: BSD3
 license-file: LICENSE
@@ -81,6 +81,14 @@ library
                      Paths_Nomyx_Core
                      Data.Todo
     ghc-options: -W -threaded -DNO_INTERPRET_QUOTES
+
+Test-Suite test
+    type:      detailed-0.9
+    test-module:    Test
+    hs-source-dirs: test
+    build-depends: base,
+                   Nomyx-Core         == 0.7.6,
+                   Cabal              >= 0.22
 
 source-repository head
   type:              git
