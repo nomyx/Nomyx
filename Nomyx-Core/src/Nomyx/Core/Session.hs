@@ -126,8 +126,8 @@ submitRuleError sr pn gn e = do
    modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
 newRuleTemplate :: RuleTemplate -> StateT Session IO ()
-newRuleTemplate rt@(RuleTemplate _ _ _ author _ _ _) = do
-  liftIO $ putStrLn $ author ++ " inserted new template :" ++ show rt
+newRuleTemplate rt = do
+  liftIO $ putStrLn $ "Inserted new template: " ++ show rt
   (multi . mLibrary . mTemplates) %= (addRT rt)
 
 updateRuleTemplates :: [RuleTemplate] -> StateT Session IO ()
