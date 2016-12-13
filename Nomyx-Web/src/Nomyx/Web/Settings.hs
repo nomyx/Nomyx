@@ -137,9 +137,8 @@ newUpload = toResponse <$> do
     methodM POST
     pn <- fromJust <$> getPlayerNumber
     r <- liftRouteT $ lift $ eitherForm environment "user" uploadForm
-    s <- getSession
     case r of
-       (Right (temp,name,_)) -> webCommand $ void $ S.inputUpload pn temp name (_sh s)
+       (Right (temp,name,_)) -> webCommand $ void $ S.inputUpload pn temp name
        (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
     seeOther (showRelURL Advanced) "Redirecting..."
 

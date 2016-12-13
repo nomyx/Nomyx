@@ -12,6 +12,7 @@ import           Language.Haskell.Interpreter.Server
 import           Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
 import           Language.Nomyx
 import           Nomyx.Core.Context
+import           Nomyx.Core.Utils
 import           System.FilePath                     (dropExtension, joinPath,
                                                       takeFileName, dropFileName,
                                                       splitDirectories, takeBaseName, (</>))
@@ -27,17 +28,6 @@ namedExts = [GADTs,
              ScopedTypeVariables,
              TypeFamilies,
              DeriveDataTypeable]
-
--- | the server handle
-startInterpreter :: IO ServerHandle
-startInterpreter = do
-   sh <- start
-   --liftIO $ createDirectoryIfMissing True $ saveDir </> uploadDir
-   ir <- runIn sh $ initializeInterpreter []
-   case ir of
-      Right _ -> putStrLn "Interpreter Loaded"
-      Left e -> error $ "Interpreter initialization error:\n" ++ show e
-   return sh
 
 -- | initializes the interpreter by loading some modules.
 initializeInterpreter :: [ModuleInfo] -> Interpreter ()
@@ -67,19 +57,19 @@ getModName :: FilePath -> String
 getModName fp = intercalate "." $ (filter (/= ".") $ splitDirectories $ dropFileName fp) ++ [takeBaseName fp]
 
 ---- | reads a Rule out of a string.
-interpretRule :: ServerHandle -> RuleCode -> [ModuleInfo] -> IO (Either InterpreterError Rule)
-interpretRule sh rc ms = do
-   res <- runIn sh $ initializeInterpreter ms
-   case res of
-      Left e -> return $ Left e
-      Right _ -> do
-         let runRule = liftIO $ runIn sh $ interpret rc (as :: Rule)
-         let handler (e::IOException) = return $ Left $ NotAllowed $ "Caught exception: " ++ (show e)
-         runRule `catchIOError` handler
+interpretRule :: RuleCode -> [ModuleInfo] -> IO (Either InterpreterError Rule)
+interpretRule rc ms = protectHandlers $ runInterpreter $ do
+   initializeInterpreter ms
+   --case res of
+   --   Left e -> return $ Left e
+   --   Right _ -> do
+   let runRule = interpret rc (as :: Rule)
+   -- let handler (e::IOException) = return $ Left $ NotAllowed $ "Caught exception: " ++ (show e)
+   runRule -- `catchIOError` handler
 
-interRule :: ServerHandle -> RuleCode -> [ModuleInfo] -> IO Rule
-interRule sh rc ms = do
-   res <- interpretRule sh rc ms
+interRule :: RuleCode -> [ModuleInfo] -> IO Rule
+interRule rc ms = do
+   res <- interpretRule rc ms
    case res of
       Right rf -> return rf
       Left e -> error $ show e

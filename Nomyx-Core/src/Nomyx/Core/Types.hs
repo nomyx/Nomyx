@@ -31,12 +31,11 @@ type LastRule = (RuleTemplate, String)
 -- * Game structures
 
 -- | Session contains all the game informations.
-data Session = Session { _sh           :: ServerHandle,
-                         _multi        :: Multi,
+data Session = Session { _multi        :: Multi,
                          _acidProfiles :: AcidState ProfileDataState}
 
 instance Show Session where
-   show (Session _ m _) = show m
+   show (Session m _) = show m
 
 -- | A structure to hold the active games and players
 data Multi = Multi { _gameInfos :: [GameInfo],

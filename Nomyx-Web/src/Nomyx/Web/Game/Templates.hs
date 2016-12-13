@@ -132,8 +132,8 @@ submitRuleTemplatePost gn = toResponse <$> do
    r <- liftRouteT $ lift $ eitherForm environment "user" (hiddenSubmitRuleTemplatForm Nothing)
    pn <- fromJust <$> getPlayerNumber
    case r of
-      Right rt -> webCommand $ submitRule (fromJust $ read rt) pn gn (_sh s)
-      Right rt -> webCommand $ adminSubmitRule (fromJust $ read rt) pn gn (_sh s)
+      Right rt -> webCommand $ submitRule (fromJust $ read rt) pn gn
+      Right rt -> webCommand $ adminSubmitRule (fromJust $ read rt) pn gn
       (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
    seeOther (showRelURL $ Menu Actions gn) $ "Redirecting..."
 
@@ -171,7 +171,6 @@ newRuleTemplateForm'' (RuleTemplate name desc code aut pic cat decls) =
 newRuleTemplate :: GameName -> RoutedNomyxServer Response
 newRuleTemplate gn = toResponse <$> do
   methodM POST
-  s <- getSession
   r <- liftRouteT $ lift $ eitherForm environment "user" (newRuleTemplateForm Nothing False)
   pn <- fromJust <$> getPlayerNumber
   ruleName <- case r of
@@ -181,7 +180,7 @@ newRuleTemplate gn = toResponse <$> do
        return $ _rName rt
      Right (rt, Just _)  -> do
        --content <- liftIO $ readFile tempName
-       webCommand $ S.checkRule rt pn undefined (_sh s)
+       webCommand $ S.checkRule rt pn undefined
        return $ _rName rt
      _ -> do
        liftIO $ putStrLn "cannot retrieve form data"

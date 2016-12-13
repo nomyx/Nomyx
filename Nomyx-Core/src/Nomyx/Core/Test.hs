@@ -33,8 +33,8 @@ import qualified Nomyx.Core.Engine as G
 import           Imprevu.Evaluation
 
 
-playTests :: FilePath -> ServerHandle -> Maybe String -> Int -> IO [(String, Bool)]
-playTests saveDir sh mTestName delay = do
+playTests :: FilePath -> Maybe String -> Int -> IO [(String, Bool)]
+playTests saveDir mTestName delay = do
    tests <- case mTestName of
       Just testName -> do
          let tsts = fatalTests ++ regularTests
@@ -43,7 +43,7 @@ playTests saveDir sh mTestName delay = do
    tp <- testProfiles
    dir <- createTempDirectory "/tmp" "Nomyx"
    createDirectoryIfMissing True $ dir </> uploadDir
-   let session = Session sh (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = saveDir, _webDir = "", _sourceDir = "", _watchdog = delay}
+   let session = Session (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = saveDir, _webDir = "", _sourceDir = "", _watchdog = delay}
                                           (Library [rAutoActivate]
                                           [])) tp
    mapM (\(title, t, cond) -> (title,) <$> test title session t cond) tests
@@ -120,16 +120,14 @@ twoPlayersOneGame = do
 submitR :: String -> StateT Session IO ()
 submitR r = do
    onePlayerOneGame
-   sh <- use sh
-   submitRule (RuleTemplate "" "" r "" Nothing [] []) 1 "test" sh
+   submitRule (RuleTemplate "" "" r "" Nothing [] []) 1 "test"
 
 testFile' :: FilePath -> FilePath -> String -> StateT Session IO ()
 testFile' path name func = do
-   sh <- use sh
    dataDir <- lift PNC.getDataDir
    cont <- liftIO $ readFile (dataDir </> testDir </> path)
    (multi . mLibrary . mModules) .= [ModuleInfo name cont]
-   submitRule (RuleTemplate "" "" func "" Nothing [] [name]) 1 "test" sh
+   submitRule (RuleTemplate "" "" func "" Nothing [] [name]) 1 "test"
 
 testFile :: FilePath -> String -> StateT Session IO ()
 testFile name = testFile' name name
@@ -147,8 +145,7 @@ condHelloWorld = isOutput' "hello, world!"
 gameHelloWorld2Players :: StateT Session IO ()
 gameHelloWorld2Players = do
    twoPlayersOneGame
-   sh <- use sh
-   submitRule (RuleTemplate "" "" [cr|helloWorld|] "" Nothing [] []) 1 "test" sh
+   submitRule (RuleTemplate "" "" [cr|helloWorld|] "" Nothing [] []) 1 "test"
 
 condHelloWorld2Players :: Multi -> Bool
 condHelloWorld2Players = isOutput' "hello, world!"

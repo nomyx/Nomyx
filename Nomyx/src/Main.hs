@@ -93,13 +93,11 @@ start flags = do
 mainLoop :: Settings -> FilePath -> HostName -> Port -> FilePath -> IO ()
 mainLoop settings saveDir host port lib = do
    serverCommandUsage
-   --start the haskell interpreter
-   sh <- protectHandlers $ startInterpreter
    --creating game structures
-   multi <- Main.loadMulti settings lib sh
+   multi <- Main.loadMulti settings lib
    --main loop
    withAcid (Just $ saveDir </> profilesDir) $ \acid -> do
-     ts <- atomically $ newTVar (Session sh multi acid)
+     ts <- atomically $ newTVar (Session multi acid)
      --start the web server
      forkIO $ launchWebServer ts (Network host port)
      --forkIO $ launchTimeEvents ts (EvalFunc evalNomex' undefined)
@@ -121,16 +119,16 @@ mainLoop settings saveDir host port lib = do
 --evalNomex' :: Nomex a ->  EvaluateN Nomex Session a
 --evalNomex' exp = error "evalNomex"
 
-loadMulti :: Settings -> FilePath -> ServerHandle -> IO Multi
-loadMulti set libPath sh = do
+loadMulti :: Settings -> FilePath -> IO Multi
+loadMulti set libPath = do
    fileExists <- doesFileExist $ getSaveFile set
    if fileExists then do
       putStrLn $ "Loading game: " ++ getSaveFile set
-      Serialize.loadMulti set sh `E.catch` (errMsg set)
+      Serialize.loadMulti set `E.catch` (errMsg set)
    else do
       lib <- readLibrary libPath
       let defMulti = defaultMulti set lib
-      execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 True sh) defMulti where
+      execStateT (newGame' "Default game" (GameDesc "This is the default game." "") 0 True) defMulti where
 
 errMsg :: Settings -> ErrorCall -> IO Multi
 errMsg set e = do
@@ -140,9 +138,8 @@ errMsg set e = do
 
 runTests :: FilePath -> Maybe String -> Int -> IO ()
 runTests saveDir mTestName delay = do
-   sh <- protectHandlers $ startInterpreter
    putStrLn $ "\nNomyx Language Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") LT.tests
-   ts <- playTests saveDir sh mTestName delay
+   ts <- playTests saveDir mTestName delay
    putStrLn $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") ts
    let pass = allTests && all snd ts
    putStrLn $ "All Tests Pass: " ++ show pass

@@ -34,18 +34,16 @@ newPlayer uid ps = do
 
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> Bool -> StateT Session IO ()
-newGame name desc pn isPublic = do
-   sh <- use sh
-   zoom multi $ newGame' name desc pn isPublic sh
+newGame name desc pn isPublic = zoom multi $ newGame' name desc pn isPublic
 
-newGame' :: GameName -> GameDesc -> PlayerNumber -> Bool -> ServerHandle -> StateT Multi IO ()
-newGame' name desc pn isPublic sh = do
+newGame' :: GameName -> GameDesc -> PlayerNumber -> Bool -> StateT Multi IO ()
+newGame' name desc pn isPublic = do
       gs <- use gameInfos
       if not $ any ((== name) . getL gameNameLens) gs then do
          tracePN pn $ "Creating a new game with name: " ++ name
          t <- lift T.getCurrentTime
          -- create a game with zero players
-         lg <- lift $ initialGameInfo name desc isPublic (Just pn) t sh
+         lg <- lift $ initialGameInfo name desc isPublic (Just pn) t
          void $ gameInfos %= (lg : )
       else tracePN pn "this name is already used"
 
@@ -83,25 +81,25 @@ leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
 leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
 
 -- | insert a rule in pending rules.
-submitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-submitRule rt pn gn sh = do
+submitRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
+submitRule rt pn gn = do
    tracePN pn $ "proposed " ++ show rt
-   compileRule rt pn gn sh Propose "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."
+   compileRule rt pn gn Propose "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."
 
-adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-adminSubmitRule rt pn gn sh = do
+adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
+adminSubmitRule rt pn gn = do
    tracePN pn $ "admin proposed " ++ show rt
-   compileRule rt pn gn sh SystemAdd "Admin rule submitted OK!"
+   compileRule rt pn gn SystemAdd "Admin rule submitted OK!"
 
-checkRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> StateT Session IO ()
-checkRule rt pn gn sh = do
+checkRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
+checkRule rt pn gn = do
    tracePN pn $ "check rule " ++ show rt
-   compileRule rt pn gn sh Check "Rule compiled OK. Now you can submit it!"
+   compileRule rt pn gn Check "Rule compiled OK. Now you can submit it!"
 
-compileRule :: RuleTemplate -> PlayerNumber -> GameName -> ServerHandle -> RuleEv -> String -> StateT Session IO ()
-compileRule rt pn gn sh re msg = do
+compileRule :: RuleTemplate -> PlayerNumber -> GameName -> RuleEv -> String -> StateT Session IO ()
+compileRule rt pn gn re msg = do
    mods <- getModules rt
-   mrr <- liftIO $ interpretRule sh (_rRuleCode rt) mods
+   mrr <- liftIO $ interpretRule (_rRuleCode rt) mods
    case mrr of
       Right r -> do
          tracePN pn "proposed rule compiled OK "
@@ -152,8 +150,8 @@ inputResult :: PlayerNumber -> EventNumber -> Input -> InputData -> GameName -> 
 inputResult pn en is id gn = inGameDo gn $ execGameEvent $ InputResult pn en is id
 
 -- | upload a rule file, given a player number, the full path of the file, the file name and the server handle
-inputUpload :: PlayerNumber -> FilePath -> FilePath -> ServerHandle -> StateT Session IO Bool
-inputUpload pn temp mod sh = undefined
+inputUpload :: PlayerNumber -> FilePath -> FilePath -> StateT Session IO Bool
+inputUpload pn temp mod = undefined
 --do
 --   sd <- use (multi . mSettings . saveDir)
 --   m <- liftIO $ loadModule temp mod sh sd

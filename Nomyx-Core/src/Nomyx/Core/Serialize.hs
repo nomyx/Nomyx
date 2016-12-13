@@ -32,11 +32,11 @@ load fp = do
       Left e -> error $ "error decoding save file: " ++ e
       Right a -> return a
 
-loadMulti :: Settings -> ServerHandle -> IO Multi
-loadMulti s sh = do
+loadMulti :: Settings -> IO Multi
+loadMulti s = do
    let sd = getSaveFile s
    m <- load sd
-   gs' <- mapM (updateGameInfo $ interRule sh) $ _gameInfos m
+   gs' <- mapM (updateGameInfo interRule) $ _gameInfos m
    let m' = set gameInfos gs' m
    let m'' = set mSettings s m'
    return m''

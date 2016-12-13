@@ -50,20 +50,19 @@ rAutoActivate = RuleTemplate "AutoActivate"
                              []
                              []
 
-initialGame :: ServerHandle -> StateT GameInfo IO ()
-initialGame sh = zoom loggedGame $ mapM_ addR [rAutoActivate]
-   where addR rt = execGameEvent' (Just $ Left $ interRule sh) (ProposeRuleEv SystemAdd 0 rt [])
+initialGame :: StateT GameInfo IO ()
+initialGame = zoom loggedGame $ mapM_ addR [rAutoActivate]
+   where addR rt = execGameEvent' (Just $ Left $ interRule) (ProposeRuleEv SystemAdd 0 rt [])
 
-initialGameInfo :: GameName -> GameDesc -> Bool -> Maybe PlayerNumber -> UTCTime -> ServerHandle -> IO GameInfo
-initialGameInfo name desc isPub mpn date sh = do
+initialGameInfo :: GameName -> GameDesc -> Bool -> Maybe PlayerNumber -> UTCTime -> IO GameInfo
+initialGameInfo name desc isPub mpn date = do
    let gen = mkStdGen 0
    let lg = GameInfo { _loggedGame = LoggedGame (emptyGame name desc date gen) [],
                        _ownedBy    = mpn,
                        _forkedFromGame = Nothing,
                        _isPublic = isPub,
                        _startedAt  = date}
-
-   execStateT (initialGame sh) lg
+   execStateT initialGame lg
 
 defaultMulti :: Settings -> Library -> Multi
 defaultMulti s lib = Multi [] s lib
