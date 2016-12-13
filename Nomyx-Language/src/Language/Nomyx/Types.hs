@@ -1,18 +1,10 @@
-{-# LANGUAGE CPP                       #-}
-{-# LANGUAGE DataKinds                 #-}
 {-# LANGUAGE DeriveDataTypeable        #-}
 {-# LANGUAGE DeriveGeneric             #-}
-{-# LANGUAGE EmptyDataDecls            #-}
-{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances         #-}
 {-# LANGUAGE GADTs                     #-}
-{-# LANGUAGE KindSignatures            #-}
 {-# LANGUAGE MultiParamTypeClasses     #-}
-{-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE StandaloneDeriving        #-}
 {-# LANGUAGE TemplateHaskell           #-}
-{-# LANGUAGE DeriveGeneric             #-}
-{-# LANGUAGE RankNTypes             #-}
 
 -- | This module contains the type definitions necessary to build a Nomic rule.
 module Language.Nomyx.Types (
@@ -85,7 +77,7 @@ data Nomex a  where
 deriving instance Typeable Nomex
 
 instance Typeable a => Show (Nomex a) where
-   show _ = "<" ++ (show $ typeRep (Proxy :: Proxy a)) ++ ">"
+   show _ = "<Nomex a>"
 
 instance Monad Nomex where
    return = Return
