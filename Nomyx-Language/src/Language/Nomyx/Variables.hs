@@ -19,7 +19,7 @@ module Language.Nomyx.Variables (
    ) where
 
 
-import           Language.Nomyx.Expression
+import           Language.Nomyx.Types
 import           Imprevu (V, VarName, getTempVar)
 import qualified Imprevu                          as Imp
 import           Data.Typeable

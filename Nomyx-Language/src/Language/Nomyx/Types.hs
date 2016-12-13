@@ -15,8 +15,8 @@
 {-# LANGUAGE RankNTypes             #-}
 
 -- | This module contains the type definitions necessary to build a Nomic rule.
-module Language.Nomyx.Expression (
-  module Language.Nomyx.Expression,
+module Language.Nomyx.Types (
+  module Language.Nomyx.Types,
   module Imprevu.Types)
   where
 
@@ -40,7 +40,7 @@ type RuleCode = String
 type OutputNumber = Int
 type InputNumber = Int
 
--- * Nomyx Expression
+-- * Nomyx.Types
 
 data Nomex a  where
    --Variables management

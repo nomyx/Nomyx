@@ -14,7 +14,7 @@ module Language.Nomyx.Outputs (
    displaySimpleVar
    ) where
 
-import Language.Nomyx.Expression
+import Language.Nomyx.Types
 import Imprevu
 import Data.Typeable
 import Control.Monad.State

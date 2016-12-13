@@ -34,7 +34,7 @@ module Language.Nomyx.Rules (
    ) where
 
 import Prelude hiding (foldr)
-import Language.Nomyx.Expression
+import Language.Nomyx.Types
 import Language.Nomyx.Outputs
 import Imprevu
 import Control.Lens

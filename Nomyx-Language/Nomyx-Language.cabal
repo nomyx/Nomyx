@@ -14,7 +14,7 @@ Homepage: http://www.nomyx.net
 author: Corentin Dupont
 
 data-files: src/Language/Nomyx.hs
-            src/Language/Nomyx/Expression.hs
+            src/Language/Nomyx/Types.hs
             src/Language/Nomyx/Rules.hs
             src/Language/Nomyx/Inputs.hs
             src/Language/Nomyx/Outputs.hs
@@ -42,7 +42,7 @@ library
                    Imprevu,
                    shortcut
     exposed-modules: Language.Nomyx
-                     Language.Nomyx.Expression
+                     Language.Nomyx.Types
                      Language.Nomyx.Inputs
                      Language.Nomyx.Outputs
                      Language.Nomyx.Players

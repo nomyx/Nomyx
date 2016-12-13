@@ -19,7 +19,7 @@ module Language.Nomyx.Events (
    Victory(..)
    ) where
 
-import           Language.Nomyx.Expression
+import           Language.Nomyx.Types
 import           Imprevu (EventNumber)
 import qualified Imprevu as Imp
 import           Data.Typeable

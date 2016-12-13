@@ -7,7 +7,7 @@ module Nomyx.Core.Engine.GameEvents where
 import Prelude hiding (log)
 import Control.Monad.State
 import Data.List
-import Language.Nomyx.Expression
+import Language.Nomyx.Types
 import Nomyx.Core.Engine.Evaluation
 import Nomyx.Core.Engine.EvalUtils
 import Nomyx.Core.Engine.Types

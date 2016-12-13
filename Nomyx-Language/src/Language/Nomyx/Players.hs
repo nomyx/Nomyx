@@ -29,7 +29,7 @@ module Language.Nomyx.Players (
    giveVictory
    ) where
 
-import Language.Nomyx.Expression
+import Language.Nomyx.Types
 import Imprevu.Events
 import Imprevu.Variables
 import Language.Nomyx.Rules

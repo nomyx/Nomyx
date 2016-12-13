@@ -38,7 +38,7 @@ import           Control.Monad.State
 import Control.Monad.Trans.Either
 import Data.Swagger
 import Data.Swagger.Schema
-import Language.Nomyx.Expression
+import Language.Nomyx.Types
 import Control.Monad.Except
 import Network.Wai.Parse
 import qualified Data.ByteString.Char8 as B

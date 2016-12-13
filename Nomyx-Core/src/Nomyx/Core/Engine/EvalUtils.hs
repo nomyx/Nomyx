@@ -17,7 +17,7 @@ import           Data.List
 import           Data.Maybe
 import           Data.Typeable
 import           Imprevu.Evaluation
-import           Language.Nomyx.Expression
+import           Language.Nomyx.Types
 import           Nomyx.Core.Engine.Types
 import           Prelude                   hiding (log, (.))
 import           Safe

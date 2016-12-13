@@ -13,7 +13,7 @@
 module Nomyx.Core.Engine.Types where
 
 import Prelude hiding (log)
-import Language.Nomyx.Expression
+import Language.Nomyx.Types
 import Control.Lens hiding ((.=))
 import Data.Time
 import Data.Typeable

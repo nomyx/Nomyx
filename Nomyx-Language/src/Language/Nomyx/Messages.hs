@@ -7,7 +7,7 @@ module Language.Nomyx.Messages (
   Msg)
    where
 
-import           Language.Nomyx.Expression
+import           Language.Nomyx.Types
 import           Imprevu (APICall, Msg)
 import qualified Imprevu as Imp
 import           Data.Typeable

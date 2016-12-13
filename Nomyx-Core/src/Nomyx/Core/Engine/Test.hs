@@ -4,7 +4,7 @@
 
 module Nomyx.Core.Engine.Test where
 
-import Language.Nomyx.Expression
+import Language.Nomyx.Types
 import Language.Nomyx.Variables
 import Language.Nomyx.Rules
 import Language.Nomyx.Events
