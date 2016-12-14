@@ -109,6 +109,7 @@ appTemplate' ::
                           -> [(Text, Maybe Text)] -> Text)
     -> Html
 appTemplate' title headers body footer link routeFn = do
+ H.html ! manifest "/static/manifest.yaml" $ do  
    H.head $ do
       H.title (fromString title)
       H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"
