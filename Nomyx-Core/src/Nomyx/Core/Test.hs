@@ -33,17 +33,15 @@ import qualified Nomyx.Core.Engine as G
 import           Imprevu.Evaluation
 
 
-playTests :: FilePath -> Maybe String -> Int -> IO [(String, Bool)]
-playTests saveDir mTestName delay = do
+playTests :: Maybe String -> Int -> IO [(String, Bool)]
+playTests mTestName delay = do
    tests <- case mTestName of
       Just testName -> do
          let tsts = fatalTests ++ regularTests
          return $ maybeToList $ find (\(name, _, _) -> name == testName) tsts
       Nothing -> return regularTests
    tp <- testProfiles
-   dir <- createTempDirectory "/tmp" "Nomyx"
-   createDirectoryIfMissing True $ dir </> uploadDir
-   let session = Session (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = saveDir, _webDir = "", _sourceDir = "", _watchdog = delay}
+   let session = Session (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = "", _webDir = "", _sourceDir = "", _watchdog = delay}
                                           (Library [rAutoActivate]
                                           [])) tp
    mapM (\(title, t, cond) -> (title,) <$> test title session t cond) tests
@@ -64,7 +62,6 @@ regularTests =
     ("Test file 1",           testFile1,              condNRules 2),
     ("Test file 2",           testFile2,              condNRules 2),
     ("Test import Data.Time", testFileTime,           condNRules 2),
-    --("load file twice",       testFileTwice,          condNRules 1),
     ("load file twice 2",     testFileTwice',         condNRules 3),
     ("load file unsafe",      testFileUnsafeIO,       condNRules 1)] ++
     map (\i -> ("Loop" ++ show i,      loops !! (i-1),      condNoGame))   [1..(length loops)] ++
@@ -172,7 +169,7 @@ gamePartialFunction2 = do
    submitR partialFunction2
    gs <- (use $ multi . gameInfos)
    let now = _currentTime $ G._game $ _loggedGame $ head gs
-   zoom multi $ Nomyx.Core.Multi.triggerTimeEvent (5 `addUTCTime` now)
+   undefined
 
 
 -- rule has not been accepted due to exception

@@ -73,37 +73,6 @@ addActivateRule rf rn = do
    evActivateRule (_rNumber rule)
    return ()
 
-tests :: [([Char], Bool)]
-tests = [("test var 1", testVarEx1),
-         ("test var 2", testVarEx2),
-         ("test var 3", testVarEx3),
-         ("test var 4", testVarEx4),
-         ("test var 5", testVarEx5),
-         ("test activate rule", testActivateRuleEx),
-         ("test auto activate", testAutoActivateEx),
-         ("test delete rule", testDeleteRuleEx1),
-         ("test victory rule", testVictoryEx1),
-         ("test assess on vote complete 1", testVoteAssessOnVoteComplete1),
-         ("test assess on vote complete 2", testVoteAssessOnVoteComplete2),
-         ("test assess on every vote 1", testVoteAssessOnEveryVote1),
-         ("test assess on every vote 2", testVoteAssessOnEveryVote2),
-         ("test assess on every vote 3", testVoteAssessOnEveryVote3),
-         ("test assess on every vote 4", testVoteAssessOnEveryVote4),
-         ("test majority with", testVoteMajorityWith),
-         ("test number positive votes", testVoteNumberPositiveVotes),
-         ("test vote with quorum 1", testVoteWithQuorum1),
-         ("test assess on time limit 1", testVoteAssessOnTimeLimit1),
-         ("test assess on time limit 2", testVoteAssessOnTimeLimit2),
-         ("test assess on time limit 3", testVoteAssessOnTimeLimit3),
-         ("test assess on time limit 4", testVoteAssessOnTimeLimit4),
-         ("test assess on time limit 5", testVoteAssessOnTimeLimit5),
-         ("test vote player arrives", testVotePlayerArriveEx),
-         ("test vote player leaves", testVotePlayerLeaveEx)
-         ]
-
-allTests :: Bool
-allTests = all snd tests
-
 --Test variable creation
 testVar1 :: Rule
 testVar1 = do

@@ -46,6 +46,7 @@ module Nomyx.Core.Engine(
    tracePN,
    getChoiceEvents,
    runEvaluate,
+   withEvent',
    getL
    ) where
 
