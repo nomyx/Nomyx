@@ -1,21 +1,14 @@
-
 {-# LANGUAGE CPP #-}
 
 module Nomyx.Core.Utils where
 
-
-
 import           Codec.Archive.Tar    as Tar
 import           System.FilePath
 import           System.IO.Temp
-#ifndef WINDOWS
-import qualified System.Posix.Signals as S
-#endif
 import           Control.Concurrent
 import           Control.DeepSeq
 import           Control.Exception
 import           Control.Lens
-import           Control.Monad.Catch  as MC
 import           Control.Monad.State
 import           Data.Maybe
 import           Nomyx.Core.Engine
@@ -82,34 +75,6 @@ setMode file = setFileMode file (ownerModes + groupModes)
 
 #endif
 
-#ifdef WINDOWS
-
---no signals under windows
-protectHandlers :: IO a -> IO a
-protectHandlers = id
-
-#else
-
-installHandler' :: S.Handler -> S.Signal -> IO S.Handler
-installHandler' handler signal = S.installHandler signal handler Nothing
-
-signals :: [S.Signal]
-signals = [ S.sigQUIT
-          , S.sigINT
-          , S.sigHUP
-          , S.sigTERM
-          ]
-
-saveHandlers :: IO [S.Handler]
-saveHandlers = liftIO $ mapM (installHandler' S.Ignore) signals
-
-restoreHandlers :: [S.Handler] -> IO [S.Handler]
-restoreHandlers h  = liftIO . sequence $ zipWith installHandler' h signals
-
-protectHandlers :: IO a -> IO a
-protectHandlers a = MC.bracket saveHandlers restoreHandlers $ const a
-
-#endif
 
 --Sets a watchdog to kill the evaluation thread if it doesn't finishes.
 -- The function starts both the evaluation thread and the watchdog thread, and blocks awaiting the result.

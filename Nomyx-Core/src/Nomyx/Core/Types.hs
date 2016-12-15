@@ -18,10 +18,10 @@ import           Data.List
 import           Data.Typeable
 import           Data.Aeson
 import           GHC.Generics (Generic)
-import           Language.Haskell.Interpreter.Server (ServerHandle)
 import           Network.BSD
 import           Nomyx.Language
 import           Nomyx.Core.Engine
+import           Nomyx.Core.Engine.Types
 
 type PlayerPassword = String
 type Port = Int

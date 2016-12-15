@@ -11,6 +11,7 @@ import Nomyx.Language.Types
 import Nomyx.Core.Engine.Evaluation
 import Nomyx.Core.Engine.EvalUtils
 import Nomyx.Core.Engine.Types
+import Nomyx.Core.Engine.Interpret
 import Imprevu.Evaluation
 import Control.Lens
 import Control.Category ((>>>))
@@ -133,7 +134,7 @@ createRule (RuleTemplate name des code _ _ _ decls) ms pn ei = do
           -- If the rule has already been interpreted, use it
       Right r -> return r
       -- re-interpret the rule (in the case of loading game from logs)
-      Left inter -> lift $ inter code ms
+      Left inter -> lift $ interpretRule' code ms
    tracePN pn $ "Creating rule n=" ++ show rn ++ " code=" ++ code
    let ruleTemplate = RuleTemplate {_rName = name,
                                     _rDescription = des,

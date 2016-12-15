@@ -1,24 +1,27 @@
 {-# LANGUAGE DoAndIfThenElse     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
 
 -- | This module starts a Interpreter server that will read our strings representing rules to convert them to plain Rules.
-module Nomyx.Core.Interpret where
+module Nomyx.Core.Engine.Interpret where
 
 import           Control.Exception                   as CE
 import           Control.Monad
+import           Control.Monad.Catch  as MC
 import           Data.List
 import           Language.Haskell.Interpreter
-import           Language.Haskell.Interpreter.Server
 import           Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
 import           Nomyx.Language
-import           Nomyx.Core.Context
-import           Nomyx.Core.Utils
+import           Nomyx.Core.Engine.Context
 import           System.FilePath                     (dropExtension, joinPath,
                                                       takeFileName, dropFileName,
                                                       splitDirectories, takeBaseName, (</>))
-import           System.IO.Error
+--import           System.IO.Error
 import           System.IO.Temp
 import           System.Directory
+#ifndef WINDOWS
+import qualified System.Posix.Signals as S
+#endif
 
 exts :: [String]
 exts = ["Safe", "GADTs"] ++ map show namedExts
@@ -89,3 +92,32 @@ readExt :: String -> Extension
 readExt s = case reads s of
   [(e,[])] -> e
   _        -> UnknownExtension s
+
+#ifdef WINDOWS
+
+--no signals under windows
+protectHandlers :: IO a -> IO a
+protectHandlers = id
+
+#else
+
+installHandler' :: S.Handler -> S.Signal -> IO S.Handler
+installHandler' handler signal = S.installHandler signal handler Nothing
+
+signals :: [S.Signal]
+signals = [ S.sigQUIT
+          , S.sigINT
+          , S.sigHUP
+          , S.sigTERM
+          ]
+
+saveHandlers :: IO [S.Handler]
+saveHandlers = liftIO $ mapM (installHandler' S.Ignore) signals
+
+restoreHandlers :: [S.Handler] -> IO [S.Handler]
+restoreHandlers h  = liftIO . sequence $ zipWith installHandler' h signals
+
+protectHandlers :: IO a -> IO a
+protectHandlers a = MC.bracket saveHandlers restoreHandlers $ const a
+
+#endif

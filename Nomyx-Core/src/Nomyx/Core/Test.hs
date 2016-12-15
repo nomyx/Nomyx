@@ -5,7 +5,6 @@
 -- | Test module
 module Nomyx.Core.Test where
 
-import           Language.Haskell.Interpreter.Server (ServerHandle)
 import           Control.Monad.State
 import           Control.Exception as E
 import           Control.Lens
