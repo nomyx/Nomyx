@@ -15,28 +15,34 @@ The web site: www.nomyx.net
 Installation
 ============
 
-To install from the GitHub repo:
+First install Haskell Stack:
+```
+$ curl -sSL https://get.haskellstack.org/ | sh
+```
 
-    git clone git@github.com:cdupont/Nomyx.git
-    cd Nomyx
-    stack install
+To install from the GitHub repo:
+```
+$ git clone git@github.com:cdupont/Nomyx.git
+$ cd Nomyx
+$ stack install
+```
 
 Execution
 =========
 
 Launch with the command:
-
-    $ stack exec Nomyx
-
+```
+$ stack exec Nomyx
+```
 and follow the instructions. You may connect using a web browser to the provided address.
-
+You can play with the HCI and propose some rules!
 
 Troubleshooting
 ===============
 See the [issues](https://github.com/cdupont/Nomyx/issues) for known bugs.
 
 Run tests with:
-
-    $ Nomyx/tests.sh
-
+```
+$ Nomyx/tests.sh
+```
 
