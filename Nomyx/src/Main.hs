@@ -16,11 +16,11 @@ import           Data.Time.Clock
 import           Data.Version                        (showVersion)
 import           Language.Haskell.Interpreter.Server hiding (start)
 import           Network.BSD
-import           Nomyx.Language
-import           Nomyx.Core.Engine
-import           Nomyx.Core.Engine.Evaluation
+import           Nomyx.Language                      hiding (getCurrentTime)
+import           Nomyx.Core.Engine                   hiding (runEvaluate)
+import           Nomyx.Core.Engine.Evaluation        hiding (runEvaluate)
 import           Nomyx.Core.Engine.Test              as LT
-import           Nomyx.Core.Interpret
+import           Nomyx.Core.Engine.Interpret
 import           Nomyx.Core.Multi                    as Multi
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Serialize                as Serialize
@@ -34,7 +34,6 @@ import           Paths_Nomyx                         as PN
 import           Paths_Nomyx_Language                as PNL
 import           Paths_Nomyx_Web                     as PNW
 import           Paths_Nomyx_Library                 as PNLib
-import           Prelude                             hiding ((.))
 import           Safe
 import           System.Console.GetOpt
 import           System.Directory                    (canonicalizePath,
@@ -46,6 +45,8 @@ import           System.Exit
 import           System.FilePath                     ((</>))
 import           Imprevu.Evaluation.TimeEval
 import           Imprevu.Evaluation.EventEval
+import           Imprevu.Evaluation.Types
+import           Control.Lens
 
 -- | Entry point of the program.
 main :: IO Bool
@@ -85,7 +86,7 @@ start flags = do
    let settings    = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir watchdog
    when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\nweb dir = " ++ webDir ++ "\nsource dir = " ++ sourceDir
    if Test `elem` flags
-      then runTests saveDir mLoad watchdog
+      then runTests mLoad watchdog
       else if DeleteSaveFile `elem` flags then cleanFile saveDir
       else mainLoop settings saveDir host port libraryPath
 
@@ -100,24 +101,28 @@ mainLoop settings saveDir host port lib = do
      ts <- atomically $ newTVar (Session multi acid)
      --start the web server
      forkIO $ launchWebServer ts (Network host port)
-     --forkIO $ launchTimeEvents ts (EvalFunc evalNomex' undefined)
+     forkIO $ launchTimeEvents' ts
      --start the REST API
      forkIO $ serveApi ts
      serverLoop ts
 
---data EvalFunc n s = EvalFunc { _evalFunc     :: forall a. n a -> EvaluateN n s a,     -- evaluation function
---                               _errorHandler :: EventNumber -> String -> EvaluateN n s ()}    -- error function
---evalNomex :: Nomex a -> Evaluate a
---
---launchTimeEvents :: (HasEvents n s, Monad n) => TVar s -> EvalFunc n s -> IO ()
---
---type Evaluate a = EvaluateN Nomex EvalState a
---
---data EvalState = EvalState { _eGame :: Game,             -- game to be read/modified
---                             _eRuleNumber :: RuleNumber} -- number of the rule requesting the evaluation
-
---evalNomex' :: Nomex a ->  EvaluateN Nomex Session a
---evalNomex' exp = error "evalNomex"
+launchTimeEvents' :: TVar Session -> IO ()
+launchTimeEvents' tv = do
+    now <- getCurrentTime
+    putStrLn $ "tick " ++ (show now)
+    s <- atomically $ readTVar tv
+    let gs = map (_game . _loggedGame) (_gameInfos $ _multi s)
+    let s' = over (multi . gameInfos) (map (gameTimeEvents now)) s
+    --sleep 30 second roughly
+    threadDelay 30000000
+    launchTimeEvents' tv
+      
+gameTimeEvents :: UTCTime -> GameInfo -> GameInfo
+gameTimeEvents now gi = (loggedGame . game) .~ g' $ gi where 
+    g = _game $ _loggedGame gi
+    ts = join $ maybeToList $ runEvaluate (getTimeEvents now) (defaultEvalEnv 0 g)
+    (EvalState g' _) = foldr (triggerTimeEvent defaultEvalConf) (EvalState g 0) ts
+   --   unless (null ts) $ putStrLn "found time event(s)"
 
 loadMulti :: Settings -> FilePath -> IO Multi
 loadMulti set libPath = do
@@ -135,12 +140,11 @@ errMsg set e = do
   putStrLn $ "Error while loading logged events, log file discarded\n" ++ show (e::ErrorCall)
   return $ defaultMulti set (Library [rAutoActivate] [])
 
-runTests :: FilePath -> Maybe String -> Int -> IO ()
-runTests saveDir mTestName delay = do
-   putStrLn $ "\nNomyx Language Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") LT.tests
-   ts <- playTests saveDir mTestName delay
+runTests :: Maybe String -> Int -> IO ()
+runTests mTestName delay = do
+   ts <- playTests mTestName delay
    putStrLn $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") ts
-   let pass = allTests && all snd ts
+   let pass = all snd ts
    putStrLn $ "All Tests Pass: " ++ show pass
    if pass then exitSuccess else exitFailure
 

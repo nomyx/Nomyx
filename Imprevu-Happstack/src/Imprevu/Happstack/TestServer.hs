@@ -33,7 +33,7 @@ launchWebServer :: TVar TestState -> IO ()
 launchWebServer tv = do
    putStrLn $ "Starting web server on http://localhost:8080/test/main"
    let conf = nullConf {HS.port = 8080}
-   forkIO $ launchTimeEvents tv defaultEvalConf
+   --forkIO $ launchTimeEvents tv defaultEvalConf
    simpleHTTP conf $ server tv
 
 --serving Nomyx web page as well as data from this package and the language library package
@@ -41,11 +41,10 @@ server :: TVar TestState -> ServerPartT IO Response
 server tv = do
   decodeBody (defaultBodyPolicy "/tmp/" 102400 4096 4096)
   msum [dirs "test/main" (mainPage tv),
-                  dirs "test/do-input" $
-                      path $ \en ->
-                      path $ \is ->
-                      newInput is en tv updateSessionTest "/test/main"
-                 ]
+        dirs "test/do-input" $
+           path $ \en ->
+           path $ \is ->
+           newInput is en tv updateSessionTest "/test/main"]
 
 
 updateSessionTest :: TVar TestState -> Input -> InputData -> EventNumber -> IO ()
