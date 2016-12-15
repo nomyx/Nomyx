@@ -11,9 +11,8 @@ import           Control.Monad.State
 import           Data.Yaml                           (decodeEither, encode)
 import           Data.List
 import qualified Data.ByteString.Char8            as BL
-import           Language.Haskell.Interpreter.Server
 import           Nomyx.Core.Engine
-import           Nomyx.Core.Interpret
+import           Nomyx.Core.Engine.Interpret
 import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
 import           Nomyx.Language

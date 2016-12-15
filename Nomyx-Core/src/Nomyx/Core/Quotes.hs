@@ -7,7 +7,7 @@ module Nomyx.Core.Quotes where
 import Language.Haskell.TH as TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.Interpreter hiding (get)
-import Nomyx.Core.Context
+import Nomyx.Core.Engine.Context
 
 
 -- This quasi quoter allows to type check a string as a Nomyx rule.

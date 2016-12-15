@@ -32,7 +32,6 @@ library
                    exceptions             == 0.8.*,
                    filepath               >= 1.3 && < 1.5,
                    hint                   == 0.4.*,
-                   hint-server            == 1.4.*,
                    hscolour               >= 1.22 && < 1.24,
                    ixset                  == 1.0.*,
                    mime-mail              == 0.4.*,
@@ -66,17 +65,17 @@ library
                      Nomyx.Core.Session
                      Nomyx.Core.Multi
                      Nomyx.Core.Serialize
-                     Nomyx.Core.Interpret
-                     Nomyx.Core.Context
                      Nomyx.Core.Quotes
                      Nomyx.Core.Mail
                      Nomyx.Core.Utils
                      Nomyx.Core.Test
                      Nomyx.Core.Engine
+                     Nomyx.Core.Engine.Types
                      Nomyx.Core.Engine.Evaluation
                      Nomyx.Core.Engine.EvalUtils
-                     Nomyx.Core.Engine.Types
                      Nomyx.Core.Engine.GameEvents
+                     Nomyx.Core.Engine.Interpret
+                     Nomyx.Core.Engine.Context
                      Nomyx.Core.Engine.Test
                      Paths_Nomyx_Core
                      Data.Todo

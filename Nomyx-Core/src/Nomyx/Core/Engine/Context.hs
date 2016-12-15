@@ -1,4 +1,4 @@
-module Nomyx.Core.Context (
+module Nomyx.Core.Engine.Context (
   unQualImports,
   qualImports,
   defaultPackages

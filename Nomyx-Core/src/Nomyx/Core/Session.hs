@@ -13,10 +13,9 @@ import           Data.Maybe
 import           Data.Time                           as T
 import           Debug.Trace.Helpers
 import           Language.Haskell.Interpreter        (InterpreterError)
-import           Language.Haskell.Interpreter.Server (ServerHandle)
 import           Nomyx.Language
 import           Nomyx.Core.Engine                   as G
-import           Nomyx.Core.Interpret
+import           Nomyx.Core.Engine.Interpret
 import           Nomyx.Core.Multi
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Serialize
