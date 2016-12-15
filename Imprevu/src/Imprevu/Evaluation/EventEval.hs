@@ -145,6 +145,7 @@ runEvalError' egs = do
 runEvaluate :: EvaluateN n s a -> EvalEnvN n s -> Maybe a
 runEvaluate ev ee = evalState (runEvalError' ev) ee
 
+--TODO simplify
 execSignals :: (Show a, Show e, Typeable e, Eq e, Show d, Typeable d, Eq d) => n a -> [(Signal e d, d)] -> EvalEnvN n s -> s
 execSignals r sds evalEnv = _evalEnv $ runIdentity $ flip execStateT evalEnv $ do
    res <- runExceptT $ do

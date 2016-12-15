@@ -11,11 +11,11 @@ import           Imprevu.Types
 data EvalEnvN n s = EvalEnv { _evalEnv     :: s,
                               _evalConf    :: EvalConfN n s}
 
-data EvalConfN n s = EvalConf { getEvents    :: s -> [EventInfoN n],
-                                setEvents    :: [EventInfoN n] -> s -> s,
+data EvalConfN n s = EvalConf { getEvents     :: s -> [EventInfoN n],
+                                setEvents     :: [EventInfoN n] -> s -> s,
                                 _evalFunc     :: forall a. n a -> EvaluateN n s a,           -- evaluation function
                                 _errorHandler :: EventNumber -> String -> EvaluateN n s (),  -- error function
-                                _withEvent :: EventInfoN n -> EvaluateN n s () -> EvaluateN n s ()}  -- error function
+                                _withEvent    :: EventInfoN n -> EvaluateN n s () -> EvaluateN n s ()}  -- error function
 
 -- | Environment necessary for the evaluation of Nome
 type EvaluateN n s a = ExceptT String (State (EvalEnvN n s)) a

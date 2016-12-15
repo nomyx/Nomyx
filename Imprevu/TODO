@@ -6,7 +6,6 @@
 - getIntermediateResults seems to leak some internals. Anyway do we really need it?
 - fix export lists: should we expect from users to look into Imprevu?
 
-- Clean Tests
 - rename "events"
 - Simplify "RuleEventInfo" ?
 
