@@ -35,18 +35,18 @@ loadMulti :: Settings -> IO Multi
 loadMulti s = do
    let sd = getSaveFile s
    m <- load sd
-   gs' <- mapM (updateGameInfo interpretRule') $ _gameInfos m
+   gs' <- mapM updateGameInfo (_gameInfos m)
    let m' = set gameInfos gs' m
    let m'' = set mSettings s m'
    return m''
 
-updateGameInfo :: InterpretRule -> GameInfo -> IO GameInfo
-updateGameInfo f gi = do
-   gi' <- updateLoggedGame f (_loggedGame gi)
+updateGameInfo :: GameInfo -> IO GameInfo
+updateGameInfo gi = do
+   gi' <- updateLoggedGame (_loggedGame gi)
    return $ gi {_loggedGame = gi'}
 
-updateLoggedGame :: InterpretRule -> LoggedGame -> IO LoggedGame
-updateLoggedGame f (LoggedGame g log) = getLoggedGame g f log
+updateLoggedGame :: LoggedGame -> IO LoggedGame
+updateLoggedGame (LoggedGame g log) = getLoggedGame g log
 
 -- read a library file
 readLibrary :: FilePath -> IO Library

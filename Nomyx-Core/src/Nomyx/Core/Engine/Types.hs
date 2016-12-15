@@ -36,9 +36,6 @@ type EvalEnv = EvalEnvN Nomex EvalState
 -- | Environment necessary for the evaluation of Nomex
 type Evaluate a = EvaluateN Nomex EvalState a
 
--- | extract a rule from a code string and an environment
-type InterpretRule = RuleCode -> [ModuleInfo] -> IO Rule
-
 -- * Game
 
 type GameName = String

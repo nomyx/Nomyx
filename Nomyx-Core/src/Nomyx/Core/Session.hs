@@ -102,7 +102,7 @@ compileRule rt pn gn re msg = do
    case mrr of
       Right r -> do
          tracePN pn "proposed rule compiled OK "
-         inGameDo gn $ G.execGameEvent' (Just $ Right r) (ProposeRuleEv re pn rt mods)
+         inGameDo gn $ G.execGameEvent' (Just r) (ProposeRuleEv re pn rt mods)
          modifyProfile pn (pLastRule .~ Just (rt, msg))
       Left e -> submitRuleError rt pn gn e
 

@@ -29,7 +29,7 @@ rAutoActivate = RuleTemplate "AutoActivate"
 
 initialGame :: StateT GameInfo IO ()
 initialGame = zoom loggedGame $ mapM_ addR [rAutoActivate]
-   where addR rt = execGameEvent' (Just $ Left $ interpretRule') (ProposeRuleEv SystemAdd 0 rt [])
+   where addR rt = execGameEvent' Nothing (ProposeRuleEv SystemAdd 0 rt [])
 
 initialGameInfo :: GameName -> GameDesc -> Bool -> Maybe PlayerNumber -> UTCTime -> IO GameInfo
 initialGameInfo name desc isPub mpn date = do

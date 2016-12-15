@@ -25,7 +25,6 @@ module Nomyx.Core.Engine(
 
    -- * Rules management
    activeRules, pendingRules, rejectedRules,
-   InterpretRule,
 
    -- * Events management
    events,

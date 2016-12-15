@@ -20,21 +20,21 @@ import Data.Time
 import Data.Maybe
 
 -- | perform a game event
-enactEvent :: GameEvent -> Maybe (Either InterpretRule Rule) -> StateT Game IO ()
-enactEvent (JoinGame pn name) _               = mapStateIO $ joinGame name pn
-enactEvent (LeaveGame pn) _                   = mapStateIO $ leaveGame pn
-enactEvent (ProposeRuleEv Propose pn rt ms)  (Just inter) = void $ proposeRule rt ms pn inter
-enactEvent (ProposeRuleEv SystemAdd _ rt ms) (Just inter) = systemAddRule rt ms inter
-enactEvent (ProposeRuleEv Check _ _ _)       _ = return ()
-enactEvent (ProposeRuleEv _ _ _ _) Nothing               = error "ProposeRuleEv: interpreter function needed"
-enactEvent (InputResult pn en is id) _        = mapStateIO $ inputResult pn en is id
-enactEvent (GLog mpn s) _                     = mapStateIO $ logGame s mpn
-enactEvent (TimeEvent t) _                    = mapStateIO $ runSystemEval' $ evTriggerTime t
+enactEvent :: GameEvent -> Maybe Rule -> StateT Game IO ()
+enactEvent (JoinGame pn name) _                 = mapStateIO $ joinGame name pn
+enactEvent (LeaveGame pn) _                     = mapStateIO $ leaveGame pn
+enactEvent (ProposeRuleEv Propose pn rt ms)  mr = void $ proposeRule rt ms pn mr
+enactEvent (ProposeRuleEv SystemAdd _ rt ms) mr = systemAddRule rt ms mr
+enactEvent (ProposeRuleEv Check _ _ _)       _  = return ()
+enactEvent (ProposeRuleEv _ _ _ _) Nothing      = error "ProposeRuleEv: interpreter function needed"
+enactEvent (InputResult pn en is id) _          = mapStateIO $ inputResult pn en is id
+enactEvent (GLog mpn s) _                       = mapStateIO $ logGame s mpn
+enactEvent (TimeEvent t) _                      = mapStateIO $ runSystemEval' $ evTriggerTime t
 
-enactTimedEvent :: Maybe (Either InterpretRule Rule) -> TimedEvent -> StateT Game IO ()
-enactTimedEvent inter (TimedEvent t ge) = flip stateCatch updateError $ do
+enactTimedEvent :: Maybe Rule -> TimedEvent -> StateT Game IO ()
+enactTimedEvent mr (TimedEvent t ge) = flip stateCatch updateError $ do
    currentTime .= t
-   enactEvent ge inter
+   enactEvent ge mr
    lg <- get
    lift $ evaluate lg
    return ()
@@ -47,16 +47,16 @@ updateError e = do
 execGameEvent :: GameEvent -> StateT LoggedGame IO ()
 execGameEvent = execGameEvent' Nothing
 
-execGameEvent' :: Maybe (Either InterpretRule Rule) -> GameEvent -> StateT LoggedGame IO ()
+execGameEvent' :: Maybe Rule -> GameEvent -> StateT LoggedGame IO ()
 execGameEvent' inter ge = do
    t <- use (game . currentTime)
    let te = TimedEvent t ge
    gameLog %= \gl -> gl ++ [te]
    zoom game $ enactTimedEvent inter te
 
-getLoggedGame :: Game -> InterpretRule -> [TimedEvent] -> IO LoggedGame
-getLoggedGame g inter tes = do
-   let a = mapM_ (enactTimedEvent (Just $ Left inter)) tes
+getLoggedGame :: Game -> [TimedEvent] -> IO LoggedGame
+getLoggedGame g tes = do
+   let a = mapM_ (enactTimedEvent Nothing) tes
    g' <- execStateT a g
    return $ LoggedGame g' tes
 
@@ -78,18 +78,18 @@ leaveGame :: PlayerNumber -> State Game ()
 leaveGame pn = runSystemEval pn $ void $ evDelPlayer pn
 
 -- | insert a rule in pending rules.
-proposeRule :: RuleTemplate -> [ModuleInfo] -> PlayerNumber -> Either InterpretRule Rule -> StateT Game IO ()
-proposeRule rt ms pn inter = do
-   rule <- createRule rt ms pn inter
+proposeRule :: RuleTemplate -> [ModuleInfo] -> PlayerNumber -> Maybe Rule -> StateT Game IO ()
+proposeRule rt ms pn mr = do
+   rule <- createRule rt ms pn mr
    mapStateIO $ runEvalError (_rNumber rule) (Just pn) $ do --bug here
       r <- evProposeRule rule
       tracePN pn $ if r then "Your rule has been added to pending rules."
                         else "Error: Rule could not be proposed"
 
 -- | add a rule forcefully (no votes etc.)
-systemAddRule :: RuleTemplate -> [ModuleInfo] -> Either InterpretRule Rule -> StateT Game IO ()
-systemAddRule rt ms inter = do
-   rule <- createRule rt ms 0 inter
+systemAddRule :: RuleTemplate -> [ModuleInfo] -> Maybe Rule -> StateT Game IO ()
+systemAddRule rt ms mr = do
+   rule <- createRule rt ms 0 mr
    let sysRule = (rStatus .~ Active) >>> (rAssessedBy .~ Just 0)
    rules %= (sysRule rule : )
    mapStateIO $ runEvalError (_rNumber rule) Nothing $ evalNomex (_rRule rule)
@@ -125,16 +125,16 @@ pendingRules = sort . filter ((==Pending) . getL rStatus) . _rules
 rejectedRules :: Game -> [RuleInfo]
 rejectedRules = sort . filter ((==Reject) . getL rStatus) . _rules
 
-createRule :: RuleTemplate -> [ModuleInfo] -> PlayerNumber -> Either InterpretRule Rule -> StateT Game IO RuleInfo
-createRule (RuleTemplate name des code _ _ _ decls) ms pn ei = do
+createRule :: RuleTemplate -> [ModuleInfo] -> PlayerNumber -> Maybe Rule -> StateT Game IO RuleInfo
+createRule (RuleTemplate name des code _ _ _ decls) ms pn mr = do
    rs <- use rules
    let rn = getFreeNumber $ map _rNumber rs
    g <- get
-   r <- case ei of
-          -- If the rule has already been interpreted, use it
-      Right r -> return r
+   r <- case mr of
+      -- If the rule has already been interpreted, use it
+      Just r -> return r
       -- re-interpret the rule (in the case of loading game from logs)
-      Left inter -> lift $ interpretRule' code ms
+      Nothing -> lift $ interpretRule' code ms
    tracePN pn $ "Creating rule n=" ++ show rn ++ " code=" ++ code
    let ruleTemplate = RuleTemplate {_rName = name,
                                     _rDescription = des,
