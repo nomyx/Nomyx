@@ -22,6 +22,7 @@ data-files: src/Nomyx/Language.hs
             src/Nomyx/Language/Events.hs
             src/Nomyx/Language/Messages.hs
             src/Nomyx/Language/Players.hs
+            src/Nomyx/Language/Utils.hs
 data-dir: .
 extra-source-files: AUTHORS README
 
@@ -50,6 +51,7 @@ library
                      Nomyx.Language.Messages
                      Nomyx.Language.Events
                      Nomyx.Language.Variables
+                     Nomyx.Language.Utils
                      Paths_Nomyx_Language
     exposed: True
     buildable: True

@@ -9,6 +9,7 @@ module Nomyx.Language (
    module Nomyx.Language.Players,
    module Nomyx.Language.Variables,
    module Nomyx.Language.Rules,
+   module Nomyx.Language.Utils,
    module Nomyx.Language.Types)  where
 
 import Nomyx.Language.Outputs    -- create outputs
@@ -19,3 +20,4 @@ import Nomyx.Language.Players    -- manage players
 import Nomyx.Language.Variables  -- create variables
 import Nomyx.Language.Rules      -- manage rules
 import Nomyx.Language.Types      -- Nomyx Expression DSL
+import Nomyx.Language.Utils      -- Nomyx Utils

@@ -36,6 +36,7 @@ module Nomyx.Language.Rules (
 import Prelude hiding (foldr)
 import Nomyx.Language.Types
 import Nomyx.Language.Outputs
+import Nomyx.Language.Utils
 import Imprevu
 import Control.Lens
 import Control.Monad
