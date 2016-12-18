@@ -32,7 +32,8 @@ executable Nomyx
                    safe                   == 0.3.*,
                    stm                    == 2.4.*,
                    time                   >= 1.4 && < 1.6,
-                   lens               >= 4.7 && < 4.14
+                   lens               >= 4.7 && < 4.14,
+                   hslogger
     main-is: Main.hs
     buildable: True
     extensions: CPP

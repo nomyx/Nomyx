@@ -43,6 +43,11 @@ import           System.Directory                    (canonicalizePath,
 import           System.Environment
 import           System.Exit
 import           System.FilePath                     ((</>))
+import           System.Log.Logger
+import           System.Log.Formatter
+import           System.Log.Handler hiding (setLevel)
+import           System.Log.Handler.Simple
+import           System.IO
 import           Imprevu.Evaluation.TimeEval
 import           Imprevu.Evaluation.EventEval
 import           Imprevu.Evaluation.Types
@@ -51,6 +56,13 @@ import           Control.Lens
 -- | Entry point of the program.
 main :: IO Bool
 main = do
+   let handler = do
+        lh <- streamHandler stdout DEBUG
+        return $ setFormatter lh (simpleLogFormatter "[$time : $loggername : $prio] $msg")
+   h <- handler
+   updateGlobalLogger rootLoggerName removeHandler
+   updateGlobalLogger rootLoggerName (addHandler h)
+   updateGlobalLogger rootLoggerName (setLevel DEBUG)
    args <- getArgs
    (flags, _) <- nomyxOpts args
    if Version `elem` flags then putStrLn $ "Nomyx " ++ showVersion PN.version
@@ -109,7 +121,7 @@ mainLoop settings saveDir host port lib = do
 launchTimeEvents' :: TVar Session -> IO ()
 launchTimeEvents' tv = do
     now <- getCurrentTime
-    putStrLn $ "tick " ++ (show now)
+    debugM "Main" "tick"
     s <- atomically $ readTVar tv
     let gs = map (_game . _loggedGame) (_gameInfos $ _multi s)
     let s' = over (multi . gameInfos) (map (gameTimeEvents now)) s
