@@ -53,9 +53,9 @@ type PlayerApi =  "players" :>                                   Get  '[JSON] [P
              :<|> "players" :> Capture "id" Int               :> Delete '[JSON] ()
 
 
-type RuleTemplateApi =  "templates" :>                                   Get  '[JSON] [RuleTemplate]  --get all templates
+type RuleTemplateApi =  "templates" :>                                   Get  '[JSON] Library  --get all templates
                    :<|> "templates" :> ReqBody '[JSON] RuleTemplate   :> Post '[JSON] () -- post new template
-                   :<|> "templates" :> FilesTmp                       :> Put  '[JSON] () -- replace all templates
+                   :<|> "templates" :> ReqBody '[JSON] Library        :> Put  '[JSON] () -- replace all templates
 
 nomyxApi :: Proxy NomyxApi
 nomyxApi = Proxy
@@ -110,26 +110,22 @@ playerDelete tv pn = error "not supported"
 
 -- * Templates API
 
-templatesGet :: TVar Session -> EitherT ServantErr IO [RuleTemplate]
+templatesGet :: TVar Session -> EitherT ServantErr IO Library
 templatesGet tv = do
    s <- liftIO $ atomically $ readTVar tv
-   return $ _mTemplates $ _mLibrary $ _multi s
+   return $ _mLibrary $ _multi s
 
 templatesPost :: TVar Session -> RuleTemplate -> EitherT ServantErr IO ()
 templatesPost tv rt = do
    liftIO $ updateSession tv (newRuleTemplate rt)
    return ()
 
-templatesPut :: TVar Session -> MultiPartData Tmp -> EitherT ServantErr IO ()
-templatesPut tv (inputs, files) = do
-   details <- liftIO $ mapM getFileDetails files
-   liftIO $ mapM_ print inputs
-   let ts = listToMaybe $ catMaybes $ map getTemplates details
-   let ms = catMaybes $ map getModules details
-   liftIO $ putStrLn $ show ts
-   liftIO $ putStrLn $ show ms
-   when (isJust ts) $ liftIO $ updateSession tv (updateRuleTemplates $ fromJust ts)
-   liftIO $ updateSession tv (updateModules ms)
+templatesPut :: TVar Session -> Library -> EitherT ServantErr IO ()
+templatesPut tv (Library ts ms) = liftIO $ do
+   putStrLn $ "templatesPut" ++ (show ts)
+   putStrLn $ "templatesPut" ++ (show ms)
+   updateSession tv (updateRuleTemplates ts)
+   updateSession tv (updateModules ms)
    return ()
 
 getModules :: (String, FilePath, B.ByteString) -> Maybe ModuleInfo
