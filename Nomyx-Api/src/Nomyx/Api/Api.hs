@@ -128,34 +128,3 @@ templatesPut tv (Library ts ms) = liftIO $ do
    updateSession tv (updateModules ms)
    return ()
 
-getModules :: (String, FilePath, B.ByteString) -> Maybe ModuleInfo
-getModules ("mod", fp, c) = Just $ ModuleInfo fp $ B.unpack c
-getModules _ = Nothing
-
-getTemplates :: (String, FilePath, B.ByteString) -> Maybe [RuleTemplate]
-getTemplates ("templates", _, c) = case decodeEither c of
-     Left e -> error $ "error decoding library: " ++ e
-     Right ts -> Just ts
-getTemplates _ = Nothing
-
-getFileDetails :: File FilePath -> IO (String, FilePath, B.ByteString)
-getFileDetails (myname, fileinfo) = do
-   putStrLn $ "Input name: " ++ (B.unpack myname)
-   putStrLn $ "File name: " ++ show (fileName fileinfo)
-   putStrLn $ "Content type: " ++ show (fileContentType fileinfo)
-   putStrLn $ "------- Content --------"
-   cont <- readFile (fileContent fileinfo)
-   putStrLn cont
-   putStrLn $ "------------------------"
-   return (B.unpack myname, B.unpack $ fileName fileinfo, B.pack cont)
-
-instance ToSchema ProfileData
-instance ToSchema PlayerSettings
-instance ToSchema RuleTemplate
-instance ToSchema LastUpload
---instance ToSchema ModuleInfo
---instance ToSchema RuleInfo
---instance ToSchema RuleStatus
---instance ToSchema Rule where
---  declareNamedSchema _ = pure (Nothing, nullarySchema)
-
