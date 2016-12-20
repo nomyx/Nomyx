@@ -73,14 +73,15 @@ library
                      Nomyx.Core.Engine
                      Nomyx.Core.Engine.Types
                      Nomyx.Core.Engine.Evaluation
-                     Nomyx.Core.Engine.EvalUtils
                      Nomyx.Core.Engine.GameEvents
                      Nomyx.Core.Engine.Interpret
                      Nomyx.Core.Engine.Context
+                     Nomyx.Core.Engine.Utils
                      Nomyx.Core.Engine.Test
                      Paths_Nomyx_Core
                      Data.Todo
     ghc-options: -W -threaded -DNO_INTERPRET_QUOTES
+    cpp-options: -DNO_INTERPRET_QUOTES
 
 Test-Suite test
     type:      detailed-0.9
