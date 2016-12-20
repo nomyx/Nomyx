@@ -35,7 +35,7 @@ Launch with the command:
 $ stack exec Nomyx
 ```
 and follow the instructions. You may connect using a web browser to the provided address.
-You can play with the HCI and propose some rules!
+You can play with the GUI and propose some rules!
 
 Troubleshooting
 ===============
