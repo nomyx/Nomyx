@@ -136,11 +136,13 @@ getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
 runEvalError' :: EvaluateN n s a -> State (EvalEnvN n s) (Maybe a)
 runEvalError' egs = do
    e <- runExceptT egs
+   log <- use (evalConf . errorHandler)
    case e of
       Right a -> return $ Just a
-      Left e' -> error $ "error runEvalError" ++ e'
-         --tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
-         --void $ runErrorT $ log mpn "Error: "
+      Left e' -> do
+         traceM $ "Error: " ++ e'
+         void $ runExceptT $ log 0 $ "Error: " ++ e'
+         return Nothing
 
 runEvaluate :: EvaluateN n s a -> EvalEnvN n s -> Maybe a
 runEvaluate ev ee = evalState (runEvalError' ev) ee

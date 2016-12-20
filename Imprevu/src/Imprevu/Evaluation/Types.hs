@@ -15,9 +15,9 @@ data EvalConfN n s = EvalConf { getEvents     :: s -> [EventInfoN n],
                                 setEvents     :: [EventInfoN n] -> s -> s,
                                 _evalFunc     :: forall a. n a -> EvaluateN n s a,           -- evaluation function
                                 _errorHandler :: EventNumber -> String -> EvaluateN n s (),  -- error function
-                                _withEvent    :: EventInfoN n -> EvaluateN n s () -> EvaluateN n s ()}  -- error function
+                                _withEvent    :: EventInfoN n -> EvaluateN n s () -> EvaluateN n s ()}  -- change the context of the event
 
--- | Environment necessary for the evaluation of Nome
+-- | Environment necessary for the evaluation
 type EvaluateN n s a = ExceptT String (State (EvalEnvN n s)) a
 
 makeLenses ''EvalEnvN
@@ -25,5 +25,4 @@ makeLenses ''EvalConfN
 
 events :: Lens' (EvalEnvN n s) [EventInfoN n]
 events f ee@(EvalEnv s (EvalConf ge se _ _ _)) = fmap (\s' -> ee{_evalEnv = se s' s}) (f $ ge s)
-
 

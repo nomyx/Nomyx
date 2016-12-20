@@ -9,7 +9,6 @@ import           Control.Lens
 import           Control.Monad
 import           Control.Monad.Except
 import           Control.Monad.State
-import           Control.Monad.Error
 import           Data.List
 import           Data.Maybe
 import           Data.Time
@@ -17,7 +16,7 @@ import           Data.Typeable
 import           Imprevu.Evaluation as Imp hiding (events)
 import           Imprevu
 import           Nomyx.Language
-import           Nomyx.Core.Engine.EvalUtils
+import           Nomyx.Core.Engine.Utils
 import           Nomyx.Core.Engine.Types     hiding (_vRuleNumber)
 import           Prelude                     hiding (log, (.))
 import           System.Random
@@ -338,9 +337,9 @@ runSystemEval' :: Evaluate a -> State Game ()
 runSystemEval' = runEvalError 0 Nothing
 
 errorNomex :: EventNumber -> String -> Evaluate ()
-errorNomex e s = do 
-   --tracePN (fromMaybe 0 mpn) $ "Error: " ++ s
-   log Nothing "Error: "
+errorNomex en s = do 
+   tracePN 0 $ "Error: " ++ s
+   log Nothing $ "Error: " ++ s ++ ", from event: " ++ (show en)
 
 
 --runEvalError'' :: Maybe PlayerNumber -> Evaluate a -> State EvalEnv a
