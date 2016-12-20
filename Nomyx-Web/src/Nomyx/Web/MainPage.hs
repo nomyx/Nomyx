@@ -103,7 +103,7 @@ viewGameInfo gi mpn mlr isAdmin gt lib = do
    let gn = _gameName g
    let pi = join $ (Profile.getPlayerInfo g) <$> mpn
    let isGameAdmin = isAdmin || maybe False (== mpn) (Just $ _ownedBy gi)
-   let playAs = mpn >> maybe Nothing _playAs pi
+   let playAs = mpn >> maybe Nothing _playingAs pi
    let pn = fromMaybe 0 mpn
    vrf <- viewRuleTemplates lib mlr gn
    vios <- viewIOs (fromMaybe pn playAs) g

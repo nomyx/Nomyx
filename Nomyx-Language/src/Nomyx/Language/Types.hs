@@ -178,7 +178,7 @@ data RuleStatus = Active      -- Active rules forms the current Constitution
 -- | informations on players
 data PlayerInfo = PlayerInfo { _playerNumber :: PlayerNumber,
                                _playerName   :: String,
-                               _playAs       :: Maybe PlayerNumber}
+                               _playingAs    :: Maybe PlayerNumber}
                                deriving (Eq, Typeable, Show)
 
 instance Ord PlayerInfo where
