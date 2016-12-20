@@ -2,8 +2,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE CPP #-}
 
--- | This module starts a Interpreter server that will read our strings representing rules to convert them to plain Rules.
-module Nomyx.Core.Engine.Interpret where
+-- | This module interprets strings representing rules to convert them to plain Rules.
+module Nomyx.Core.Engine.Interpret (
+   interpretRule,
+   interpretRule',
+   showInterpreterError 
+   )
+   where
 
 import           Control.Exception                   as CE
 import           Control.Monad
@@ -16,9 +21,9 @@ import           Nomyx.Core.Engine.Context
 import           System.FilePath                     (dropExtension, joinPath,
                                                       takeFileName, dropFileName,
                                                       splitDirectories, takeBaseName, (</>))
---import           System.IO.Error
 import           System.IO.Temp
 import           System.Directory
+import           System.Log.Logger
 #ifndef WINDOWS
 import qualified System.Posix.Signals as S
 #endif
@@ -48,8 +53,8 @@ initializeInterpreter mods = do
       dir <- liftIO $ createTempDirectory "/tmp" "Nomyx"
       modPaths <- liftIO $ mapM (copyModule dir) mods
       let modNames = map (getModName . _modPath) mods
-      liftIO $ putStrLn $ "Loading modules: " ++ (intercalate ", " modPaths)
-      liftIO $ putStrLn $ "module names: " ++ (intercalate ", " modNames)
+      info $ "Loading modules: " ++ (intercalate ", " modPaths)
+      info $ "module names: " ++ (intercalate ", " modNames)
       loadModules modPaths
       setTopLevelModules modNames
    -- Imports
@@ -121,3 +126,7 @@ protectHandlers :: IO a -> IO a
 protectHandlers a = MC.bracket saveHandlers restoreHandlers $ const a
 
 #endif
+
+warn, info :: (MonadIO m) => String -> m ()
+info s = liftIO $ infoM "Nomyx.Core.Engine.Interpret" s
+warn s = liftIO $ warningM "Nomyx.Core.Engine.Interpret" s
