@@ -13,7 +13,6 @@ import           Control.Monad.State
 import           Data.Maybe
 import           Data.Time.Clock
 import           Data.Version                        (showVersion)
-import           Language.Haskell.Interpreter.Server hiding (start)
 import           Network.BSD
 import           Nomyx.Language                      hiding (getCurrentTime)
 import           Nomyx.Core.Engine                   hiding (runEvaluate)
