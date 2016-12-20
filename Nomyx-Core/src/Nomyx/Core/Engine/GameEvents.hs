@@ -18,7 +18,7 @@ import Nomyx.Core.Engine.Evaluation
 import Nomyx.Core.Engine.Utils
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Interpret
-import Imprevu.Evaluation
+import Imprevu.Evaluation hiding (runEvalError)
 
 -- | perform a game event
 enactEvent :: GameEvent -> Maybe Rule -> StateT Game IO ()
@@ -65,24 +65,24 @@ getLoggedGame g tes = do
 joinGame :: PlayerName -> PlayerNumber -> StateT Game IO ()
 joinGame name pn = do
    g <- get
-   case find ((== pn) . getL playerNumber) (_players g) of
+   case find ((== pn) . view playerNumber) (_players g) of
       Just _ -> return ()
       Nothing -> do
          info pn $ "Joining game: " ++ _gameName g
          let player = PlayerInfo { _playerNumber = pn, _playerName = name, _playingAs = Nothing}
          players %= (player : )
-         mapStateIO $ runSystemEval pn $ triggerEvent (Signal Arrive) player
+         void $ mapStateIO $ runSystemEval pn $ triggerEvent (Signal Arrive) player
 
 
 -- | leave the game.
 leaveGame :: PlayerNumber -> StateT Game IO ()
-leaveGame pn = mapStateIO $ runSystemEval pn $ void $ evDelPlayer pn
+leaveGame pn = void $ mapStateIO $ runSystemEval pn $ void $ evDelPlayer pn
 
 -- | insert a rule in pending rules.
 proposeRule :: RuleTemplate -> [ModuleInfo] -> PlayerNumber -> Maybe Rule -> StateT Game IO ()
 proposeRule rt ms pn mr = do
    rule <- createRule rt ms pn mr
-   mapStateIO $ runEvalError (_rNumber rule) (Just pn) $ do --bug here
+   void $ mapStateIO $ runEvalError (_rNumber rule) (Just pn) $ do --bug here
       r <- evProposeRule rule
       tracePN pn $ if r then "Your rule has been added to pending rules."
                         else "Error: Rule could not be proposed"
@@ -96,7 +96,7 @@ systemAddRule rt ms mr = do
    rule <- createRule rt ms 0 mr
    let sysRule = (rStatus .~ Active) >>> (rAssessedBy .~ Just 0)
    rules %= (sysRule rule : )
-   mapStateIO $ runEvalError (_rNumber rule) Nothing $ evalNomex (_rRule rule)
+   void $ mapStateIO $ runEvalError (_rNumber rule) Nothing $ evalNomex (_rRule rule)
 
 -- | insert a log message.
 logGame :: String -> Maybe PlayerNumber -> StateT Game IO ()
@@ -110,11 +110,11 @@ inputResult pn en is id = do
    info pn $ "input result: input " ++ (show is) ++ " input data " ++ (show id)
    evs <- gets _events
    let rn = _erRuleNumber $ fromJust $ find (\(RuleEventInfo rn (EventInfo en' _ _ _ _)) -> en' == en) evs
-   mapStateIO $ runEvalError rn (Just pn) $ triggerInput is id
+   void $ mapStateIO $ runEvalError rn (Just pn) $ triggerInput is id
 
 
 timeEvent :: UTCTime -> StateT Game IO ()
-timeEvent t = mapStateIO $ runSystemEval' $ evTriggerTime t
+timeEvent t = void $ mapStateIO $ runSystemEval' $ evTriggerTime t
 
 -- | A helper function to run the game state.
 -- It additionally sets the current time
@@ -125,18 +125,18 @@ execWithGame' :: UTCTime -> StateT LoggedGame IO () -> LoggedGame -> IO LoggedGa
 execWithGame' t gs g = execStateT gs $ set (game . currentTime) t g
 
 activeRules :: Game -> [RuleInfo]
-activeRules = sort . filter ((==Active) . getL rStatus) . _rules
+activeRules = sort . filter ((==Active) . view rStatus) . _rules
 
 pendingRules :: Game -> [RuleInfo]
-pendingRules = sort . filter ((==Pending) . getL rStatus) . _rules
+pendingRules = sort . filter ((==Pending) . view rStatus) . _rules
 
 rejectedRules :: Game -> [RuleInfo]
-rejectedRules = sort . filter ((==Reject) . getL rStatus) . _rules
+rejectedRules = sort . filter ((==Reject) . view rStatus) . _rules
 
 createRule :: RuleTemplate -> [ModuleInfo] -> PlayerNumber -> Maybe Rule -> StateT Game IO RuleInfo
 createRule (RuleTemplate name des code _ _ _ decls) ms pn mr = do
    rs <- use rules
-   let rn = getFreeNumber $ map _rNumber rs
+   let rn = head $ [1..] \\ (map _rNumber rs)
    g <- get
    r <- case mr of
       -- If the rule has already been interpreted, use it
@@ -163,7 +163,7 @@ stateCatch :: Exception e => StateT Game IO a -> (e -> StateT Game IO a) -> Stat
 stateCatch m h = StateT $ \s -> runStateT m s `E.catch` \e -> runStateT (h e) s
 
 getEventInfo :: EventNumber -> LoggedGame -> EventInfo
-getEventInfo en g = _erEventInfo $ fromJust $ find ((== en) . getL (erEventInfo . eventNumber)) (_events $ _game g)
+getEventInfo en g = _erEventInfo $ fromJust $ find ((== en) . view (erEventInfo . eventNumber)) (_events $ _game g)
 
 warn, info :: (MonadIO m) => Int -> String -> m ()
 info pn s = liftIO $ infoM "Nomyx.Core.GameEvent" ("Player " ++ (show pn) ++ " " ++ s)

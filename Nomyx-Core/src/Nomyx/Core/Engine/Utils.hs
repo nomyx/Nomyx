@@ -16,23 +16,13 @@ import           Control.Monad.State
 import           Data.List
 import           Data.Maybe
 import           Data.Typeable
-import           Imprevu.Evaluation
+import           Imprevu.Evaluation as Imp
 import           Nomyx.Language.Types
 import           Nomyx.Core.Engine.Types
 import           Prelude                   hiding (log, (.))
 import           Safe
 import           Debug.Trace.Helpers    (traceM)
 
-errorHandler :: EventNumber -> String -> Evaluate ()
-errorHandler en s = do
-   rn <- use (evalEnv . eRuleNumber)
-   logAll $ "Error in rule " ++ show rn ++ " (triggered by event " ++ show en ++ "): " ++ s
-
-logPlayer :: PlayerNumber -> String -> Evaluate ()
-logPlayer pn = log (Just pn)
-
-logAll :: String -> Evaluate ()
-logAll = log Nothing
 
 log :: Maybe PlayerNumber -> String -> Evaluate ()
 log mpn s = focusGame $ do
@@ -79,4 +69,7 @@ withRN rn eval = do
 
 tracePN :: (Monad m) => Int -> String -> m ()
 tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s
+
+mapStateIO :: Show s => State s a -> StateT s IO a
+mapStateIO = mapStateT $ return . runIdentity
 

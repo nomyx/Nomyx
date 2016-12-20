@@ -2,10 +2,7 @@
 module Imprevu.Evaluation.Utils (
    (===),
    replaceWith,
-   mapStateIO,
-   getFreeNumber,
    sel,
-   getL,
    toEither,
    toMaybe,
    module Debug.Trace) where
@@ -30,20 +27,10 @@ replaceWith :: (a -> Bool)   -- ^ Value to search
         -> [a] -- ^ Output list
 replaceWith f y = map (\z -> if f z then y else z)
 
-
-mapStateIO :: Show s => State s a -> StateT s IO a
-mapStateIO = mapStateT $ return . runIdentity
-
-getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
-getFreeNumber l = head [ a | a <- [1..], notElem a l]
-
 sel :: [a]   -- ^ List of indices to select
     -> [Int] -- ^ List of elements
     -> [a]   -- ^ List composed of elements selected from original set by indices provided
 sel xs is = map (\i -> xs!!i) is
-
-getL :: Getting a s a -> s -> a
-getL = flip (^.)
 
 toMaybe :: AccValidation a b -> Maybe b
 toMaybe (AccFailure _) = Nothing

@@ -81,18 +81,18 @@ evalEvents (TestM tio) = do
 evOnEvent :: (Typeable e, Show e) => EventM TestM e -> ((EventNumber, e) -> TestM ()) -> TestM EventNumber
 evOnEvent ev h = do
    (TestState evs os vs) <- get
-   let en = getFreeNumber (map _eventNumber evs)
+   let en = head $ [1..] \\ (map _eventNumber evs)
    put (TestState ((EventInfo en ev h SActive []) : evs) os vs)
    return en
 
 evDelEvent :: EventNumber -> TestM Bool
 evDelEvent en = do
    (TestState evs os vs) <- get
-   case find ((== en) . getL eventNumber) evs of
+   case find ((== en) . view eventNumber) evs of
       Nothing -> return False
       Just eh -> case _evStatus eh of
          SActive -> do
-            put (TestState (replaceWith ((== en) . getL eventNumber) eh{_evStatus = SDeleted} evs) os vs)
+            put (TestState (replaceWith ((== en) . view eventNumber) eh{_evStatus = SDeleted} evs) os vs)
             return True
          SDeleted -> return False
 

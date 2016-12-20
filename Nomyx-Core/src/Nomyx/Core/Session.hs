@@ -71,7 +71,7 @@ newGame name desc pn isPublic = zoom multi $ newGame' name desc pn isPublic
 newGame' :: GameName -> GameDesc -> PlayerNumber -> Bool -> StateT Multi IO ()
 newGame' name desc pn isPublic = do
       gs <- use gameInfos
-      if not $ any ((== name) . getL gameNameLens) gs then do
+      if not $ any ((== name) . view gameNameLens) gs then do
          info pn $ " creating a new game with name: " ++ name
          t <- lift T.getCurrentTime
          -- create a game with zero players
@@ -82,7 +82,7 @@ newGame' name desc pn isPublic = do
 forkGame :: GameName -> GameName -> GameDesc -> Bool -> PlayerNumber -> StateT Session IO ()
 forkGame fromgn newgn desc isPublic pn = zoom multi $ do
    gms <- use gameInfos
-   case filter ((== fromgn) . getL gameNameLens) gms of
+   case filter ((== fromgn) . view gameNameLens) gms of
       [gi] -> do
          info pn $ "Forking game: " ++ fromgn
          time <- liftIO T.getCurrentTime
@@ -106,7 +106,7 @@ joinGame gn pn = do
 
 -- | delete a game.
 delGame :: GameName -> StateT Session IO ()
-delGame name = zoom multi $ void $ gameInfos %= filter ((/= name) . getL gameNameLens)
+delGame name = zoom multi $ void $ gameInfos %= filter ((/= name) . view gameNameLens)
 
 -- | leave a game.
 leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
@@ -208,9 +208,9 @@ playerSettings playerSettings pn = modifyProfile pn (pPlayerSettings .~ playerSe
 playAs :: Maybe PlayerNumber -> PlayerNumber -> GameName -> StateT Session IO ()
 playAs playAs pn g = inGameDo g $ do
    pls <- use (game . players)
-   case find ((== pn) . getL playerNumber) pls of
+   case find ((== pn) . view playerNumber) pls of
       Nothing -> warn pn "player not in game"
-      Just pi -> (game . players) .= replaceWith ((== pn) . getL playerNumber) (pi {_playingAs = playAs}) pls
+      Just pi -> (game . players) .= replaceWith ((== pn) . view playerNumber) (pi {_playingAs = playAs}) pls
 
 adminPass :: String -> PlayerNumber -> StateT Session IO ()
 adminPass pass pn = do
@@ -245,7 +245,7 @@ inAllGamesDo action = do
 inGameDo :: GameName -> StateT LoggedGame IO () -> StateT Session IO ()
 inGameDo gn action = zoom multi $ do
    (gs :: [GameInfo]) <- use gameInfos
-   case find ((==gn) . getL gameNameLens) gs of
+   case find ((==gn) . view gameNameLens) gs of
       Nothing -> warn 0 "No game by that name"
       Just (gi::GameInfo) -> do
          t <- lift T.getCurrentTime

@@ -17,7 +17,6 @@ module Nomyx.Language.Rules (
    getRulesByNumbers,
    getRuleFuncs,
    addRule, addRule_, addRule',
-   getFreeRuleNumber,
    suppressRule, suppressRule_, suppressAllRules,
    proposeRule, modifyRule,
    autoActivate,
@@ -87,16 +86,11 @@ addRule_ = void . AddRule
 -- | add a rule to the game as described by the parameters
 addRule' :: RuleName -> Rule -> RuleCode -> String -> Nomex RuleNumber
 addRule' name rule code desc = do
-   number <- getFreeRuleNumber
+   rns <- map _rNumber <$> getRules
+   let number = head $ [1..] \\ rns
    res <- addRule $ defaultRuleInfo { _rRule = rule, _rNumber = number, _rRuleTemplate = defaultRuleTemplate {_rName = name,  _rRuleCode = code,  _rDescription = desc}}
    return $ if res then number else error "addRule': cannot add rule"
 
-
-getFreeRuleNumber :: Nomex RuleNumber
-getFreeRuleNumber = getFreeNumber . map _rNumber <$> getRules
-
-getFreeNumber :: (Eq a, Num a, Enum a) => [a] -> a
-getFreeNumber l = head [ a | a <- [1..], notElem a l]
 
 suppressRule :: RuleNumber -> Nomex Bool
 suppressRule = RejectRule

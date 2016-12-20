@@ -87,7 +87,7 @@ getRemainingSignals' (EventInfo _ e _ _ envi) = do
       AccFailure a -> map snd a
 
 getRemainingSignals :: EventInfoN n -> EvalEnvN n s -> [SomeSignal]
-getRemainingSignals ei env = join $ maybeToList $ evalState (runEvalError' (getRemainingSignals' ei)) env
+getRemainingSignals ei env = join $ maybeToList $ evalState (runEvalError (getRemainingSignals' ei)) env
 
 
 -- compute the result of an event given an environment.
@@ -133,8 +133,8 @@ getSignalData s sa (SignalOccurence (SignalData s' res) sa') = do
   res' <- cast res
   if (sa' == sa) && (s === s') then Just res' else Nothing
 
-runEvalError' :: EvaluateN n s a -> State (EvalEnvN n s) (Maybe a)
-runEvalError' egs = do
+runEvalError :: EvaluateN n s a -> State (EvalEnvN n s) (Maybe a)
+runEvalError egs = do
    e <- runExceptT egs
    log <- use (evalConf . errorHandler)
    case e of
@@ -145,7 +145,7 @@ runEvalError' egs = do
          return Nothing
 
 runEvaluate :: EvaluateN n s a -> EvalEnvN n s -> Maybe a
-runEvaluate ev ee = evalState (runEvalError' ev) ee
+runEvaluate ev ee = evalState (runEvalError ev) ee
 
 --TODO simplify
 execSignals :: (Show a, Show e, Typeable e, Eq e, Show d, Typeable d, Eq d) => n a -> [(Signal e d, d)] -> EvalEnvN n s -> s

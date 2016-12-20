@@ -122,4 +122,4 @@ gameNameLens :: Lens' GameInfo GameName
 gameNameLens = loggedGame . game . gameName
 
 getGameByName :: GameName -> Session -> Maybe GameInfo
-getGameByName gn s = find ((==gn) . getL (loggedGame . game . gameName)) (_gameInfos $ _multi s)
+getGameByName gn s = find ((==gn) . view (loggedGame . game . gameName)) (_gameInfos $ _multi s)

@@ -52,7 +52,7 @@ updateSessionTest tvs is id _ = do
    s <- atomically $ readTVar tvs
    putStrLn $ show s
    putStrLn  $ "input result: Form " ++ show is ++ ", choice " ++ show id
-   let ev = runEvalError' $ triggerInput is id
+   let ev = runEvalError $ triggerInput is id
    let (EvalEnv s' _) = execState ev (EvalEnv s defaultEvalConf)
    atomically $ writeTVar tvs s'
 

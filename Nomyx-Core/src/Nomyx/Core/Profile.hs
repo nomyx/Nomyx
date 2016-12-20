@@ -10,6 +10,7 @@ import           Control.Monad
 import           Control.Monad.Catch         (bracket)
 import           Control.Monad.Reader.Class  (MonadReader (..))
 import           Control.Monad.State
+import           Control.Lens
 import           Data.Acid                   (Query, Update, makeAcidic,
                                               openLocalStateFrom)
 import           Data.Acid                   (AcidState (..))
@@ -117,7 +118,7 @@ getPlayerName pn s = do
    return $ _pPlayerName $ _pPlayerSettings $ fromJustNote ("getPlayersName: no profile for pn=" ++ show pn) pfd
 
 getPlayerInGameName :: Game -> PlayerNumber -> PlayerName
-getPlayerInGameName g pn = case find ((==pn) . getL playerNumber) (_players g) of
+getPlayerInGameName g pn = case find ((==pn) . view playerNumber) (_players g) of
    Nothing -> error "getPlayersName': No player by that number in that game"
    Just pm -> _playerName pm
 
@@ -125,7 +126,7 @@ getAllProfiles :: Session -> IO [ProfileData]
 getAllProfiles s = query' (_acidProfiles s) AskProfilesData
 
 getPlayerInfo :: Game -> PlayerNumber -> Maybe PlayerInfo
-getPlayerInfo g pn = find ((==pn) . getL playerNumber) (_players g)
+getPlayerInfo g pn = find ((==pn) . view playerNumber) (_players g)
 
 withAcid :: Maybe FilePath -- ^ state directory
          -> (AcidState ProfileDataState -> IO a) -- ^ action

@@ -13,7 +13,8 @@ import           Data.List
 import           Data.Maybe
 import           Data.Time
 import           Data.Typeable
-import           Imprevu.Evaluation as Imp hiding (events)
+import qualified Imprevu.Evaluation as Imp (runEvalError, runEvaluate)
+import           Imprevu.Evaluation hiding (runEvalError, events)
 import           Imprevu
 import           Nomyx.Language
 import           Nomyx.Core.Engine.Utils
@@ -64,7 +65,7 @@ evalNomex (Simu sim ev)   = evSimu sim ev
 evNewVar :: (Typeable a, Show a) => VarName -> a -> Evaluate (Maybe (V a))
 evNewVar name def = do
    (vars, rn) <- accessGame variables
-   case find ((== name) . getL vName) vars of
+   case find ((== name) . view vName) vars of
       Nothing -> do
          modifyGame variables (Var rn name def : )
          return $ Just (V name)
@@ -73,10 +74,10 @@ evNewVar name def = do
 evDelVar :: V a -> Evaluate Bool
 evDelVar (V name) = do
    (vars, _) <- accessGame variables
-   case find ((== name) . getL vName) vars of
+   case find ((== name) . view vName) vars of
       Nothing -> return False
       Just _ -> do
-         modifyGame variables $ filter ((/= name) . getL vName)
+         modifyGame variables $ filter ((/= name) . view vName)
          return True
 
 evWriteVar :: (Typeable a, Show a) => V a -> a -> Evaluate Bool
@@ -85,13 +86,13 @@ evWriteVar (V name) val = do
    case find (\(Var _ myName _) -> myName == name) vars of
       Nothing -> return False
       Just (Var rn myName _) -> do
-         modifyGame variables $ replaceWith ((== name) . getL vName) (Var rn myName val)
+         modifyGame variables $ replaceWith ((== name) . view vName) (Var rn myName val)
          return True
 
 evOnEvent :: (Typeable e, Show e) => Event e -> ((EventNumber, e) -> Nomex ()) -> Evaluate EventNumber
 evOnEvent ev h = do
    (evs, rn) <- accessGame events
-   let en = getFreeNumber (map (_eventNumber . _erEventInfo) evs)
+   let en = head $ [1..] \\ (map (_eventNumber . _erEventInfo) evs)
    modifyGame events (\eis -> (RuleEventInfo rn (EventInfo en ev h SActive [])) : eis)
    return en
 
@@ -115,7 +116,7 @@ evActivateRule rn = do
    case find (\r -> _rNumber r == rn && _rStatus r /= Active) rs of
       Nothing -> return False
       Just r -> do
-         putGame rules $ replaceWith ((== rn) . getL rNumber) r{_rStatus = Active, _rAssessedBy = Just by} rs
+         putGame rules $ replaceWith ((== rn) . view rNumber) r{_rStatus = Active, _rAssessedBy = Just by} rs
          --execute the rule, using its own number: so events and outputs will have its number.
          withRN (_rNumber r) $ evalNomex (_rRule r)
          triggerEvent (Signal Activated) r
@@ -142,7 +143,7 @@ evRejectRule rn = do
          delEventsRule rn
          delOutputsRule rn
          delVictoryRule rn
-         putGame rules $ replaceWith ((== rn) . getL rNumber) r{_rStatus = Reject, _rAssessedBy = Just by} rs
+         putGame rules $ replaceWith ((== rn) . view rNumber) r{_rStatus = Reject, _rAssessedBy = Just by} rs
          triggerEvent (Signal Rejected) r
          return True
 
@@ -160,8 +161,8 @@ evAddRule rule = do
 evModifyRule :: RuleNumber -> RuleInfo -> Evaluate Bool
 evModifyRule rn rule = do
    (rs, _) <- accessGame rules
-   let newRules = replaceWith ((== rn) . getL rNumber) rule rs
-   case find ((== rn) . getL rNumber) rs of
+   let newRules = replaceWith ((== rn) . view rNumber) rule rs
+   case find ((== rn) . view rNumber) rs of
       Nothing -> return False
       Just r ->  do
          putGame rules newRules
@@ -171,7 +172,7 @@ evModifyRule rn rule = do
 evDelPlayer :: PlayerNumber -> Evaluate Bool
 evDelPlayer pn = do
    g <- use (evalEnv . eGame)
-   case find ((== pn) . getL playerNumber) (_players g) of
+   case find ((== pn) . view playerNumber) (_players g) of
       Nothing -> do
          tracePN pn "not in game!"
          return False
@@ -184,20 +185,20 @@ evDelPlayer pn = do
 evChangeName :: PlayerNumber -> PlayerName -> Evaluate Bool
 evChangeName pn name = do
    pls <- use (evalEnv . eGame . players)
-   case find ((== pn) . getL playerNumber) pls of
+   case find ((== pn) . view playerNumber) pls of
       Nothing -> return False
       Just pid -> do
-         putGame players $ replaceWith ((== pn) . getL playerNumber) (pid {_playerName = name}) pls
+         putGame players $ replaceWith ((== pn) . view playerNumber) (pid {_playerName = name}) pls
          return True
 
 evDelEvent :: EventNumber -> Evaluate Bool
 evDelEvent en = do
    evs <- use (evalEnv . eGame . events)
-   case find ((== en) . getL (erEventInfo . eventNumber)) evs of
+   case find ((== en) . view (erEventInfo . eventNumber)) evs of
       Nothing -> return False
       Just eh -> case (_evStatus $ _erEventInfo eh) of
          SActive -> do
-            let evs' = replaceWith ((== en) . getL (erEventInfo . eventNumber))  (erEventInfo . evStatus .~ SDeleted $ eh) evs
+            let evs' = replaceWith ((== en) . view (erEventInfo . eventNumber))  (erEventInfo . evStatus .~ SDeleted $ eh) evs
             putGame events evs'
             return True
          SDeleted -> return False
@@ -208,7 +209,7 @@ evTriggerTime t = triggerEvent (Signal t) t
 evNewOutput :: Maybe PlayerNumber -> Nomex String -> Evaluate OutputNumber
 evNewOutput pn s = do
    (ops, rn) <- accessGame outputs
-   let on = getFreeNumber (map _outputNumber ops)
+   let on = head $ [1..] \\ (map _outputNumber ops)
    modifyGame outputs (Output on rn pn s SActive : )
    return on
 
@@ -227,17 +228,17 @@ evUpdateOutput on s = do
    case find (\(Output myOn _ _ _ st) -> myOn == on && st == SActive) ops of
       Nothing -> return False
       Just (Output _ rn pn _ _) -> do
-         modifyGame outputs $ replaceWith ((== on) . getL outputNumber) (Output on rn pn s SActive)
+         modifyGame outputs $ replaceWith ((== on) . view outputNumber) (Output on rn pn s SActive)
          return True
 
 evDelOutput :: OutputNumber -> Evaluate Bool
 evDelOutput on = do
    ops <- use (evalEnv . eGame . outputs)
-   case find ((== on) . getL outputNumber) ops of
+   case find ((== on) . view outputNumber) ops of
       Nothing -> return False
       Just o -> case _oStatus o of
          SActive -> do
-            putGame outputs $ replaceWith ((== on) . getL outputNumber) o{_oStatus = SDeleted} ops
+            putGame outputs $ replaceWith ((== on) . view outputNumber) o{_oStatus = SDeleted} ops
             return True
          SDeleted -> return False
 
@@ -250,7 +251,7 @@ evSetVictory ps = do
 evReadVar :: (Typeable a, Show a) => V a -> Evaluate (Maybe a)
 evReadVar (V name) = do
    vars <- use (evalEnv . eGame . variables)
-   let var = find ((== name) . getL vName) vars
+   let var = find ((== name) . view vName) vars
    case var of
       Nothing -> return Nothing
       Just (Var _ _ val) -> case cast val of
@@ -267,12 +268,12 @@ evGetRandomNumber r = do
 --TODO should we also give a rule number to simulate the Nomex with?
 -- currently we use the simulating rule number
 evSimu :: Nomex a -> Nomex Bool -> Evaluate Bool
-evSimu sim ev = do
-   rn <- use (evalEnv . eRuleNumber)
-   let s = runEvalError rn Nothing (evalNomex sim)
-   g <- use (evalEnv . eGame)
-   let g' = execState s g
-   return $ runEvaluate' g' rn (evalNomex ev)
+evSimu sim ev = undefined--do
+   --rn <- use (evalEnv . eRuleNumber)
+   --let s = runEvalError rn Nothing (evalNomex sim)
+   --g <- use (evalEnv . eGame)
+   --let g' = execState s g
+   --return $ runEvaluate' g' rn (evalNomex ev)
 
 -- * misc
 
@@ -289,20 +290,20 @@ allOutputs g = map (evalOutput g) (_outputs g)
 
 --delete all variables of a rule
 delVarsRule :: RuleNumber -> Evaluate ()
-delVarsRule rn = void $ (evalEnv . eGame . variables) %= filter ((/= rn) . getL vRuleNumber)
+delVarsRule rn = void $ (evalEnv . eGame . variables) %= filter ((/= rn) . view vRuleNumber)
 
 --delete all events of a rule
 delEventsRule :: RuleNumber -> Evaluate ()
 delEventsRule rn = do
    evs <- use (evalEnv . eGame . events)
-   let toDelete = filter ((== rn) . getL (erRuleNumber)) evs
+   let toDelete = filter ((== rn) . view (erRuleNumber)) evs
    mapM_ (evDelEvent . _eventNumber . _erEventInfo) toDelete
 
 --delete all outputs of a rule
 delOutputsRule :: RuleNumber -> Evaluate ()
 delOutputsRule rn = do
    os <- use (evalEnv . eGame . outputs)
-   let toDelete = filter ((== rn) . getL oRuleNumber) os
+   let toDelete = filter ((== rn) . view oRuleNumber) os
    mapM_ (evDelOutput . _outputNumber) toDelete
 
 --delete victory of a rule
@@ -314,11 +315,12 @@ delVictoryRule rn = do
 --extract the game state from an Evaluate
 --knowing the rule number performing the evaluation (0 if by the system)
 --and the player number to whom display errors (set to Nothing for all players)
-runEvalError :: RuleNumber -> Maybe PlayerNumber -> Evaluate a -> State Game ()
+runEvalError :: RuleNumber -> Maybe PlayerNumber -> Evaluate a -> State Game (Maybe a)
 runEvalError rn mpn eva = do
   g <- get
-  let (EvalEnv (EvalState g' _) _) = execState (Imp.runEvalError' eva) (defaultEvalEnv rn g)
+  let (a, (EvalEnv (EvalState g' _) _)) = runState (Imp.runEvalError eva) (defaultEvalEnv rn g)
   put g'
+  return a
 
 defaultEvalEnv :: RuleNumber -> Game -> EvalEnvN Nomex EvalState
 defaultEvalEnv rn g = EvalEnv (EvalState g rn) defaultEvalConf
@@ -330,10 +332,10 @@ defaultEvalConf = EvalConf getEventsNomex setEventsNomex evalNomex errorNomex wi
    setEventsNomex eis s = (eGame . events) .~ (getreis (_events $ _eGame s) eis) $ s where
      getreis reis eis = if (length reis /= length eis) then error "setEvents" else zipWith (\rei ei -> rei {_erEventInfo = ei}) reis eis
 
-runSystemEval :: PlayerNumber -> Evaluate a -> State Game ()
+runSystemEval :: PlayerNumber -> Evaluate a -> State Game (Maybe a)
 runSystemEval pn = runEvalError 0 (Just pn)
 
-runSystemEval' :: Evaluate a -> State Game ()
+runSystemEval' :: Evaluate a -> State Game (Maybe a)
 runSystemEval' = runEvalError 0 Nothing
 
 errorNomex :: EventNumber -> String -> Evaluate ()
