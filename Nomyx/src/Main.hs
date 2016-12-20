@@ -1,8 +1,7 @@
-
-{-# LANGUAGE DoAndIfThenElse     #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DoAndIfThenElse       #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Main (main) where
@@ -56,12 +55,14 @@ import           Control.Lens
 -- | Entry point of the program.
 main :: IO Bool
 main = do
-   let handler = do
-        lh <- streamHandler stdout DEBUG
+   stdoutHandler <- do
+        lh <- streamHandler stdout INFO
         return $ setFormatter lh (simpleLogFormatter "[$time : $loggername : $prio] $msg")
-   h <- handler
+   fileHandler <- do
+        lh <- fileHandler "nomyx.log" DEBUG
+        return $ setFormatter lh (simpleLogFormatter "[$time : $loggername : $prio] $msg")
    updateGlobalLogger rootLoggerName removeHandler
-   updateGlobalLogger rootLoggerName (addHandler h)
+   updateGlobalLogger rootLoggerName (addHandler stdoutHandler)
    updateGlobalLogger rootLoggerName (setLevel DEBUG)
    args <- getArgs
    (flags, _) <- nomyxOpts args
@@ -69,7 +70,7 @@ main = do
    else if Help `elem` flags then putStrLn $ usageInfo header options
    else if API `elem` flags then putSwaggerYaml
    else do
-      putStrLn "Welcome to Nomyx! test"
+      putStrLn "Welcome to Nomyx!"
       putStrLn "Type \"Nomyx --help\" for usage options"
       start flags
    return True
@@ -140,7 +141,7 @@ loadMulti :: Settings -> FilePath -> IO Multi
 loadMulti set libPath = do
    fileExists <- doesFileExist $ getSaveFile set
    if fileExists then do
-      putStrLn $ "Loading game: " ++ getSaveFile set
+      infoM "Main" $ "Loading game: " ++ getSaveFile set
       Serialize.loadMulti set `E.catch` (errMsg set)
    else do
       lib <- readLibrary libPath
@@ -149,15 +150,15 @@ loadMulti set libPath = do
 
 errMsg :: Settings -> ErrorCall -> IO Multi
 errMsg set e = do
-  putStrLn $ "Error while loading logged events, log file discarded\n" ++ show (e::ErrorCall)
+  errorM "Main" $ "Error while loading logged events, log file discarded\n" ++ show (e::ErrorCall)
   return $ defaultMulti set (Library [rAutoActivate] [])
 
 runTests :: Maybe String -> Int -> IO ()
 runTests mTestName delay = do
    ts <- playTests mTestName delay
-   putStrLn $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") ts
+   infoM "Main" $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") ts
    let pass = all snd ts
-   putStrLn $ "All Tests Pass: " ++ show pass
+   infoM "Main" $ "All Tests Pass: " ++ show pass
    if pass then exitSuccess else exitFailure
 
 cleanFile :: FilePath -> IO ()
@@ -250,3 +251,7 @@ findAdminPass fs = listToMaybe [a | AdminPass     a <- fs]
 findTarFile   fs = listToMaybe [a | TarFile       a <- fs]
 findWatchdog  fs = listToMaybe [a | Watchdog      a <- fs]
 findLibrary   fs = listToMaybe [a | LibraryPath   a <- fs]
+
+warn, info :: (MonadIO m) => String -> m ()
+info s = liftIO $ infoM "Nomyx.Core.Session" s
+warn s = liftIO $ warningM "Nomyx.Core.Session" s

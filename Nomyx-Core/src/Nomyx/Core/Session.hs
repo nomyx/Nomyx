@@ -2,7 +2,39 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- | This module manages multi-player commands.
-module Nomyx.Core.Session where
+module Nomyx.Core.Session (
+  -- * Player managament
+  newPlayer,
+  -- * Game management
+  newGame, newGame',
+  forkGame,
+  joinGame,
+  delGame,
+  leaveGame,
+  -- * Rule management
+  submitRule,
+  adminSubmitRule,
+  checkRule,
+  -- * Template management
+  newRuleTemplate,
+  updateRuleTemplates,
+  addRuleTemplate,
+  delRuleTemplate,
+  -- * Module management
+  updateModules,
+  inputUpload,
+  -- * IO
+  inputResult,
+  -- * settings
+  playerSettings,
+  adminPass,
+  globalSettings,
+  playAs,
+  -- * Session
+  updateSession,
+  evalSession
+  )
+where
 
 import           Control.Concurrent.STM
 import           Control.Lens
@@ -22,6 +54,7 @@ import           Nomyx.Core.Serialize
 import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
 import           System.IO.PlafCompat
+import           System.Log.Logger
 import           Imprevu.Evaluation
 
 -- | add a new player
@@ -39,19 +72,19 @@ newGame' :: GameName -> GameDesc -> PlayerNumber -> Bool -> StateT Multi IO ()
 newGame' name desc pn isPublic = do
       gs <- use gameInfos
       if not $ any ((== name) . getL gameNameLens) gs then do
-         tracePN pn $ "Creating a new game with name: " ++ name
+         info pn $ " creating a new game with name: " ++ name
          t <- lift T.getCurrentTime
          -- create a game with zero players
          lg <- lift $ initialGameInfo name desc isPublic (Just pn) t
          void $ gameInfos %= (lg : )
-      else tracePN pn "this name is already used"
+      else warn pn $ "this name is already used"
 
 forkGame :: GameName -> GameName -> GameDesc -> Bool -> PlayerNumber -> StateT Session IO ()
 forkGame fromgn newgn desc isPublic pn = zoom multi $ do
    gms <- use gameInfos
    case filter ((== fromgn) . getL gameNameLens) gms of
       [gi] -> do
-         tracePN pn $ "Forking game: " ++ fromgn
+         info pn $ "Forking game: " ++ fromgn
          time <- liftIO T.getCurrentTime
          let lg = ((game . gameName) .~ newgn) .
                   ((game . gameDesc) .~ desc) $ _loggedGame gi
@@ -62,7 +95,7 @@ forkGame fromgn newgn desc isPublic pn = zoom multi $ do
             _isPublic       = isPublic,
             _startedAt      = time}
          void $ gameInfos %= (gi' : )
-      _ -> tracePN pn $ "Forking game: no game by that name: " ++ fromgn
+      _ -> warn pn $ "Forking game: no game by that name: " ++ fromgn
 
 -- | join a game (also view it for conveniency)
 joinGame :: GameName -> PlayerNumber -> StateT Session IO ()
@@ -82,17 +115,17 @@ leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
 -- | insert a rule in pending rules.
 submitRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
 submitRule rt pn gn = do
-   tracePN pn $ "proposed " ++ show rt
+   info pn $ "proposed " ++ show rt
    compileRule rt pn gn Propose "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."
 
 adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
 adminSubmitRule rt pn gn = do
-   tracePN pn $ "admin proposed " ++ show rt
+   info pn $ "admin proposed " ++ show rt
    compileRule rt pn gn SystemAdd "Admin rule submitted OK!"
 
 checkRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
 checkRule rt pn gn = do
-   tracePN pn $ "check rule " ++ show rt
+   info pn $ "check rule " ++ show rt
    compileRule rt pn gn Check "Rule compiled OK. Now you can submit it!"
 
 compileRule :: RuleTemplate -> PlayerNumber -> GameName -> RuleEv -> String -> StateT Session IO ()
@@ -101,7 +134,7 @@ compileRule rt pn gn re msg = do
    mrr <- liftIO $ interpretRule (_rRuleCode rt) mods
    case mrr of
       Right r -> do
-         tracePN pn "proposed rule compiled OK "
+         info pn "proposed rule compiled OK "
          inGameDo gn $ G.execGameEvent' (Just r) (ProposeRuleEv re pn rt mods)
          modifyProfile pn (pLastRule .~ Just (rt, msg))
       Left e -> submitRuleError rt pn gn e
@@ -119,27 +152,27 @@ submitRuleError :: RuleTemplate -> PlayerNumber -> GameName -> InterpreterError 
 submitRuleError sr pn gn e = do
    let errorMsg = showInterpreterError e
    inGameDo gn $ execGameEvent $ GLog (Just pn) ("Error in submitted rule: " ++ errorMsg)
-   tracePN pn ("Error in submitted rule: " ++ errorMsg)
+   warn pn ("Error in submitted rule: " ++ errorMsg)
    modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
 newRuleTemplate :: RuleTemplate -> StateT Session IO ()
 newRuleTemplate rt = do
-  liftIO $ putStrLn $ "Inserted new template: " ++ show rt
-  (multi . mLibrary . mTemplates) %= (addRT rt)
+  info 0 $ (_rAuthor rt) ++ " inserted new templates"
+  (multi . mLibrary . mTemplates) %= (addRuleTemplate rt)
 
 updateRuleTemplates :: [RuleTemplate] -> StateT Session IO ()
 updateRuleTemplates rts = do
-  liftIO $ putStrLn $ (_rAuthor $ head rts) ++ " has updated templates"
+  info 0 $ (_rAuthor $ head rts) ++ " has updated templates"
   (multi . mLibrary . mTemplates) .= rts
 
-addRT :: RuleTemplate -> [RuleTemplate] -> [RuleTemplate]
-addRT rt rts = case (find (\rt' -> (_rName rt) == (_rName rt'))) rts of
+addRuleTemplate :: RuleTemplate -> [RuleTemplate] -> [RuleTemplate]
+addRuleTemplate rt rts = case (find (\rt' -> (_rName rt) == (_rName rt'))) rts of
   (Just rt') -> replace rt' rt rts
   Nothing -> rt:rts
 
 delRuleTemplate :: GameName -> RuleName -> PlayerNumber -> StateT Session IO ()
 delRuleTemplate gn rn pn = do
-  tracePN pn $ "del template " ++ show rn
+  info pn $ "del template " ++ show rn
   (multi . mLibrary . mTemplates) %= filter (\rt -> _rName rt /= rn)
 
 updateModules :: [ModuleInfo] -> StateT Session IO ()
@@ -176,17 +209,17 @@ playAs :: Maybe PlayerNumber -> PlayerNumber -> GameName -> StateT Session IO ()
 playAs playAs pn g = inGameDo g $ do
    pls <- use (game . players)
    case find ((== pn) . getL playerNumber) pls of
-      Nothing -> tracePN pn "player not in game"
-      Just pi -> (game . players) .= replaceWith ((== pn) . getL playerNumber) (pi {_playAs = playAs}) pls
+      Nothing -> warn pn "player not in game"
+      Just pi -> (game . players) .= replaceWith ((== pn) . getL playerNumber) (pi {_playingAs = playAs}) pls
 
 adminPass :: String -> PlayerNumber -> StateT Session IO ()
 adminPass pass pn = do
    s <- get
    if pass == (_adminPassword $ _mSettings $ _multi s) then do
-      tracePN pn "getting admin rights"
+      info pn "getting admin rights"
       modifyProfile pn $ pIsAdmin .~ True
    else do
-      tracePN pn "submitted wrong admin password"
+      warn pn "submitted wrong admin password"
       modifyProfile pn $ pIsAdmin .~ False
 
 globalSettings :: Bool -> StateT Session IO ()
@@ -213,7 +246,7 @@ inGameDo :: GameName -> StateT LoggedGame IO () -> StateT Session IO ()
 inGameDo gn action = zoom multi $ do
    (gs :: [GameInfo]) <- use gameInfos
    case find ((==gn) . getL gameNameLens) gs of
-      Nothing -> traceM "No game by that name"
+      Nothing -> warn 0 "No game by that name"
       Just (gi::GameInfo) -> do
          t <- lift T.getCurrentTime
          mylg <- lift $ execWithGame' t action (_loggedGame gi)
@@ -230,7 +263,7 @@ updateSession ts sm = do
       Just s' -> do
          atomically $ writeTVar ts s'
          save $ _multi s
-      Nothing -> putStrLn "thread timed out, session discarded"
+      Nothing -> warn 0 "thread timed out, session discarded"
 
 evalSession :: StateT Session IO () -> Session -> IO Session
 evalSession sm s = do
@@ -238,3 +271,6 @@ evalSession sm s = do
    writeFile nullFileName $ show $ _multi s' --dirty hack to force deep evaluation --deepseq (_multi s') (return ())
    return s'
 
+warn, info :: (MonadIO m) => Int -> String -> m ()
+info pn s = liftIO $ infoM "Nomyx.Core.Session" ("Player " ++ (show pn) ++ " " ++ s)
+warn pn s = liftIO $ warningM "Nomyx.Core.Session" ("Player " ++ (show pn) ++ " " ++ s)

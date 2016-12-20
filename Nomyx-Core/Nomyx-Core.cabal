@@ -50,7 +50,8 @@ library
                    text                   == 1.2.*,
                    time                   >= 1.4 && < 1.6,
                    yaml -any,
-                   NoTrace -any
+                   NoTrace -any,
+                   hslogger
     if os(windows)
         Cpp-options: -DWINDOWS
     else
