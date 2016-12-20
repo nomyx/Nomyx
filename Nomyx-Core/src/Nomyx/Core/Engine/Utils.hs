@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- | additional tools for evaluation
-module Nomyx.Core.Engine.EvalUtils where
+module Nomyx.Core.Engine.Utils where
 
 import           Control.Applicative
 import           Control.Category
@@ -38,9 +38,6 @@ log :: Maybe PlayerNumber -> String -> Evaluate ()
 log mpn s = focusGame $ do
    time <- use currentTime
    void $ logs %= (Log mpn time s : )
-
---liftEval :: EvaluateNE a -> Evaluate a
---liftEval r = runReader r <$> get
 
 focusGame :: State Game a -> Evaluate a
 focusGame = lift . zoom (evalEnv . eGame)

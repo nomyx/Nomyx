@@ -15,7 +15,7 @@ import Control.Exception as E
 import System.Log.Logger
 import Nomyx.Language.Types
 import Nomyx.Core.Engine.Evaluation
-import Nomyx.Core.Engine.EvalUtils
+import Nomyx.Core.Engine.Utils
 import Nomyx.Core.Engine.Types
 import Nomyx.Core.Engine.Interpret
 import Imprevu.Evaluation
