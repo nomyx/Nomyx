@@ -45,6 +45,7 @@ import           System.Log.Logger
 import           System.Log.Formatter
 import           System.Log.Handler hiding (setLevel)
 import           System.Log.Handler.Simple
+import           System.Log.Handler.Log4jXML
 import           System.IO
 import           Imprevu.Evaluation.TimeEval
 import           Imprevu.Evaluation.EventEval
@@ -57,11 +58,10 @@ main = do
    stdoutHandler <- do
         lh <- streamHandler stdout INFO
         return $ setFormatter lh (simpleLogFormatter "[$time : $loggername : $prio] $msg")
-   fileHandler <- do
-        lh <- fileHandler "nomyx.log" DEBUG
-        return $ setFormatter lh (simpleLogFormatter "[$time : $loggername : $prio] $msg")
+   fileHandler <- log4jFileHandler "nomyx-log.xml" DEBUG
    updateGlobalLogger rootLoggerName removeHandler
-   updateGlobalLogger rootLoggerName (addHandler stdoutHandler)
+   updateGlobalLogger "Nomyx" (addHandler stdoutHandler)
+   updateGlobalLogger rootLoggerName (addHandler fileHandler)
    updateGlobalLogger rootLoggerName (setLevel DEBUG)
    args <- getArgs
    (flags, _) <- nomyxOpts args
@@ -121,7 +121,7 @@ mainLoop settings saveDir host port lib = do
 launchTimeEvents' :: TVar Session -> IO ()
 launchTimeEvents' tv = do
     now <- getCurrentTime
-    debugM "Main" "tick"
+    debug "tick"
     s <- atomically $ readTVar tv
     let gs = map (_game . _loggedGame) (_gameInfos $ _multi s)
     let s' = over (multi . gameInfos) (map (gameTimeEvents now)) s
@@ -140,7 +140,7 @@ loadMulti :: Settings -> FilePath -> IO Multi
 loadMulti set libPath = do
    fileExists <- doesFileExist $ getSaveFile set
    if fileExists then do
-      infoM "Main" $ "Loading game: " ++ getSaveFile set
+      info $ "Loading game: " ++ getSaveFile set
       Serialize.loadMulti set `E.catch` (errMsg set)
    else do
       lib <- readLibrary libPath
@@ -149,20 +149,20 @@ loadMulti set libPath = do
 
 errMsg :: Settings -> ErrorCall -> IO Multi
 errMsg set e = do
-  errorM "Main" $ "Error while loading logged events, log file discarded\n" ++ show (e::ErrorCall)
+  err $ "Error while loading logged events, log file discarded\n" ++ show (e::ErrorCall)
   return $ defaultMulti set (Library [rAutoActivate] [])
 
 runTests :: Maybe String -> Int -> IO ()
 runTests mTestName delay = do
    ts <- playTests mTestName delay
-   infoM "Main" $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") ts
+   info $ "\nNomyx Game Tests results:\n" ++ concatMap (\(a,b) -> a ++ ": " ++ show b ++ "\n") ts
    let pass = all snd ts
-   infoM "Main" $ "All Tests Pass: " ++ show pass
+   info $ "All Tests Pass: " ++ show pass
    if pass then exitSuccess else exitFailure
 
 cleanFile :: FilePath -> IO ()
 cleanFile saveDir = do
-   putStrLn "Deleting save files"
+   info "Deleting save files"
    let catchExp io = io `catch` (\(e::SomeException)-> print e)
    catchExp $ removeDirectoryRecursive $ saveDir </> profilesDir
    catchExp $ removeDirectoryRecursive $ saveDir </> uploadDir
@@ -252,5 +252,7 @@ findWatchdog  fs = listToMaybe [a | Watchdog      a <- fs]
 findLibrary   fs = listToMaybe [a | LibraryPath   a <- fs]
 
 warn, info :: (MonadIO m) => String -> m ()
-info s = liftIO $ infoM "Nomyx.Core.Session" s
-warn s = liftIO $ warningM "Nomyx.Core.Session" s
+debug s = liftIO $ debugM "Nomyx.Main" s
+info s = liftIO $ infoM "Nomyx.Main" s
+warn s = liftIO $ warningM "Nomyx.Main" s
+err s = liftIO $ errorM "Nomyx.Main" s

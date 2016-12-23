@@ -49,5 +49,6 @@ library
                      , resourcet
                      , wai-extra
                      , safe
+                     , hslogger
   default-language:    Haskell2010
 

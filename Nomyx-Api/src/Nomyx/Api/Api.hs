@@ -12,36 +12,37 @@
 module Nomyx.Api.Api
      where
 
-import GHC.Generics
-import Data.Proxy
-import Data.Yaml
-import Servant.API
-import Servant.Client
-import Servant
-import Network.URI (URI (..), URIAuth (..), parseURI)
-import Data.Maybe (fromMaybe)
-import Servant.Common.Text
-import Data.List (intercalate)
-import Data.Maybe
+import           GHC.Generics
+import           Data.Proxy
+import           Data.Yaml
+import           Servant.API
+import           Servant.Client
+import           Servant
+import           Network.URI (URI (..), URIAuth (..), parseURI)
+import           Data.Maybe (fromMaybe)
+import           Servant.Common.Text
+import           Data.List (intercalate)
+import           Data.Maybe
 import qualified Data.Text as T
-import Nomyx.Api.Utils
-import Test.QuickCheck
-import Nomyx.Api.Model.Player
-import Nomyx.Api.Model.Error
-import Nomyx.Api.Model.NewPlayer
-import Nomyx.Api.Files
-import Nomyx.Core.Session hiding (getModules)
-import Nomyx.Core.Types
-import Nomyx.Core.Profile
+import           Nomyx.Api.Utils
+import           Test.QuickCheck
+import           Nomyx.Api.Model.Player
+import           Nomyx.Api.Model.Error
+import           Nomyx.Api.Model.NewPlayer
+import           Nomyx.Api.Files
+import           Nomyx.Core.Session hiding (getModules)
+import           Nomyx.Core.Types
+import           Nomyx.Core.Profile
 import           Control.Concurrent.STM
 import           Control.Monad.State
-import Control.Monad.Trans.Either
-import Data.Swagger
-import Data.Swagger.Schema
-import Nomyx.Language.Types
-import Control.Monad.Except
-import Network.Wai.Parse
+import           Control.Monad.Trans.Either
+import           Data.Swagger
+import           Data.Swagger.Schema
+import           Nomyx.Language.Types
+import           Control.Monad.Except
+import           Network.Wai.Parse
 import qualified Data.ByteString.Char8 as B
+import           System.Log.Logger
 
 -- * API definition
 
@@ -122,9 +123,12 @@ templatesPost tv rt = do
 
 templatesPut :: TVar Session -> Library -> EitherT ServantErr IO ()
 templatesPut tv (Library ts ms) = liftIO $ do
-   putStrLn $ "templatesPut" ++ (show ts)
-   putStrLn $ "templatesPut" ++ (show ms)
+   debug $ "templatesPut templates: " ++ (show ts)
+   debug $ "templatesPut modules: " ++ (show ms)
    updateSession tv (updateRuleTemplates ts)
    updateSession tv (updateModules ms)
    return ()
 
+debug, info :: (MonadIO m) => String -> m ()
+debug s = liftIO $ debugM "Nomyx.Api.Api" s
+info s = liftIO $ infoM "Nomyx.Api.Api" s
