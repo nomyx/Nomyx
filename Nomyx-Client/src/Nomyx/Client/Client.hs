@@ -42,4 +42,11 @@ uploadTemplates yamlFile os = do
   putStrLn $ show res
   return ()
 
+getTemplates :: Options -> IO ()
+getTemplates os = do
+  el <- runEitherT getTemplate
+  case el of
+    Right lib -> writeLibrary "." lib
+    Left e -> putStrLn (show e)
+  return ()
 

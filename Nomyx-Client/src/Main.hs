@@ -12,6 +12,7 @@ main = do
    putStrLn $ show os
    case com of
       Template (Replace f) -> uploadTemplates f os
+      Template Get -> getTemplates os
 
 
 optionsInfos :: ParserInfo CmdLine
