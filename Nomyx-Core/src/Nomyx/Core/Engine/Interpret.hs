@@ -18,6 +18,7 @@ import           Language.Haskell.Interpreter
 import           Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
 import           Nomyx.Language
 import           Nomyx.Core.Engine.Context
+import           Nomyx.Core.Engine.Utils
 import           System.FilePath                     (dropExtension, joinPath,
                                                       takeFileName, dropFileName,
                                                       splitDirectories, takeBaseName, (</>))
@@ -51,7 +52,7 @@ initializeInterpreter mods = do
    -- Modules
    when (not $ null mods) $ do
       dir <- liftIO $ createTempDirectory "/tmp" "Nomyx"
-      modPaths <- liftIO $ mapM (copyModule dir) mods
+      modPaths <- liftIO $ mapM (saveModule dir) mods
       let modNames = map (getModName . _modPath) mods
       info $ "Loading modules: " ++ (intercalate ", " modPaths)
       info $ "module names: " ++ (intercalate ", " modNames)
@@ -78,14 +79,6 @@ interpretRule' rc ms = do
    case res of
       Right rf -> return rf
       Left e -> error $ show e
-
---TODO handle error cases
-copyModule :: FilePath -> ModuleInfo -> IO (FilePath)
-copyModule saveDir mod = do
-   let dest = saveDir </> (_modPath mod)
-   createDirectoryIfMissing True $ dropFileName dest
-   writeFile dest (_modContent mod)
-   return dest
 
 showInterpreterError :: InterpreterError -> String
 showInterpreterError (UnknownError s)  = "Unknown Error\n" ++ s

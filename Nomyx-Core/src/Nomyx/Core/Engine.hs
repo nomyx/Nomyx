@@ -45,7 +45,8 @@ module Nomyx.Core.Engine(
    tracePN,
    getChoiceEvents,
    runEvaluate,
-   withEvent'
+   withEvent',
+   saveModule
    ) where
 
 import           Nomyx.Core.Engine.Evaluation

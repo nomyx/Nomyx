@@ -22,6 +22,8 @@ import           Nomyx.Core.Engine.Types
 import           Prelude                   hiding (log, (.))
 import           Safe
 import           Debug.Trace.Helpers    (traceM)
+import           System.FilePath                 (dropFileName, (</>))
+import           System.Directory (createDirectoryIfMissing)
 
 
 log :: Maybe PlayerNumber -> String -> Evaluate ()
@@ -73,3 +75,10 @@ tracePN pn s = traceM $ "Player " ++ (show pn) ++ " " ++ s
 mapStateIO :: Show s => State s a -> StateT s IO a
 mapStateIO = mapStateT $ return . runIdentity
 
+--TODO handle error cases
+saveModule :: FilePath -> ModuleInfo -> IO (FilePath)
+saveModule saveDir (ModuleInfo path content) = do
+   let dest = saveDir </> path
+   createDirectoryIfMissing True $ dropFileName dest
+   writeFile dest content
+   return dest

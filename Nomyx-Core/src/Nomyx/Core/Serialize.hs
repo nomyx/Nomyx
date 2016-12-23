@@ -70,3 +70,9 @@ readModule basePath mod = do
   content <- readFile absPath
   return $ ModuleInfo mod content
 
+-- write a library file
+writeLibrary :: FilePath -> Library -> IO ()
+writeLibrary path (Library ts ms) = do
+   BL.writeFile (path </> "templates.yaml") (encode ts)
+   mapM_ (saveModule path) ms
+   
