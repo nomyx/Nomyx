@@ -27,26 +27,23 @@ import System.FilePath
 templateApi :: Proxy RuleTemplateApi
 templateApi = Proxy
 
-getTemplate :: EitherT ServantError IO Library 
+getLibrary :: EitherT ServantError IO Library 
 postTemplate :: RuleTemplate -> EitherT ServantError IO ()
-putTemplates :: Library -> EitherT ServantError IO ()
-(getTemplate :<|> postTemplate :<|> putTemplates) = client templateApi (BaseUrl Http "localhost" 8001)
+putLibrary :: Library -> EitherT ServantError IO ()
+(getLibrary :<|> postTemplate :<|> putLibrary) = client templateApi (BaseUrl Http "localhost" 8001)
 
-uploadTemplates :: FilePath -> Options -> IO ()
-uploadTemplates yamlFile os = do
+uploadLibrary :: FilePath -> Options -> IO ()
+uploadLibrary yamlFile os = do
   let dir = takeDirectory yamlFile
-  putStrLn "test"
-  ts <- readLibrary yamlFile
-  res <- runEitherT $ putTemplates ts
-  putStrLn $ show ts
-  putStrLn $ show res
+  l <- readLibrary yamlFile
+  res <- runEitherT $ putLibrary l
   return ()
 
-getTemplates :: Options -> IO ()
-getTemplates os = do
-  el <- runEitherT getTemplate
+downloadLibrary :: FilePath -> Options -> IO ()
+downloadLibrary yamlFile os = do
+  el <- runEitherT getLibrary
   case el of
-    Right lib -> writeLibrary "." lib
+    Right lib -> writeLibrary yamlFile lib
     Left e -> putStrLn (show e)
   return ()
 

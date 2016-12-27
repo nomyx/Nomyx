@@ -79,6 +79,7 @@ mapStateIO = mapStateT $ return . runIdentity
 saveModule :: FilePath -> ModuleInfo -> IO (FilePath)
 saveModule saveDir (ModuleInfo path content) = do
    let dest = saveDir </> path
+   putStrLn $ "Saving module: " ++ dest
    createDirectoryIfMissing True $ dropFileName dest
    writeFile dest content
    return dest

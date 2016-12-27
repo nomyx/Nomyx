@@ -72,7 +72,9 @@ readModule basePath mod = do
 
 -- write a library file
 writeLibrary :: FilePath -> Library -> IO ()
-writeLibrary path (Library ts ms) = do
-   BL.writeFile (path </> "templates.yaml") (encode ts)
-   mapM_ (saveModule path) ms
+writeLibrary yamlFile (Library ts ms) = do
+   let dir = takeDirectory yamlFile
+   putStrLn $ "saving templates: " ++ yamlFile
+   BL.writeFile yamlFile (encode ts)
+   mapM_ (saveModule dir) ms
    

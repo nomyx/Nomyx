@@ -15,9 +15,8 @@ data Command = Player
              | Template TemplateCom
              deriving (Show)
 
-data TemplateCom = Add
-                 | Replace FilePath
-                 | Get
+data TemplateCom = Put FilePath
+                 | Get FilePath
                  deriving (Show)
 
 data CmdLine = CmdLine { options :: Options,
