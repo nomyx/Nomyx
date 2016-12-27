@@ -17,6 +17,7 @@ Executable nomyx-client
   Main-Is:             Main.hs
   ghc-options:         -Wall
   other-modules:       Nomyx.Client.Client
+                       Nomyx.Client.Types
   build-depends:       base,
                        Nomyx-Api,
                        Nomyx-Language,
