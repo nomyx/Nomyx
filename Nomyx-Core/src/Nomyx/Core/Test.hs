@@ -13,6 +13,7 @@ import           Language.Haskell.TH.Syntax as THS hiding (lift, Module, ModuleI
 import           System.IO.Unsafe
 import           Data.List
 import           Data.Maybe
+import qualified Data.Text.IO as DT
 import           Data.Acid
 import           Data.Acid.Memory
 import           Data.Time hiding (getCurrentTime)
@@ -121,7 +122,7 @@ submitR r = do
 testFile' :: FilePath -> FilePath -> String -> StateT Session IO ()
 testFile' path name func = do
    dataDir <- lift PNC.getDataDir
-   cont <- liftIO $ readFile (dataDir </> testDir </> path)
+   cont <- liftIO $ DT.readFile (dataDir </> testDir </> path)
    (multi . mLibrary . mModules) .= [ModuleInfo name cont]
    submitRule (RuleTemplate "" "" func "" Nothing [] [name]) 1 "test"
 
@@ -168,8 +169,9 @@ gamePartialFunction2 = do
    submitR partialFunction2
    gs <- (use $ multi . gameInfos)
    let now = _currentTime $ G._game $ _loggedGame $ head gs
-   undefined
-
+   return ()
+--   zoom multi $ Nomyx.Core.Multi.triggerTimeEvent (5 `addUTCTime` now)
+--   triggerTimeEvent defaultEvalConf) (EvalState g 0) ts
 
 -- rule has not been accepted due to exception
 condPartialFunction :: Multi -> Bool

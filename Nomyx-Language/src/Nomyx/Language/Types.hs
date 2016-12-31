@@ -16,6 +16,7 @@ import           Control.Lens
 import           Control.Monad.Except
 import           Data.Data           (Data)
 import           Data.Time
+import           Data.Text
 import           Data.Typeable
 import           GHC.Generics
 import           System.Random
@@ -149,7 +150,7 @@ data RuleTemplate = RuleTemplate { _rName         :: RuleName,         -- short 
                                    _rDeclarations :: [FilePath]}       -- additional declarations (Haskell modules)
                                    deriving (Typeable, Show, Read, Data, Generic)
 
-type Module = String
+type Module = Text
 
 data ModuleInfo = ModuleInfo {_modPath :: FilePath,  -- file name of the module
                               _modContent :: Module} -- content of the module (or Nothing if module is present in library)

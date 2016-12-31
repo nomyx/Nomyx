@@ -14,6 +14,7 @@ import           Control.Monad
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Data.List
+import qualified Data.Text.IO as DT
 import           Data.Maybe
 import           Data.Typeable
 import           Imprevu.Evaluation as Imp
@@ -81,5 +82,5 @@ saveModule saveDir (ModuleInfo path content) = do
    let dest = saveDir </> path
    putStrLn $ "Saving module: " ++ dest
    createDirectoryIfMissing True $ dropFileName dest
-   writeFile dest content
+   DT.writeFile dest content
    return dest

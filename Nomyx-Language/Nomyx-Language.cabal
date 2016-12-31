@@ -38,6 +38,7 @@ library
                    random             == 1.1.*,
                    safe               == 0.3.*,
                    time               >= 1.4 && < 1.6,
+                   text,
                    time-recurrence    == 0.9.*,
                    monad-loops        == 0.4.*,
                    Imprevu,

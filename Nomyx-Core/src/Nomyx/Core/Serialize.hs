@@ -10,7 +10,8 @@ import           Control.Lens                        hiding ((.=))
 import           Control.Monad.State
 import           Data.Yaml                           (decodeEither, encode)
 import           Data.List
-import qualified Data.ByteString.Char8            as BL
+import qualified Data.Text.IO                        as DT
+import qualified Data.ByteString.Char8               as BL
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Engine.Interpret
 import           Nomyx.Core.Types
@@ -67,7 +68,7 @@ readTemplates yamlFile = do
 readModule :: FilePath -> FilePath -> IO ModuleInfo
 readModule basePath mod = do
   let absPath = basePath </> mod
-  content <- readFile absPath
+  content <- DT.readFile absPath
   return $ ModuleInfo mod content
 
 -- write a library file
