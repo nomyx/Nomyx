@@ -123,7 +123,7 @@ testFile' :: FilePath -> FilePath -> String -> StateT Session IO ()
 testFile' path name func = do
    dataDir <- lift PNC.getDataDir
    cont <- liftIO $ DT.readFile (dataDir </> testDir </> path)
-   (multi . mLibrary . mModules) .= [ModuleInfo name cont]
+   updateLibrary 1 (Library [] [ModuleInfo name cont])
    submitRule (RuleTemplate "" "" func "" Nothing [] [name]) 1 "test"
 
 testFile :: FilePath -> String -> StateT Session IO ()

@@ -101,7 +101,7 @@ advancedPage mlu isAdmin settings pfds = do
 
 
 viewProfile :: ProfileData -> Html
-viewProfile (ProfileData pn (Types.PlayerSettings playerName mail _ mailSubmitRule _ _) lastRule lastUpload isAdmin) =
+viewProfile (ProfileData pn (Types.PlayerSettings playerName mail _ mailSubmitRule _ _) lastRule lastUpload isAdmin _) =
    tr $ do
       td ! A.class_ "td" $ fromString $ show pn
       td ! A.class_ "td" $ fromString playerName

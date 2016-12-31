@@ -114,19 +114,17 @@ playerDelete tv pn = error "not supported"
 templatesGet :: TVar Session -> EitherT ServantErr IO Library
 templatesGet tv = do
    s <- liftIO $ atomically $ readTVar tv
-   return $ _mLibrary $ _multi s
+   return $ undefined --_mLibrary $ _multi s
 
 templatesPost :: TVar Session -> RuleTemplate -> EitherT ServantErr IO ()
 templatesPost tv rt = do
-   liftIO $ updateSession tv (newRuleTemplate rt)
+   liftIO $ updateSession tv (newRuleTemplate 1 rt)
    return ()
 
 templatesPut :: TVar Session -> Library -> EitherT ServantErr IO ()
-templatesPut tv (Library ts ms) = liftIO $ do
-   debug $ "templatesPut templates: " ++ (show ts)
-   debug $ "templatesPut modules: " ++ (show ms)
-   updateSession tv (updateRuleTemplates ts)
-   updateSession tv (updateModules ms)
+templatesPut tv lib = liftIO $ do
+   debug $ "templatesPut library: " ++ (show lib)
+   updateSession tv (updateLibrary  1lib)
    return ()
 
 debug, info :: (MonadIO m) => String -> m ()

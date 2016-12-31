@@ -42,8 +42,8 @@ askProfileData uid = do
    let filtered = filter (\a -> _pPlayerNumber a == uid) pfs
    return $ headMay filtered
 
-initialProfileData :: PlayerNumber -> PlayerSettings -> ProfileData
-initialProfileData uid ps = ProfileData uid ps (Just (exampleRule, "")) NoUpload False
+initialProfileData :: PlayerNumber -> PlayerSettings -> Library -> ProfileData
+initialProfileData uid ps lib = ProfileData uid ps (Just (exampleRule, "")) NoUpload False lib
 
 exampleRule :: RuleTemplate
 exampleRule = RuleTemplate "" "" [cr|
@@ -65,12 +65,12 @@ do
 
 
 -- | create the profile data, but only if it is missing
-newProfileData :: PlayerNumber -> PlayerSettings -> Update ProfileDataState ProfileData
-newProfileData uid ps =
+newProfileData :: PlayerNumber -> PlayerSettings -> Library -> Update ProfileDataState ProfileData
+newProfileData uid ps lib =
     do pds@(ProfileDataState {..}) <- get
        case IxSet.getOne (profilesData @= uid) of
          Nothing -> do
-            let pd = initialProfileData uid ps
+            let pd = initialProfileData uid ps lib
             put $ pds { profilesData = IxSet.updateIx uid pd profilesData }
             return pd
          Just profileData -> return profileData

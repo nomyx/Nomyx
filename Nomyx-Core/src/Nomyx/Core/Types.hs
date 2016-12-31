@@ -69,7 +69,7 @@ data Network = Network {_host :: HostName,
 -- | The Library contains a list of rule templates together with their declarations
 data Library = Library { _mTemplates :: [RuleTemplate],
                          _mModules   :: [ModuleInfo]}
-                         deriving (Eq, Typeable)
+                         deriving (Eq, Ord, Typeable)
 
 instance Show Library where
    show (Library ts ms) = "\n\n Library Templates = " ++ (intercalate "\n " $ map show ts) ++
@@ -79,7 +79,7 @@ instance Show Library where
 -- * Player settings
 
 data ProfileDataState = ProfileDataState { profilesData :: IxSet ProfileData }
-    deriving (Eq, Ord, Read, Show, Typeable, Data)
+    deriving (Eq, Ord, Show, Typeable)
 
 -- | 'ProfileData' contains player settings
 data ProfileData =
@@ -87,11 +87,12 @@ data ProfileData =
                   _pPlayerSettings :: PlayerSettings,
                   _pLastRule       :: Maybe LastRule,
                   _pLastUpload     :: LastUpload,
-                  _pIsAdmin        :: Bool}
-                  deriving (Eq, Ord, Read, Show, Typeable, Data, Generic)
+                  _pIsAdmin        :: Bool,
+                  _pLibrary        :: Library}
+                  deriving (Eq, Ord, Show, Typeable, Generic)
 
 instance Indexable ProfileData where
-      empty =  ixSet [ ixFun (\(ProfileData pn _ _ _ _) -> [pn])]
+      empty =  ixSet [ ixFun (\(ProfileData pn _ _ _ _ _) -> [pn])]
 
 -- Settings of a single player
 data PlayerSettings =
@@ -115,6 +116,7 @@ $(deriveSafeCopy 1 'base ''ProfileData)
 $(deriveSafeCopy 1 'base ''RuleTemplate)
 $(deriveSafeCopy 1 'base ''ModuleInfo)
 $(deriveSafeCopy 1 'base ''ProfileDataState)
+$(deriveSafeCopy 1 'base ''Library)
 
 makeLenses ''Multi
 makeLenses ''Library

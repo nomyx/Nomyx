@@ -15,14 +15,12 @@ module Nomyx.Core.Session (
   submitRule,
   adminSubmitRule,
   checkRule,
-  -- * Template management
+  -- * Library management
   newRuleTemplate,
-  updateRuleTemplates,
   addRuleTemplate,
   delRuleTemplate,
-  -- * Module management
-  updateModules,
   inputUpload,
+  updateLibrary,
   -- * IO
   inputResult,
   -- * settings
@@ -62,7 +60,7 @@ newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
 newPlayer uid ps = do
    s <- get
    --void $ A.update' (acidAuth $ _profiles s) (SetDefaultSessionTimeout $ 3600 * 24 * 7 *25)
-   void $ A.update' (_acidProfiles s) (NewProfileData uid ps)
+   void $ A.update' (_acidProfiles s) (NewProfileData uid ps (_mLibrary $ _multi s))
 
 -- | starts a new game
 newGame :: GameName -> GameDesc -> PlayerNumber -> Bool -> StateT Session IO ()
@@ -130,7 +128,7 @@ checkRule rt pn gn = do
 
 compileRule :: RuleTemplate -> PlayerNumber -> GameName -> RuleEv -> String -> StateT Session IO ()
 compileRule rt pn gn re msg = do
-   mods <- getModules rt
+   mods <- getModules pn rt
    mrr <- liftIO $ interpretRule (_rRuleCode rt) mods
    case mrr of
       Right r -> do
@@ -139,10 +137,11 @@ compileRule rt pn gn re msg = do
          modifyProfile pn (pLastRule .~ Just (rt, msg))
       Left e -> submitRuleError rt pn gn e
 
-getModules :: RuleTemplate -> StateT Session IO [ModuleInfo]
-getModules rt = do
+getModules :: PlayerNumber -> RuleTemplate -> StateT Session IO [ModuleInfo]
+getModules pn rt = do
    s <- get
-   let mods = _mModules $ _mLibrary $ _multi s
+   prof <- fromJust <$> getProfile s pn 
+   let mods = _mModules $ _pLibrary prof
    return $ catMaybes $ map (getModule mods) (_rDeclarations rt)
 
 getModule :: [ModuleInfo] -> FilePath -> Maybe ModuleInfo
@@ -155,28 +154,25 @@ submitRuleError sr pn gn e = do
    warn pn ("Error in submitted rule: " ++ errorMsg)
    modifyProfile pn (pLastRule .~ Just (sr, errorMsg))
 
-newRuleTemplate :: RuleTemplate -> StateT Session IO ()
-newRuleTemplate rt = do
-  info 0 $ (_rAuthor rt) ++ " inserted new templates"
-  (multi . mLibrary . mTemplates) %= (addRuleTemplate rt)
+newRuleTemplate :: PlayerNumber -> RuleTemplate -> StateT Session IO ()
+newRuleTemplate pn rt = do
+  info pn " inserted new template"
+  modifyProfile pn $ (pLibrary . mTemplates) %~ (addRuleTemplate rt)
 
-updateRuleTemplates :: [RuleTemplate] -> StateT Session IO ()
-updateRuleTemplates rts = do
-  info 0 $ (_rAuthor $ head rts) ++ " has updated templates"
-  (multi . mLibrary . mTemplates) .= rts
+updateLibrary :: PlayerNumber -> Library -> StateT Session IO ()
+updateLibrary pn lib = do
+  info pn " updated library"
+  modifyProfile pn $ pLibrary .~ lib
 
 addRuleTemplate :: RuleTemplate -> [RuleTemplate] -> [RuleTemplate]
 addRuleTemplate rt rts = case (find (\rt' -> (_rName rt) == (_rName rt'))) rts of
   (Just rt') -> replace rt' rt rts
   Nothing -> rt:rts
 
-delRuleTemplate :: GameName -> RuleName -> PlayerNumber -> StateT Session IO ()
-delRuleTemplate gn rn pn = do
+delRuleTemplate :: RuleName -> PlayerNumber -> StateT Session IO ()
+delRuleTemplate rn pn = do
   info pn $ "del template " ++ show rn
-  (multi . mLibrary . mTemplates) %= filter (\rt -> _rName rt /= rn)
-
-updateModules :: [ModuleInfo] -> StateT Session IO ()
-updateModules ms = (multi . mLibrary . mModules) .= ms
+  modifyProfile pn $ (pLibrary . mTemplates) %~ filter (\rt -> _rName rt /= rn)
 
 inputResult :: PlayerNumber -> EventNumber -> Input -> InputData -> GameName -> StateT Session IO ()
 inputResult pn en is id gn = inGameDo gn $ execGameEvent $ InputResult pn en is id

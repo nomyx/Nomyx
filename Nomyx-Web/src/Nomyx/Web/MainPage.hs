@@ -27,7 +27,7 @@ import           Nomyx.Core.Engine                     hiding (JoinGame,
                                                         LeaveGame)
 import           Nomyx.Core.Profile                    as Profile
 import qualified Nomyx.Core.Session                    as S
-import           Nomyx.Core.Types                      as T hiding (Library)
+import           Nomyx.Core.Types                      as T
 import           Nomyx.Core.Utils
 import           Nomyx.Core.Engine.Evaluation
 import           Nomyx.Web.Common                      as W
@@ -64,16 +64,17 @@ default (Integer, Double, T.Text)
 
 viewMulti :: (Maybe PlayerNumber) -> FilePath -> GameTab -> GameName -> Session -> RoutedNomyxServer Html
 viewMulti mpn saveDir gt gn s = do
-   (isAdmin, lr) <- case mpn of
+   (isAdmin, lr, lib) <- case mpn of
       Just pn -> do
          pfd <- getProfile s pn
          let isAdmin = _pIsAdmin $ fromJustNote "viewMulti" pfd
          let lr = _pLastRule $ fromJustNote "viewMulti" pfd
-         return (isAdmin, lr)
-      Nothing -> return (False, Nothing)
+         let lib = _pLibrary $ fromJustNote "viewMulti" pfd
+         return (isAdmin, lr, lib)
+      Nothing -> return (False, Nothing, _mLibrary $ _multi s)
    let gi = fromJust $ getGameByName gn s  --TODO fix
    gns <- viewGamesTab gi isAdmin saveDir mpn
-   vg <- viewGameInfo gi mpn lr isAdmin gt (_mTemplates $ _mLibrary $ _multi s)
+   vg <- viewGameInfo gi mpn lr isAdmin gt lib 
    ok $ do
       div ! A.id "gameList" $ gns
       vg
@@ -87,7 +88,7 @@ viewGamesTab gi isAdmin saveDir mpn = do
        tr $ td ! A.class_ "buttonTD" $ H.a "Home "       ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Home gn)
        tr $ td ! A.class_ "buttonTD" $ H.a "Rules "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Rules gn)
        tr $ td ! A.class_ "buttonTD" $ H.a "My actions " ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Actions gn)
-       tr $ td ! A.class_ "buttonTD" $ H.a "Library "    ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Library gn)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Library "    ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Lib gn)
        tr $ td ! A.class_ "buttonTD" $ H.a "Details "    ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Details gn)
      br >> b "Help files:" >> br
      H.a "Rules examples"    ! (href "/html/Language-Nomyx-Examples.html") ! target "_blank" >> br
@@ -97,7 +98,7 @@ viewGamesTab gi isAdmin saveDir mpn = do
      H.a "Logout"          ! (href $ toValue $ showRelURL Login) >> br
      H.a "Login"           ! (href $ toValue $ showRelURL Login) >> br
 
-viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> GameTab -> [RuleTemplate] -> RoutedNomyxServer Html
+viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> GameTab -> Library -> RoutedNomyxServer Html
 viewGameInfo gi mpn mlr isAdmin gt lib = do
    let g = getGame gi
    let gn = _gameName g
@@ -105,7 +106,7 @@ viewGameInfo gi mpn mlr isAdmin gt lib = do
    let isGameAdmin = isAdmin || maybe False (== mpn) (Just $ _ownedBy gi)
    let playAs = mpn >> maybe Nothing _playingAs pi
    let pn = fromMaybe 0 mpn
-   vrf <- viewRuleTemplates lib mlr gn
+   vrf <- viewLibrary lib mlr gn
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g mpn playAs isGameAdmin
    vrs <- viewAllRules pn g
@@ -113,7 +114,7 @@ viewGameInfo gi mpn mlr isAdmin gt lib = do
         Home    -> div ! A.id "gameDescGameDiv" ! A.class_ "game" $ vgd
         Rules   -> div ! A.id "rulesGameDiv"    ! A.class_ "game" $ vrs
         Actions -> div ! A.id "iosGameDiv"      ! A.class_ "game" $ vios
-        Library -> div ! A.id "newRuleGameDiv"  ! A.class_ "game" $ vrf
+        Lib     -> div ! A.id "newRuleGameDiv"  ! A.class_ "game" $ vrf
         Details -> div ! A.id "detailsGameDiv"  ! A.class_ "game" $ viewDetails pn g
 
 viewGames :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> Html
@@ -205,7 +206,7 @@ routedNomyxCommands SubmitNewGame        = newGamePost
 routedNomyxCommands (DoInput is en game) = newInput' is en game
 routedNomyxCommands (SubmitRule game)    = submitRuleTemplatePost game
 -- Templates
-routedNomyxCommands (NewRuleTemplate game) = newRuleTemplate game
+routedNomyxCommands (NewRuleTemplate game)    = newRuleTemplate game
 routedNomyxCommands (DelRuleTemplate game rn) = delRuleTemplate game rn
 -- File management
 routedNomyxCommands Upload               = newUpload

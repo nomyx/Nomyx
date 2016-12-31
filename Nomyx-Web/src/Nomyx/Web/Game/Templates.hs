@@ -20,7 +20,7 @@ import           Happstack.Server            (Method (..), Response, methodM,
 import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Session          as S
-import           Nomyx.Core.Types            as T hiding (Library)
+import           Nomyx.Core.Types            as T
 import           Nomyx.Core.Utils
 import           Nomyx.Web.Common            as NWC
 import qualified Nomyx.Web.Help              as Help
@@ -47,8 +47,8 @@ default (Integer, Double, Data.Text.Text)
 
 -- * Templates display
 
-viewRuleTemplates :: [RuleTemplate] -> Maybe LastRule -> GameName -> RoutedNomyxServer Html
-viewRuleTemplates rts mlr gn = do
+viewLibrary :: Library -> Maybe LastRule -> GameName -> RoutedNomyxServer Html
+viewLibrary (Library rts _) mlr gn = do
   vrs <- mapM (viewRuleTemplate gn mlr) rts
   ok $ do
     div ! class_ "ruleList" $ viewRuleTemplateCats rts mlr
@@ -176,7 +176,7 @@ newRuleTemplate gn = toResponse <$> do
   ruleName <- case r of
      Right (rt, Nothing) -> do
        --content <- liftIO $ readFile tempName
-       webCommand $ S.newRuleTemplate rt
+       webCommand $ S.newRuleTemplate pn rt
        return $ _rName rt
      Right (rt, Just _)  -> do
        --content <- liftIO $ readFile tempName
@@ -185,12 +185,12 @@ newRuleTemplate gn = toResponse <$> do
      _ -> do
        liftIO $ putStrLn "cannot retrieve form data"
        return ""
-  let link = showRelURLParams (Menu Library gn) [("ruleName", Just $ pack $ idEncode ruleName)]
+  let link = showRelURLParams (Menu Lib gn) [("ruleName", Just $ pack $ idEncode ruleName)]
   seeOther link $ "Redirecting..."
 
 
 delRuleTemplate :: GameName -> RuleName -> RoutedNomyxServer Response
 delRuleTemplate gn rn = do
   pn <- fromJust <$> getPlayerNumber
-  webCommand $ S.delRuleTemplate gn rn pn
-  seeOther (showRelURL $ Menu Library gn) $ toResponse "Redirecting..."
+  webCommand $ S.delRuleTemplate rn pn
+  seeOther (showRelURL $ Menu Lib gn) $ toResponse "Redirecting..."
