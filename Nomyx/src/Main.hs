@@ -168,6 +168,7 @@ cleanFile saveDir = do
    catchExp $ removeDirectoryRecursive $ saveDir </> uploadDir
    catchExp $ removeDirectoryRecursive $ saveDir </> authDir
    catchExp $ removeFile               $ saveDir </> saveFile
+   catchExp $ removeFile               $ "nomyx-log.xml"
 
 -- | a loop that will handle server commands
 serverLoop :: TVar Session -> IO ()
