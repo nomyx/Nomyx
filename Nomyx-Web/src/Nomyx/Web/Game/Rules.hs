@@ -29,6 +29,7 @@ viewAllRules pn g = do
   vrs <- viewRules pn g (_rules g)
   ok $ do
   div ! class_ "ruleList" $ do
+   h3 "Constitution"
    ul $ do
      li "Active rules"
      ul $ viewRuleNames (activeRules g)
