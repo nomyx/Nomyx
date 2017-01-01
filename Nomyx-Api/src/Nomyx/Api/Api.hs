@@ -55,7 +55,6 @@ type PlayerApi =  "players" :>                                   Get  '[JSON] [P
 
 
 type RuleTemplateApi =  "templates" :>                                   Get  '[JSON] Library  --get all templates
-                   :<|> "templates" :> ReqBody '[JSON] RuleTemplate   :> Post '[JSON] () -- post new template
                    :<|> "templates" :> ReqBody '[JSON] Library        :> Put  '[JSON] () -- replace all templates
 
 nomyxApi :: Proxy NomyxApi
@@ -81,7 +80,7 @@ parseHostPort path = (myhost,myport)
 
 server :: TVar Session -> Server NomyxApi
 server tv = ((playersGet tv)   :<|> (playersPost tv)   :<|> (playerGet tv) :<|> (playerDelete tv))
-       :<|> ((templatesGet tv) :<|> (templatesPost tv) :<|> (templatesPut tv))
+       :<|> ((templatesGet tv) :<|> (templatesPut tv))
 
 -- * Players API
 

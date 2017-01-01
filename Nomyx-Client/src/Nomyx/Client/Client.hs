@@ -1,13 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections #-}
 
 module Nomyx.Client.Client
      where
@@ -28,9 +21,8 @@ templateApi :: Proxy RuleTemplateApi
 templateApi = Proxy
 
 getLibrary :: EitherT ServantError IO Library 
-postTemplate :: RuleTemplate -> EitherT ServantError IO ()
 putLibrary :: Library -> EitherT ServantError IO ()
-(getLibrary :<|> postTemplate :<|> putLibrary) = client templateApi (BaseUrl Http "localhost" 8001)
+(getLibrary :<|> putLibrary) = client templateApi (BaseUrl Http "localhost" 8001)
 
 uploadLibrary :: FilePath -> Options -> IO ()
 uploadLibrary yamlFile os = do
