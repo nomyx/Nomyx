@@ -15,6 +15,7 @@ import           Control.Monad
 import           Control.Monad.Catch  as MC
 import           Data.List
 import           Language.Haskell.Interpreter
+import           Language.Haskell.Interpreter.Server
 import           Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
 import           Nomyx.Language
 import           Nomyx.Core.Engine.Context
@@ -23,11 +24,16 @@ import           System.FilePath                     (dropExtension, joinPath,
                                                       takeFileName, dropFileName,
                                                       splitDirectories, takeBaseName, (</>))
 import           System.IO.Temp
+import           System.IO.Unsafe
 import           System.Directory
 import           System.Log.Logger
 #ifndef WINDOWS
 import qualified System.Posix.Signals as S
 #endif
+
+
+serverHandle :: ServerHandle
+serverHandle = unsafePerformIO $ start
 
 exts :: [String]
 exts = ["Safe", "GADTs"] ++ map show namedExts
@@ -68,7 +74,7 @@ getModName fp = intercalate "." $ (filter (/= ".") $ splitDirectories $ dropFile
 ---- | reads a Rule out of a string.
 interpretRule :: RuleCode -> [ModuleInfo] -> IO (Either InterpreterError Rule)
 interpretRule rc ms = runRule `catchIOError` handler where 
-   runRule = protectHandlers $ runInterpreter $ do
+   runRule = protectHandlers $ runIn serverHandle $ do
       initializeInterpreter ms
       interpret rc (as :: Rule)
    handler (e::IOException) = return $ Left $ NotAllowed $ "Caught exception: " ++ (show e)

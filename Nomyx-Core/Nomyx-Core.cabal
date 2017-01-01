@@ -51,7 +51,8 @@ library
                    time                   >= 1.4 && < 1.6,
                    yaml -any,
                    NoTrace -any,
-                   hslogger
+                   hslogger,
+                   hint-server
     if os(windows)
         Cpp-options: -DWINDOWS
     else
