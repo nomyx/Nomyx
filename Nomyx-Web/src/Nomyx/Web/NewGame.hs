@@ -7,6 +7,7 @@ import           Control.Applicative
 import           Control.Monad.State
 import           Data.Maybe
 import           Data.Text                   (Text)
+import           Data.String                 (fromString)
 import           Happstack.Server
 import           Nomyx.Core.Engine
 import qualified Nomyx.Core.Session          as S
@@ -45,9 +46,12 @@ newGamePage = toResponse <$> do
    gis <- getPublicGames
    let gameNames = map (_gameName . _game . _loggedGame) gis
    mf <- liftRouteT $ lift $ viewForm "user" $ newGameForm admin gameNames
+   let gameForm = do
+       fromString "Create new game:"
+       blazeForm mf $ showRelURL SubmitNewGame
    mainPage "New game"
             "New game"
-            (blazeForm mf $ showRelURL SubmitNewGame)
+            gameForm
             False
             True
 

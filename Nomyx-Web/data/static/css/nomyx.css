@@ -2,20 +2,18 @@
 /* General */
 
 * {
-   font-family: verdana;
+   font-family: Futura, sans-serif;
+}
+
+
+h2{
+   font-size: 18;
+   margin-top: 5pt;
 }
 
 h3{
-   color:#4D6A8A;
-   font-size: 18;
+   font-size: 16;
    margin-top: 5pt;
-}
-
-h2{
-   color:#4D6A8A;
-   font-size: 18;
-   margin-top: 5pt;
-   text-align: center;
 }
 
 /* Multi */

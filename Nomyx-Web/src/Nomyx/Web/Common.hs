@@ -123,7 +123,7 @@ pageTemplate title headers body footer routeFn = do
       H.script ! A.type_ "text/JavaScript" ! A.src (textValue $ routeFn (Auth Controllers) []) $ ""
    H.body ! onload "loadDivVisibility()"  ! customAttribute "ng-controller" "AuthenticationCtrl" ! customAttribute "ng-app" "NomyxApp" $ H.div ! A.id "container" $ do
       H.div ! A.id "header" $ headers
-      body
+      body ! A.id "multi" 
       when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012-2013"
 
 -- | return the player number (user ID) based on the session cookie.

@@ -180,7 +180,7 @@ nomyxPage mgn tab = do
    mainPage' "Welcome to Nomyx!"
             title
             False
-            (H.div ! A.id "multi" $ m)
+            (H.div $ m)
 
 titleBar :: PlayerName -> GameName -> RoutedNomyxServer Html
 titleBar name gn = ok $ table ! A.id "headerTitle" $ tr $ do
