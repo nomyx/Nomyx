@@ -15,7 +15,7 @@ import           Data.List
 import           Data.Maybe
 import           Data.Monoid
 import           Data.String
-import           Data.Text                             as T (Text, pack, length)
+import           Data.Text                             as T (Text, pack, unpack, length)
 import           Happstack.Authenticate.OpenId.Route   (initOpenId)
 import           Happstack.Authenticate.Password.Route (initPassword)
 import           Happstack.Authenticate.Password.Core(PasswordConfig(..), PasswordState)
@@ -176,10 +176,25 @@ nomyxPage mgn tab = do
       Nothing -> return "Guest"
    let gn = maybe (_gameName $ _game $ _loggedGame $ head $ _gameInfos $ _multi s) id mgn
    m <- viewMulti mpn saveDir tab gn s
+   title <- titleBar name gn
    mainPage' "Welcome to Nomyx!"
-            (fromString $ "Welcome to Nomyx, " ++ name ++ "! ")
+            title
             False
             (H.div ! A.id "multi" $ m)
+
+titleBar :: PlayerName -> GameName -> RoutedNomyxServer Html
+titleBar name gn = ok $ table ! A.id "headerTitle" $ tr $ do
+   let linkLogin = showRelURL Login 
+   let linkHome = showRelURL MainPage
+   let linkNewGame = showRelURL NewGame 
+   td $ do
+      H.a "Nomyx:  " ! (href $ toValue linkHome)
+      H.a ! (href $ toValue linkNewGame) $ do
+      (fromString gn) 
+   td ! A.style "text-align:right;" $ H.a ! (href $ toValue linkLogin) $ do
+      (fromString name)
+      img ! src "/static/pictures/person.png" ! A.style "vertical-align:middle;" 
+
 
 nomyxSite :: WebSession -> Site PlayerCommand (ServerPartT IO Response)
 nomyxSite ws = setDefault MainPage $ mkSitePI $ (\a b -> evalStateT (runRouteT (catchRouteError . routedNomyxCommands) a b) ws)

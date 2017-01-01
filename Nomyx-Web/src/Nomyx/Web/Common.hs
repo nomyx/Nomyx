@@ -96,19 +96,17 @@ mainPage' title header footer body = do
 mainPage :: String -> Html -> Html -> Bool -> Bool -> RoutedNomyxServer Html
 mainPage title header body footer backLink = do
    routeFn <- askRouteFn
-   ok $ --if backLink then appTemplate' title header body footer (Just $ unpack $ showRelURL MainPage) routeFn
-                     appTemplate' title header body footer Nothing routeFn
+   ok $ pageTemplate title header body footer routeFn
 
-appTemplate' ::
+pageTemplate ::
        String -- ^ title
     -> Html   -- ^ extra tags to include in \<head\>
     -> Html   -- ^ contents to put inside \<body\>
     -> Bool   -- ^ include footer
-    -> Maybe String -- ^ link to main page
     -> (URL (RouteT PlayerCommand (ServerPartT IO))
                           -> [(Text, Maybe Text)] -> Text)
     -> Html
-appTemplate' title headers body footer link routeFn = do
+pageTemplate title headers body footer routeFn = do
  H.html ! manifest "/static/manifest.yaml" $ do  
    H.head $ do
       H.title (fromString title)
@@ -124,9 +122,7 @@ appTemplate' title headers body footer link routeFn = do
       H.script ! A.type_ "text/JavaScript" ! A.src (textValue $ routeFn NomyxJS []) $ ""
       H.script ! A.type_ "text/JavaScript" ! A.src (textValue $ routeFn (Auth Controllers) []) $ ""
    H.body ! onload "loadDivVisibility()"  ! customAttribute "ng-controller" "AuthenticationCtrl" ! customAttribute "ng-app" "NomyxApp" $ H.div ! A.id "container" $ do
-      H.div ! A.id "header" $ table ! width "100%" $ tr $ do
-         td (p headers ! A.id "headerTitle")
-         when (isJust link) $ td ! A.style "text-align:right;" $ H.a "Back to main page" ! (href $ toValue $ fromJust link)
+      H.div ! A.id "header" $ headers
       body
       when footer $ H.div ! A.id "footer" $ "Copyright Corentin Dupont 2012-2013"
 
