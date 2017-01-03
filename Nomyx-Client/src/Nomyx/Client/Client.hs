@@ -31,13 +31,13 @@ uploadLibrary yamlFile os = do
   let dir = takeDirectory yamlFile
   l <- readLibrary yamlFile
   manager <- newManager defaultManagerSettings
-  runExceptT (putLibrary l manager (BaseUrl Http "localhost" 8081 ""))
+  runExceptT (putLibrary l manager (BaseUrl Http "localhost" 8001 ""))
   return ()
 
 downloadLibrary :: FilePath -> Options -> IO ()
 downloadLibrary yamlFile os = do
   manager <- newManager defaultManagerSettings
-  el <- runExceptT (getLibrary manager (BaseUrl Http "localhost" 8081 ""))
+  el <- runExceptT (getLibrary manager (BaseUrl Http "localhost" 8001 ""))
   case el of
     Right lib -> writeLibrary yamlFile lib
     Left e -> putStrLn (show e)
