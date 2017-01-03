@@ -14,13 +14,11 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Nomyx.Api.Utils
-                     , Nomyx.Api.Model.Error
+  exposed-modules:     Nomyx.Api.Model.Error
                      , Nomyx.Api.Model.Player
                      , Nomyx.Api.Model.NewPlayer
                      , Nomyx.Api.Api
                      , Nomyx.Api.Server
-                     , Nomyx.Api.Files
   ghc-options:         -Wall
   build-depends:       base
                      , aeson

@@ -16,6 +16,6 @@ extra-deps:
 - web-routes-regular-0.19.0.1
 - regular-0.3.4.4
 - NoTrace-0.3.0.1
-- hint-server-1.4.2
+- hint-server-1.4.3
 - eprocess-1.7.2
-resolver: lts-5.11
+resolver: lts-7.14

@@ -34,6 +34,7 @@ Executable nomyx-client
                        yaml,
                        bytestring,
                        lens,
-                       aeson
+                       aeson,
+                       http-client
   default-language:    Haskell2010
 

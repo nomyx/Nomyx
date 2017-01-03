@@ -20,16 +20,13 @@ import           Servant.Client
 import           Servant
 import           Network.URI (URI (..), URIAuth (..), parseURI)
 import           Data.Maybe (fromMaybe)
-import           Servant.Common.Text
 import           Data.List (intercalate)
 import           Data.Maybe
 import qualified Data.Text as T
-import           Nomyx.Api.Utils
 import           Test.QuickCheck
 import           Nomyx.Api.Model.Player
 import           Nomyx.Api.Model.Error
 import           Nomyx.Api.Model.NewPlayer
-import           Nomyx.Api.Files
 import           Nomyx.Core.Session hiding (getModules)
 import           Nomyx.Core.Types
 import           Nomyx.Core.Profile
@@ -84,20 +81,20 @@ server tv = ((playersGet tv)   :<|> (playersPost tv)   :<|> (playerGet tv) :<|> 
 
 -- * Players API
 
-playersGet :: TVar Session -> EitherT ServantErr IO [ProfileData]
+playersGet :: TVar Session -> ExceptT ServantErr IO [ProfileData]
 playersGet tv = do
    s <- liftIO $ atomically $ readTVar tv
    pds <- liftIO $ getAllProfiles s
    return pds
 
-playersPost :: TVar Session -> PlayerSettings -> EitherT ServantErr IO ProfileData
+playersPost :: TVar Session -> PlayerSettings -> ExceptT ServantErr IO ProfileData
 playersPost tv ps = do
    liftIO $ updateSession tv (newPlayer 2 ps)
    s <- liftIO $ atomically $ readTVar tv
    pds <- liftIO $ getAllProfiles s
    return $ head pds
 
-playerGet :: TVar Session -> PlayerNumber -> EitherT ServantErr IO ProfileData
+playerGet :: TVar Session -> PlayerNumber -> ExceptT ServantErr IO ProfileData
 playerGet tv pn = do
    s <- liftIO $ atomically $ readTVar tv
    mpd <- liftIO $ getProfile s pn
@@ -105,22 +102,22 @@ playerGet tv pn = do
      Just pd -> return pd
      Nothing -> throwError $ err410 { errBody = "Player does not exist." }
 
-playerDelete :: TVar Session -> PlayerNumber -> EitherT ServantErr IO ()
+playerDelete :: TVar Session -> PlayerNumber -> ExceptT ServantErr IO ()
 playerDelete tv pn = error "not supported"
 
 -- * Templates API
 
-templatesGet :: TVar Session -> EitherT ServantErr IO Library
+templatesGet :: TVar Session -> ExceptT ServantErr IO Library
 templatesGet tv = do
    s <- liftIO $ atomically $ readTVar tv
    return $ undefined --_mLibrary $ _multi s
 
-templatesPost :: TVar Session -> RuleTemplate -> EitherT ServantErr IO ()
+templatesPost :: TVar Session -> RuleTemplate -> ExceptT ServantErr IO ()
 templatesPost tv rt = do
    liftIO $ updateSession tv (newRuleTemplate 1 rt)
    return ()
 
-templatesPut :: TVar Session -> Library -> EitherT ServantErr IO ()
+templatesPut :: TVar Session -> Library -> ExceptT ServantErr IO ()
 templatesPut tv lib = liftIO $ do
    debug $ "templatesPut library: " ++ (show lib)
    updateSession tv (updateLibrary  1lib)
