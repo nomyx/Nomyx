@@ -15,31 +15,32 @@ module Nomyx.Api.Api
 import           GHC.Generics
 import           Data.Proxy
 import           Data.Yaml
+import qualified Data.ByteString.Char8 as B
+import           Data.Maybe (fromMaybe)
+import           Data.List (intercalate)
+import           Data.Maybe
+import           Data.Typeable
+import qualified Data.Text as T
+import           Data.Swagger
+import           Data.Swagger.Schema
 import           Servant.API
 import           Servant.Client
 import           Servant
 import           Network.URI (URI (..), URIAuth (..), parseURI)
-import           Data.Maybe (fromMaybe)
-import           Data.List (intercalate)
-import           Data.Maybe
-import qualified Data.Text as T
-import           Test.QuickCheck
+import           Network.Wai.Parse
 import           Nomyx.Api.Model.Player
 import           Nomyx.Api.Model.Error
 import           Nomyx.Api.Model.NewPlayer
 import           Nomyx.Core.Session hiding (getModules)
 import           Nomyx.Core.Types
 import           Nomyx.Core.Profile
+import           Nomyx.Language.Types
 import           Control.Concurrent.STM
 import           Control.Monad.State
 import           Control.Monad.Trans.Either
-import           Data.Swagger
-import           Data.Swagger.Schema
-import           Nomyx.Language.Types
 import           Control.Monad.Except
-import           Network.Wai.Parse
-import qualified Data.ByteString.Char8 as B
 import           System.Log.Logger
+import           Test.QuickCheck
 
 -- * API definition
 
@@ -51,8 +52,13 @@ type PlayerApi =  "players" :>                                   Get  '[JSON] [P
              :<|> "players" :> Capture "id" Int               :> Delete '[JSON] ()
 
 
-type RuleTemplateApi =  "templates" :>                                   Get  '[JSON] Library  --get all templates
-                   :<|> "templates" :> ReqBody '[JSON] Library        :> Put  '[JSON] () -- replace all templates
+type RuleTemplateApi =  "templates" :> BasicAuth "foo-realm" User :>                                  Get  '[JSON] Library  --get all templates
+                   :<|> "templates" :> BasicAuth "foo-realm" User :> ReqBody '[JSON] Library        :> Put  '[JSON] () -- replace all templates
+
+
+-- | A user we'll grab from the database when we authenticate someone
+newtype User = User { userName :: T.Text }
+  deriving (Eq, Show)
 
 nomyxApi :: Proxy NomyxApi
 nomyxApi = Proxy
@@ -107,18 +113,18 @@ playerDelete tv pn = error "not supported"
 
 -- * Templates API
 
-templatesGet :: TVar Session -> ExceptT ServantErr IO Library
-templatesGet tv = do
+templatesGet :: TVar Session -> User -> ExceptT ServantErr IO Library
+templatesGet tv _ = do
    s <- liftIO $ atomically $ readTVar tv
    return $ _mLibrary $ _multi s
 
-templatesPost :: TVar Session -> RuleTemplate -> ExceptT ServantErr IO ()
-templatesPost tv rt = do
+templatesPost :: TVar Session -> User -> RuleTemplate -> ExceptT ServantErr IO ()
+templatesPost tv _ rt = do
    liftIO $ updateSession tv (newRuleTemplate 1 rt)
    return ()
 
-templatesPut :: TVar Session -> Library -> ExceptT ServantErr IO ()
-templatesPut tv lib = liftIO $ do
+templatesPut :: TVar Session -> User -> Library -> ExceptT ServantErr IO ()
+templatesPut tv _ lib = liftIO $ do
    debug $ "templatesPut library: " ++ (show lib)
    updateSession tv (updateLibrary  1lib)
    return ()

@@ -27,6 +27,8 @@ data Options = Options { verbose  :: Bool,
                          version  :: Bool,
                          test     :: Bool,
                          hostname :: String,
-                         port     :: String}
+                         port     :: Int,
+                         login    :: String,
+                         password :: String}
                          deriving (Show)
 

@@ -1,11 +1,13 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Nomyx.Client.Client
      where
 
 import Data.Proxy
+import Data.ByteString.Char8
 import Servant
 import Servant.Client
 import Servant.API
@@ -22,24 +24,25 @@ import Network.HTTP.Client (newManager, defaultManagerSettings, Manager)
 templateApi :: Proxy RuleTemplateApi
 templateApi = Proxy
 
-getLibrary ::            Manager -> BaseUrl -> ExceptT ServantError IO Library 
-putLibrary :: Library -> Manager -> BaseUrl -> ExceptT ServantError IO ()
+getLibrary :: BasicAuthData -> Manager -> BaseUrl -> ExceptT ServantError IO Library 
+putLibrary :: BasicAuthData -> Library -> Manager -> BaseUrl -> ExceptT ServantError IO ()
 (getLibrary :<|> putLibrary) = client templateApi --(BaseUrl Http "localhost" 8001)
 
 uploadLibrary :: FilePath -> Options -> IO ()
-uploadLibrary yamlFile os = do
+uploadLibrary yamlFile (Options _ _ _ host port login password) = do
   let dir = takeDirectory yamlFile
   l <- readLibrary yamlFile
   manager <- newManager defaultManagerSettings
-  runExceptT (putLibrary l manager (BaseUrl Http "localhost" 8001 ""))
+  let auth = BasicAuthData (pack login) (pack password)
+  runExceptT (putLibrary auth l manager (BaseUrl Http host port ""))
   return ()
 
 downloadLibrary :: FilePath -> Options -> IO ()
 downloadLibrary yamlFile os = do
   manager <- newManager defaultManagerSettings
-  el <- runExceptT (getLibrary manager (BaseUrl Http "localhost" 8001 ""))
-  case el of
-    Right lib -> writeLibrary yamlFile lib
-    Left e -> putStrLn (show e)
+  --el <- runExceptT (getLibrary manager (BaseUrl Http "localhost" 8001 ""))
+  --case el of
+  --  Right lib -> writeLibrary yamlFile lib
+  --  Left e -> putStrLn (show e)
   return ()
 
