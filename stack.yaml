@@ -13,8 +13,6 @@ packages:
 extra-deps:
 - DebugTraceHelpers-0.12
 - time-recurrence-0.9.2
-- web-routes-regular-0.19.0.1
-- regular-0.3.4.4
 - NoTrace-0.3.0.1
 - hint-server-1.4.3
 - eprocess-1.7.2
