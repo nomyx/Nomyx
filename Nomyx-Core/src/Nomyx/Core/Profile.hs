@@ -117,6 +117,11 @@ getPlayerName pn s = do
    pfd <- query' (_acidProfiles s) (AskProfileData pn)
    return $ _pPlayerName $ _pPlayerSettings $ fromJustNote ("getPlayersName: no profile for pn=" ++ show pn) pfd
 
+getPlayerNumber' :: PlayerName -> Session -> IO (Maybe PlayerNumber)
+getPlayerNumber' pname s = do
+   pds <- query' (_acidProfiles s) AskProfilesData
+   return $ headMay $ [ _pPlayerNumber pd | pd <- pds, _pPlayerName  (_pPlayerSettings pd) == pname]
+
 getPlayerInGameName :: Game -> PlayerNumber -> PlayerName
 getPlayerInGameName g pn = case find ((==pn) . view playerNumber) (_players g) of
    Nothing -> error "getPlayersName': No player by that number in that game"

@@ -7,7 +7,7 @@ module Nomyx.Client.Client
      where
 
 import Data.Proxy
-import Data.ByteString.Char8
+import Data.ByteString.Char8 hiding (putStrLn)
 import Servant
 import Servant.Client
 import Servant.API
@@ -15,7 +15,7 @@ import Nomyx.Api.Api
 import Nomyx.Client.Types
 import Nomyx.Core.Serialize
 import Nomyx.Language.Types
-import Nomyx.Core.Types
+import Nomyx.Core.Types hiding (port)
 import Control.Monad.Trans.Either
 import Control.Monad.Except
 import System.FilePath
@@ -26,7 +26,7 @@ templateApi = Proxy
 
 getLibrary :: BasicAuthData -> Manager -> BaseUrl -> ExceptT ServantError IO Library 
 putLibrary :: BasicAuthData -> Library -> Manager -> BaseUrl -> ExceptT ServantError IO ()
-(getLibrary :<|> putLibrary) = client templateApi --(BaseUrl Http "localhost" 8001)
+(getLibrary :<|> putLibrary) = client templateApi
 
 uploadLibrary :: FilePath -> Options -> IO ()
 uploadLibrary yamlFile (Options _ _ _ host port login password) = do
@@ -38,11 +38,12 @@ uploadLibrary yamlFile (Options _ _ _ host port login password) = do
   return ()
 
 downloadLibrary :: FilePath -> Options -> IO ()
-downloadLibrary yamlFile os = do
+downloadLibrary yamlFile (Options _ _ _ host port login password) = do
   manager <- newManager defaultManagerSettings
-  --el <- runExceptT (getLibrary manager (BaseUrl Http "localhost" 8001 ""))
-  --case el of
-  --  Right lib -> writeLibrary yamlFile lib
-  --  Left e -> putStrLn (show e)
+  let auth = BasicAuthData (pack login) (pack password)
+  el <- runExceptT (getLibrary auth manager (BaseUrl Http host port ""))
+  case el of
+    Right lib -> writeLibrary yamlFile lib
+    Left e -> putStrLn (show e)
   return ()
 

@@ -46,40 +46,20 @@ import           Test.QuickCheck
 
 type NomyxApi = PlayerApi :<|> RuleTemplateApi
 
-type PlayerApi =  "players" :>                                   Get  '[JSON] [ProfileData] -- playersGet
-             :<|> "players" :> ReqBody '[JSON] PlayerSettings :> Post '[JSON] ProfileData -- playersPost
-             :<|> "players" :> Capture "id" Int               :> Get '[JSON] ProfileData
+type PlayerApi =  "players" :>                                   Get    '[JSON] [ProfileData] 
+             :<|> "players" :> ReqBody '[JSON] PlayerSettings :> Post   '[JSON] ProfileData 
+             :<|> "players" :> Capture "id" Int               :> Get    '[JSON] ProfileData
              :<|> "players" :> Capture "id" Int               :> Delete '[JSON] ()
 
 
-type RuleTemplateApi =  "templates" :> BasicAuth "foo-realm" User :>                                  Get  '[JSON] Library  --get all templates
-                   :<|> "templates" :> BasicAuth "foo-realm" User :> ReqBody '[JSON] Library        :> Put  '[JSON] () -- replace all templates
-
-
--- | A user we'll grab from the database when we authenticate someone
-newtype User = User { userName :: T.Text }
-  deriving (Eq, Show)
+type RuleTemplateApi =  "templates" :> BasicAuth "foo-realm" PlayerNumber :>                            Get '[JSON] Library  -- get all templates
+                   :<|> "templates" :> BasicAuth "foo-realm" PlayerNumber :> ReqBody '[JSON] Library :> Put '[JSON] ()       -- replace all templates
 
 nomyxApi :: Proxy NomyxApi
 nomyxApi = Proxy
 
 serverPath :: String
 serverPath = "https://api.nomyx.net/v1"
-
-parseHostPort :: String -> (String, Int)
-parseHostPort path = (myhost,myport)
-    where
-        authority = case parseURI path of
-            Just x -> uriAuthority x
-            _      -> Nothing
-        (myhost, myport) = case authority of
-            Just y -> (uriRegName y, (getPort . uriPort) y)
-            _      -> ("localhost", 8080)
-        getPort p = case (length p) of
-            0 -> 80
-            _ -> (read . drop 1) p
-
-(host, port) = parseHostPort serverPath
 
 server :: TVar Session -> Server NomyxApi
 server tv = ((playersGet tv)   :<|> (playersPost tv)   :<|> (playerGet tv) :<|> (playerDelete tv))
@@ -113,20 +93,20 @@ playerDelete tv pn = error "not supported"
 
 -- * Templates API
 
-templatesGet :: TVar Session -> User -> ExceptT ServantErr IO Library
+templatesGet :: TVar Session -> PlayerNumber -> ExceptT ServantErr IO Library
 templatesGet tv _ = do
    s <- liftIO $ atomically $ readTVar tv
    return $ _mLibrary $ _multi s
 
-templatesPost :: TVar Session -> User -> RuleTemplate -> ExceptT ServantErr IO ()
+templatesPost :: TVar Session -> PlayerNumber -> RuleTemplate -> ExceptT ServantErr IO ()
 templatesPost tv _ rt = do
    liftIO $ updateSession tv (newRuleTemplate 1 rt)
    return ()
 
-templatesPut :: TVar Session -> User -> Library -> ExceptT ServantErr IO ()
-templatesPut tv _ lib = liftIO $ do
+templatesPut :: TVar Session -> PlayerNumber -> Library -> ExceptT ServantErr IO ()
+templatesPut tv pn lib = liftIO $ do
    debug $ "templatesPut library: " ++ (show lib)
-   updateSession tv (updateLibrary  1lib)
+   updateSession tv (updateLibrary pn lib)
    return ()
 
 debug, info :: (MonadIO m) => String -> m ()
