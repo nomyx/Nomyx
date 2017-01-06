@@ -117,38 +117,6 @@ viewGameInfo gi mpn mlr isAdmin gt lib = do
         Lib     -> div ! A.id "newRuleGameDiv"  ! A.class_ "game" $ vrf
         Details -> div ! A.id "detailsGameDiv"  ! A.class_ "game" $ viewDetails pn g
 
-viewGames :: [GameInfo] -> Bool -> FilePath -> (Maybe PlayerNumber) -> Html
-viewGames gis isAdmin saveDir mpn = do
-   let canCreateGame = maybe False (\pn -> isAdmin || numberOfGamesOwned gis pn < 1) mpn
-   let publicPrivate = partition ((== True) . _isPublic) gis
-   let vgi = viewGameName isAdmin mpn
-   let public = map vgi (fst publicPrivate)
-   let private = map vgi (snd publicPrivate)
-   case public of
-      [] -> b "No public games"
-      p:ps -> do
-         b "Public games:"
-         table $ do
-            p ! A.style "font-weight:bold;"
-            sequence_ ps
-   br
-   case private of
-      [] -> ""
-      p -> do
-         b "Private games:"
-         table $ sequence_ p
-   br
-   when canCreateGame $ H.a "Create a new game" ! (href $ toValue $ defLink NewGame (isJust mpn)) >> br
-
-viewGameName :: Bool -> (Maybe PlayerNumber) -> GameInfo -> Html
-viewGameName isAdmin mpn gi = do
-   let g = getGame gi
-   let isGameAdmin = isAdmin || maybe False (==mpn) (Just $ _ownedBy gi)
-   let gn = _gameName g
-   let canView = isGameAdmin || _isPublic gi
-   when canView $ tr $ td $ H.a (fromString (gn ++ "   ")) ! (A.title $ toValue Help.view) -- ! attr
-
-
 joinGame :: GameName -> RoutedNomyxServer Response
 joinGame gn = do
    pn <- fromJust <$> getPlayerNumber
@@ -189,7 +157,7 @@ titleBar name gn = ok $ table ! A.id "headerTitle" $ tr $ do
    let linkNewGame = showRelURL NewGame 
    td $ do
       H.a "Nomyx:  " ! (href $ toValue linkHome)
-      H.a ! (href $ toValue linkNewGame) $ do
+      H.a ! A.id "gameButton" ! (href $ toValue linkNewGame) $ do
       (fromString gn) 
    td ! A.style "text-align:right;" $ H.a ! (href $ toValue linkLogin) $ do
       (fromString name)
