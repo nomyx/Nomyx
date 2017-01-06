@@ -16,6 +16,34 @@ h3{
    margin-top: 5pt;
 }
 
+/* Title bar */
+
+#headerTitle {
+   color: white;
+   font-size: 22;
+   font-family: verdana;
+   font-weight: bold;
+   margin-left: auto;
+   margin-right: auto;
+   width: 75%;
+   padding-left: 30px;
+   padding-right: 160px;
+   padding-top: 0px;
+}
+
+#headerTitle a:link,
+#headerTitle a:visited,
+#headerTitle a:hover {
+   color: white;
+   text-decoration: none;
+}
+
+#gameButton {
+   padding: 4px 16px 2px 16px;
+   border: 2px solid #CCCCCC;
+}
+
+
 /* Multi */
 
 #multi {
@@ -77,6 +105,10 @@ h3{
    width: 250px;
    padding: 6px;
    overflow: auto;
+}
+
+.ruleList ul {
+   padding-left: 20px;
 }
 
 .rule {
@@ -324,26 +356,5 @@ pre {
    -webkit-tab-size: 16;
    -ms-tab-size:     16;
    tab-size:         16;
-}
-
-
-#headerTitle {
-   color: white;
-   font-size: 22;
-   font-family: verdana;
-   font-weight: bold;
-   margin-left: auto;
-   margin-right: auto;
-   width: 75%;
-   padding-left: 30px;
-   padding-right: 160px;
-   padding-top: 0px;
-}
-
-#headerTitle a:link,
-#headerTitle a:visited,
-#headerTitle a:hover {
-   color: white;
-   text-decoration: none;
 }
 
