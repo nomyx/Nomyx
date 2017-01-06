@@ -59,6 +59,7 @@ viewRuleTemplateCats rts mlr = do
   let cat = (headDef "Not category" . _rCategory)
   let rts' = groupBy ((==) `on` cat) $ sortBy (comparing cat) rts
   --let allRules = rts' ++ [(maybe (RuleTemplate "New Rule" "" "" "" Nothing [] []) fst mlr)]
+  h2 "Library"
   ul $ mapM_  viewRuleTemplateCat rts'
 
 viewRuleTemplateCat :: [RuleTemplate] -> Html
@@ -102,7 +103,7 @@ viewrule gn (rt, err) = do
     h2 $ fromString $ "authored by " ++ (_rAuthor rt)
     viewRuleFunc rt
     viewDecls rt
-    div $ fromString err
+    div $ pre $ fromString err
     blazeForm lf $ showRelURL (SubmitRule gn)
 
 hiddenSubmitRuleTemplatForm :: (Maybe RuleTemplate) -> NomyxForm String
@@ -180,7 +181,7 @@ newRuleTemplate gn = toResponse <$> do
        return $ _rName rt
      Right (rt, Just _)  -> do
        --content <- liftIO $ readFile tempName
-       webCommand $ S.checkRule rt pn undefined
+       webCommand $ S.checkRule rt pn gn
        return $ _rName rt
      _ -> do
        liftIO $ putStrLn "cannot retrieve form data"
