@@ -106,7 +106,7 @@ viewGameInfo gi mpn mlr isAdmin gt lib = do
    let isGameAdmin = isAdmin || maybe False (== mpn) (Just $ _ownedBy gi)
    let playAs = mpn >> maybe Nothing _playingAs pi
    let pn = fromMaybe 0 mpn
-   vrf <- viewLibrary lib mlr gn
+   vrf <- viewLibrary lib mlr gn isGameAdmin
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g mpn playAs isGameAdmin
    vrs <- viewAllRules pn g

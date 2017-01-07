@@ -45,11 +45,11 @@ import           Safe
 default (Integer, Double, Data.Text.Text)
 
 
--- * Templates display
+-- * Library display
 
-viewLibrary :: Library -> Maybe LastRule -> GameName -> RoutedNomyxServer Html
-viewLibrary (Library rts _) mlr gn = do
-  vrs <- mapM (viewRuleTemplate gn mlr) rts
+viewLibrary :: Library -> Maybe LastRule -> GameName -> Bool -> RoutedNomyxServer Html
+viewLibrary (Library rts _) mlr gn isGameAdmin = do
+  vrs <- mapM (viewRuleTemplate gn mlr isGameAdmin) rts
   ok $ do
     div ! class_ "ruleList" $ viewRuleTemplateCats rts mlr
     div ! class_ "rules" $ sequence_ vrs
@@ -70,13 +70,13 @@ viewRuleTemplateCat rts = li $ do
 viewRuleTemplateName :: RuleTemplate -> Html
 viewRuleTemplateName rt = li $ H.a (fromString $ _rName rt) ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (idEncode $ _rName rt))
 
-viewRuleTemplate :: GameName -> Maybe LastRule -> RuleTemplate -> RoutedNomyxServer Html
-viewRuleTemplate gn mlr rt = do
+viewRuleTemplate :: GameName -> Maybe LastRule -> Bool -> RuleTemplate -> RoutedNomyxServer Html
+viewRuleTemplate gn mlr isGameAdmin rt = do
   let toEdit = case mlr of
        Nothing -> (rt, "")
        Just lr -> if ((_rName $ fst lr) == (_rName rt)) then lr else (rt, "")
   com <- commandRule gn rt
-  view <- viewrule gn toEdit
+  view <- viewrule gn toEdit isGameAdmin
   edit <- viewRuleTemplateEdit toEdit gn
   ok $ div ! A.class_ "rule" ! A.id (toValue $ idEncode $ _rName rt) $ do
     com
@@ -92,9 +92,9 @@ commandRule gn rt = do
     p $ H.a "edit"   ! (A.href $ toValue $ "?ruleName=" ++ idrt ++ "&edit")
     p $ H.a "delete" ! (A.href $ toValue delLink)
 
-viewrule :: GameName -> LastRule -> RoutedNomyxServer Html
-viewrule gn (rt, err) = do
-  lf  <- liftRouteT $ lift $ viewForm "user" (hiddenSubmitRuleTemplatForm (Just rt))
+viewrule :: GameName -> LastRule -> Bool -> RoutedNomyxServer Html
+viewrule gn (rt, err) isGameAdmin = do
+  lf  <- liftRouteT $ lift $ viewForm "user" (submitRuleTemplatForm (Just rt) isGameAdmin)
   ok $ div ! A.class_ "viewrule" $ do
     let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
     h2 $ fromString $ _rName rt
@@ -106,8 +106,10 @@ viewrule gn (rt, err) = do
     div $ pre $ fromString err
     blazeForm lf $ showRelURL (SubmitRule gn)
 
-hiddenSubmitRuleTemplatForm :: (Maybe RuleTemplate) -> NomyxForm String
-hiddenSubmitRuleTemplatForm rt = inputHidden (show rt)
+submitRuleTemplatForm :: (Maybe RuleTemplate) -> Bool -> NomyxForm (String, Maybe String)
+submitRuleTemplatForm mrt isGameAdmin = 
+   (,) <$> inputHidden (show mrt)
+       <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 
 viewRuleFunc :: RuleTemplate -> Html
 viewRuleFunc rd = do
@@ -130,12 +132,12 @@ submitRuleTemplatePost gn = toResponse <$> do
    s <- getSession
    let gi = getGameByName gn s
    admin <- isGameAdmin (fromJust gi)
-   r <- liftRouteT $ lift $ eitherForm environment "user" (hiddenSubmitRuleTemplatForm Nothing)
+   r <- liftRouteT $ lift $ eitherForm environment "user" (submitRuleTemplatForm Nothing True)
    pn <- fromJust <$> getPlayerNumber
    case r of
-      Right rt -> webCommand $ submitRule (fromJust $ read rt) pn gn
-      Right rt -> webCommand $ adminSubmitRule (fromJust $ read rt) pn gn
-      (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
+      Right (rt, Nothing) -> webCommand $ submitRule      (fromJust $ read rt) pn gn
+      Right (rt, Just _)  -> webCommand $ adminSubmitRule (fromJust $ read rt) pn gn
+      (Left _)            -> liftIO $ putStrLn "cannot retrieve form data"
    seeOther (showRelURL $ Menu Actions gn) $ "Redirecting..."
 
 
@@ -156,7 +158,6 @@ newRuleTemplateForm' :: RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe S
 newRuleTemplateForm' rt isGameAdmin =
   (,) <$> newRuleTemplateForm'' rt
       <*> inputSubmit "Check"
-      -- <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 
 newRuleTemplateForm'' :: RuleTemplate -> NomyxForm RuleTemplate
 newRuleTemplateForm'' (RuleTemplate name desc code aut pic cat decls) =
