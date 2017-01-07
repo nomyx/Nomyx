@@ -54,6 +54,8 @@ viewLibrary (Library rts _) mlr gn isGameAdmin = do
     div ! class_ "ruleList" $ viewRuleTemplateCats rts mlr
     div ! class_ "rules" $ sequence_ vrs
 
+-- * left menu display
+
 viewRuleTemplateCats :: [RuleTemplate] -> Maybe LastRule -> Html
 viewRuleTemplateCats rts mlr = do
   let cat = (headDef "Not category" . _rCategory)
@@ -70,12 +72,15 @@ viewRuleTemplateCat rts = li $ do
 viewRuleTemplateName :: RuleTemplate -> Html
 viewRuleTemplateName rt = li $ H.a (fromString $ _rName rt) ! A.class_ "ruleName" ! (A.href $ toValue $ "?ruleName=" ++ (idEncode $ _rName rt))
 
+
+-- * main tab display
+
 viewRuleTemplate :: GameName -> Maybe LastRule -> Bool -> RuleTemplate -> RoutedNomyxServer Html
 viewRuleTemplate gn mlr isGameAdmin rt = do
   let toEdit = case mlr of
        Nothing -> (rt, "")
        Just lr -> if ((_rName $ fst lr) == (_rName rt)) then lr else (rt, "")
-  com <- commandRule gn rt
+  com <- templateCommands gn rt
   view <- viewrule gn toEdit isGameAdmin
   edit <- viewRuleTemplateEdit toEdit gn
   ok $ div ! A.class_ "rule" ! A.id (toValue $ idEncode $ _rName rt) $ do
@@ -83,14 +88,25 @@ viewRuleTemplate gn mlr isGameAdmin rt = do
     view
     edit
 
-commandRule :: GameName -> RuleTemplate -> RoutedNomyxServer Html
-commandRule gn rt = do
+-- ** Template commands
+
+templateCommands :: GameName -> RuleTemplate -> RoutedNomyxServer Html
+templateCommands gn rt = do
   let delLink = showRelURL (DelRuleTemplate gn (_rName rt))
   let idrt = idEncode $ _rName rt
   ok $ div ! A.class_ "commandrule" $ do
     p $ H.a "view"   ! (A.href $ toValue $ "?ruleName=" ++ idrt)
     p $ H.a "edit"   ! (A.href $ toValue $ "?ruleName=" ++ idrt ++ "&edit")
     p $ H.a "delete" ! (A.href $ toValue delLink)
+
+
+delRuleTemplate :: GameName -> RuleName -> RoutedNomyxServer Response
+delRuleTemplate gn rn = do
+  pn <- fromJust <$> getPlayerNumber
+  webCommand $ S.delRuleTemplate rn pn
+  seeOther (showRelURL $ Menu Lib gn) $ toResponse "Redirecting..."
+
+-- ** Template view
 
 viewrule :: GameName -> LastRule -> Bool -> RoutedNomyxServer Html
 viewrule gn (rt, err) isGameAdmin = do
@@ -123,8 +139,6 @@ viewDecls rd = do
    fromString $ show (_rDeclarations rd)
 ---mapM_ (div . displayCode . _modContent) (_rDeclarations rd)
 
--- * Templates submit
-
 -- | Submit a template to a given game
 submitRuleTemplatePost :: GameName -> RoutedNomyxServer Response
 submitRuleTemplatePost gn = toResponse <$> do
@@ -149,7 +163,7 @@ viewRuleTemplateEdit lr gn = do
   lf  <- liftRouteT $ lift $ viewForm "user" (newRuleTemplateForm (Just $ fst lr) True)
   ok $ div ! A.class_ "editRule" $ do
     blazeForm lf $ showRelURL $ NewRuleTemplate gn
-    fromString $ snd lr
+    pre $ fromString $ snd lr
 
 newRuleTemplateForm :: Maybe RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
 newRuleTemplateForm sr isGameAdmin = newRuleTemplateForm' (fromMaybe (RuleTemplate "" "" "" "" Nothing [] []) sr) isGameAdmin
@@ -175,24 +189,12 @@ newRuleTemplate gn = toResponse <$> do
   methodM POST
   r <- liftRouteT $ lift $ eitherForm environment "user" (newRuleTemplateForm Nothing False)
   pn <- fromJust <$> getPlayerNumber
-  ruleName <- case r of
+  case r of
      Right (rt, Nothing) -> do
-       --content <- liftIO $ readFile tempName
        webCommand $ S.newRuleTemplate pn rt
-       return $ _rName rt
+       seeOther (showRelURLParams (Menu Lib gn) [("ruleName", Just $ pack $ idEncode $ _rName rt)]) $ "Redirecting..."
      Right (rt, Just _)  -> do
-       --content <- liftIO $ readFile tempName
        webCommand $ S.checkRule rt pn gn
-       return $ _rName rt
-     _ -> do
-       liftIO $ putStrLn "cannot retrieve form data"
-       return ""
-  let link = showRelURLParams (Menu Lib gn) [("ruleName", Just $ pack $ idEncode ruleName)]
-  seeOther link $ "Redirecting..."
+       seeOther (showRelURLParams (Menu Lib gn) [("ruleName", Just $ pack $ idEncode $ _rName rt), ("edit", Nothing)]) $ "Redirecting..."
+     _ -> error "cannot retrieve form data"
 
-
-delRuleTemplate :: GameName -> RuleName -> RoutedNomyxServer Response
-delRuleTemplate gn rn = do
-  pn <- fromJust <$> getPlayerNumber
-  webCommand $ S.delRuleTemplate rn pn
-  seeOther (showRelURL $ Menu Lib gn) $ toResponse "Redirecting..."
