@@ -85,11 +85,11 @@ viewGamesTab gi isAdmin saveDir mpn = do
    let gn = _gameName g
    ok $ do
      table $ do
-       tr $ td ! A.class_ "buttonTD" $ H.a "Home "       ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Home gn)
-       tr $ td ! A.class_ "buttonTD" $ H.a "Rules "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Rules gn)
-       tr $ td ! A.class_ "buttonTD" $ H.a "My actions " ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Actions gn)
-       tr $ td ! A.class_ "buttonTD" $ H.a "Library "    ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Lib gn)
-       tr $ td ! A.class_ "buttonTD" $ H.a "Details "    ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Details gn)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Home "         ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Home gn)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Constitution " ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Rules gn)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Actions "   ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Actions gn)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Library "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Lib gn)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Details "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Details gn)
      br >> b "Help files:" >> br
      H.a "Rules examples"    ! (href "/html/Language-Nomyx-Examples.html") ! target "_blank" >> br
      H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br
@@ -145,7 +145,7 @@ nomyxPage mgn tab = do
    let gn = maybe (_gameName $ _game $ _loggedGame $ head $ _gameInfos $ _multi s) id mgn
    m <- viewMulti mpn saveDir tab gn s
    title <- titleBar name gn
-   mainPage' "Welcome to Nomyx!"
+   mainPage' "Nomyx: the game where you can change the rules"
             title
             False
             (H.div $ m)
@@ -191,8 +191,6 @@ routedNomyxCommands (SubmitRule game)    = submitRuleTemplatePost game
 -- Templates
 routedNomyxCommands (NewRuleTemplate game)    = newRuleTemplate game
 routedNomyxCommands (DelRuleTemplate game rn) = delRuleTemplate game rn
--- File management
-routedNomyxCommands Upload               = newUpload
 --Settings
 routedNomyxCommands Advanced             = advanced
 routedNomyxCommands (SubmitPlayAs game)  = newPlayAs         game

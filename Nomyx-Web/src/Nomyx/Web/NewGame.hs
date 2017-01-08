@@ -3,6 +3,7 @@
 
 module Nomyx.Web.NewGame where
 
+import           Prelude                     hiding (div)
 import           Control.Applicative
 import           Control.Monad.State
 import           Data.Maybe
@@ -17,7 +18,6 @@ import           Nomyx.Core.Types
 import           Nomyx.Web.Common
 import           Nomyx.Web.Types
 import qualified Nomyx.Web.Help                        as Help
-import           Prelude                     hiding (div)
 import           Text.Blaze.Html5                      hiding (head, map, br, label, textarea)
 import qualified Text.Blaze.Html5                      as H
 import           Text.Blaze.Html5.Attributes           hiding (dir, id, label)
@@ -48,21 +48,26 @@ gameNameRequired = fieldRequired GameNameRequired
 
 newGamePage :: RoutedNomyxServer Response
 newGamePage = toResponse <$> do
+   gp <- gamesPage
+   mainPage "New game"
+            "New game"
+            gp
+            False
+            True
+
+gamesPage :: RoutedNomyxServer Html
+gamesPage = do
    admin <- isAdmin
    gis <- getPublicGames
    s <- getSession
    mpn <- getPlayerNumber
    let gameNames = map (_gameName . _game . _loggedGame) gis
    mf <- liftRouteT $ lift $ viewForm "user" $ newGameForm admin gameNames
-   let gameForm = do
-       fromString "Create new game:"
-       viewGames (_gameInfos $ _multi s) admin mpn
-       blazeForm mf $ showRelURL SubmitNewGame
-   mainPage "New game"
-            "New game"
-            gameForm
-            False
-            True
+   ok $ do
+      h2 "Current games:"
+      viewGames (_gameInfos $ _multi s) admin mpn
+      h2 $ fromString "Create a new game:"
+      blazeForm mf $ showRelURL SubmitNewGame
 
 newGamePost :: RoutedNomyxServer Response
 newGamePost = toResponse <$> do
@@ -85,12 +90,10 @@ viewGames gis isAdmin mpn = do
    let canCreateGame = maybe False (\pn -> isAdmin || numberOfGamesOwned gis pn < 1) mpn
   -- let publicPrivate = partition ((== True) . _isPublic) gis
    let games = map (viewGameName isAdmin mpn) gis
-   b "Games:"
-   table $ do
-      --p ! A.style "font-weight:bold;"
-      sequence_ games
+   table $ sequence_ games
    H.br
    --when canCreateGame $ H.a "Create a new game" ! (href $ toValue $ defLink NewGame (isJust mpn)) >> H.br
+
 
 viewGameName :: Bool -> (Maybe PlayerNumber) -> GameInfo -> Html
 viewGameName isAdmin mpn gi = do
@@ -98,5 +101,6 @@ viewGameName isAdmin mpn gi = do
    let isGameAdmin = isAdmin || maybe False (==mpn) (Just $ _ownedBy gi)
    let gn = _gameName g
    let canView = isGameAdmin || _isPublic gi
-   when canView $ tr $ td $ H.a (fromString (gn ++ "   ")) ! (A.title $ toValue Help.view) -- ! attr
+   let link = showRelURL (Menu Home gn)
+   when canView $ tr $ td $ H.a (fromString (gn ++ "   ")) ! (A.title $ toValue Help.view) ! href (toValue link)
 
