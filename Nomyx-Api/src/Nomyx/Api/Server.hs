@@ -26,7 +26,7 @@ serveApi tv = do
    putStrLn "Starting Api on http://localhost:8001/"
    Warp.run 8001 $ myCors $ serveWithContext nomyxApi (basicAuthServerContext tv) (server tv)
 
- -- | 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
+-- | 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
 authCheck :: (TVar Session) -> BasicAuthCheck PlayerNumber
 authCheck tv = BasicAuthCheck (authCheck' tv)
 

@@ -87,9 +87,8 @@ viewGamesTab gi isAdmin saveDir mpn = do
      table $ do
        tr $ td ! A.class_ "buttonTD" $ H.a "Home "         ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Home gn)
        tr $ td ! A.class_ "buttonTD" $ H.a "Constitution " ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Rules gn)
-       tr $ td ! A.class_ "buttonTD" $ H.a "Actions "   ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Actions gn)
+       tr $ td ! A.class_ "buttonTD" $ H.a "Actions "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Actions gn)
        tr $ td ! A.class_ "buttonTD" $ H.a "Library "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Lib gn)
-       tr $ td ! A.class_ "buttonTD" $ H.a "Details "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Details gn)
      br >> b "Help files:" >> br
      H.a "Rules examples"    ! (href "/html/Language-Nomyx-Examples.html") ! target "_blank" >> br
      H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br

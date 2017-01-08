@@ -43,6 +43,7 @@ loginPage = mainPage' "Nomyx" "Login page" True $ do
           h2 "Forgotten Password"
           p "Forgot your password? Request a reset link via email!"
           customLeaf (stringTag "up-request-reset-password") True
+        H.br
         h2 "Create A New Account"
         customLeaf (stringTag "up-signup-password") True
 
