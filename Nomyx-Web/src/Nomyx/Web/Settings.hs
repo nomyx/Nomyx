@@ -47,7 +47,6 @@ advanced = toResponse <$> do
 
 advancedPage :: LastUpload -> Bool -> Settings -> [ProfileData] -> RoutedNomyxServer Html
 advancedPage mlu isAdmin settings pfds = do
-   up  <- liftRouteT $ lift $ viewForm "user" uploadForm  --TODO add the file name (missing Reform feature)
    ap  <- liftRouteT $ lift $ viewForm "user" adminPassForm
    set <- liftRouteT $ lift $ viewForm "user" $ settingsForm (_sendMails settings)
    let uploadExample =  pathSeparator : testDir </> "SimpleModule.hs"
@@ -60,19 +59,6 @@ advancedPage mlu isAdmin settings pfds = do
          pre $ fromString Help.getSaveFile
          H.a "get save file" ! (href $ toValue $ showRelURL SaveFilePage)
       H.br
-      hr
-      p $ do
-         pre $ fromString Help.upload
-         H.a "example upload file" ! (href $ toValue uploadExample)
-         H.br >> H.br
-         "Upload new rules file:" >> H.br
-         blazeForm up $ showRelURL Upload
-         case mlu of
-            UploadFailure (_, error) -> do
-               h5 "Error in submitted file: "
-               pre $ fromString error
-            UploadSuccess -> h5 "File uploaded successfully!"
-            NoUpload -> p ""
       hr
       p $ do
          h5 "Enter admin password to get admin rights (necessary to create public games):"
@@ -127,21 +113,6 @@ newSettings = toResponse <$> do
          webCommand $ globalSettings ps
          seeOther (showRelURL Advanced) "Redirecting..."
       (Left errorForm) -> mainPage  "Admin settings" "Admin settings" (blazeForm errorForm $ showRelURL SubmitSettings) False True
-
-
-uploadForm :: NomyxForm (FilePath, FilePath, ContentType)
-uploadForm = RB.inputFile
-
-newUpload :: RoutedNomyxServer Response
-newUpload = toResponse <$> do
-    methodM POST
-    pn <- fromJust <$> getPlayerNumber
-    r <- liftRouteT $ lift $ eitherForm environment "user" uploadForm
-    case r of
-       (Right (temp,name,_)) -> webCommand $ void $ S.inputUpload pn temp name
-       (Left _) -> liftIO $ putStrLn "cannot retrieve form data"
-    seeOther (showRelURL Advanced) "Redirecting..."
-
 
 newAdminPass :: RoutedNomyxServer Response
 newAdminPass = toResponse <$> do
