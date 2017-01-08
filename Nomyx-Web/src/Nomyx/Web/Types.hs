@@ -51,7 +51,7 @@ data PlayerCommand =
   | JoinGame  GameName
   | LeaveGame GameName
   | DelGame   GameName
-  | NewGame
+  | GamesPage GameName
   | SubmitNewGame
   -- Game actions
   | DoInput   Input EventNumber GameName 

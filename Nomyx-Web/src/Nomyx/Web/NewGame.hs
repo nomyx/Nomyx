@@ -46,17 +46,17 @@ newGameDesc = pure GameDesc <*> label "Enter game description:" ++> br ++> texta
 gameNameRequired :: String -> Either NomyxError String
 gameNameRequired = fieldRequired GameNameRequired
 
-newGamePage :: RoutedNomyxServer Response
-newGamePage = toResponse <$> do
-   gp <- gamesPage
+newGamePage :: GameName -> RoutedNomyxServer Response
+newGamePage gn = toResponse <$> do
+   gp <- gamesPage gn
    mainPage "New game"
             "New game"
             gp
             False
             True
 
-gamesPage :: RoutedNomyxServer Html
-gamesPage = do
+gamesPage :: GameName -> RoutedNomyxServer Html
+gamesPage gn = do
    admin <- isAdmin
    gis <- getPublicGames
    s <- getSession
@@ -65,9 +65,11 @@ gamesPage = do
    mf <- liftRouteT $ lift $ viewForm "user" $ newGameForm admin gameNames
    ok $ do
       h2 "Current games:"
-      viewGames (_gameInfos $ _multi s) admin mpn
+      viewGames (_gameInfos $ _multi s) admin mpn gn
       h2 $ fromString "Create a new game:"
       blazeForm mf $ showRelURL SubmitNewGame
+      H.br >> H.br
+      H.a "Current game debug infos" ! href (toValue $ showRelURL $ Menu Details gn)
 
 newGamePost :: RoutedNomyxServer Response
 newGamePost = toResponse <$> do
@@ -83,10 +85,10 @@ newGamePost = toResponse <$> do
          case mforkFrom of
             Nothing       -> webCommand $ S.newGame name desc pn isPublic
             Just forkFrom -> webCommand $ S.forkGame forkFrom name desc False pn
-         seeOther (showRelURL NewGame) "Redirecting..."
+         seeOther (showRelURL $ GamesPage name) "Redirecting..."
 
-viewGames :: [GameInfo] -> Bool -> (Maybe PlayerNumber) -> Html
-viewGames gis isAdmin mpn = do
+viewGames :: [GameInfo] -> Bool -> (Maybe PlayerNumber) -> GameName -> Html
+viewGames gis isAdmin mpn gn = do
    let canCreateGame = maybe False (\pn -> isAdmin || numberOfGamesOwned gis pn < 1) mpn
   -- let publicPrivate = partition ((== True) . _isPublic) gis
    let games = map (viewGameName isAdmin mpn) gis

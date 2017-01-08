@@ -27,7 +27,7 @@ import           Nomyx.Core.Engine                     hiding (JoinGame,
                                                         LeaveGame)
 import           Nomyx.Core.Profile                    as Profile
 import qualified Nomyx.Core.Session                    as S
-import           Nomyx.Core.Types                      as T
+import           Nomyx.Core.Types                      as T hiding (JoinGame, LeaveGame)
 import           Nomyx.Core.Utils
 import           Nomyx.Core.Engine.Evaluation
 import           Nomyx.Web.Common                      as W
@@ -90,12 +90,7 @@ viewGamesTab gi isAdmin saveDir mpn = do
        tr $ td ! A.class_ "buttonTD" $ H.a "Actions "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Actions gn)
        tr $ td ! A.class_ "buttonTD" $ H.a "Library "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Lib gn)
      br >> b "Help files:" >> br
-     H.a "Rules examples"    ! (href "/html/Language-Nomyx-Examples.html") ! target "_blank" >> br
      H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br
-     br >> b "Settings:" >> br
-     H.a "Advanced"        ! (href $ toValue $ defLink Advanced (isJust mpn)) >> br
-     H.a "Logout"          ! (href $ toValue $ showRelURL Login) >> br
-     H.a "Login"           ! (href $ toValue $ showRelURL Login) >> br
 
 viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> GameTab -> Library -> RoutedNomyxServer Html
 viewGameInfo gi mpn mlr isAdmin gt lib = do
@@ -153,7 +148,7 @@ titleBar :: PlayerName -> GameName -> RoutedNomyxServer Html
 titleBar name gn = ok $ table ! A.id "headerTitle" $ tr $ do
    let linkLogin = showRelURL Login 
    let linkHome = showRelURL MainPage
-   let linkNewGame = showRelURL NewGame 
+   let linkNewGame = showRelURL $ GamesPage gn
    td $ do
       H.a "Nomyx:  " ! (href $ toValue linkHome)
       H.a ! A.id "gameButton" ! (href $ toValue linkNewGame) $ do
@@ -182,7 +177,7 @@ routedNomyxCommands MainPage             = nomyxPage Nothing Home
 routedNomyxCommands (JoinGame game)      = joinGame          game
 routedNomyxCommands (LeaveGame game)     = leaveGame         game
 routedNomyxCommands (DelGame game)       = delGame           game
-routedNomyxCommands NewGame              = newGamePage
+routedNomyxCommands (GamesPage game)     = newGamePage       game
 routedNomyxCommands SubmitNewGame        = newGamePost
 -- Game actions
 routedNomyxCommands (DoInput is en game) = newInput' is en game

@@ -64,7 +64,6 @@ advancedPage mlu isAdmin settings pfds = do
          h5 "Enter admin password to get admin rights (necessary to create public games):"
          blazeForm ap $ showRelURL SubmitAdminPass
          when isAdmin $ h5 "You are admin"
-      H.a "click to show the game details " ! href (toValue $ showRelURL $ Menu Details gn)
       when isAdmin $ do
          hr
          p $ do
