@@ -29,23 +29,32 @@ default (Integer, Double, Data.Text.Text)
 
 -- | function which generates the login page
 loginPage :: RoutedNomyxServer Response
-loginPage = mainPage' "Nomyx" "Login page" True $ do
-      H.div ! customAttribute "ng-controller" "UsernamePasswordCtrl" $ do
-        H.div ! customAttribute "up-authenticated" "false" $ do
-          h2 "Login"
-          customLeaf (stringTag "up-login-inline") True
-        H.div ! customAttribute "up-authenticated" "true" $ do
-          p "You have successfully logged in!"
-          H.a "Click here to access the game" ! (href $ toValue $ showRelURL PostAuth)
-          h2 "Logout"
-          p "Click the link below to logout."
-          customLeaf (stringTag "up-logout") True
-          h2 "Forgotten Password"
-          p "Forgot your password? Request a reset link via email!"
-          customLeaf (stringTag "up-request-reset-password") True
-        H.br
-        h2 "Create A New Account"
-        customLeaf (stringTag "up-signup-password") True
+loginPage = do 
+   let ctrl = customAttribute "ng-controller" "UsernamePasswordCtrl" 
+   let isAuthenticated b = customAttribute "up-authenticated" (if b then "true" else "false")
+   let login = customParent (stringTag "up-login-inline") ""
+   let signup = customParent (stringTag "up-signup-password") ""
+   let logout t = customParent (stringTag "up-logout") t
+   let resetPassword = customParent (stringTag "up-request-reset-password") ""
+   mainPage' "Nomyx" "Login page" True $ do
+     H.div ! ctrl $ do
+       H.div ! isAuthenticated False $ do
+         h2 "Login"
+         login
+         H.br
+         p "Forgot your password? Request a reset link via email!"
+         resetPassword
+         H.br
+         h2 "Create A New Account"
+         signup
+       H.div ! isAuthenticated True $ do
+         p "You have successfully logged in!"
+         H.a "Click here to access the game" ! (href $ toValue $ showRelURL PostAuth)
+         H.br
+         H.br
+         logout "Click to logout."
+         H.br
+         H.a "Advanced settings" ! (href $ toValue $ defLink Advanced True)
 
 logout :: RoutedNomyxServer Response
 logout = do
