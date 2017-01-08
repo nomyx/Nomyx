@@ -25,11 +25,11 @@ before_install:
 - export PATH=$HOME/.local/bin:$PATH
 - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 # pre-build
-- stack build -j 1 Cabal
+- stack --no-terminal --install-ghc build -j 1 Cabal
 
 install:
 # Build dependencies
-- stack --no-terminal --install-ghc test --only-dependencies
+#- stack --no-terminal --install-ghc test --only-dependencies
 
 script:
 # Build the package, its tests, and its docs and run the tests
