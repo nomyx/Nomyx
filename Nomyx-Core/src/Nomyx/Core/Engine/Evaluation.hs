@@ -174,12 +174,10 @@ evDelPlayer pn = do
    g <- use (evalEnv . eGame)
    case find ((== pn) . view playerNumber) (_players g) of
       Nothing -> do
-         tracePN pn "not in game!"
          return False
       Just pid -> do
          modifyGame players $ filter (\a -> a ^. playerNumber /= pn)
          triggerEvent (Signal Leave) pid
-         tracePN pn $ "leaving the game: " ++ _gameName g
          return True
 
 evChangeName :: PlayerNumber -> PlayerName -> Evaluate Bool
@@ -342,17 +340,6 @@ errorNomex :: EventNumber -> String -> Evaluate ()
 errorNomex en s = do 
    tracePN 0 $ "Error: " ++ s
    log Nothing $ "Error: " ++ s ++ ", from event: " ++ (show en)
-
-
---runEvalError'' :: Maybe PlayerNumber -> Evaluate a -> State EvalEnv a
---runEvalError'' mpn egs = do
---   e <- runErrorT egs
---   case e of
---      Right a -> return a
---      Left e' -> do
---         tracePN (fromMaybe 0 mpn) $ "Error: " ++ e'
---         void $ runErrorT $ log mpn "Error: "
---         error "Eval"
 
 runEvaluate :: Game -> RuleNumber -> State EvalEnv a -> a
 runEvaluate g rn ev = error "runEvaluate" --evalState ev (EvalEnv rn g evalNomex)

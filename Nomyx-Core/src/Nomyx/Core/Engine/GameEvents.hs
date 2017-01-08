@@ -68,7 +68,6 @@ joinGame name pn = do
    case find ((== pn) . view playerNumber) (_players g) of
       Just _ -> return ()
       Nothing -> do
-         info pn $ "Joining game: " ++ _gameName g
          let player = PlayerInfo { _playerNumber = pn, _playerName = name, _playingAs = Nothing}
          players %= (player : )
          void $ mapStateIO $ runSystemEval pn $ triggerEvent (Signal Arrive) player
@@ -104,7 +103,7 @@ logGame s mpn = do
 -- | the user has provided an input result
 inputResult :: PlayerNumber -> EventNumber -> Input -> InputData -> StateT Game IO ()
 inputResult pn en is id = do
-   info pn $ "input result: input " ++ (show is) ++ " input data " ++ (show id)
+   debug pn $ "input result: input " ++ (show is) ++ " input data " ++ (show id)
    evs <- gets _events
    let rn = _erRuleNumber $ fromJust $ find (\(RuleEventInfo rn (EventInfo en' _ _ _ _)) -> en' == en) evs
    void $ mapStateIO $ runEvalError rn (Just pn) $ triggerInput is id
@@ -163,5 +162,6 @@ getEventInfo :: EventNumber -> LoggedGame -> EventInfo
 getEventInfo en g = _erEventInfo $ fromJust $ find ((== en) . view (erEventInfo . eventNumber)) (_events $ _game g)
 
 warn, info :: (MonadIO m) => Int -> String -> m ()
-info pn s = liftIO $ infoM "Nomyx.Core.GameEvent" ("Player " ++ (show pn) ++ " " ++ s)
-warn pn s = liftIO $ warningM "Nomyx.Core.GameEvent" ("Player " ++ (show pn) ++ " " ++ s)
+info  pn s = liftIO $ infoM "Nomyx.Core.GameEvent" ("Player " ++ (show pn) ++ " " ++ s)
+warn  pn s = liftIO $ warningM "Nomyx.Core.GameEvent" ("Player " ++ (show pn) ++ " " ++ s)
+debug pn s = liftIO $ debugM "Nomyx.Core.GameEvent" ("Player " ++ (show pn) ++ " " ++ s)

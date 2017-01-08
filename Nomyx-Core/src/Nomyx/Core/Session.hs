@@ -19,7 +19,6 @@ module Nomyx.Core.Session (
   newRuleTemplate,
   addRuleTemplate,
   delRuleTemplate,
-  inputUpload,
   updateLibrary,
   -- * IO
   inputResult,
@@ -58,6 +57,7 @@ import           Imprevu.Evaluation
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
 newPlayer uid ps = do
+   info uid $ "New player: " ++ (_pPlayerName ps)
    s <- get
    --void $ A.update' (acidAuth $ _profiles s) (SetDefaultSessionTimeout $ 3600 * 24 * 7 *25)
    void $ A.update' (_acidProfiles s) (NewProfileData uid ps (_mLibrary $ _multi s))
@@ -98,17 +98,22 @@ forkGame fromgn newgn desc isPublic pn = zoom multi $ do
 -- | join a game (also view it for conveniency)
 joinGame :: GameName -> PlayerNumber -> StateT Session IO ()
 joinGame gn pn = do
+   info pn $ "joining game: " ++ gn
    s <- get
    name <- lift $ Nomyx.Core.Profile.getPlayerName pn s
    inGameDo gn $ G.execGameEvent $ JoinGame pn name
 
 -- | delete a game.
 delGame :: GameName -> StateT Session IO ()
-delGame name = zoom multi $ void $ gameInfos %= filter ((/= name) . view gameNameLens)
+delGame gn = do
+   info 0 $ "deleting game: " ++ gn
+   zoom multi $ void $ gameInfos %= filter ((/= gn) . view gameNameLens)
 
 -- | leave a game.
 leaveGame :: GameName -> PlayerNumber -> StateT Session IO ()
-leaveGame game pn = inGameDo game $ G.execGameEvent $ LeaveGame pn
+leaveGame game pn = do
+   info pn $ "left game " ++ game
+   inGameDo game $ G.execGameEvent $ LeaveGame pn
 
 -- | insert a rule in pending rules.
 submitRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
@@ -177,32 +182,13 @@ delRuleTemplate rn pn = do
 inputResult :: PlayerNumber -> EventNumber -> Input -> InputData -> GameName -> StateT Session IO ()
 inputResult pn en is id gn = inGameDo gn $ execGameEvent $ InputResult pn en is id
 
--- | upload a rule file, given a player number, the full path of the file, the file name and the server handle
-inputUpload :: PlayerNumber -> FilePath -> FilePath -> StateT Session IO Bool
-inputUpload pn temp mod = undefined
---do
---   sd <- use (multi . mSettings . saveDir)
---   m <- liftIO $ loadModule temp mod sh sd
---   tracePN pn $ " uploaded " ++ show mod
---   case m of
---      Nothing -> do
---         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("File loaded: " ++ show temp ++ ", as " ++ show mod ++"\n")
---         tracePN pn "upload success"
---         modifyProfile pn (pLastUpload .~ UploadSuccess)
---         return True
---      Just e -> do
---         let errorMsg = showInterpreterError e
---         inAllGamesDo $ execGameEvent $ GLog (Just pn) ("Error in file: " ++ show e ++ "\n")
---         tracePN pn $ "upload failed: \n" ++ show e
---         modifyProfile pn (pLastUpload .~ UploadFailure (temp, errorMsg))
---         return False
-
 -- | update player settings
 playerSettings :: PlayerSettings -> PlayerNumber -> StateT Session IO ()
 playerSettings playerSettings pn = modifyProfile pn (pPlayerSettings .~ playerSettings)
 
 playAs :: Maybe PlayerNumber -> PlayerNumber -> GameName -> StateT Session IO ()
 playAs playAs pn g = inGameDo g $ do
+   info pn $ unwords ["playing as ", show playAs, "in game" ++ g]
    pls <- use (game . players)
    case find ((== pn) . view playerNumber) pls of
       Nothing -> warn pn "player not in game"
