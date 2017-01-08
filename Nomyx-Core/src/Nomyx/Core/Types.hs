@@ -5,7 +5,10 @@
 {-# LANGUAGE TypeSynonymInstances      #-}
 {-# LANGUAGE FlexibleInstances      #-}
 
-module Nomyx.Core.Types where
+module Nomyx.Core.Types (
+   module Nomyx.Core.Types,
+   module Nomyx.Core.Engine.Types)
+   where
 
 import           Control.Lens hiding (Indexable)
 import           Data.Acid                           (AcidState)
