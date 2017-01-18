@@ -123,18 +123,15 @@ launchTimeEvents' tv = do
     now <- getCurrentTime
     debug "tick"
     s <- atomically $ readTVar tv
-    let gs = map (_game . _loggedGame) (_gameInfos $ _multi s)
-    let s' = over (multi . gameInfos) (map (gameTimeEvents now)) s
-    --sleep 30 second roughly
-    threadDelay 30000000
+    let gs = toListOf (multi . gameInfos . traverse . loggedGame . game) s
+    let ss = mapM_ (applyTimeEvent now) gs
+    s' <- execStateT ss s
+    atomically $ writeTVar tv s'
+    save (_multi s')
+    --sleep 5 second roughly
+    threadDelay 5000000
     launchTimeEvents' tv
-      
-gameTimeEvents :: UTCTime -> GameInfo -> GameInfo
-gameTimeEvents now gi = (loggedGame . game) .~ g' $ gi where 
-    g = _game $ _loggedGame gi
-    ts = join $ maybeToList $ runEvaluate (getTimeEvents now) (defaultEvalEnv 0 g)
-    (EvalState g' _) = foldr (triggerTimeEvent defaultEvalConf) (EvalState g 0) ts
-   --   unless (null ts) $ putStrLn "found time event(s)"
+
 
 loadMulti :: Settings -> FilePath -> IO Multi
 loadMulti set libPath = do

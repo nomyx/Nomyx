@@ -22,6 +22,7 @@ module Nomyx.Core.Session (
   updateLibrary,
   -- * IO
   inputResult,
+  applyTimeEvent,
   -- * settings
   playerSettings,
   adminPass,
@@ -29,7 +30,7 @@ module Nomyx.Core.Session (
   playAs,
   -- * Session
   updateSession,
-  evalSession
+  evalSession,
   )
 where
 
@@ -52,7 +53,7 @@ import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
 import           System.IO.PlafCompat
 import           System.Log.Logger
-import           Imprevu.Evaluation
+import           Imprevu.Evaluation 
 
 -- | add a new player
 newPlayer :: PlayerNumber -> PlayerSettings -> StateT Session IO ()
@@ -119,7 +120,7 @@ leaveGame game pn = do
 submitRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
 submitRule rt pn gn = do
    info pn $ "proposed " ++ show rt
-   compileRule rt pn gn Propose "Rule submitted OK! See \"Rules\" tab or \"Inputs/Ouputs\" tab for actions."
+   compileRule rt pn gn Propose "Rule submitted OK! See \"Constitution\" or \"Actions\" tabs for actions."
 
 adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
 adminSubmitRule rt pn gn = do
@@ -181,6 +182,12 @@ delRuleTemplate rn pn = do
 
 inputResult :: PlayerNumber -> EventNumber -> Input -> InputData -> GameName -> StateT Session IO ()
 inputResult pn en is id gn = inGameDo gn $ execGameEvent $ InputResult pn en is id
+
+applyTimeEvent :: UTCTime -> Game -> StateT Session IO () 
+applyTimeEvent t g = do
+   let ts = G.getTimeEvents t g
+   mapM_ (\t -> inGameDo (_gameName g) $ execGameEvent $ TimeEvent t) ts
+
 
 -- | update player settings
 playerSettings :: PlayerSettings -> PlayerNumber -> StateT Session IO ()

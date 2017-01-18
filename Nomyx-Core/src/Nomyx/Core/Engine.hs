@@ -40,13 +40,14 @@ module Nomyx.Core.Engine(
 
    -- * Time
    currentTime,
-
+   getTimeEvents,
    -- * Misc
    tracePN,
    getChoiceEvents,
    runEvaluate,
    withEvent',
-   saveModule
+   saveModule,
+   defaultEvalEnv
    ) where
 
 import           Nomyx.Core.Engine.Evaluation

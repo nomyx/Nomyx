@@ -13,7 +13,7 @@ import           Data.List
 import           Data.Maybe
 import           Data.Time
 import           Data.Typeable
-import qualified Imprevu.Evaluation as Imp (runEvalError, runEvaluate)
+import qualified Imprevu.Evaluation as Imp
 import           Imprevu.Evaluation hiding (runEvalError, events)
 import           Imprevu
 import           Nomyx.Language
@@ -285,6 +285,10 @@ evalOutput g (Output _ rn _ o _) = runEvaluate' g rn (evalNomex o)
 
 allOutputs :: Game -> [String]
 allOutputs g = map (evalOutput g) (_outputs g)
+
+getTimeEvents :: UTCTime -> Game -> [UTCTime]
+getTimeEvents t g = join $ maybeToList $ Imp.runEvaluate (Imp.getTimeEvents t) (defaultEvalEnv 0 g)
+
 
 --delete all variables of a rule
 delVarsRule :: RuleNumber -> Evaluate ()
