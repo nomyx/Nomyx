@@ -8,7 +8,8 @@ module Nomyx.Library.Examples where
 import Prelude
 import Control.Monad as X
 import Nomyx.Language
-
+import qualified Data.Time as DT
+import Control.Applicative
 
 -- | A rule that does nothing
 nothing :: Rule
@@ -25,14 +26,14 @@ delRule rn = suppressRule_ rn >> autoDelete
 -- | will display the current time (when refreshing the screen)
 displayCurrentTime :: Rule
 displayCurrentTime = void $ outputAll $ do
-    t <- getCurrentTime
-    return $ "The current time is: " ++ (show t)
+   t <- getCurrentTime
+   return $ "The current time is: " ++ (show t)
 
 -- | will display the time at which the rule as been activated
 displayActivateTime :: Nomex ()
 displayActivateTime = do
-   time <- getCurrentTime
-   outputAll_ $ "This rule was activated at: " ++ (show time)
+   t <- getCurrentTime
+   outputAll_ $ "This rule was activated at: " ++ (show t)
 
 -- | display a button and greets you when pressed (for player 1)
 bravoButton :: Rule
@@ -54,3 +55,8 @@ helloButton = do
 enterHaiku :: Rule
 enterHaiku = void $ onInputTextarea_ "Enter a haiku:" outputAll_ 1
 
+testTime :: Rule
+testTime = do
+  t <- getCurrentTime
+  void $ onEvent_ (True <$ inputButton 1 "click here before 5 seconds:" <|> False <$ (timeEvent $ DT.addUTCTime 5 t)) f where
+   f a = outputAll_ $ show a
