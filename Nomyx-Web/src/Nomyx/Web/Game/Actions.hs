@@ -45,7 +45,7 @@ viewIOs :: PlayerNumber -> Game -> RoutedNomyxServer Html
 viewIOs pn g = do
    vios <- mapM (viewIORule pn g) (sort $ _rules g)
    ok $ do
-      titleWithHelpIcon (h3 "Inputs/Ouputs") Help.inputsOutputs
+      titleWithHelpIcon (h3 "Inputs/Ouputs from constitutional rules") Help.inputsOutputs
       a "" ! A.id (toValue inputAnchor)
       mconcat vios
 
@@ -99,7 +99,7 @@ viewOutput :: Game -> Output -> Maybe Html
 viewOutput g o = if (s /= "") then Just (pre $ fromString s >> br) else Nothing where
    s =  (evalOutput g o)
 
----- | a form result has been sent
+-- | a form result has been sent
 newInput' :: Input -> EventNumber -> GameName -> RoutedNomyxServer Response
 newInput' is en gn = do
   ws <- use webSession
@@ -107,6 +107,4 @@ newInput' is en gn = do
   liftRouteT $ lift $ newInput is en ws (updateSession' gn) link
 
 updateSession' :: GameName -> TVar Session -> Input -> InputData -> EventNumber -> IO ()
-updateSession' gn tvs is@(Input _ pn) id en = do
-  putStrLn $ "updateSession, pn= " ++ (show pn)
-  S.updateSession tvs $ S.inputResult pn en is id gn
+updateSession' gn tvs is@(Input _ pn) id en = S.updateSession tvs $ S.inputResult pn en is id gn

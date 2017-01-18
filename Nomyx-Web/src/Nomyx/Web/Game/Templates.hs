@@ -61,7 +61,7 @@ viewRuleTemplateCats rts mlr = do
   let cat = (headDef "Not category" . _rCategory)
   let rts' = groupBy ((==) `on` cat) $ sortBy (comparing cat) rts
   --let allRules = rts' ++ [(maybe (RuleTemplate "New Rule" "" "" "" Nothing [] []) fst mlr)]
-  h2 "Library"
+  h2 "Library of rules"
   ul $ mapM_  viewRuleTemplateCat rts'
 
 viewRuleTemplateCat :: [RuleTemplate] -> Html
@@ -148,11 +148,17 @@ submitRuleTemplatePost gn = toResponse <$> do
    admin <- isGameAdmin (fromJust gi)
    r <- liftRouteT $ lift $ eitherForm environment "user" (submitRuleTemplatForm Nothing True)
    pn <- fromJust <$> getPlayerNumber
-   case r of
-      Right (rt, Nothing) -> webCommand $ submitRule      (fromJust $ read rt) pn gn
-      Right (rt, Just _)  -> webCommand $ adminSubmitRule (fromJust $ read rt) pn gn
-      (Left _)            -> liftIO $ putStrLn "cannot retrieve form data"
-   seeOther (showRelURL $ Menu Actions gn) $ "Redirecting..."
+   rt <- case r of
+      Right (srt, Nothing) -> do
+         let rt = fromJust $ read srt
+         webCommand $ submitRule rt pn gn
+         return rt
+      Right (srt, Just _)  -> do
+         let rt = read srt
+         webCommand $ adminSubmitRule rt pn gn
+         return rt
+      (Left _)            -> error "cannot retrieve form data"
+   seeOther (showRelURLParams (Menu Lib gn) [("ruleName", Just $ pack $ idEncode $ _rName rt)]) $ "Redirecting..."
 
 
 -- * Template edit
