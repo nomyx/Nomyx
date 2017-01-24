@@ -99,6 +99,7 @@ function getQueryVariable(variable) {
 $(document).ready(function () {
     templateQuery();
     ruleQuery();
+    moduleQuery();
 });
 
 function templateQuery() {
@@ -116,4 +117,9 @@ function templateQuery() {
 function ruleQuery() {
     var ruleNumber = getQueryVariable("ruleNumber");
     $('[id="rule' + ruleNumber + '"]').css('display', 'block');
+}
+
+function moduleQuery() {
+    var modulePath = getQueryVariable("modulePath");
+    $('[id="' + modulePath + '"]').css('display', 'block');
 }

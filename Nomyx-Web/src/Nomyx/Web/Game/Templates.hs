@@ -2,7 +2,7 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE ApplicativeDo  #-}
+--{-# LANGUAGE ApplicativeDo  #-}
 
 module Nomyx.Web.Game.Templates where
 
@@ -43,14 +43,15 @@ import           Text.Reform.Happstack       (environment)
 import           Web.Routes.RouteT           (liftRouteT)
 import           Happstack.Server            (ContentType)
 import           Safe
+import           Network.HTTP.Base                  (urlEncode)
 default (Integer, Double, Data.Text.Text)
 
 
 -- * Library display
 
 viewLibrary :: Library -> Maybe LastRule -> GameName -> Bool -> RoutedNomyxServer Html
-viewLibrary (Library rts _) mlr gn isGameAdmin = do
-  vrs <- mapM (viewRuleTemplate gn mlr isGameAdmin) rts
+viewLibrary (Library rts ms) mlr gn isGameAdmin = do
+  vrs <- mapM (viewPaneRuleTemplate gn mlr isGameAdmin) rts
   ok $ do
     div ! class_ "ruleList" $ viewRuleTemplateCats rts mlr
     div ! class_ "rules" $ sequence_ vrs
@@ -76,13 +77,13 @@ viewRuleTemplateName rt = li $ H.a (fromString $ _rName rt) ! A.class_ "ruleName
 
 -- * main tab display
 
-viewRuleTemplate :: GameName -> Maybe LastRule -> Bool -> RuleTemplate -> RoutedNomyxServer Html
-viewRuleTemplate gn mlr isGameAdmin rt = do
+viewPaneRuleTemplate :: GameName -> Maybe LastRule -> Bool -> RuleTemplate -> RoutedNomyxServer Html
+viewPaneRuleTemplate gn mlr isGameAdmin rt = do
   let toEdit = case mlr of
        Nothing -> (rt, "")
        Just lr -> if ((_rName $ fst lr) == (_rName rt)) then lr else (rt, "")
   com <- templateCommands gn rt
-  view <- viewrule gn toEdit isGameAdmin
+  view <- viewRuleTemplate gn toEdit isGameAdmin
   edit <- viewRuleTemplateEdit toEdit gn
   ok $ div ! A.class_ "rule" ! A.id (toValue $ idEncode $ _rName rt) $ do
     com
@@ -107,10 +108,10 @@ delRuleTemplate gn rn = do
   webCommand $ S.delRuleTemplate rn pn
   seeOther (showRelURL $ Menu Lib gn) $ toResponse "Redirecting..."
 
--- ** Template view
+-- ** Modules view
 
-viewrule :: GameName -> LastRule -> Bool -> RoutedNomyxServer Html
-viewrule gn (rt, err) isGameAdmin = do
+viewRuleTemplate :: GameName -> LastRule -> Bool -> RoutedNomyxServer Html
+viewRuleTemplate gn (rt, err) isGameAdmin = do
   lf  <- liftRouteT $ lift $ viewForm "user" (submitRuleTemplatForm (Just rt) isGameAdmin)
   ok $ div ! A.class_ "viewrule" $ do
     let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
@@ -119,7 +120,7 @@ viewrule gn (rt, err) isGameAdmin = do
     h3 $ fromString $ _rDescription rt
     h2 $ fromString $ "authored by " ++ (_rAuthor rt)
     viewRuleFunc rt
-    viewDecls rt
+    mapM (viewDecl gn) (_rDeclarations rt)
     div $ pre $ fromString err
     blazeForm lf $ showRelURL (SubmitRule gn)
 
@@ -128,17 +129,24 @@ submitRuleTemplatForm mrt isGameAdmin =
    (,) <$> inputHidden (show mrt)
        <*> if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 
+--submitRuleTemplatForm :: (Maybe RuleTemplate) -> Bool -> NomyxForm (String, Maybe String)
+--submitRuleTemplatForm mrt isGameAdmin = do
+--  srt <- inputHidden (show mrt)
+--  admin <- if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
+--  return (srt, admin)
+
 viewRuleFunc :: RuleTemplate -> Html
 viewRuleFunc rd = do
- let code = lines $ _rRuleCode rd
- let codeCutLines = 7
- div ! A.id "codeDiv" $ displayCode $ unlines $ take codeCutLines code
- div $ when (length code >= codeCutLines) $ fromString "(...)"
+  let code = lines $ _rRuleCode rd
+  let codeCutLines = 7
+  div ! A.id "codeDiv" $ displayCode $ unlines $ take codeCutLines code
+  div $ when (length code >= codeCutLines) $ fromString "(...)"
 
-viewDecls :: RuleTemplate -> Html
-viewDecls rd = do
-   fromString $ show (_rDeclarations rd)
----mapM_ (div . displayCode . _modContent) (_rDeclarations rd)
+viewDecl :: GameName -> FilePath -> Html
+viewDecl gn modPath = do
+   let link = showRelURLParams (Menu Modules gn) [("modulePath", Just $ pack $ idEncode modPath)]
+   H.a (fromString modPath) ! (A.href $ toValue $ link)
+
 
 -- | Submit a template to a given game
 submitRuleTemplatePost :: GameName -> RoutedNomyxServer Response
@@ -175,22 +183,37 @@ viewRuleTemplateEdit lr gn = do
 newRuleTemplateForm :: Maybe RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
 newRuleTemplateForm sr isGameAdmin = newRuleTemplateForm' (fromMaybe (RuleTemplate "" "" "" "" Nothing [] []) sr) isGameAdmin
 
+--newRuleTemplateForm' :: RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
+--newRuleTemplateForm' rt isGameAdmin = do
+--  rt <- newRuleTemplateForm'' rt
+--  chk <- inputSubmit "Check"
+--  return (rt, chk)
+
 newRuleTemplateForm' :: RuleTemplate -> Bool -> NomyxForm (RuleTemplate, Maybe String)
-newRuleTemplateForm' rt isGameAdmin = do
-  rt <- newRuleTemplateForm'' rt
-  chk <- inputSubmit "Check"
-  return (rt, chk)
+newRuleTemplateForm' rt isGameAdmin =
+  (,) <$> newRuleTemplateForm'' rt
+      <*> inputSubmit "Check"
+
+--newRuleTemplateForm'' :: RuleTemplate -> NomyxForm RuleTemplate
+--newRuleTemplateForm'' rt@(RuleTemplate name desc code aut pic cat decls) = do
+--  name'  <-  RB.label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
+--  desc'  <- (RB.label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
+--  code'  <-  RB.label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
+--  aut'   <-  (inputHidden aut)
+--  pic'   <-  (read <$> (inputHidden $ show pic))
+--  cat'   <-  (read <$> (inputHidden $ show cat))
+--  decls' <-  (read <$> (inputHidden $ show decls))
+--  return (RuleTemplate name' desc' code' aut' pic' cat' decls')
 
 newRuleTemplateForm'' :: RuleTemplate -> NomyxForm RuleTemplate
-newRuleTemplateForm'' rt@(RuleTemplate name desc code aut pic cat decls) = do
-  name'  <-  RB.label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
-  desc'  <- (RB.label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
-  code'  <-  RB.label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
-  aut'   <-  (inputHidden aut)
-  pic'   <-  (read <$> (inputHidden $ show pic))
-  cat'   <-  (read <$> (inputHidden $ show cat))
-  decls' <-  (read <$> (inputHidden $ show decls))
-  return (RuleTemplate name' desc' code' aut' pic' cat' decls')
+newRuleTemplateForm'' (RuleTemplate name desc code aut pic cat decls) =
+  RuleTemplate <$>  RB.label "Name: " ++> RB.inputText name `setAttr` class_ "ruleName"
+               <*> (RB.label "      Short description: " ++> (RB.inputText desc `setAttr` class_ "ruleDescr") <++ RB.br)
+               <*>  RB.label "      Code: " ++> textarea 80 15 code `setAttr` class_ "ruleCode" `setAttr` placeholder "Enter here your rule"
+               <*>  (inputHidden aut)
+               <*>  (read <$> (inputHidden $ show pic))
+               <*>  (read <$> (inputHidden $ show cat))
+               <*>  (read <$> (inputHidden $ show decls))
 
 newRuleTemplate :: GameName -> RoutedNomyxServer Response
 newRuleTemplate gn = toResponse <$> do

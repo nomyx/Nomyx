@@ -36,6 +36,7 @@ import           Nomyx.Web.Game.Infos
 import           Nomyx.Web.Game.Actions
 import           Nomyx.Web.Game.Templates
 import           Nomyx.Web.Game.Rules
+import           Nomyx.Web.Game.Modules
 import qualified Nomyx.Web.Help                        as Help
 import           Nomyx.Web.Login
 import           Nomyx.Web.NewGame
@@ -101,6 +102,7 @@ viewGameInfo gi mpn mlr isAdmin gt lib = do
    let playAs = mpn >> maybe Nothing _playingAs pi
    let pn = fromMaybe 0 mpn
    vrf <- viewLibrary lib mlr gn isGameAdmin
+   vms <- viewModules lib mlr gn isGameAdmin
    vios <- viewIOs (fromMaybe pn playAs) g
    vgd <- viewGameDesc g mpn playAs isGameAdmin
    vrs <- viewAllRules pn g
@@ -109,6 +111,7 @@ viewGameInfo gi mpn mlr isAdmin gt lib = do
         Rules   -> div ! A.id "rulesGameDiv"    ! A.class_ "game" $ vrs
         Actions -> div ! A.id "iosGameDiv"      ! A.class_ "game" $ vios
         Lib     -> div ! A.id "newRuleGameDiv"  ! A.class_ "game" $ vrf
+        Modules -> div ! A.id "moduleDiv"       ! A.class_ "game" $ vms
         Details -> div ! A.id "detailsGameDiv"  ! A.class_ "game" $ viewDetails pn g
 
 joinGame :: GameName -> RoutedNomyxServer Response

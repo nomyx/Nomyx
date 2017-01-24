@@ -133,6 +133,10 @@ h3{
    display:none;
 }
 
+.module {
+   display:none;
+}
+
 #ruleName {
    font-weight: bold;
    margin-top: 15pt;

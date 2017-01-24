@@ -32,7 +32,7 @@ import           Imprevu.Evaluation.InputEval
 
 default (Integer, Double, Data.Text.Text)
 
-data GameTab = Home | Rules | Actions | Lib | Details
+data GameTab = Home | Rules | Actions | Lib | Modules | Details
    deriving (Show)
 
 data PlayerCommand =
