@@ -29,7 +29,7 @@ import           Nomyx.Web.Types
 import           Prelude                     hiding (div)
 import           Text.Blaze.Html5            as H (Html, a, div, h2, h3, h4,
                                                    img, input, label, li, pre,
-                                                   toValue, ul, (!), p)
+                                                   toValue, ul, (!), p, br)
 import           Text.Blaze.Html5.Attributes as A (class_, disabled, for, href,
                                                    id, placeholder, src, type_,
                                                    value)
@@ -108,7 +108,6 @@ delRuleTemplate gn rn = do
   webCommand $ S.delRuleTemplate rn pn
   seeOther (showRelURL $ Menu Lib gn) $ toResponse "Redirecting..."
 
--- ** Modules view
 
 viewRuleTemplate :: GameName -> LastRule -> Bool -> RoutedNomyxServer Html
 viewRuleTemplate gn (rt, err) isGameAdmin = do
@@ -146,6 +145,7 @@ viewDecl :: GameName -> FilePath -> Html
 viewDecl gn modPath = do
    let link = showRelURLParams (Menu Modules gn) [("modulePath", Just $ pack $ idEncode modPath)]
    H.a (fromString modPath) ! (A.href $ toValue $ link)
+   H.br
 
 
 -- | Submit a template to a given game

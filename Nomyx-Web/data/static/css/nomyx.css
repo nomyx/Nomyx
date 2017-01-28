@@ -115,9 +115,8 @@ h3{
    position:relative;
    height: 100%;
    left: 265px;
-   padding: 6px;
+   padding: 10px;
    width: 75%;
-   text-align: center;
    display: none;
 }
 
@@ -153,6 +152,15 @@ h3{
 
 .ruleDescr {
     width:50%;
+}
+
+/* Modules */
+
+.module {
+   position:relative;
+   height: 100%;
+   padding: 10px;
+   display: none;
 }
 
 /* Code */

@@ -57,7 +57,7 @@ viewModules (Library rts ms) mlr gn isGameAdmin = do
 viewPaneModule :: GameName -> Maybe LastRule -> Bool -> ModuleInfo -> RoutedNomyxServer Html
 viewPaneModule gn mlr isGameAdmin modi = do
   view <- viewModule gn modi isGameAdmin
-  ok $ div ! A.class_ "rule" ! A.id (toValue $ idEncode $ _modPath modi) $ do
+  ok $ div ! A.class_ "module" ! A.id (toValue $ idEncode $ _modPath modi) $ do
     view
 
 -- ** Module view
