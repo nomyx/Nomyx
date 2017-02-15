@@ -20,4 +20,7 @@ COPY . /opt/Nomyx
 RUN stack install --system-ghc 
 
 ENV PATH /usr/bin:$PATH
-ENTRYPOINT ["stack exec Nomyx --system-ghc"]
+CMD stack exec --system-ghc -- Nomyx -p localhost:8000 --noTTY
+
+EXPOSE 8000
+EXPOSE 8001

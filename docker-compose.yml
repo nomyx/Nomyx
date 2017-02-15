@@ -1,0 +1,10 @@
+version: '2'
+services:
+  nomyx:
+    image: cdupont2/nomyx
+    cpu_shares: 100
+    mem_limit: 1024000000
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    command: sh -c "stack exec --system-ghc -- Nomyx -h 54.208.241.205 --noTTY"
