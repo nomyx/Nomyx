@@ -89,6 +89,8 @@ start flags = do
    let libraryPath = fromMaybe defLib        (findLibrary flags)
    let watchdog    = fromMaybe 10 (read <$> findWatchdog flags)
    let mLoad       = findLoadTest flags
+   let verbose     = Verbose `elem` flags
+   let isTTY       = not $ NoTTY `elem` flags
    -- save directory: Nomyx.save and uploaded files
    saveDir <- case findTarFile flags of
       Just tarFile -> untar tarFile
@@ -96,15 +98,15 @@ start flags = do
          Just f -> canonicalizePath f
          Nothing -> PN.getDataDir
    let settings    = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir watchdog
-   when (Verbose `elem` flags) $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\nweb dir = " ++ webDir ++ "\nsource dir = " ++ sourceDir
+   when verbose $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\nweb dir = " ++ webDir ++ "\nsource dir = " ++ sourceDir
    if Test `elem` flags
       then runTests mLoad watchdog
       else if DeleteSaveFile `elem` flags then cleanFile saveDir
-      else mainLoop settings saveDir host port libraryPath
+      else mainLoop settings saveDir host port libraryPath isTTY
 
 
-mainLoop :: Settings -> FilePath -> HostName -> Port -> FilePath -> IO ()
-mainLoop settings saveDir host port lib = do
+mainLoop :: Settings -> FilePath -> HostName -> Port -> FilePath -> Bool -> IO ()
+mainLoop settings saveDir host port lib isTTY = do
    serverCommandUsage
    --creating game structures
    multi <- Main.loadMulti settings lib
@@ -114,9 +116,9 @@ mainLoop settings saveDir host port lib = do
      --start the web server
      forkIO $ launchWebServer ts (Network host port)
      forkIO $ launchTimeEvents' ts
+     when isTTY $ void $ forkIO $ serverLoop ts
      --start the REST API
-     forkIO $ serveApi ts
-     serverLoop ts
+     serveApi ts
 
 launchTimeEvents' :: TVar Session -> IO ()
 launchTimeEvents' tv = do
@@ -204,6 +206,7 @@ data Flag = Verbose
           | API
           | Watchdog String
           | LibraryPath FilePath
+          | NoTTY
        deriving (Show, Eq)
 
 -- | launch options description
@@ -226,6 +229,7 @@ options =
      , Option ""  ["api"]       (NoArg API)                         "get swagger API file"
      , Option ""  ["watchdog"]  (ReqArg Watchdog "5")               "time in seconds before killing the compilation thread"
      , Option ""  ["library"]   (ReqArg LibraryPath "Library path") "specify the path of a library of rules (yaml file)"
+     , Option ""  ["noTTY"]     (NoArg NoTTY)                       "Start headless"
      ]
 
 nomyxOpts :: [String] -> IO ([Flag], [String])
