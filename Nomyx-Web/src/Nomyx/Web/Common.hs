@@ -107,7 +107,7 @@ pageTemplate ::
                           -> [(Text, Maybe Text)] -> Text)
     -> Html
 pageTemplate title headers body footer routeFn = do
- H.html ! manifest "/static/manifest.yaml" $ do  
+ H.html ! manifest "nomyx.appcache" $ do  
    H.head $ do
       H.title (fromString title)
       H.link ! rel "stylesheet" ! type_ "text/css" ! href "/static/css/nomyx.css"

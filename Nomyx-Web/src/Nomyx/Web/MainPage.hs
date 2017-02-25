@@ -211,6 +211,7 @@ launchWebServer tv net = do
 --serving Nomyx web page as well as data from this package and the language library package
 server :: WebSession -> Settings -> Network -> String -> ServerPartT IO Response
 server ws set net docdir = mconcat [
+    guardRq isAppCache >> serveFile (asContentType "text/cache-manifest") (_webDir set </> "nomyx.appcache"),
     serveDirectory EnableBrowsing [] (_saveDir set),
     serveDirectory EnableBrowsing [] docdir,
     serveDirectory EnableBrowsing [] (_webDir set),
@@ -230,3 +231,7 @@ getDocDir = do
    datadir <- getDataDir
    let (as, _:bs) = break (== "share") $ splitDirectories datadir
    return $ joinPath $ as ++ ["share", "doc"] ++ bs
+
+
+isAppCache :: Request -> Bool
+isAppCache r = last (rqPaths r) == "nomyx.appcache"
