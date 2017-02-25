@@ -1,3 +1,162 @@
+
+# Democracy
+
+- name:     Majority vote
+  author:   Kau
+  desc:     "A majority vote is cast for new rules. Vote will pass with more than 50% of \"yes\",
+             with minimum 2 voters to be valid,
+             finishing after maximum one day."
+  rule:     onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDay
+  category: [Democracy]
+  decls:
+    - Nomyx/Library/Vote.hs
+    - Nomyx/Library/Democracy.hs
+  picture:  null
+
+- name:     Unanimity vote
+  author:   Kau
+  desc:     "A unanimity vote: all players need to vote \"yes\" for a new rule to be accepted."
+  rule:     onRuleProposed $ callVoteRule unanimity oneDay
+  category: [Democracy]
+  decls:
+    - Nomyx/Library/Vote.hs
+    - Nomyx/Library/Democracy.hs
+  picture:  null
+
+# Monarchy
+
+- name:     make King
+  author:   Kau
+  desc:     "Make a player King (change the X with the player number)"
+  rule:     makeKing X
+  category: [Monarchy]
+  decls:
+    - Nomyx/Library/Monarchy.hs
+  picture:  null
+
+- name:     Monarchy
+  author:   Kau
+  desc:     "Monarchy: only the king decides which rules to accept or reject (change the X with the player number)"
+  rule:     monarchy X
+  category: [Monarchy]
+  decls:
+    - Nomyx/Library/Monarchy.hs
+  picture:  null
+
+- name:     revolution
+  author:   Kau
+  desc:     "Revolution! Hail to the king!
+             This rule suppresses the democracy (usually rules 1 or 2), installs the king and activates monarchy.
+             (change the X with the player number)"
+  rule:     revolution X
+  category: [Monarchy]
+  decls:
+    - Nomyx/Library/Monarchy.hs
+  picture:  null
+
+
+# Victories
+
+- name:     5 rules victory
+  author:   Kau
+  desc:     "You win if you have 5 rules accepted."
+  rule:     victoryXRules 5
+  category: [Victory]
+  decls:
+    - Nomyx/Library/Victory.hs
+  picture:  null
+
+- name:     100 ECU wins
+  author:   Kau
+  desc:     "You win if you have 1000 ECU on your bank account."
+  rule:     victoryXEcu 1000
+  category: [Victory]
+  decls:
+    - Nomyx/Library/Victory.hs
+  picture:  null
+
+- name:     I win
+  author:   Kau
+  desc:     "You win. That's it, if this rule is accepted you win the game.
+             Good luck on having this accepted by other players ;)"
+  rule:     iWin
+  category: [Victory]
+  decls:
+    - Nomyx/Library/Victory.hs
+  picture:  null
+
+- name:     No group victory
+  author:   Kau
+  desc:     "Only one player can achieve victory: No group victory.
+             Forbidding group victory usually becomes necessary when lowering the voting quorum:
+             a coalition of players could simply force a \"victory\" rule and win the game."
+  rule:     noGroupVictory
+  category: [Victory]
+  decls:
+    - Nomyx/Library/Victory.hs
+  picture:  null
+
+# Bank accounts
+
+- name:     Bank accounts
+  author:   Kau
+  desc:     Create a bank account for each players
+  rule:     createBankAccounts
+  category: [Bank]
+  decls:    [Nomyx/Library/Bank.hs]
+  picture:  null
+
+- name:     Bank services
+  author:   Kau
+  desc:     Activate bank services
+  rule:     bankServices
+  category: [Bank]
+  decls:    [Nomyx/Library/Bank.hs]
+  picture:  null
+
+- name:     Display accounts
+  author:   Kau
+  desc:     Display all bank accounts
+  rule:     displayBankAccounts
+  category: [Bank]
+  decls:    [Nomyx/Library/Bank.hs]
+  picture:  null
+
+- name:     Daily salaries
+  author:   Kau
+  desc:     each player wins 10 Ecu each days
+  rule:     winXEcuPerDay 10 
+  category: [Bank]
+  decls:    [Nomyx/Library/Bank.hs]
+  picture:  null
+
+- name:     Bonus rule accepted
+  author:   Kau
+  desc:     a player wins 100 Ecu if a rule proposed is accepted
+  rule:     winXEcuOnRuleAccepted 100
+  category: [Bank]
+  decls:    [Nomyx/Library/Bank.hs]
+  picture:  null
+
+- name:     Money transfer
+  author:   Kau
+  desc:     a player can transfer money to another player
+  rule:     moneyTransfer
+  category: [Bank]
+  decls:    [Nomyx/Library/Bank.hs]
+  picture:  null
+
+# Players
+
+- name:     Ban player
+  author:   Kau
+  desc:     "Kick a player and prevent him from returning."
+  rule:     banPlayer X
+  category: [Players]
+  decls:
+    - Nomyx/Library/PlayerManagement.hs
+  picture:  null
+
 # Examples
 
 - name:     Nothing
@@ -64,76 +223,3 @@
   decls:    [Nomyx/Library/Examples.hs]
   picture:  null
 
-# Bank accounts
-
-- name:     Bank accounts
-  author:   Kau
-  desc:     Create a bank account for each players
-  rule:     createBankAccounts
-  category: [Bank]
-  decls:    [Nomyx/Library/Bank.hs]
-  picture:  null
-
-- name:     Bank services
-  author:   Kau
-  desc:     Activate bank services
-  rule:     bankServices
-  category: [Bank]
-  decls:    [Nomyx/Library/Bank.hs]
-  picture:  null
-
-- name:     Display accounts
-  author:   Kau
-  desc:     Display all bank accounts
-  rule:     displayBankAccounts
-  category: [Bank]
-  decls:    [Nomyx/Library/Bank.hs]
-  picture:  null
-
-- name:     Daily salaries
-  author:   Kau
-  desc:     each player wins 10 Ecu each days
-  rule:     winXEcuPerDay 10 
-  category: [Bank]
-  decls:    [Nomyx/Library/Bank.hs]
-  picture:  null
-
-- name:     Bonus rule accepted
-  author:   Kau
-  desc:     a player wins 100 Ecu if a rule proposed is accepted
-  rule:     winXEcuOnRuleAccepted 100
-  category: [Bank]
-  decls:    [Nomyx/Library/Bank.hs]
-  picture:  null
-
-- name:     Money transfer
-  author:   Kau
-  desc:     a player can transfer money to another player
-  rule:     moneyTransfer
-  category: [Bank]
-  decls:    [Nomyx/Library/Bank.hs]
-  picture:  null
-
-# Democracy
-
-- name:     Majority vote
-  author:   Kau
-  desc:     "A majority vote is cast for new rules. Vote will pass with more than 50% of \"yes\",
-             with minimum 2 voters to be valid,
-             finishing after maximum one day."
-  rule:     onRuleProposed $ callVoteRule (majority `withQuorum` 2) oneDay
-  category: [Democracy]
-  decls:
-    - Nomyx/Library/Vote.hs
-    - Nomyx/Library/Democracy.hs
-  picture:  null
-
-- name:     Unanimity vote
-  author:   Kau
-  desc:     "A unanimity vote: all players need to vote \"yes\" for a new rule to be accepted."
-  rule:     onRuleProposed $ callVoteRule unanimity oneDay
-  category: [Democracy]
-  decls:
-    - Nomyx/Library/Vote.hs
-    - Nomyx/Library/Democracy.hs
-  picture:  null
