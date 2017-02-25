@@ -7,4 +7,6 @@ services:
     ports:
       - "8000:8000"
       - "8001:8001"
-    command: sh -c "stack exec --system-ghc -- Nomyx -h 54.208.241.205 --noTTY"
+    command: sh -c "./cleanLocks; stack exec --system-ghc -- Nomyx -h www.nomyx.net --noTTY --adminPass=XXX --saveDir=/data/nomyx"
+    volumes: 
+      - /data/nomyx:/data/nomyx
