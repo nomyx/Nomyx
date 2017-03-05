@@ -11,7 +11,6 @@ Homepage: http://www.nomyx.net
 author: Corentin Dupont
 data-files: static/css/nomyx.css
             static/nomyx.js
-            nomyx.appcache
             static/pictures/*.jpg
             static/pictures/*.png
 data-dir: data
