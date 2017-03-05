@@ -51,6 +51,7 @@ import           Nomyx.Core.Profile
 import           Nomyx.Core.Serialize
 import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
+import           Nomyx.Core.Mail
 import           System.IO.PlafCompat
 import           System.Log.Logger
 import           Imprevu.Evaluation 
@@ -120,19 +121,22 @@ leaveGame game pn = do
 submitRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
 submitRule rt pn gn = do
    info pn $ "proposed " ++ show rt
-   compileRule rt pn gn Propose "Rule submitted OK! See \"Constitution\" or \"Actions\" tabs for actions."
+   compileOK <- compileRule rt pn gn Propose "Rule submitted OK! See \"Constitution\" or \"Actions\" tabs for actions."
+   when compileOK $ do
+      s <- get
+      liftIO $ sendMailsSubmitRule s rt pn gn
 
 adminSubmitRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
 adminSubmitRule rt pn gn = do
    info pn $ "admin proposed " ++ show rt
-   compileRule rt pn gn SystemAdd "Admin rule submitted OK!"
+   void $ compileRule rt pn gn SystemAdd "Admin rule submitted OK!"
 
 checkRule :: RuleTemplate -> PlayerNumber -> GameName -> StateT Session IO ()
 checkRule rt pn gn = do
    info pn $ "check rule " ++ show rt
-   compileRule rt pn gn Check "Rule compiled OK. Now you can submit it!"
+   void $ compileRule rt pn gn Check "Rule compiled OK. Now you can submit it!"
 
-compileRule :: RuleTemplate -> PlayerNumber -> GameName -> RuleEv -> String -> StateT Session IO ()
+compileRule :: RuleTemplate -> PlayerNumber -> GameName -> RuleEv -> String -> StateT Session IO Bool
 compileRule rt pn gn re msg = do
    mods <- getModules pn rt
    mrr <- liftIO $ interpretRule (_rRuleCode rt) mods
@@ -141,7 +145,10 @@ compileRule rt pn gn re msg = do
          info pn "proposed rule compiled OK "
          inGameDo gn $ G.execGameEvent' (Just r) (ProposeRuleEv re pn rt mods)
          modifyProfile pn (pLastRule .~ Just (rt, msg))
-      Left e -> submitRuleError rt pn gn e
+         return True
+      Left e -> do
+         submitRuleError rt pn gn e
+         return False
 
 getModules :: PlayerNumber -> RuleTemplate -> StateT Session IO [ModuleInfo]
 getModules pn rt = do
@@ -212,7 +219,7 @@ adminPass pass pn = do
       modifyProfile pn $ pIsAdmin .~ False
 
 globalSettings :: Bool -> StateT Session IO ()
-globalSettings mails = (multi . mSettings . sendMails) .= mails
+globalSettings mails = (multi . mSettings . mailSettings . sendMails) .= mails
 
 -- | Utility functions
 

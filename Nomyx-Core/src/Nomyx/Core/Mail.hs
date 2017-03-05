@@ -3,40 +3,46 @@
 {-# LANGUAGE OverloadedStrings    #-}
 
 
-module Nomyx.Core.Mail where
+module Nomyx.Core.Mail (
+   sendMailsSubmitRule
+   ) where
 
+import           Prelude                             hiding (div, (.), error)
 import           Control.Category
 import           Control.Concurrent
 import           Control.Monad
+import           Control.Monad.State
 import           Data.Maybe
 import           Data.Text                           (Text, pack)
 import qualified Data.Text.Lazy                      as B
 import           Language.Haskell.HsColour.Colourise hiding (string)
 import qualified Language.Haskell.HsColour.HTML      as HSC
 import           Network.Mail.Mime                   hiding (mailTo)
+import           Network.HaskellNet.Auth
+import           Network.HaskellNet.SMTP
+import           Network.HaskellNet.SMTP.SSL
 import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Profile
 import           Nomyx.Core.Types
 import           Nomyx.Core.Utils
-import           Prelude                             hiding (div, (.))
 import           Text.Blaze.Html.Renderer.String
 import           Text.Blaze.Html5                    hiding (br, label, map)
 import qualified Text.Blaze.Html5                    as H
+import           System.Log.Logger
 
 default (Integer, Double, Data.Text.Text)
 
 
-sendMail :: String -> String -> String -> String-> IO()
-sendMail to obj htmlBody textBody = do
-   putStrLn $ "sending a mail to " ++ to
-   forkIO $ simpleMail (Address Nothing (pack to))
-                       (Address (Just "Nomyx Game") "kau@nomyx.net")
-                       (pack obj)
-                       (B.pack htmlBody)
-                       (B.pack textBody)
-                       [] >>= renderSendMail
-   putStrLn "done"
+sendMail' :: String -> String -> String -> String -> MailSettings -> IO ()
+sendMail' to obj textBody htmlBody (MailSettings _ host login pass) = do
+   info $ "Sending a mail to " ++ to ++ " login: " ++ login ++ " pass: " ++ pass
+   let authSend connection = do 
+       succeeded  <- authenticate LOGIN login pass connection
+       if succeeded
+         then sendMimeMail to "game@nomyx.net" obj (B.pack textBody) (B.pack htmlBody) [] connection
+         else error "Mail authentication error"
+   void $ forkIO $ doSMTPSSL host authSend
 
 
 newRuleHtmlBody :: PlayerName -> RuleTemplate -> PlayerName -> Network -> Html
@@ -66,22 +72,29 @@ newRuleObject :: PlayerName -> String
 newRuleObject name = "[Nomyx] New rule posted by player " ++ name ++ "!"
 
 sendMailsSubmitRule :: Session -> RuleTemplate -> PlayerNumber -> GameName -> IO ()
-sendMailsSubmitRule s sr pn gn = when (_sendMails $ _mSettings $ _multi s) $ do
-   let (Just gi) = getGameByName gn s
-   guard (_isPublic gi)
-   putStrLn "Sending mails"
-   let sendMailsTo = map _playerNumber (_players $ _game $ _loggedGame gi)
-   proposer <- Nomyx.Core.Profile.getPlayerName pn s
-   profiles <- mapM (getProfile s) sendMailsTo
-   mapM_ (send proposer (_net $ _mSettings $ _multi s) sr) (_pPlayerSettings <$> catMaybes profiles)
+sendMailsSubmitRule s rt pn gn = do 
+   let mailSet = _mailSettings $  _mSettings $ _multi s
+   when (_sendMails mailSet) $ do
+     let (Just gi) = getGameByName gn s
+     guard (_isPublic gi)
+     putStrLn "Sending mails"
+     let sendMailsTo = map _playerNumber (_players $ _game $ _loggedGame gi)
+     proposer <- Nomyx.Core.Profile.getPlayerName pn s
+     profiles <- mapM (getProfile s) sendMailsTo
+     mapM_ (send proposer (_net $ _mSettings $ _multi s) rt mailSet) (_pPlayerSettings <$> catMaybes profiles)
 
 
-send :: PlayerName -> Network -> RuleTemplate -> PlayerSettings -> IO()
-send prop net sr set = when (_mailSubmitRule set && (isJust $ _mail set))
-   $ sendMail (fromJust $ _mail set)
+send :: PlayerName -> Network -> RuleTemplate -> MailSettings -> PlayerSettings -> IO()
+send prop net sr ms set = when (_mailSubmitRule set && (isJust $ _mail set))
+   $ sendMail' (fromJust $ _mail set)
               (newRuleObject prop)
               (newRuleTextBody (_pPlayerName set) sr prop net)
               (renderHtml $ newRuleHtmlBody (_pPlayerName set) sr prop net)
+              ms
 
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
 mapMaybeM f = liftM catMaybes . mapM f
+
+error, info :: (MonadIO m) => String -> m ()
+info s = liftIO $ infoM "Nomyx.Core.Mail" s
+error s = liftIO $ errorM "Nomyx.Core.Mail" s

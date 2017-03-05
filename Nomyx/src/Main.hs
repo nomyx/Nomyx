@@ -83,7 +83,7 @@ start flags = do
    let port        = read $ fromMaybe "8000" (findPort flags)
    let host        = fromMaybe hostName      (findHost flags)
    let adminPass   = fromMaybe "NXPSD"       (findAdminPass flags)
-   let sendMail    = Mails `elem` flags
+   let sendMail    = SendMails `elem` flags
    let webDir      = fromMaybe defWebDir     (findWebDir flags)    -- data directory: web ressources and profiles
    let sourceDir   = fromMaybe defSourceDir  (findSourceDir flags) -- source directory: Nomyx-Language files
    let libraryPath = fromMaybe defLib        (findLibrary flags)
@@ -91,13 +91,17 @@ start flags = do
    let mLoad       = findLoadTest flags
    let verbose     = Verbose `elem` flags
    let isTTY       = not $ NoTTY `elem` flags
+   let mailHost    = fromMaybe "" (findMailHost flags)
+   let mailLogin   = fromMaybe "" (findMailLogin flags)
+   let mailPass    = fromMaybe "" (findMailPass flags)
    -- save directory: Nomyx.save and uploaded files
    saveDir <- case findTarFile flags of
       Just tarFile -> untar tarFile
       Nothing -> case findSaveDir flags of
          Just f -> canonicalizePath f
          Nothing -> PN.getDataDir
-   let settings    = Settings (Network host port) sendMail adminPass saveDir webDir sourceDir watchdog
+   let mailSettings = MailSettings sendMail mailHost mailLogin mailPass 
+   let settings    = Settings (Network host port) mailSettings adminPass saveDir webDir sourceDir watchdog
    when verbose $ putStrLn $ "Directories:\n" ++ "save dir = " ++  saveDir ++ "\nweb dir = " ++ webDir ++ "\nsource dir = " ++ sourceDir
    if Test `elem` flags
       then runTests mLoad watchdog
@@ -197,7 +201,6 @@ data Flag = Verbose
           | LoadTest String
           | DeleteSaveFile
           | AdminPass String
-          | Mails
           | Help
           | SaveDir FilePath
           | WebDir FilePath
@@ -207,6 +210,10 @@ data Flag = Verbose
           | Watchdog String
           | LibraryPath FilePath
           | NoTTY
+          | SendMails
+          | MailHost String
+          | MailLogin String
+          | MailPass String
        deriving (Show, Eq)
 
 -- | launch options description
@@ -220,7 +227,6 @@ options =
      , Option "t" ["tests"]     (NoArg Test)                        "perform routine check"
      , Option "l" ["loadtest"]  (ReqArg LoadTest "TestName")        "specify name of test to load (in combination with -t i.e. -t -l \"testName\")"
      , Option "a" ["adminPass"] (ReqArg AdminPass "AdminPass")      "specify the admin password (default is NXPSD)"
-     , Option "m" ["mails"]     (NoArg Mails)                       "send mails (default is no)"
      , Option "?" ["help"]      (NoArg Help)                        "display usage options (this screen)"
      , Option "r" ["saveDir"]   (ReqArg SaveDir "SaveDir")          "specify save directory (for Nomyx.save and uploads)"
      , Option "f" ["dataDir"]   (ReqArg WebDir "WebDir")            "specify data directory (for profiles and website files)"
@@ -230,6 +236,10 @@ options =
      , Option ""  ["watchdog"]  (ReqArg Watchdog "5")               "time in seconds before killing the compilation thread"
      , Option ""  ["library"]   (ReqArg LibraryPath "Library path") "specify the path of a library of rules (yaml file)"
      , Option ""  ["noTTY"]     (NoArg NoTTY)                       "Start headless"
+     , Option "m" ["mails"]     (NoArg SendMails)                   "send mails to players when a new rule is posted (default is no)"
+     , Option ""  ["mailHost"]  (ReqArg MailHost "MailHost")        "mail host (e.g. smtp.gmail.com)"
+     , Option ""  ["mailLogin"] (ReqArg MailLogin "MailLogin")      "mail login (e.g. nomyx@gmail.com)"
+     , Option ""  ["mailPass"]  (ReqArg MailPass "MailPass")        "mail password"
      ]
 
 nomyxOpts :: [String] -> IO ([Flag], [String])
@@ -252,6 +262,9 @@ findAdminPass fs = listToMaybe [a | AdminPass     a <- fs]
 findTarFile   fs = listToMaybe [a | TarFile       a <- fs]
 findWatchdog  fs = listToMaybe [a | Watchdog      a <- fs]
 findLibrary   fs = listToMaybe [a | LibraryPath   a <- fs]
+findMailHost  fs = listToMaybe [a | MailHost      a <- fs]
+findMailLogin fs = listToMaybe [a | MailLogin     a <- fs]
+findMailPass  fs = listToMaybe [a | MailPass      a <- fs]
 
 warn, info :: (MonadIO m) => String -> m ()
 debug s = liftIO $ debugM "Nomyx.Main" s

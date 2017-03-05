@@ -52,7 +52,9 @@ library
                    yaml -any,
                    NoTrace -any,
                    hslogger,
-                   hint-server            == 1.4.3
+                   hint-server            == 1.4.3,
+                   HaskellNet,
+                   HaskellNet-SSL
     if os(windows)
         Cpp-options: -DWINDOWS
     else

@@ -41,7 +41,7 @@ playTests mTestName delay = do
          return $ maybeToList $ find (\(name, _, _) -> name == testName) tsts
       Nothing -> return regularTests
    tp <- testProfiles
-   let session = Session (defaultMulti Settings {_net = defaultNetwork, _sendMails = False, _adminPassword = "", _saveDir = "", _webDir = "", _sourceDir = "", _watchdog = delay}
+   let session = Session (defaultMulti Settings {_net = defaultNetwork, _mailSettings = (MailSettings False "" "" ""), _adminPassword = "", _saveDir = "", _webDir = "", _sourceDir = "", _watchdog = delay}
                                           (Library [rAutoActivate]
                                           [])) tp
    mapM (\(title, t, cond) -> (title,) <$> test title session t cond) tests

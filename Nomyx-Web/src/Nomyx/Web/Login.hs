@@ -72,7 +72,7 @@ postAuthenticate = do
       Just _ -> seeOther (showRelURL MainPage) $ toResponse ("to main page" :: String)
       Nothing -> do -- Player doesn't exist, creating it
          user <- fromJust <$> getUser
-         webCommand $ S.newPlayer pn (PlayerSettings (unpack $ _unUsername $ _username user) ((unpack . _unEmail) <$> _email user) False False False False)
+         webCommand $ S.newPlayer pn (PlayerSettings (unpack $ _unUsername $ _username user) ((unpack . _unEmail) <$> _email user) False True False False)
          seeOther (showRelURL MainPage) $ toResponse ("to settings page" :: String)
 
 authenticate :: AuthenticateURL -> RoutedNomyxServer Response

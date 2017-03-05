@@ -55,19 +55,25 @@ data GameInfo = GameInfo { _loggedGame     :: LoggedGame,
                            deriving (Typeable, Show, Eq)
 
 -- | Global settings
-data Settings = Settings { _net           :: Network,  -- URL where the server is launched
-                           _sendMails     :: Bool,     -- send mails or not
-                           _adminPassword :: String,   -- admin password
-                           _saveDir       :: FilePath, -- location of the save file, profiles and uploaded files
-                           _webDir        :: FilePath, -- location of the website files
-                           _sourceDir     :: FilePath, -- location of the language files, for display on the web gui (from Nomyx-Language)
-                           _watchdog      :: Int}      -- time in seconds before killing the compilation thread
+data Settings = Settings { _net           :: Network,      -- URL where the server is launched
+                           _mailSettings  :: MailSettings, -- send mails or not
+                           _adminPassword :: String,       -- admin password
+                           _saveDir       :: FilePath,     -- location of the save file, profiles and uploaded files
+                           _webDir        :: FilePath,     -- location of the website files
+                           _sourceDir     :: FilePath,     -- location of the language files, for display on the web gui (from Nomyx-Language)
+                           _watchdog      :: Int}          -- time in seconds before killing the compilation thread
                            deriving (Eq, Show, Read, Typeable)
 
 -- | Network infos
 data Network = Network {_host :: HostName,
                         _port :: Port}
                         deriving (Eq, Show, Read, Typeable)
+
+data MailSettings = MailSettings {_sendMails :: Bool,
+                                  _mailHost  :: String,
+                                  _mailLogin :: String,
+                                  _mailPass  :: String}
+                                  deriving (Eq, Show, Read, Typeable)
 
 -- | The Library contains a list of rule templates together with their declarations
 data Library = Library { _mTemplates :: [RuleTemplate],
@@ -130,6 +136,7 @@ makeLenses ''Network
 makeLenses ''PlayerSettings
 makeLenses ''Session
 makeLenses ''ProfileData
+makeLenses ''MailSettings
 
 $(deriveJSON defaultOptions ''Library)
 $(deriveJSON defaultOptions ''GameInfo)
@@ -141,6 +148,7 @@ $(deriveJSON defaultOptions ''PlayerSettings)
 $(deriveJSON defaultOptions ''ProfileData)
 $(deriveJSON defaultOptions ''RuleInfo)
 $(deriveJSON defaultOptions ''RuleStatus)
+$(deriveJSON defaultOptions ''MailSettings)
 
 
 instance ToJSON Rule where
