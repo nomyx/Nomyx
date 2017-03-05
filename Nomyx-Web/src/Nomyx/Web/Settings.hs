@@ -47,18 +47,21 @@ advanced = toResponse <$> do
 
 advancedPage :: LastUpload -> Bool -> Settings -> [ProfileData] -> RoutedNomyxServer Html
 advancedPage mlu isAdmin settings pfds = do
+   let sendMail = _sendMails $ _mailSettings settings
    ap  <- liftRouteT $ lift $ viewForm "user" adminPassForm
-   set <- liftRouteT $ lift $ viewForm "user" $ settingsForm (_sendMails settings)
+   set <- liftRouteT $ lift $ viewForm "user" $ settingsForm sendMail 
    let uploadExample =  pathSeparator : testDir </> "SimpleModule.hs"
    ok $ do
-      p $ do
-         fromString "Version:"
-         pre $ fromString $ "Nomyx " ++ showVersion PNW.version ++ "\n"
-      hr
-      p $ do
-         pre $ fromString Help.getSaveFile
-         H.a "get save file" ! (href $ toValue $ showRelURL SaveFilePage)
-      H.br
+      
+      
+      --p $ do
+      --   fromString "Version:"
+      --   pre $ fromString $ "Nomyx " ++ showVersion PNW.version ++ "\n"
+      --hr
+      --p $ do
+      --   pre $ fromString Help.getSaveFile
+      --   H.a "get save file" ! (href $ toValue $ showRelURL SaveFilePage)
+      --H.br
       hr
       p $ do
          h5 "Enter admin password to get admin rights (necessary to create public games):"
@@ -69,7 +72,7 @@ advancedPage mlu isAdmin settings pfds = do
          p $ do
             h5 "Send mails:"
             blazeForm set $ showRelURL SubmitSettings
-            h5 $ fromString $ if _sendMails settings then "mails will be sent " else "mails will NOT be sent "
+            h5 $ fromString $ if sendMail then "mails will be sent " else "mails will NOT be sent "
          hr
          p $ do
             h5 "Players:"
