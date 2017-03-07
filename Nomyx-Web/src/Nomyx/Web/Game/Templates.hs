@@ -62,7 +62,6 @@ viewRuleTemplateCats :: [RuleTemplate] -> Maybe LastRule -> Html
 viewRuleTemplateCats rts mlr = do
   let cat = (headDef "Not category" . _rCategory)
   let rts' = groupBy ((==) `on` cat) $ sortBy (comparing cat) rts
-  --let allRules = rts' ++ [(maybe (RuleTemplate "New Rule" "" "" "" Nothing [] []) fst mlr)]
   h2 "Library of rules"
   ul $ mapM_  viewRuleTemplateCat rts'
 
