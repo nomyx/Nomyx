@@ -27,8 +27,8 @@
 
 - name:     make King
   author:   Kau
-  desc:     "Make a player King (change the X with the player number)"
-  rule:     makeKing X
+  desc:     "Make a player King (change the 1 with the player number that becomes King)"
+  rule:     makeKing 1
   category: [Monarchy]
   decls:
     - Nomyx/Library/Monarchy.hs
@@ -36,8 +36,8 @@
 
 - name:     Monarchy
   author:   Kau
-  desc:     "Monarchy: only the king decides which rules to accept or reject (change the X with the player number)"
-  rule:     monarchy X
+  desc:     "Monarchy: only the king decides which rules to accept or reject (change the 1 with the player number)"
+  rule:     monarchy 1
   category: [Monarchy]
   decls:
     - Nomyx/Library/Monarchy.hs
@@ -47,8 +47,8 @@
   author:   Kau
   desc:     "Revolution! Hail to the king!
              This rule suppresses the democracy (usually rules 1 or 2), installs the king and activates monarchy.
-             (change the X with the player number)"
-  rule:     revolution X
+             (change the 1 with the player number that you want for King)"
+  rule:     revolution 1
   category: [Monarchy]
   decls:
     - Nomyx/Library/Monarchy.hs
