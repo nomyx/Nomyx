@@ -212,6 +212,13 @@ showRelURL c = "/Nomyx" <> (toPathInfo c)
 showRelURLParams :: PlayerCommand -> [(Text, Maybe Text)] -> Text
 showRelURLParams c ps = "/Nomyx" <> (toPathInfoParams c ps)
 
+viewRuleCode :: RuleCode -> Html
+viewRuleCode rc = do
+  let code = lines rc
+  let codeCutLines = 7
+  div ! A.id "codeDiv" $ displayCode $ unlines $ take codeCutLines code
+  div $ when (length code >= codeCutLines) $ fromString "(...)"
+
 -- | app module for angulasjs
 --
 -- We just depend on the usernamePassword module
@@ -248,3 +255,4 @@ nomyxJS = [jmacro|
    }]);
  }
 |]
+

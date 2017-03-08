@@ -117,7 +117,7 @@ viewRuleTemplate gn (rt, err) isGameAdmin = do
     img ! (A.src $ toValue $ pic)
     h3 $ fromString $ _rDescription rt
     h2 $ fromString $ "authored by " ++ (_rAuthor rt)
-    viewRuleFunc rt
+    viewRuleCode $ _rRuleCode rt
     mapM (viewDecl gn) (_rDeclarations rt)
     div $ pre $ fromString err
     blazeForm lf $ showRelURL (SubmitRule gn)
@@ -132,13 +132,6 @@ submitRuleTemplatForm mrt isGameAdmin =
 --  srt <- inputHidden (show mrt)
 --  admin <- if isGameAdmin then inputSubmit "Admin submit" else pure Nothing
 --  return (srt, admin)
-
-viewRuleFunc :: RuleTemplate -> Html
-viewRuleFunc rd = do
-  let code = lines $ _rRuleCode rd
-  let codeCutLines = 7
-  div ! A.id "codeDiv" $ displayCode $ unlines $ take codeCutLines code
-  div $ when (length code >= codeCutLines) $ fromString "(...)"
 
 viewDecl :: GameName -> FilePath -> Html
 viewDecl gn modPath = do

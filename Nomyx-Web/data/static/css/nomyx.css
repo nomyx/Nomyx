@@ -147,11 +147,19 @@ h3{
 }
 
 .ruleCode {
-    width:100%;
+   width:100%;
 }
 
 .ruleDescr {
-    width:50%;
+   width:50%;
+}
+
+.ruleMain { 
+   display:none;
+}
+
+.ruleDecl { 
+   display:none;
 }
 
 /* Modules */

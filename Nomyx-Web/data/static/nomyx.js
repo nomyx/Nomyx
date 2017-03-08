@@ -103,8 +103,8 @@ $(document).ready(function () {
 });
 
 function templateQuery() {
-    var ruleName = getQueryVariable("ruleName")
-    var isRuleEdit = getQueryVariable("edit")
+    var ruleName = getQueryVariable("ruleName");
+    var isRuleEdit = getQueryVariable("edit");
 
     $('[id="' + ruleName + '"]').css('display', 'block');
     if (isRuleEdit) {
@@ -116,7 +116,15 @@ function templateQuery() {
 
 function ruleQuery() {
     var ruleNumber = getQueryVariable("ruleNumber");
+    var decl = getQueryVariable("decl");
+
     $('[id="rule' + ruleNumber + '"]').css('display', 'block');
+    
+    if (decl) {
+       $('[id="rule' + ruleNumber + '"] .ruleDecl').css('display', 'block');
+    } else {
+       $('[id="rule' + ruleNumber + '"] .ruleMain').css('display', 'block');
+    }
 }
 
 function moduleQuery() {

@@ -136,7 +136,7 @@ data RuleInfo = RuleInfo { _rNumber       :: RuleNumber,       -- number of the 
                            _rRule         :: Rule,             -- function representing the rule (interpreted from rRuleCode)
                            _rStatus       :: RuleStatus,       -- status of the rule
                            _rAssessedBy   :: Maybe RuleNumber, -- which rule accepted or rejected this rule
-                           _rModules      :: [Module],         -- list of modules containing definition (in plain text)
+                           _rModules      :: [ModuleInfo],     -- list of modules containing definition (in plain text)
                            _rRuleTemplate :: RuleTemplate}
                            deriving (Typeable, Show)
 
@@ -150,10 +150,10 @@ data RuleTemplate = RuleTemplate { _rName         :: RuleName,         -- short 
                                    _rDeclarations :: [FilePath]}       -- additional declarations (Haskell modules)
                                    deriving (Typeable, Show, Read, Data, Generic)
 
-type Module = Text
+type Module = Text -- content of the module
 
 data ModuleInfo = ModuleInfo {_modPath :: FilePath,  -- file name of the module
-                              _modContent :: Module} -- content of the module (or Nothing if module is present in library)
+                              _modContent :: Module} -- content of the module
                               deriving (Eq, Read, Show, Typeable, Data, Generic, Ord)
 
 instance Eq RuleInfo where

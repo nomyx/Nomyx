@@ -146,14 +146,14 @@ createRule (RuleTemplate name des code _ _ _ decls) ms pn mr = do
                                     _rAuthor = "Player " ++ (show pn),
                                     _rPicture = Nothing,
                                     _rCategory = [],
-                                    _rDeclarations = map _modPath ms}
+                                    _rDeclarations = []} --Declarations are transfered in the RuleInfo
    return RuleInfo {_rNumber = rn,
                     _rProposedBy = pn,
                     _rRule = r,
                     _rStatus = Pending,
                     _rAssessedBy = Nothing,
                     _rRuleTemplate = ruleTemplate,
-                    _rModules = map _modContent ms}
+                    _rModules = ms}
 
 stateCatch :: Exception e => StateT Game IO a -> (e -> StateT Game IO a) -> StateT Game IO a
 stateCatch m h = StateT $ \s -> runStateT m s `E.catch` \e -> runStateT (h e) s

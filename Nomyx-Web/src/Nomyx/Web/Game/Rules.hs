@@ -8,7 +8,7 @@ import           Control.Applicative
 import           Control.Monad
 import           Data.Maybe
 import           Data.String
-import           Data.Text                   (Text)
+import           Data.Text                   (Text, unpack)
 import           Nomyx.Language
 import           Nomyx.Core.Engine
 import           Nomyx.Core.Profile          as Profile
@@ -54,20 +54,43 @@ viewRules pn g nrs = do
 
 viewRule :: PlayerNumber -> Game -> RuleInfo -> RoutedNomyxServer Html
 viewRule pn g ri = do
+   vrm <- viewRuleMain pn g ri
+   vrds <- mapM viewRuleDecl (_rModules ri) 
+   ok $ div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rNumber ri))) $ do
+      vrm
+      sequence_ vrds
+
+viewRuleMain :: PlayerNumber -> Game -> RuleInfo -> RoutedNomyxServer Html
+viewRuleMain pn g ri@(RuleInfo rn proposedBy _ status assessBy mods (RuleTemplate name desc code author picture _ _))= do
   ios <- viewIORule pn g ri
-  ok $ div ! A.class_ "rule" ! A.id (toValue ("rule" ++ (show $ _rNumber ri))) $ do
-   let pl = fromMaybe ("Player " ++ (show $ _rProposedBy ri)) (_playerName <$> (Profile.getPlayerInfo g $ _rProposedBy ri))
-   let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture $ _rRuleTemplate ri)
-   h2 $ fromString $ _rName $ _rRuleTemplate ri
-   img ! (A.src $ toValue $ pic)
-   h3 $ fromString $ _rDescription $ _rRuleTemplate ri
-   h2 $ fromString $ "proposed by " ++ (if _rProposedBy ri == 0 then "System" else pl)
-   let assessedBy = case _rAssessedBy ri of
-        Nothing -> fromString "not assessed"
-        Just 0  -> fromString "the system"
-        Just a  -> H.a (fromString $ "rule " ++ show a) ! (href $ toValue $ "?ruleNumber=" ++ (show a))
-   case _rStatus ri of
-      Active -> (fromString "This rule was activated by ") >> assessedBy >> (fromString ".") ! A.id "assessedBy"
-      Reject -> (fromString "This rule was deleted by ") >> assessedBy >> (fromString ".") ! A.id "assessedBy"
-      Pending -> return ()
-   ios
+  ok $ div ! A.class_ "ruleMain" $ do
+      let pl = fromMaybe ("Player " ++ (show proposedBy)) (_playerName <$> (Profile.getPlayerInfo g proposedBy))
+      let pic = fromMaybe "/static/pictures/democracy.png" picture 
+      h2 $ fromString name
+      img ! (A.src $ toValue $ pic)
+      h3 $ fromString $ desc
+      h2 $ fromString $ "proposed by " ++ (if proposedBy == 0 then "System" else pl)
+      let assessedBy = case assessBy of
+           Nothing -> fromString "not assessed"
+           Just 0  -> fromString "the system"
+           Just a  -> H.a (fromString $ "rule " ++ show a) ! (href $ toValue $ "?ruleNumber=" ++ (show a))
+      case status of
+          Active -> (fromString "This rule was activated by ") >> assessedBy >> (fromString ".") ! A.id "assessedBy"
+          Reject -> (fromString "This rule was deleted by ") >> assessedBy >> (fromString ".") ! A.id "assessedBy"
+          Pending -> return ()
+      ios
+      viewRuleCode code
+      br
+      sequence_ $ map (declLink rn) (map _modPath mods)
+
+
+viewRuleDecl :: ModuleInfo -> RoutedNomyxServer Html
+viewRuleDecl (ModuleInfo path cont) = do
+   ok $ div ! A.class_ "ruleDecl" ! A.id (toValue ("ruleDecl" ++ (idEncode path))) $ do
+      displayCode $ unpack cont
+       
+declLink :: RuleNumber -> FilePath -> Html
+declLink rn modPath = do
+   H.a (fromString modPath) ! (href $ toValue $ "?ruleNumber=" ++ (show rn) ++ "&decl=" ++ (idEncode modPath))
+   br
+
