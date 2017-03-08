@@ -216,8 +216,16 @@ viewRuleCode :: RuleCode -> Html
 viewRuleCode rc = do
   let code = lines rc
   let codeCutLines = 7
-  div ! A.id "codeDiv" $ displayCode $ unlines $ take codeCutLines code
+  div ! A.class_ "codeDiv" $ displayCode $ unlines $ take codeCutLines code
   div $ when (length code >= codeCutLines) $ fromString "(...)"
+
+viewRuleHead :: String -> Maybe FilePath -> String -> String -> Html
+viewRuleHead name picture desc author = do
+    let pic = fromMaybe "/static/pictures/democracy.png" picture
+    div ! A.class_ "ruleTitle" $ fromString $ name
+    div ! A.class_ "ruleImg" $ img ! (A.src $ toValue $ pic)
+    div ! A.class_ "ruleDescr" $ fromString $ desc
+    div ! A.class_ "ruleAuthor" $ h2 $ fromString $ "authored by " ++ author
 
 -- | app module for angulasjs
 --

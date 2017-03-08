@@ -116,7 +116,7 @@ h3{
    height: 100%;
    left: 265px;
    padding: 10px;
-   width: 75%;
+   width: 70%;
    display: none;
 }
 
@@ -125,7 +125,10 @@ h3{
 }
 
 .viewrule {
-   display:none;
+   display: none;
+   position: absolute;
+   top: 20px;
+   width: 94%;
 }
 
 .editrule {
@@ -146,12 +149,33 @@ h3{
    color: blue;
 }
 
+.ruleName {
+   font-size: 18;
+}
+
+.ruleTitle {
+   font-size: 20pt;
+   margin: 20px;
+   text-align: center;
+   font-weight: bold;
+}
+
+.ruleImg {
+   text-align: center;
+}
+
 .ruleCode {
    width:100%;
 }
 
+.ruleAuthor {
+   text-align: right;
+}
+
 .ruleDescr {
-   width:50%;
+   margin: 20px;
+   font-size: 18;
+   text-align: center;
 }
 
 .ruleMain { 
@@ -173,8 +197,10 @@ h3{
 
 /* Code */
 
-#codeDiv {
-   padding:3px;
+.codeDiv {
+   padding: 5px;
+   border: 1px solid black;
+   margin: 20px;
 }
 
 pre {

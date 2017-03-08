@@ -130,7 +130,7 @@ rejectedRules :: Game -> [RuleInfo]
 rejectedRules = sort . filter ((==Reject) . view rStatus) . _rules
 
 createRule :: RuleTemplate -> [ModuleInfo] -> PlayerNumber -> Maybe Rule -> StateT Game IO RuleInfo
-createRule (RuleTemplate name des code _ _ _ decls) ms pn mr = do
+createRule (RuleTemplate name des code author _ _ decls) ms pn mr = do
    rs <- use rules
    let rn = head $ [1..] \\ (map _rNumber rs)
    g <- get
@@ -143,7 +143,7 @@ createRule (RuleTemplate name des code _ _ _ decls) ms pn mr = do
    let ruleTemplate = RuleTemplate {_rName = name,
                                     _rDescription = des,
                                     _rRuleCode = code,
-                                    _rAuthor = "Player " ++ (show pn),
+                                    _rAuthor = author,
                                     _rPicture = Nothing,
                                     _rCategory = [],
                                     _rDeclarations = []} --Declarations are transfered in the RuleInfo

@@ -109,18 +109,15 @@ delRuleTemplate gn rn = do
 
 
 viewRuleTemplate :: GameName -> LastRule -> Bool -> RoutedNomyxServer Html
-viewRuleTemplate gn (rt, err) isGameAdmin = do
+viewRuleTemplate gn (rt@(RuleTemplate name desc code author picture _ decls), err) isGameAdmin = do
   lf  <- liftRouteT $ lift $ viewForm "user" (submitRuleTemplatForm (Just rt) isGameAdmin)
   ok $ div ! A.class_ "viewrule" $ do
-    let pic = fromMaybe "/static/pictures/democracy.png" (_rPicture rt)
-    h2 $ fromString $ _rName rt
-    img ! (A.src $ toValue $ pic)
-    h3 $ fromString $ _rDescription rt
-    h2 $ fromString $ "authored by " ++ (_rAuthor rt)
-    viewRuleCode $ _rRuleCode rt
-    mapM (viewDecl gn) (_rDeclarations rt)
+    viewRuleHead name picture desc author
+    viewRuleCode code
+    mapM (viewDecl gn) decls
     div $ pre $ fromString err
     blazeForm lf $ showRelURL (SubmitRule gn)
+
 
 submitRuleTemplatForm :: (Maybe RuleTemplate) -> Bool -> NomyxForm (String, Maybe String)
 submitRuleTemplatForm mrt isGameAdmin = 

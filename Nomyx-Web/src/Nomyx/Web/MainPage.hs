@@ -90,8 +90,8 @@ viewGamesTab gi isAdmin saveDir mpn = do
        tr $ td ! A.class_ "buttonTD" $ H.a "Constitution " ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Rules gn)
        tr $ td ! A.class_ "buttonTD" $ H.a "Actions "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Actions gn)
        tr $ td ! A.class_ "buttonTD" $ H.a "Library "      ! A.class_ "button" ! href (toValue $ showRelURL $ Menu Lib gn)
-     br >> b "Help files:" >> br
-     H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br
+     -- br >> b "Help files:" >> br
+     -- H.a "Nomyx language"    ! (href "/html/Language-Nomyx.html") ! target "_blank" >> br
 
 viewGameInfo :: GameInfo -> (Maybe PlayerNumber) -> Maybe LastRule -> Bool -> GameTab -> Library -> RoutedNomyxServer Html
 viewGameInfo gi mpn mlr isAdmin gt lib = do
