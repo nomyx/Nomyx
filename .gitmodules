@@ -1,0 +1,30 @@
+[submodule "nomyx-client"]
+	path = nomyx-client
+	url = git@github.com:nomyx/nomyx-client.git
+[submodule "imprevu"]
+	path = imprevu
+	url = git@github.com:nomyx/imprevu.git
+[submodule "imprevu-happstack"]
+	path = imprevu-happstack
+	url = git@github.com:nomyx/imprevu-happstack.git
+[submodule "nomyx-api"]
+	path = nomyx-api
+	url = git@github.com:nomyx/nomyx-api.git
+[submodule "nomyx-auth"]
+	path = nomyx-auth
+	url = git@github.com:nomyx/nomyx-auth.git
+[submodule "nomyx-core"]
+	path = nomyx-core
+	url = git@github.com:nomyx/nomyx-core.git
+[submodule "nomyx-language"]
+	path = nomyx-language
+	url = git@github.com:nomyx/nomyx-language.git
+[submodule "nomyx-library"]
+	path = nomyx-library
+	url = git@github.com:nomyx/nomyx-library.git
+[submodule "nomyx-server"]
+	path = nomyx-server
+	url = git@github.com:nomyx/nomyx-server.git
+[submodule "nomyx-web"]
+	path = nomyx-web
+	url = git@github.com:nomyx/nomyx-web.git
