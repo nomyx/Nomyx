@@ -28,3 +28,6 @@
 [submodule "nomyx-web"]
 	path = nomyx-web
 	url = git@github.com:nomyx/nomyx-web.git
+[submodule "shortcut"]
+	path = shortcut
+	url = git@github.com:nomyx/shortcut.git
