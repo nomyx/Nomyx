@@ -22,8 +22,8 @@ $ curl -sSL https://get.haskellstack.org/ | sh
 
 To install from the GitHub repo:
 ```
-$ git clone git@github.com:cdupont/Nomyx.git
-$ cd Nomyx
+$ git clone git@github.com:nomyx/Nomyx.git
+$ cd Nomyx/nomyx-server
 $ stack install
 ```
 
@@ -32,7 +32,7 @@ Execution
 
 Launch with the command:
 ```
-$ stack exec Nomyx
+$ stack exec nomyx-server
 ```
 and follow the instructions. You may connect using a web browser to the provided address.
 You can play with the GUI and propose some rules!
