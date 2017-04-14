@@ -3,7 +3,7 @@ services:
   nomyx:
     image: cdupont2/nomyx
     cpu_shares: 100
-    mem_limit: 1024000000
+    mem_limit: 2000000000
     ports:
       - "8000:8000"
       - "8001:8001"
