@@ -17,6 +17,7 @@ Installation
 
 First install Haskell Stack:
 ```
+$ sudo apt-get update
 $ curl -sSL https://get.haskellstack.org/ | sh
 ```
 
