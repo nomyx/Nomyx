@@ -25,6 +25,7 @@ To install from the GitHub repo:
 ```
 $ git clone https://github.com/nomyx/Nomyx.git
 $ cd Nomyx/nomyx-server
+$ stack setup
 $ stack install
 ```
 
