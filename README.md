@@ -39,6 +39,17 @@ $ stack exec nomyx-server
 and follow the instructions. You may connect using a web browser to the provided address.
 You can play with the GUI and propose some rules!
 
+
+Cloud deploy
+============
+
+```
+docker build -t cdupont2/nomyx .
+docker push cdupont2/nomyx
+ecs-cli compose down
+ecs-cli compose up
+```
+
 Troubleshooting
 ===============
 See the [issues](https://github.com/cdupont/Nomyx/issues) for known bugs.
