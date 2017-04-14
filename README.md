@@ -23,7 +23,7 @@ $ curl -sSL https://get.haskellstack.org/ | sh
 
 To install from the GitHub repo:
 ```
-$ git clone git@github.com:nomyx/Nomyx.git
+$ git clone https://github.com/nomyx/Nomyx.git
 $ cd Nomyx/nomyx-server
 $ stack install
 ```
