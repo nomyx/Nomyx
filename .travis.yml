@@ -19,6 +19,9 @@ addons:
     packages:
       - libgmp-dev
 
+git:
+    submodules: false
+
 before_install:
 # Download and unpack the stack executable
 - mkdir -p ~/.local/bin
