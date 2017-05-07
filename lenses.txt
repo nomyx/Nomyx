@@ -1,0 +1,16 @@
+
+Getter notation: obj^.a.b.c
+Setter notation: obj &a.b.c .~ x
+Modify notation: obj &a.b.c %~ f
+
+Monadic getter: x <- use a.b.c
+Monadic setter: a.b.c .= x 
+Monadic modify: a.b.c %= f
+
+zoom :: Monad m => SimpleLensLike (k c) t s -> m c -> n c
+
+
+
+
+
+
