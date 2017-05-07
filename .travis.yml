@@ -39,7 +39,6 @@ install:
 
 script:
 # Build the package, its tests, and its docs and run the tests
-- cd nomyx-server
 - stack --no-terminal install --haddock --no-haddock-deps
-- ./tests.sh
+- ../tests.sh
 
