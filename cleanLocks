@@ -1,0 +1,5 @@
+rm -rf  /data/nomyx/profiles/profileData/open.lock
+rm -rf  /data/nomyx/authenticate/password/open.lock
+rm -rf  /data/nomyx/authenticate/core/open.lock
+rm -rf  /data/nomyx/authenticate/openId/open.lock
+
