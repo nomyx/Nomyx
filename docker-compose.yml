@@ -1,12 +1,12 @@
 version: '2'
 services:
   nomyx:
-    image: cdupont2/nomyx
+    image: cdupont2/nomyx:V1.0.1
     cpu_shares: 100
     mem_limit: 2000000000
     ports:
       - "8000:8000"
       - "8001:8001"
-    command: sh -c "./cleanLocks; stack exec --system-ghc -- Nomyx -h www.nomyx.net --noTTY --adminPass=XXX --saveDir=/data/nomyx"
+    command: sh -c "/opt/Nomyx/cleanLocks; stack exec --system-ghc -- nomyx-server -h www.nomyx.net --noTTY --watchdog=15 --adminPass= --saveDir=/data/nomyx -m --mailHost=smtp.gmail.com --mailLogin=nomyxthegame@gmail.com --mailPass=qwas3412 >> /data/nomyx/stdout.txt"
     volumes: 
       - /data/nomyx:/data/nomyx
