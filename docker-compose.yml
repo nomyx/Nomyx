@@ -7,6 +7,16 @@ services:
     ports:
       - "8000:8000"
       - "8001:8001"
-    command: sh -c "/opt/Nomyx/cleanLocks; stack exec --system-ghc -- nomyx-server -h www.nomyx.net --noTTY --watchdog=15 --adminPass= --saveDir=/data/nomyx -m --mailHost=smtp.gmail.com --mailLogin=nomyxthegame@gmail.com --mailPass=qwas3412 >> /data/nomyx/stdout.txt"
+    command: sh -c "/opt/Nomyx/cleanLocks; 
+       stack exec --system-ghc -- nomyx-server 
+          -h www.nomyx.net 
+          --noTTY 
+          --watchdog=15 
+          --adminPass= 
+          --saveDir=/data/nomyx 
+          --mailHost=smtp.gmail.com 
+          --mailLogin=nomyxthegame@gmail.com 
+          --mailPass=qwas3412 
+             >> /data/nomyx/stdout.txt"
     volumes: 
       - /data/nomyx:/data/nomyx
