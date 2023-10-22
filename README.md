@@ -4,13 +4,13 @@
 Nomyx
 =====
 
-A Nomic game in Haskell
+A (Nomic game)(https://en.wikipedia.org/wiki/Nomic) in Haskell
 
-Nomyx is a strange game where you have the right to change the rules in the middle of the game!
-In fact, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that could be changed!
-In this game, the player can enter new rules in a dedicated language, modify existing ones, thus changing completely the behaviour of the game!
+Nomyx is a strange game where you can change the rules of the game, while playing!
+In fact, changing the rules is the goal of the game. Changing a rule is considered as a move. Of course even that can be changed!
+In this game, the player can enter new rules in a dedicated language, modify existing ones, thus changing completely the behaviour of the game through time.
 
-The web site: www.nomyx.net
+More info on this [blog post](https://www.corentindupont.info/blog/posts/Programming/2014-09-23-first-Nomyx-tutorial.html)
 
 Installation
 ============
